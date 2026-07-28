@@ -2,36 +2,35 @@
 cd "$(dirname "$0")"
 
 echo "================================"
-echo "  Subiendo Ebony Manager a GitHub..."
+echo "  Subiendo Ebony Manager a GitHub"
 echo "================================"
+echo ""
 
-# Configurar git si no está configurado
-git config --global user.email "teofilohafeitz@gmail.com" 2>/dev/null || true
-git config --global user.name "Teofilo" 2>/dev/null || true
+# Pedir el token via dialogo de macOS
+TOKEN=$(osascript -e 'Tell application "System Events" to display dialog "Pega tu GitHub Personal Access Token:" default answer "" with hidden answer buttons {"Cancelar", "OK"} default button "OK"' -e 'text returned of result' 2>/dev/null)
 
-# Inicializar git
+if [ -z "$TOKEN" ]; then
+  echo "Cancelado."
+  exit 1
+fi
+
+# Configurar identidad git
+git config user.email "teofilohafeitz@gmail.com"
+git config user.name "Teofilo"
+
+# Inicializar y subir
 git init
 git branch -M main
-
-# Agregar todos los archivos (excepto los ignorados)
 git add -A
+git commit -m "feat: Ebony Manager v1.0 — Fase 1 Cotización" 2>/dev/null || git commit --allow-empty -m "feat: Ebony Manager v1.0"
 
-# Primer commit
-git commit -m "feat: Ebony Manager v1.0 — Fase 1 Cotización"
-
-# Conectar con GitHub
 git remote remove origin 2>/dev/null || true
-git remote add origin https://github.com/teofilohafeitz-eng/ebony-manager.git
+git remote add origin "https://teofilohafeitz-eng:${TOKEN}@github.com/teofilohafeitz-eng/ebony-manager.git"
 
-# Subir el código
-echo ""
-echo "Subiendo archivos a GitHub..."
-echo "(Te va a pedir tu usuario y contraseña de GitHub)"
-echo ""
 git push -u origin main
 
 echo ""
 echo "================================"
-echo "  ¡Listo! Código subido a GitHub"
+echo "  ✅ ¡Código subido a GitHub!"
 echo "================================"
 read -p "Presiona Enter para cerrar..."
