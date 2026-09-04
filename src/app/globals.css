@@ -50,6 +50,18 @@
      para no dejar un literal suelto. */
   --ebony-destructive: #dc2626;
 
+  /* Nuevos — descubiertos al traer las piezas de Atlas (badge.tsx tiene
+     variantes success/warning que Ebony no tenía token para). Elegidos
+     para mantener la misma templanza que el resto de la paleta (verde
+     bosque, no un verde saturado de Tailwind; naranja quemado, distinto
+     del dorado de marca para que "warning" nunca se confunda con
+     "énfasis"). Son mi propuesta, no una decisión de marca ya tomada —
+     ajustar si no calzan. */
+  --ebony-success: #4f7942;
+  --ebony-success-foreground: #faf7f2;
+  --ebony-warning: #b0651d;
+  --ebony-warning-foreground: #faf7f2;
+
   --radius: 0.75rem;
 }
 
@@ -78,6 +90,15 @@
    --radius es un valor inferido (coincide con el rounded-xl que ya usa
    .card) — no había una escala de radio explícita antes; confirmar cuando
    lleguen las piezas reales. Ver FOUNDATION.md.
+
+   Probado contra las 21 piezas reales de Atlas (ver FOUNDATION.md): el
+   radio se confirmó tal cual. Se agregaron acá tres cosas que ese primer
+   armado no tenía y las piezas sí necesitan: --success/--warning (badge.tsx
+   trae esas variantes), la escala --shadow-* (button/card/dialog/popover/
+   etc. usan shadow-sm/md/lg — quedaban resolviendo a los valores por
+   defecto de Tailwind sin pasar por ningún token propio de Ebony) y
+   --animate-fade-in/--animate-slide-in + sus @keyframes (dialog/sheet/
+   popover/dropdown-menu las usan para la transición de apertura).
    ============================================================================= */
 
 :root {
@@ -104,6 +125,11 @@
 
   --destructive: var(--ebony-destructive);
   --destructive-foreground: #ffffff;
+
+  --success: var(--ebony-success);
+  --success-foreground: var(--ebony-success-foreground);
+  --warning: var(--ebony-warning);
+  --warning-foreground: var(--ebony-warning-foreground);
 
   --border: var(--ebony-gray);
   --input: var(--ebony-gray);
@@ -134,6 +160,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -148,6 +178,46 @@
   --radius-md: calc(var(--radius) - 0.125rem);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.375rem);
+
+  /* Escala de sombra — las piezas usan shadow-sm/xs/md/lg (button, card,
+     input, dialog, popover, dropdown-menu, select, tabs, tooltip...).
+     Sin esto resolvían igual, pero contra los valores por defecto de
+     Tailwind, no contra un token que Ebony sea dueña de reasignar. Valores
+     iguales a los de Tailwind (neutros, sin teñir de marca) porque la
+     versión Vite tampoco tenía un color de sombra propio — es la misma
+     sombra de siempre, solo que ahora nombrada acá. */
+  --shadow-2xs: 0 1px rgb(0 0 0 / 0.05);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* Animaciones de apertura — dialog/sheet/popover/dropdown-menu las usan
+     (data-[state=open]:animate-fade-in / animate-slide-in). Copiadas tal
+     cual del @theme inline de Atlas; no dependen de ningún color. */
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-slide-in: slide-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 /* =============================================================================
