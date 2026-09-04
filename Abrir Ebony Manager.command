@@ -1,8 +1,8 @@
 #!/bin/bash
-cd "$(dirname "$0")/dist"
+cd "$(dirname "$0")"
 echo "================================"
 echo "  Ebony Manager — arrancando..."
-echo "  Abre: http://localhost:8080"
+echo "  Abre: http://localhost:3000"
 echo "================================"
-open http://localhost:8080
-python3 -m http.server 8080
+( sleep 2 && open http://localhost:3000 ) &
+npm run dev

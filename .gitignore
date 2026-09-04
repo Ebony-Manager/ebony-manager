@@ -1,6 +1,22 @@
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# dependencies
 node_modules/
-dist/
+
+# env
 .env
+.env*.local
 *.local
+
+# misc
 .DS_Store
-vite.config.js.timestamp*
+
+# legacy (Vite) artifacts, kept out even though the source under
+# _legacy/ itself is tracked
+_legacy/node_modules/
+_legacy/dist/
+_legacy/vite.config.js.timestamp*
