@@ -1,38 +1,57 @@
 # CLAUDE.md — Ebony Custom Woodwork App
 
+> **Fundación técnica actual:** Next.js App Router + React 19 + TypeScript
+> + Tailwind v4 + Supabase — ver [FOUNDATION.md](./FOUNDATION.md) para el
+> stack, la estructura de carpetas, cómo se conectan los tokens de tema y
+> cómo está preparado Supabase. La implementación anterior (Vite + React +
+> Google Sheets) quedó archivada sin tocar en `_legacy/` como referencia;
+> el resto de este archivo (abajo) sigue siendo la especificación de
+> producto — qué hace cada módulo, el catálogo de precios, las fases — no
+> el stack técnico.
+
 ## Project Overview
 
 **App Name:** Ebony Manager  
 **Company:** Ebony Custom Woodwork — empresa de ebanistería especializada en muebles custom made (melamina, MDF, pintura, y otros materiales). Principales productos: closets, cocinas, camas, muebles de TV, panelería, cielos rasos, entre otros.  
 **Primary Clients:** Diseñadoras de interiores y sus clientes finales.  
-**Stack:** React + Tailwind CSS, Google Sheets as backend, Google OAuth authentication, deployed on Vercel.  
+**Stack:** Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, Supabase como base de datos, Google OAuth authentication, deployed on Vercel. Ver FOUNDATION.md para el detalle.  
 **Languages:** Spanish (primary UI), English (secondary — bilingual support required throughout).  
 **Access:** Responsive design — must work equally well on desktop (office) and mobile (field installers).  
 **Users:** ~15–20 internal users. No role-based permissions for now — all authenticated users see all modules. Permissions system to be added in a future phase.  
-**Authentication:** Google OAuth (same Google account domain used for Sheets backend).
+**Authentication:** Google OAuth (same Google account domain used before for the Sheets backend). Hoy sigue siendo un token de Google Identity Services del lado del cliente, no Auth de Supabase — ver FOUNDATION.md §5.
 
 ---
 
 ## Architecture
 
-### Backend: Google Sheets
-- One master Google Spreadsheet per major data domain (see sheet list below).
-- All reads/writes via Google Sheets API v4 (service account or OAuth token).
-- Sheet names and column headers are treated as the source of truth — do not rename without updating the app.
+### Backend: Supabase
+- Base de datos en la nube (Postgres), no el SQLite local de Atlas ni el Google Sheets de la versión anterior — es una app multiusuario de empresa.
+- Cliente de browser y cliente de servidor separados (`src/lib/supabase/client.ts` / `server.ts`, patrón `@supabase/ssr`).
+- Sin proyecto conectado todavía (sin credenciales) — ver FOUNDATION.md §4 antes de asumir que hay tablas creadas.
+- La estructura de `Google Sheets Structure` más abajo describe el modelo de datos de la versión anterior — sigue siendo la referencia de negocio válida (columnas, catálogo de precios, reglas) para cuando cada módulo se reconstruya sobre tablas de Supabase; no asumas que existen como sheets.
 
-### Frontend: React + Tailwind CSS
-- Single Page Application (SPA).
-- Sidebar navigation with module tabs.
+### Frontend: Next.js App Router + TypeScript + Tailwind v4
+- Rutas reales por módulo (no una SPA con estado en memoria): `/cotizacion`, `/proyectos`, `/cronograma`, `/gastos`, `/dashboard`, protegidas por un layout de grupo `(app)`.
+- Sidebar navigation con ícono y label por módulo — colapsable en mobile.
 - Bilingual toggle (ES/EN) — all labels, buttons, and headings must have both language versions.
-- Color palette and brand: dark wood tones (#2C1A0E, #5C3A1E), warm whites (#FAF7F2), and gold accents (#C9A84C). Typography: clean sans-serif (Inter or similar).
+- Color palette and brand: dark wood tones (#2C1A0E, #5C3A1E), warm whites (#FAF7F2), and gold accents (#C9A84C). Typography: Inter (self-hosted vía `next/font/google`).
+- Piezas de interfaz compartidas (shadcn/ui sobre Radix, como en Atlas) todavía no se trajeron — hoy son las clases `.btn-primary`/`.card`/`.input`/etc. heredadas de la versión anterior. Los tokens ya están preparados para recibirlas (FOUNDATION.md §3).
 
 ### Deployment: Vercel
 - Environment variables stored in Vercel dashboard (never hardcoded).
-- Google Sheets API credentials stored as env vars.
+- Nombres de variable con prefijo `NEXT_PUBLIC_` para lo que se lee del cliente (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) — distinto de los antiguos `VITE_*`. Ver `.env.example`.
 
 ---
 
 ## Google Sheets Structure
+
+> Esto describe el modelo de datos de la versión anterior (Google Sheets).
+> El backend actual es Supabase (ver Architecture arriba) — no hay
+> spreadsheet ni tablas creadas todavía. Se conserva tal cual porque es la
+> referencia de negocio real (columnas, catálogo de precios, reglas de
+> cálculo): al reconstruir cada módulo sobre Supabase, esto es lo que hay
+> que modelar como tablas — no necesariamente 1:1, pero sí sin perder
+> ningún campo ni regla de acá.
 
 ### Sheet 1: `Proyectos`
 | Column | Description |
@@ -325,14 +344,14 @@ Return ONLY a valid JSON array. No preamble, no explanation, no markdown formatt
 - Components: PascalCase (`QuoteForm`, `ProjectCard`, `GanttRow`)
 - Hooks: camelCase with `use` prefix (`useProjects`, `useQuote`)
 - Sheet column references in code: match exactly the column headers in Google Sheets (Spanish, no spaces — use underscores)
-- Files: kebab-case (`quote-form.jsx`, `project-detail.jsx`)
+- Files: kebab-case (`quote-form.tsx`, `project-detail.tsx`)
 
 ---
 
 ## Important Notes for Claude (Cowork Agent)
 
-1. **Always read this file first** before making any changes.
-2. **Google Sheets is the database.** All data persistence goes through the Sheets API. No local state that isn't synced.
+1. **Always read this file first** before making any changes — and FOUNDATION.md for the technical foundation (stack, folder structure, tokens, Supabase setup).
+2. **Supabase is the database.** All data persistence goes through Supabase, not Google Sheets (that was the previous implementation, archived in `_legacy/`) and not local SQLite. No local state that isn't synced.
 3. **Phase 1 first.** Do not build Phase 2 or 3 modules until Phase 1 is complete and confirmed working.
 4. **Cotización module** depends on the `Precios_Referencia` sheet being populated. The master price structure will be shared separately — wait for it before building the quote item selector.
 5. **PDF generation** for quotes should use a library like `jsPDF` or `react-pdf`. Match Ebony's brand colors and include logo placeholder.
