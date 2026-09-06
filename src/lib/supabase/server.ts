@@ -1,16 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "@/types/database";
 
 /**
  * Supabase client for Server Components / Route Handlers / Server Actions.
- * Reads NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY — unset
- * until real project credentials are added (see FOUNDATION.md). Nothing
- * calls this yet; Cotización still reads Google Sheets from _legacy/.
+ * Reads NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY (set in
+ * .env.local locally, and in Vercel for the deployed app).
+ *
+ * The session cookies it reads are kept fresh by proxy.ts on every
+ * request; the `setAll` catch below is the documented no-op for the case
+ * where this client is used from a Server Component (which can't write
+ * cookies) rather than a Route Handler / Server Action.
  */
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -24,10 +29,9 @@ export async function createClient() {
               cookieStore.set(name, value, options);
             }
           } catch {
-            // Called from a Server Component with no request/response to
-            // write to — safe to ignore as long as middleware refreshes
-            // the session (not set up yet: no auth runs through Supabase
-            // in this step).
+            // Called from a Server Component with no response to write to.
+            // Safe to ignore: proxy.ts refreshes the session cookies on
+            // every request.
           }
         },
       },
