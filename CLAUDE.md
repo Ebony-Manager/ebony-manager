@@ -17,8 +17,8 @@
 **Stack:** Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, Supabase como base de datos, Google OAuth authentication, deployed on Vercel. Ver FOUNDATION.md para el detalle.  
 **Languages:** Spanish (primary UI), English (secondary — bilingual support required throughout).  
 **Access:** Responsive design — must work equally well on desktop (office) and mobile (field installers).  
-**Users:** ~15–20 internal users. No role-based permissions for now — all authenticated users see all modules. Permissions system to be added in a future phase.  
-**Authentication:** Google OAuth (same Google account domain used before for the Sheets backend). Hoy sigue siendo un token de Google Identity Services del lado del cliente, no Auth de Supabase — ver FOUNDATION.md §5.
+**Users:** ~15–20 internal users. Acceso por allow-list de correos (`public.allowed_emails`). Roles: `admin` y `vendedor` (columna `role` en `public.profiles`); en Fase 1 ambos ven todos los módulos, la separación fina de permisos por rol se afina después.  
+**Authentication:** Supabase Auth con Google como proveedor — sesión en cookies, verificada en el servidor (`proxy.ts` + DAL + gate en `(app)/layout.tsx`). Login solo con Google en Fase 1; email/contraseña más adelante. Ver FOUNDATION.md §5.
 
 ---
 

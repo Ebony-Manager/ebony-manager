@@ -6,7 +6,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 
 export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const { lang, toggle } = useLang();
 
   return (
@@ -46,8 +46,13 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
               </div>
             )}
             <span className="text-ebony-gray text-xs hidden sm:block max-w-[120px] truncate">{user.name}</span>
+            {role && (
+              <span className="hidden sm:block text-[10px] uppercase tracking-wide text-ebony-gold/70 border border-ebony-gold/30 rounded px-1.5 py-0.5">
+                {role}
+              </span>
+            )}
             <button
-              onClick={signOut}
+              onClick={() => void signOut()}
               title={t(lang, strings.auth.signOut)}
               className="text-ebony-gray/60 hover:text-ebony-gold transition-colors p-1"
             >

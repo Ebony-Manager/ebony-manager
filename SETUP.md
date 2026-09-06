@@ -21,47 +21,53 @@ O doble clic en `Abrir Ebony Manager.command`.
 
 ### 2. Configurar Google OAuth (login)
 
-El login sigue siendo Google Identity Services del lado del cliente — sin
-sesión de servidor todavía (ver FOUNDATION.md §5).
+El login es **Supabase Auth con Google** (sesión en cookies, verificada en
+el servidor — ver FOUNDATION.md §5).
 
-1. Ve a [Google Cloud Console](https://console.cloud.google.com/).
-2. Usa el proyecto existente de Ebony (o crea uno).
-3. En **APIs & Services → Credentials**, el OAuth client ID ya configurado
-   sigue sirviendo — solo confirma que **Authorized JavaScript origins**
-   incluye `http://localhost:3000` y la URL de producción.
-4. Copia el **Client ID**.
+1. En [Google Cloud Console](https://console.cloud.google.com/) → **APIs &
+   Services → Credentials**, en el OAuth client de Ebony:
+   - **Authorized JavaScript origins**: `http://localhost:3001` y
+     `https://ebony-manager.vercel.app`.
+   - **Authorized redirect URIs**: `https://jdfkfbopecqvvyxherku.supabase.co/auth/v1/callback`.
+2. Copia el **Client ID** y el **Client Secret**.
+3. En el dashboard de Supabase → **Auth → Providers → Google**: habilítalo
+   y pega Client ID + Secret. (El secret vive en Supabase, no en el repo.)
+4. En **Auth → URL Configuration**:
+   - Site URL: `https://ebony-manager.vercel.app`
+   - Redirect URLs: `https://ebony-manager.vercel.app/**`, `http://localhost:3001/**`
 
 ---
 
 ### 3. Configurar Supabase (base de datos)
 
-No hay proyecto conectado todavía — esto es lo que falta para que
-`src/lib/supabase/` deje de estar vacío de credenciales:
+Proyecto conectado: **Ebony**, ref `jdfkfbopecqvvyxherku`.
 
-1. Crea un proyecto en [supabase.com](https://supabase.com) (o usa uno
-   existente).
-2. En **Project Settings → API**, copia la **Project URL** y la
-   **anon public key**.
-3. El esquema de tablas todavía no existe — la sección "Google Sheets
-   Structure" de `CLAUDE.md` es la referencia de negocio (columnas,
-   catálogo de precios) para diseñarlo cuando se reconstruya cada módulo.
+1. **Project Settings → API**: la **Project URL** y la **anon public key**
+   son las que van en las variables de entorno (paso 4). La `service_role`
+   **no se usa** — no la pongas en ningún lado.
+2. Esquema: está versionado en `supabase/migrations/`. Se aplica al
+   proyecto remoto vía el MCP de Supabase o pegándolo en el SQL editor
+   (no hay CLI local enlazada — ver `supabase/README.md`).
+3. Acceso: `public.allowed_emails` es la allow-list de correos. Ya está
+   sembrado un admin (`teofilohafeitz@gmail.com`); agrega al resto del
+   equipo insertando ahí una vez dentro de la app.
 
 ---
 
 ### 4. Variables de entorno
 
-Crea un archivo `.env.local` en la raíz del proyecto (o configúralas en
-Vercel) — ver `.env.example`:
+Crea `.env.local` en la raíz (o configúralas en Vercel) — ver
+`.env.example`:
 
 ```env
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=tu_client_id.apps.googleusercontent.com
-NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://jdfkfbopecqvvyxherku.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
 ```
 
-En Vercel: Project Settings → Environment Variables. Los nombres cambiaron
-de prefijo (`VITE_*` → `NEXT_PUBLIC_*`) al migrar de Vite a Next — hay que
-agregarlos con el nombre nuevo, no reusar los viejos.
+En Vercel: Project Settings → Environment Variables, en Production, Preview
+y Development. Ambas son públicas (la anon key solo puede lo que RLS
+permite). Ya no hace falta ninguna variable de Google en el cliente: el
+login se configura entero en el dashboard de Supabase.
 
 ---
 

@@ -24,10 +24,16 @@ los tokens de Ebony, repo en GitHub (SSH, sin secretos), publicada en Vercel
 
 **Objetivo:** Ebony funcional, no solo visual.
 
-- [ ] Proyecto Supabase creado
-- [ ] Credenciales conectadas en Vercel (`NEXT_PUBLIC_SUPABASE_URL`, `ANON_KEY`, `GOOGLE_CLIENT_ID`)
-- [ ] Login funcionando
-- [ ] Row-Level Security activado en las tablas
+Decisión tomada: se migró a **Supabase Auth con Google** (server-side, sesión
+en cookies). Login solo con Google en Fase 1; email/contraseña queda para
+después. Roles: `admin` y `vendedor`. Acceso por allow-list de correos.
+
+- [x] Proyecto Supabase creado (ref `jdfkfbopecqvvyxherku`)
+- [x] Migración de esquema + RLS versionada y aplicada (`supabase/migrations/20260906170000_fase1_auth_rls.sql`)
+- [x] Row-Level Security activado en todas las tablas (`profiles`, `allowed_emails`); `anon` sin acceso; `get_advisors` limpio
+- [x] Código de login/sesión: `signInWithOAuth` de Google, `/auth/callback`, `proxy.ts` de refresco de sesión, gate server-side en `(app)/layout.tsx`, `signOut` real
+- [ ] **(tuyo)** Google habilitado en Supabase (Auth → Providers → Google) con Client ID + Secret, y URLs de redirect (`localhost:3001`, `ebony-manager.vercel.app`)
+- [ ] **(tuyo)** `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Vercel (Production/Preview/Development) + redeploy
 - [ ] Confirmado: se entra a la app publicada
 
 **Nota de seguridad:** RLS obligatorio, auth forzada en servidor, solo clave

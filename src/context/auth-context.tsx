@@ -1,31 +1,23 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import type { AppRole } from "@/lib/auth/dal";
 
-// Minimal shape of the Google Identity Services (GIS) global this file
-// needs — the real type comes from Google's own script, loaded at runtime
-// via next/script in the root layout, so there's no npm package to type
-// against.
-interface GoogleTokenClient {
-  requestAccessToken: () => void;
-}
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: {
-            client_id: string;
-            scope: string;
-            callback: (response: { access_token?: string; error?: string }) => void;
-          }) => GoogleTokenClient;
-          revoke: (token: string) => void;
-        };
-      };
-    };
-  }
-}
-
+// Shape the app UI (Navbar, Login) consumes. Derived from the Supabase
+// user + profile — kept small on purpose so components don't reach into
+// Supabase types directly.
 export interface EbonyUser {
   name: string;
   email: string;
@@ -34,115 +26,109 @@ export interface EbonyUser {
 
 interface AuthContextValue {
   user: EbonyUser | null;
-  token: string | null;
+  role: AppRole | null;
   loading: boolean;
-  signIn: () => void;
-  signOut: () => void;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+function toEbonyUser(user: User | null, seed?: EbonyUser | null): EbonyUser | null {
+  if (!user) return null;
+  const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
+  return {
+    name: seed?.name || meta.full_name || meta.name || user.email || "Usuario",
+    email: seed?.email || user.email || "",
+    picture: seed?.picture || meta.avatar_url || meta.picture || undefined,
+  };
+}
 
-// Scope needed today: read/write Sheets (Cotización, still on _legacy).
-// Once other modules move to Supabase, this app will likely want real
-// Supabase Auth instead of a Sheets-scoped token — not decided yet, see
-// FOUNDATION.md.
-const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
+/**
+ * Seeded from the server: the root layout passes the current user + role
+ * (or nulls). After that, a Supabase `onAuthStateChange` subscription keeps
+ * it honest — sign-out in another tab, token refreshes, etc. The sign-in
+ * path itself is a full-page round trip through /auth/callback, so it does
+ * not depend on this listener.
+ */
+export function AuthProvider({
+  children,
+  initialUser = null,
+  initialRole = null,
+}: {
+  children: ReactNode;
+  initialUser?: EbonyUser | null;
+  initialRole?: AppRole | null;
+}) {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
-const USER_KEY = "ebony_user";
-const TOKEN_KEY = "ebony_token";
+  const [user, setUser] = useState<EbonyUser | null>(initialUser);
+  const [role, setRole] = useState<AppRole | null>(initialRole);
+  const [loading, setLoading] = useState(false);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<EbonyUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tokenClient, setTokenClient] = useState<GoogleTokenClient | null>(null);
-
-  /* eslint-disable react-hooks/set-state-in-effect -- must run post-hydration, not during render, because it reads browser-only sessionStorage (same pattern as Atlas's readStoredColumns). */
+  // Re-sync when the server sends fresh props (e.g. after router.refresh()).
+  const seedRef = useRef(initialUser);
+  /* eslint-disable react-hooks/set-state-in-effect -- syncing to new server props, not deriving during render. */
   useEffect(() => {
-    const savedUser = window.sessionStorage.getItem(USER_KEY);
-    const savedToken = window.sessionStorage.getItem(TOKEN_KEY);
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setToken(savedToken);
-    }
-    setLoading(false);
-  }, []);
+    seedRef.current = initialUser;
+    setUser(initialUser);
+    setRole(initialRole);
+  }, [initialUser, initialRole]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Initialize the GIS token client once window.google is available. The
-  // script (accounts.google.com/gsi/client) loads via next/script with
-  // strategy="afterInteractive", which can resolve after this effect's
-  // first run — the old Vite version only checked once on mount and
-  // relied on the <script async defer> tag happening to win the race.
-  // Polling briefly here is a deliberate reliability fix during the port,
-  // not a behavior change: sign-in still does exactly the same thing once
-  // the client is ready, it just no longer depends on script-load timing.
   useEffect(() => {
-    if (!CLIENT_ID) return;
-
-    let cancelled = false;
-    let attempts = 0;
-
-    function tryInit() {
-      if (cancelled) return;
-      if (typeof window.google === "undefined") {
-        attempts += 1;
-        if (attempts < 50) setTimeout(tryInit, 100); // ~5s ceiling
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setRole(null);
+        router.replace("/login");
         return;
       }
-      const tc = window.google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID as string,
-        scope: SCOPES,
-        callback: (response) => {
-          if (response.error || !response.access_token) {
-            console.error("OAuth error", response);
-            return;
-          }
-          const accessToken = response.access_token;
-          setToken(accessToken);
-          window.sessionStorage.setItem(TOKEN_KEY, accessToken);
+      if (session?.user) {
+        setUser(toEbonyUser(session.user, seedRef.current));
+        // Role is authoritative from the server — refresh so the (app)
+        // layout re-reads the profile and re-seeds it through props.
+        if (event === "SIGNED_IN") router.refresh();
+      }
+    });
 
-          fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          })
-            .then((r) => r.json())
-            .then((info) => {
-              const u: EbonyUser = { name: info.name, email: info.email, picture: info.picture };
-              setUser(u);
-              window.sessionStorage.setItem(USER_KEY, JSON.stringify(u));
-            });
-        },
-      });
-      setTokenClient(tc);
+    return () => subscription.unsubscribe();
+  }, [supabase, router]);
+
+  const signInWithGoogle = useCallback(async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/cotizacion`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) {
+      setLoading(false);
+      console.error("Google sign-in error", error);
+      alert("No se pudo iniciar el acceso con Google. Intenta de nuevo.");
     }
+    // On success the browser navigates away to Google — nothing else here.
+  }, [supabase]);
 
-    tryInit();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const signIn = useCallback(() => {
-    if (!tokenClient) {
-      alert("Google Identity Services no está listo. Verifica NEXT_PUBLIC_GOOGLE_CLIENT_ID.");
-      return;
-    }
-    tokenClient.requestAccessToken();
-  }, [tokenClient]);
-
-  const signOut = useCallback(() => {
-    if (token) window.google?.accounts.oauth2.revoke(token);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    setToken(null);
-    window.sessionStorage.removeItem(USER_KEY);
-    window.sessionStorage.removeItem(TOKEN_KEY);
-  }, [token]);
+    setRole(null);
+    router.replace("/login");
+    router.refresh();
+  }, [supabase, router]);
 
-  return (
-    <AuthContext.Provider value={{ user, token, loading, signIn, signOut }}>{children}</AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, role, loading, signInWithGoogle, signOut }),
+    [user, role, loading, signInWithGoogle, signOut]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

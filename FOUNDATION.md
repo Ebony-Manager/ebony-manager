@@ -7,9 +7,10 @@ arrancar otras apps con los mismos parámetros. Cada sección separa qué es
 **reutilizable tal cual** en cualquier app nueva de qué es **específico de
 Ebony** — esa es la línea que el futuro skill va a necesitar trazar.
 
-Última actualización: se trajeron las 21 piezas de interfaz de Atlas
-(`src/components/ui/`) y se probó el contrato de tokens contra ellas — ver
-secciones 3 y 8. Cotización sigue sin reconstruir.
+Última actualización: Fase 1 — Supabase Auth con Google (server-side),
+`proxy.ts` de sesión, DAL, y esquema + RLS versionado en
+`supabase/migrations/`. Ver secciones 4 y 5. Cotización sigue sin
+reconstruir.
 
 ---
 
@@ -93,38 +94,74 @@ Atlas), se agregó al contrato en vez de tocar la pieza. Ver sección 8.
 de carga distinto. `--font-sans` en `@theme inline` apunta a la variable
 que genera `next/font`.
 
-## 4. Supabase (mecanismo reutilizable, sin credenciales todavía)
+## 4. Supabase (mecanismo reutilizable — conectado en Fase 1)
 
-Dos clientes, patrón estándar de `@supabase/ssr` para App Router:
+Dos clientes, patrón estándar de `@supabase/ssr` para App Router, ambos
+tipados con `Database` de `src/types/database.ts`:
 - `src/lib/supabase/client.ts` — `createBrowserClient()`, para Client Components.
 - `src/lib/supabase/server.ts` — `createServerClient()` async con manejo de cookies, para Server Components/Route Handlers/Server Actions.
+- `src/lib/supabase/proxy.ts` — `updateSession()`, refresca las cookies de sesión en cada request; lo llama `src/proxy.ts`.
 
-Ambos leen `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` de
-variables de entorno — **sin valores todavía** (decisión explícita: no se
-creó proyecto de Supabase en este paso). Nada en la app los invoca hoy.
-Cuando haya proyecto real:
-1. Completar `.env.local` con las credenciales.
-2. El primer consumidor real va a necesitar decidir el modelo de auth —
-   hoy Ebony loguea con un token de Google Identity Services scopeado
-   solo a Sheets (ver sección 5), no con sesión de Supabase. Pasar a Auth
-   real de Supabase (Google como proveedor, como en Coronado) es una
-   decisión aparte, todavía no tomada.
-3. Generar tipos (`supabase gen types typescript`) hacia `src/types/`.
+Ambos leen `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+Proyecto real conectado en Fase 1 (ref `jdfkfbopecqvvyxherku`). La
+`service_role` **no se usa nunca** desde la app: todo lo privilegiado pasa
+por RLS + funciones `SECURITY DEFINER` en el esquema `private`.
 
-## 5. Auth (específico de Ebony, con una nota reutilizable)
+Tipos: se generan con `supabase gen types typescript --project-id <ref>`
+(o el MCP de Supabase) hacia `src/types/database.ts` — regenerar tras cada
+migración.
 
-Se preservó el mecanismo actual: Google Identity Services (token client)
-+ el token guardado en `sessionStorage`, sin sesión de servidor. Es
-puramente client-side, por eso la protección de rutas también lo es (el
-`layout.tsx` de `(app)/` redirige a `/login` en un efecto, no hay
-middleware de servidor protegiendo nada). Esto es una limitación conocida,
-no un descuido: no hay cookie de sesión que un middleware pueda leer hasta
-que exista una capa de auth real (Supabase Auth u otra).
+**Reutilizable vs. Ebony:** los tres archivos de `src/lib/supabase/` y
+`src/proxy.ts` son reutilizables tal cual. El `project ref`, la URL y el
+esquema (`src/types/database.ts`, `supabase/migrations/`) son de Ebony.
 
-**Nota reutilizable:** el patrón de "route group `(app)` + gate client-side
-en su layout" sirve igual el día que la auth pase a ser server-side —
-solo cambia CÓMO se decide `!user` (de `useAuth()` a una sesión leída en
-el servidor), no la forma de la protección.
+**Next 16:** el convenio `middleware.ts` se renombró a `proxy.ts` (mismo
+mecanismo, runtime Node.js). Con `app` en `src/`, el archivo va en
+`src/proxy.ts`, no en la raíz del repo.
+
+## 5. Auth (Supabase Auth con Google — server-side)
+
+Decisión de Fase 1: se reemplazó el token client-side de Google Identity
+Services por **Supabase Auth con Google como proveedor**, sesión en
+cookies, verificada en el servidor. Login solo con Google en Fase 1
+(email/contraseña más adelante).
+
+Piezas:
+- `src/proxy.ts` → `updateSession()`: refresca la sesión en cada request y
+  hace un redirect **optimista** a `/login` si no hay usuario. No es la
+  única defensa.
+- `src/lib/auth/dal.ts`: Data Access Layer con `React.cache` —
+  `getUser()`/`requireUser()`/`getProfile()`/`requireAdmin()`. Usa
+  `getUser()` (verifica el token contra el servidor de Auth), no
+  `getSession()`.
+- `src/app/(app)/layout.tsx`: Server Component que llama `requireProfile()`
+  — este es el gate autoritativo.
+- `src/app/auth/callback/route.ts`: intercambia el `code` de OAuth por
+  sesión. Falla → `/auth/auth-code-error`.
+- `src/context/auth-context.tsx`: reescrito sobre Supabase. Se siembra
+  desde el servidor (el root layout pasa `initialUser`/`initialRole`) y se
+  mantiene con `onAuthStateChange` (sign-out en otra pestaña, refresh de
+  token). El sign-in es un round trip completo por `/auth/callback`, no
+  depende del listener.
+
+Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
+- `public.profiles` — una fila por usuario, `role` ∈ {`admin`, `vendedor`}.
+- `public.allowed_emails` — allow-list. El trigger `on_auth_user_created`
+  rechaza en el signup a cualquier cuenta de Google que no esté en la
+  lista (se hace rollback del insert en `auth.users`, no queda usuario
+  huérfano).
+- RLS en ambas tablas; `anon` sin acceso. `vendedor` ve solo su propio
+  perfil; `admin` ve/edita todo y es el único que toca `allowed_emails` o
+  cambia el rol de otro perfil. Un trigger impide que un no-admin se
+  auto-escale el rol.
+- Las funciones helper/trigger viven en el esquema `private` (no expuesto
+  por PostgREST). `get_advisors` (security) queda limpio.
+
+**Nota reutilizable:** el patrón "route group `(app)` + gate en su layout"
+se mantuvo; lo que cambió es que el gate ahora es server-side
+(`requireProfile()` en un Server Component) en vez de un efecto con
+`useAuth()`. La forma de la protección es la misma; el skill de fundación
+debe capturar esta versión, no la client-side.
 
 ## 6. Qué quedó fuera de este paso (a propósito)
 
@@ -135,7 +172,7 @@ el servidor), no la forma de la protección.
   piezas de `ui/` disponibles. `_legacy/` conserva su propio
   `package.json`/`.env.example` para poder correrse de forma
   independiente como referencia si hace falta.
-- **Auth real de Supabase:** ver sección 5.
+- **Auth real de Supabase:** quedó fuera de Fase 0; se hizo en Fase 1 — ver sección 5.
 - **Módulo de negocio alguno:** este paso trajo piezas, no construyó
   pantallas. `/style-check` es la única ruta nueva y es desechable.
 - **Modo oscuro:** ver sección 8 — Ebony nunca tuvo paleta oscura, ni en
