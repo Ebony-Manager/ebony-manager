@@ -3,14 +3,26 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import type { PayrollEmployee } from "@/types/planilla";
+import { currentPeriod } from "@/lib/planilla/payroll-period";
+import { periodFromDateString } from "@/lib/planilla/payroll-accruals";
+import { insertInitialSalaryChange, recomputeCurrentSalary } from "@/services/payroll-salary";
 
 /**
  * Capa de datos de empleados de planilla — portada de Atlas
  * `src/services/employees.ts`, de SQLite síncrono a Supabase async.
  * La tabla es `payroll_employees` (RLS solo-admin); sin `propertyId`
- * (Ebony es una sola empresa). El "activar/desactivar" y la liquidación
- * pasan por `updatePayrollEmployee` (patch de `status` / `endDate` /
- * `liquidationNotes`), como en Atlas.
+ * (Ebony es una sola empresa).
+ *
+ * SUELDO: `base_salary_cents` / `benefits_base_salary_cents` son solo un
+ * REFLEJO del sueldo vigente hoy, recalculado desde
+ * `payroll_salary_changes` (ver `payroll-salary.ts`). Ningún formulario
+ * los edita: al crear un empleado se inserta su primera fila de
+ * historial, y los aumentos se registran aparte.
+ *
+ * El "activar/desactivar" y la liquidación pasan por
+ * `updatePayrollEmployee` (patch de `status` / `endDate` /
+ * `liquidationNotes`), como en Atlas. `deletePayrollEmployee` borra al
+ * empleado y toda su historia por cascada.
  */
 
 type Row = Database["public"]["Tables"]["payroll_employees"]["Row"];
@@ -36,9 +48,7 @@ function mapEmployee(r: Row): PayrollEmployee {
   };
 }
 
-/** Activos primero, luego por `sort_order`, luego por nombre — igual que
- *  Atlas ('ACTIVE' < 'INACTIVE' alfabéticamente, así ascendente pone los
- *  activos arriba). */
+/** Activos primero, luego por `sort_order`, luego por nombre. */
 export async function getPayrollEmployees(): Promise<PayrollEmployee[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -62,6 +72,10 @@ export interface CreatePayrollEmployeeInput {
   name: string;
   position?: string | null;
   startDate?: string | null;
+  /** Sueldo mensual inicial. Se guarda como la primera fila del
+   *  historial (vigente desde la quincena de `startDate`, o la quincena
+   *  actual si no hay fecha de ingreso). NO se vuelve a editar por
+   *  formulario: los cambios son aumentos registrados aparte. */
   baseSalaryCents?: number;
   benefitsBaseSalaryCents?: number | null;
   notes?: string | null;
@@ -89,6 +103,7 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       name: input.name,
       position: input.position ?? null,
       start_date: input.startDate ?? null,
+      // Reflejo inicial; recompute lo confirma abajo desde el historial.
       base_salary_cents: input.baseSalaryCents ?? 0,
       benefits_base_salary_cents: input.benefitsBaseSalaryCents ?? null,
       notes: input.notes ?? null,
@@ -102,7 +117,25 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
     .select("*")
     .single();
   if (error) throw new Error(error.message);
-  return mapEmployee(data);
+
+  // Primera fila del historial de sueldos — vigente desde el ingreso.
+  const eff = (input.startDate ? periodFromDateString(input.startDate) : null) ?? currentPeriod();
+  await insertInitialSalaryChange({
+    employeeId: data.id,
+    monthlySalaryCents: input.baseSalaryCents ?? 0,
+    benefitsBaseSalaryCents: input.benefitsBaseSalaryCents ?? null,
+    effectiveYear: eff.year,
+    effectiveMonth: eff.month,
+    effectiveHalf: eff.half,
+    notes: null,
+  });
+  await recomputeCurrentSalary(data.id);
+
+  return mapEmployee({
+    ...data,
+    base_salary_cents: input.baseSalaryCents ?? 0,
+    benefits_base_salary_cents: input.benefitsBaseSalaryCents ?? null,
+  });
 }
 
 export interface UpdatePayrollEmployeeInput {
@@ -113,20 +146,18 @@ export interface UpdatePayrollEmployeeInput {
   endDate?: string | null;
   status?: "ACTIVE" | "INACTIVE";
   liquidationNotes?: string | null;
-  baseSalaryCents?: number;
-  benefitsBaseSalaryCents?: number | null;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
+  // NOTA: sin baseSalaryCents / benefitsBaseSalaryCents a propósito. El
+  // sueldo solo se cambia registrando un aumento en payroll_salary_changes.
 }
 
-/** Solo escribe las columnas presentes en `input` (una key `undefined`
- *  se deja como está — misma semántica de merge que Atlas, expresada
- *  como patch parcial en vez de leer-y-reescribir toda la fila). El
- *  trigger `payroll_employees_touch_updated_at` mantiene `updated_at`. */
+/** Patch parcial (una key `undefined` se deja como está). El trigger
+ *  `payroll_employees_touch_updated_at` mantiene `updated_at`. */
 export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmployeeInput): Promise<void> {
   const patch: Database["public"]["Tables"]["payroll_employees"]["Update"] = {};
   if (input.name !== undefined) patch.name = input.name.trim();
@@ -135,8 +166,6 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.status !== undefined) patch.status = input.status;
   if (input.liquidationNotes !== undefined) patch.liquidation_notes = input.liquidationNotes;
-  if (input.baseSalaryCents !== undefined) patch.base_salary_cents = input.baseSalaryCents;
-  if (input.benefitsBaseSalaryCents !== undefined) patch.benefits_base_salary_cents = input.benefitsBaseSalaryCents;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.idDocument !== undefined) patch.id_document = input.idDocument;
@@ -148,5 +177,15 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
 
   const supabase = await createClient();
   const { error } = await supabase.from("payroll_employees").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Borra por completo al empleado. Por el `on delete cascade` de las 4
+ *  tablas hijas, esto elimina también sus payroll_entries,
+ *  payroll_ledger_entries, payroll_loans y payroll_salary_changes.
+ *  Irreversible — la UI pide confirmación explícita antes de llamar. */
+export async function deletePayrollEmployee(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_employees").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }

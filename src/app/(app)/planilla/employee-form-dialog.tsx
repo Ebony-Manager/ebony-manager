@@ -22,14 +22,14 @@ import { t, strings } from "@/lib/i18n";
 import { createEmployeeAction, updateEmployeeAction } from "./actions";
 
 /**
- * Alta y edición de un empleado de planilla en un solo diálogo
- * (Atlas los tenía separados en "Agregar empleado" y el editor del
- * perfil; se unifican porque los campos son los mismos). Sin
- * react-hook-form/zod para no sumar dependencias: inputs controlados
- * con `useState` y una única validación (nombre obligatorio).
+ * Alta y edición de un empleado de planilla en un solo diálogo. Inputs
+ * controlados con `useState`, sin react-hook-form/zod.
  *
- * NO toca `status`/`endDate`/liquidación — terminar el empleo tiene su
- * propio flujo (LiquidationDialog), que llega en la Tanda B2.
+ * SUELDO: los campos de sueldo solo aparecen al DAR DE ALTA (se guardan
+ * como la primera fila del historial). En modo edición NO se pueden
+ * tocar — el sueldo solo cambia registrando un aumento en la sección
+ * "Sueldo / Aumentos" del perfil. Tampoco toca `status`/`endDate`/
+ * liquidación (flujo propio en el perfil).
  */
 
 interface FormState {
@@ -122,12 +122,10 @@ export function EmployeeFormDialog({
     setSubmitting(true);
     setError(null);
     try {
-      const payload = {
+      const common = {
         name: form.name.trim(),
         position: form.position.trim() || null,
         startDate: form.startDate || null,
-        baseSalaryCents: toCents(form.baseSalary),
-        benefitsBaseSalaryCents: form.benefitsBaseSalary.trim() ? toCents(form.benefitsBaseSalary) : null,
         phone: form.phone.trim() || null,
         idDocument: form.idDocument.trim() || null,
         emergencyContactName: form.emergencyContactName.trim() || null,
@@ -136,9 +134,13 @@ export function EmployeeFormDialog({
         notes: form.notes.trim() || null,
       };
       if (mode === "edit" && employee) {
-        await updateEmployeeAction(employee.id, payload);
+        await updateEmployeeAction(employee.id, common);
       } else {
-        await createEmployeeAction(payload);
+        await createEmployeeAction({
+          ...common,
+          baseSalaryCents: toCents(form.baseSalary),
+          benefitsBaseSalaryCents: form.benefitsBaseSalary.trim() ? toCents(form.benefitsBaseSalary) : null,
+        });
       }
       toast.success(t(lang, mode === "edit" ? strings.planilla.action_save : strings.planilla.action_add));
       onOpenChange(false);
@@ -186,26 +188,32 @@ export function EmployeeFormDialog({
             <Field label={tt("f_start_date")}>
               <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
             </Field>
-            <Field label={tt("f_base_salary")}>
-              <Input
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                value={form.baseSalary}
-                onChange={(e) => set("baseSalary", e.target.value)}
-                placeholder="0.00"
-              />
-            </Field>
-            <Field label={tt("f_benefits_salary")}>
-              <Input
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                value={form.benefitsBaseSalary}
-                onChange={(e) => set("benefitsBaseSalary", e.target.value)}
-                placeholder={tt("f_benefits_hint")}
-              />
-            </Field>
+            {mode === "add" ? (
+              <>
+                <Field label={tt("f_base_salary")}>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={form.baseSalary}
+                    onChange={(e) => set("baseSalary", e.target.value)}
+                    placeholder="0.00"
+                  />
+                </Field>
+                <Field label={tt("f_benefits_salary")}>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={form.benefitsBaseSalary}
+                    onChange={(e) => set("benefitsBaseSalary", e.target.value)}
+                    placeholder={tt("f_benefits_hint")}
+                  />
+                </Field>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground sm:col-span-2">{tt("salary_edit_note")}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
