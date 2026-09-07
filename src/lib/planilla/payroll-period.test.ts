@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MONTHS_ES, nextPeriod, periodKey, periodOrdinal, previousPeriod } from "./payroll-period";
+import { MONTHS_ES, monthLabel, nextPeriod, periodKey, periodOrdinal, previousPeriod } from "./payroll-period";
 
 // Portado de Atlas (Life OS) src/lib/home/payroll-period.test.ts, más
 // casos para nextPeriod/periodOrdinal que en Atlas vivían implícitos en
@@ -17,6 +17,15 @@ describe("MONTHS_ES", () => {
     expect(MONTHS_ES).toHaveLength(12);
     expect(MONTHS_ES[0]).toBe("Enero");
     expect(MONTHS_ES[11]).toBe("Diciembre");
+  });
+});
+
+describe("monthLabel", () => {
+  it("da el mes en el idioma pedido (1-indexado)", () => {
+    expect(monthLabel("es", 1)).toBe("Enero");
+    expect(monthLabel("en", 1)).toBe("January");
+    expect(monthLabel("es", 12)).toBe("Diciembre");
+    expect(monthLabel("en", 12)).toBe("December");
   });
 });
 

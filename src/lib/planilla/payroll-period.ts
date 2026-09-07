@@ -24,6 +24,28 @@ export const MONTHS_ES = [
   "Diciembre",
 ] as const;
 
+export const MONTHS_EN = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** Nombre del mes (1-12) en el idioma dado. Pequeña extensión sobre el
+ *  port de Atlas para que las pantallas puedan ser bilingües sin acoplar
+ *  este archivo al módulo de i18n. */
+export function monthLabel(lang: "es" | "en", month1to12: number): string {
+  return (lang === "en" ? MONTHS_EN : MONTHS_ES)[month1to12 - 1] ?? "";
+}
+
 /** "month-half" — la clave donde un período necesita direccionar una
  *  sola celda de un mapa (columnas de Resumen Anual, "duplicar
  *  quincena anterior"). */
