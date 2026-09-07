@@ -13,7 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { currentPeriod, nextPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
+import { currentPeriod, nextPeriod, formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
 import { PAYROLL_CATEGORY, type PayrollCategoryKey } from "@/lib/planilla/payroll-colors";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -77,14 +77,21 @@ export function RegistroView({
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [period, setPeriod] = React.useState(() => currentPeriod());
-  const [rows, setRows] = React.useState<Row[] | null>(null);
+  // `rows` recuerda A QUÉ quincena pertenecen los datos. Si `period` ya
+  // cambió pero el fetch nuevo todavía no volvió, `rows.period` no
+  // coincide con `period` y NO se pinta ninguna fila (ver `visibleRows`):
+  // los inputs de cantidad son no-controlados, así que montarlos con
+  // datos de otra quincena dejaría la cantidad "pegada" de la anterior y
+  // un onBlur la persistiría en la quincena equivocada.
+  const [rows, setRows] = React.useState<{ period: Period; data: Row[] } | null>(null);
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
 
   const load = React.useCallback(() => {
+    const fetchedFor = period;
     startTransition(async () => {
-      const data = await getRegistroAction(period.year, period.month, period.half);
-      setRows(data);
+      const data = await getRegistroAction(fetchedFor.year, fetchedFor.month, fetchedFor.half);
+      setRows({ period: fetchedFor, data });
     });
   }, [period]);
 
@@ -92,6 +99,16 @@ export function RegistroView({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.year, period.month, period.half]);
+
+  const samePeriod = (a: Period, b: Period) =>
+    a.year === b.year && a.month === b.month && a.half === b.half;
+  // Filas que se pintan: solo si los datos cargados son de la quincena
+  // seleccionada ahora mismo. Mientras no coincidan -> null -> "cargando".
+  const visibleRows = rows && samePeriod(rows.period, period) ? rows.data : null;
+  // Período atado a los datos en pantalla — cinturón y tirantes: los
+  // save* lo usan en vez del `period` del closure, así un guardado nunca
+  // le atribuye un valor a una quincena distinta de la que se ve.
+  const dataPeriod = rows?.period ?? period;
 
   function shiftPeriod(direction: -1 | 1) {
     setPeriod((p) => {
@@ -106,13 +123,13 @@ export function RegistroView({
     });
   }
 
-  async function saveField(employeeId: string, field: FieldKey, value: string) {
+  async function saveField(employeeId: string, p: Period, field: FieldKey, value: string) {
     const cents = Math.round(parseFloat(value || "0") * 100);
     await upsertPayrollEntryAction({
       employeeId,
-      periodYear: period.year,
-      periodMonth: period.month,
-      periodHalf: period.half,
+      periodYear: p.year,
+      periodMonth: p.month,
+      periodHalf: p.half,
       [field]: cents,
     });
     load();
@@ -123,38 +140,39 @@ export function RegistroView({
    *  empleado y guarda ambos (ver actions.ts). */
   async function saveQuantityField(
     employeeId: string,
+    p: Period,
     field: "extraHours" | "extraDays" | "horasDescontadas" | "diasDescontados",
     value: string
   ) {
     const quantity = parseFloat(value || "0");
     await upsertPayrollQuantityFieldAction({
       employeeId,
-      periodYear: period.year,
-      periodMonth: period.month,
-      periodHalf: period.half,
+      periodYear: p.year,
+      periodMonth: p.month,
+      periodHalf: p.half,
       field,
       quantity: Number.isFinite(quantity) ? quantity : 0,
     });
     load();
   }
 
-  async function savePaymentMethod(employeeId: string, paymentMethod: PaymentMethod) {
+  async function savePaymentMethod(employeeId: string, p: Period, paymentMethod: PaymentMethod) {
     await upsertPayrollEntryAction({
       employeeId,
-      periodYear: period.year,
-      periodMonth: period.month,
-      periodHalf: period.half,
+      periodYear: p.year,
+      periodMonth: p.month,
+      periodHalf: p.half,
       paymentMethod,
     });
     load();
   }
 
-  async function togglePaid(employeeId: string, paid: boolean) {
+  async function togglePaid(employeeId: string, p: Period, paid: boolean) {
     await upsertPayrollEntryAction({
       employeeId,
-      periodYear: period.year,
-      periodMonth: period.month,
-      periodHalf: period.half,
+      periodYear: p.year,
+      periodMonth: p.month,
+      periodHalf: p.half,
       paid,
     });
     load();
@@ -196,13 +214,13 @@ export function RegistroView({
 
   // Fila de KPIs — derivada de las mismas `rows` que pinta la tabla,
   // nunca un query aparte, para que nunca discrepen.
-  const totalCents = (rows ?? []).reduce((sum, r) => sum + r.total.totalCents, 0);
-  const cashCents = (rows ?? []).reduce(
+  const totalCents = (visibleRows ?? []).reduce((sum, r) => sum + r.total.totalCents, 0);
+  const cashCents = (visibleRows ?? []).reduce(
     (sum, r) => sum + ((r.total.entry?.paymentMethod ?? "efectivo") === "efectivo" ? r.total.totalCents : 0),
     0
   );
-  const decimoCents = (rows ?? []).reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
-  const descuentosCents = (rows ?? []).reduce(
+  const decimoCents = (visibleRows ?? []).reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
+  const descuentosCents = (visibleRows ?? []).reduce(
     (sum, r) =>
       sum +
       (r.total.entry?.horasDescontadasCents ?? 0) +
@@ -226,7 +244,7 @@ export function RegistroView({
           icon={Wallet}
           label={tt("kpi_total_due")}
           value={formatCents(totalCents)}
-          sublabel={`${(rows ?? []).length} ${tt("kpi_employees_count")}`}
+          sublabel={`${(visibleRows ?? []).length} ${tt("kpi_employees_count")}`}
           color="var(--payroll-total-due)"
         />
         <PayrollKpiCard
@@ -320,14 +338,18 @@ export function RegistroView({
             </tr>
           </thead>
           <tbody>
-            {(rows ?? []).map(({ employee, total }) => {
+            {(visibleRows ?? []).map(({ employee, total }) => {
               const key = employee.id;
-              // Cada input es no-controlado (defaultValue). Incluir el
-              // período en la `key` de la fila fuerza un remonte (nuevo
-              // defaultValue) cada vez que cambia la quincena visible —
-              // si no, navegar a una quincena vacía dejaba el mismo
-              // <input> montado mostrando los números de la anterior.
-              const periodKeySuffix = `${period.year}-${period.month}-${period.half}`;
+              // Período de los datos que se están pintando (== `period`
+              // mientras `visibleRows` no sea null). Los save* lo reciben
+              // en vez de leer `period` del closure.
+              const p = dataPeriod;
+              // Los inputs son no-controlados (defaultValue): solo toman
+              // el valor al MONTARSE. `visibleRows` ya garantiza que estos
+              // datos son de `p`; incluir el período en la `key` fuerza
+              // además un remonte al cambiar de quincena, así el
+              // defaultValue se relee siempre. Cinturón y tirantes.
+              const periodKeySuffix = `${p.year}-${p.month}-${p.half}`;
               return (
                 <tr
                   key={`${key}-${periodKeySuffix}`}
@@ -374,7 +396,16 @@ export function RegistroView({
                                 step="0.01"
                                 defaultValue={quantity ? quantity.toString() : ""}
                                 placeholder="0"
-                                onBlur={(e) => saveQuantityField(key, quantityMeta.quantityField, e.target.value)}
+                                onBlur={(e) => {
+                                  const raw = e.target.value.trim();
+                                  const next = raw === "" ? 0 : parseFloat(raw);
+                                  if (!Number.isFinite(next)) return;
+                                  // Solo guarda si el valor REALMENTE cambió:
+                                  // entrar y salir de la casilla sin escribir
+                                  // nada no debe tocar la base.
+                                  if (Math.abs(next - (quantity || 0)) < 1e-9) return;
+                                  saveQuantityField(key, p, quantityMeta.quantityField, e.target.value);
+                                }}
                                 className="w-14 rounded-md border border-transparent bg-transparent px-1 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                               />
                               <span className="text-xs text-muted-foreground">{quantityMeta.unit}</span>
@@ -391,7 +422,15 @@ export function RegistroView({
                           step="0.01"
                           defaultValue={value ? (value / 100).toFixed(2) : ""}
                           placeholder="0.00"
-                          onBlur={(e) => saveField(key, c.key, e.target.value)}
+                          onBlur={(e) => {
+                            const raw = e.target.value.trim();
+                            const nextCents = raw === "" ? 0 : Math.round(parseFloat(raw) * 100);
+                            if (!Number.isFinite(nextCents)) return;
+                            // Igual que las cantidades: sin cambio real
+                            // respecto a lo guardado, no se escribe.
+                            if (nextCents === (value || 0)) return;
+                            saveField(key, p, c.key, e.target.value);
+                          }}
                           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                         />
                       </td>
@@ -401,7 +440,10 @@ export function RegistroView({
                     <td className="px-2 py-1">
                       <Select
                         value={total.entry?.paymentMethod ?? "efectivo"}
-                        onValueChange={(v) => savePaymentMethod(key, v as PaymentMethod)}
+                        onValueChange={(v) => {
+                          if ((v as PaymentMethod) === (total.entry?.paymentMethod ?? "efectivo")) return;
+                          savePaymentMethod(key, p, v as PaymentMethod);
+                        }}
                       >
                         <SelectTrigger className="h-8 w-32 text-xs">
                           <SelectValue />
@@ -421,7 +463,10 @@ export function RegistroView({
                       <input
                         type="checkbox"
                         checked={total.entry?.paid ?? false}
-                        onChange={(e) => togglePaid(key, e.target.checked)}
+                        onChange={(e) => {
+                          if (e.target.checked === (total.entry?.paid ?? false)) return;
+                          togglePaid(key, p, e.target.checked);
+                        }}
                         className="size-4 rounded border-input accent-primary"
                       />
                     </td>
@@ -444,14 +489,14 @@ export function RegistroView({
               );
             })}
           </tbody>
-          {rows && rows.length > 0 && (
+          {visibleRows && visibleRows.length > 0 && (
             <tfoot>
               <tr className="border-t border-border bg-muted/30 text-sm font-medium">
                 <td className="px-3 py-2 text-foreground" colSpan={visibleCount}>
                   {tt("total_quincena")}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-foreground">
-                  {formatCents(rows.reduce((sum, r) => sum + r.total.totalCents, 0))}
+                  {formatCents(visibleRows.reduce((sum, r) => sum + r.total.totalCents, 0))}
                 </td>
                 <td />
               </tr>
@@ -459,7 +504,9 @@ export function RegistroView({
           )}
         </table>
       </div>
-      {pending && <p className="text-xs text-muted-foreground">{tt("loading")}</p>}
+      {(pending || visibleRows === null) && (
+        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+      )}
     </div>
   );
 }
