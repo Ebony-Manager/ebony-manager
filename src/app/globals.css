@@ -143,6 +143,45 @@
   --sidebar-muted-foreground: var(--ebony-gray);
 }
 
+/* =============================================================================
+   PLANILLA — colores semánticos del módulo (Fase 2)
+
+   El módulo Payroll de Atlas usa una paleta de categorías (Salario, Bonos,
+   Décimo, Descuentos…) apoyada en su escala --chart-N. Ebony no tiene esa
+   escala; acá esas categorías se re-mapean a los tokens de marca de Ebony
+   (madera, dorado, verde bosque, rojo) para que el módulo lea como Ebony y
+   no como Atlas. src/lib/planilla/payroll-colors.ts SOLO referencia estas
+   variables — ningún color literal en el código del módulo.
+   ============================================================================= */
+
+:root {
+  --payroll-salario: var(--ebony-light); /* madera media — salario base */
+  --payroll-bonos: var(--ebony-success); /* verde bosque — bonos y extras */
+  --payroll-decimo: var(--ebony-gold); /* dorado de marca — prestaciones */
+  --payroll-vacacion: var(--ebony-success);
+  --payroll-prima: var(--ebony-medium);
+  --payroll-descuentos: var(--ebony-destructive); /* rojo — descuentos */
+  --payroll-prestamos: var(--ebony-medium);
+  --payroll-total: var(--ebony-dark);
+  --payroll-total-due: var(--ebony-success); /* acento "Total a Pagar" */
+  --payroll-next-pay: var(--ebony-gold-light); /* acento "Próximo pago" */
+
+  /* Colores de identidad por empleado — eje independiente del de categorías
+     (una categoría dice "qué tipo de dinero"; esto dice "de quién es esta
+     fila/tarjeta"). Se asigna por employee.sortOrder. Tonos apagados de baja
+     saturación (misma técnica que Notion/Linear para avatares): lightness
+     ~55-66%, chroma ~0.03-0.09, para que convivan con la madera/dorado sin
+     competir. Portados del EMPLOYEE_ACCENT_PALETTE de Atlas. */
+  --employee-accent-1: oklch(58% 0.07 250); /* azul polvoriento */
+  --employee-accent-2: oklch(60% 0.06 145); /* verde salvia */
+  --employee-accent-3: oklch(62% 0.08 45); /* terracota */
+  --employee-accent-4: oklch(54% 0.07 320); /* ciruela apagado */
+  --employee-accent-5: oklch(66% 0.09 85); /* ocre suave */
+  --employee-accent-6: oklch(56% 0.06 200); /* verde azulado pizarra */
+  --employee-accent-7: oklch(62% 0.07 15); /* rosa polvoriento */
+  --employee-accent-8: oklch(56% 0.03 70); /* topo cálido */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

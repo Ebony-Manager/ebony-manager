@@ -2,30 +2,37 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Folder, Calendar, DollarSign, BarChart2, X, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, X, type LucideIcon } from "lucide-react";
 import { useLang } from "@/context/language-context";
+import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 
 interface NavItem {
   href: string;
   icon: LucideIcon;
   label: (typeof strings.nav)[keyof typeof strings.nav];
+  /** Solo visible para rol admin (la Planilla es solo-admin, Fase 2). */
+  adminOnly?: boolean;
 }
 
-// All five modules are placeholders today (Cotización is being rebuilt from
-// scratch on this base, not ported) — so unlike the old Vite version, no
-// item is phase-gated/disabled. Every link is real and reachable.
+// Los módulos de Cotización/Proyectos/Cronograma/Gastos/Dashboard siguen
+// como placeholders. Planilla (Fase 2) es la primera ruta real y solo la
+// ve el admin — el gate de verdad es requireAdmin() en la página + RLS;
+// esconderlo acá es solo para no ofrecer un link que igual rebota.
 const NAV_ITEMS: NavItem[] = [
   { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos },
   { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
   { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
+  { href: "/planilla", icon: Users, label: strings.nav.planilla, adminOnly: true },
 ];
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
+  const { role } = useAuth();
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || role === "admin");
 
   return (
     <>
@@ -51,7 +58,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         </div>
 
         <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          {items.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href;
 
             return (
