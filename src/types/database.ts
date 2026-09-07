@@ -41,6 +41,290 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_employees: {
+        Row: {
+          base_salary_cents: number
+          benefits_base_salary_cents: number | null
+          contract_info: string | null
+          created_at: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          end_date: string | null
+          id: string
+          id_document: string | null
+          liquidation_notes: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          position: string | null
+          sort_order: number
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          base_salary_cents?: number
+          benefits_base_salary_cents?: number | null
+          contract_info?: string | null
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          end_date?: string | null
+          id?: string
+          id_document?: string | null
+          liquidation_notes?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          base_salary_cents?: number
+          benefits_base_salary_cents?: number | null
+          contract_info?: string | null
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          end_date?: string | null
+          id?: string
+          id_document?: string | null
+          liquidation_notes?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payroll_entries: {
+        Row: {
+          base_pay_cents: number
+          bonus_cents: number
+          created_at: string
+          decimo_paid_cents: number
+          dias_descontados: number
+          dias_descontados_cents: number
+          dias_libres_cents: number
+          employee_id: string
+          extra_days: number
+          extra_days_cents: number
+          extra_hours: number
+          extra_hours_cents: number
+          horas_descontadas: number
+          horas_descontadas_cents: number
+          id: string
+          notes: string | null
+          other_deduction_cents: number
+          paid: boolean
+          paid_at: string | null
+          payment_method: string
+          period_half: number
+          period_month: number
+          period_year: number
+          prima_antiguedad_paid_cents: number
+          updated_at: string
+          vacation_paid_cents: number
+          viaticos_cents: number
+        }
+        Insert: {
+          base_pay_cents?: number
+          bonus_cents?: number
+          created_at?: string
+          decimo_paid_cents?: number
+          dias_descontados?: number
+          dias_descontados_cents?: number
+          dias_libres_cents?: number
+          employee_id: string
+          extra_days?: number
+          extra_days_cents?: number
+          extra_hours?: number
+          extra_hours_cents?: number
+          horas_descontadas?: number
+          horas_descontadas_cents?: number
+          id?: string
+          notes?: string | null
+          other_deduction_cents?: number
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string
+          period_half?: number
+          period_month: number
+          period_year: number
+          prima_antiguedad_paid_cents?: number
+          updated_at?: string
+          vacation_paid_cents?: number
+          viaticos_cents?: number
+        }
+        Update: {
+          base_pay_cents?: number
+          bonus_cents?: number
+          created_at?: string
+          decimo_paid_cents?: number
+          dias_descontados?: number
+          dias_descontados_cents?: number
+          dias_libres_cents?: number
+          employee_id?: string
+          extra_days?: number
+          extra_days_cents?: number
+          extra_hours?: number
+          extra_hours_cents?: number
+          horas_descontadas?: number
+          horas_descontadas_cents?: number
+          id?: string
+          notes?: string | null
+          other_deduction_cents?: number
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string
+          period_half?: number
+          period_month?: number
+          period_year?: number
+          prima_antiguedad_paid_cents?: number
+          updated_at?: string
+          vacation_paid_cents?: number
+          viaticos_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_ledger_entries: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          direction: string
+          employee_id: string
+          entry_date: string
+          id: string
+          loan_id: string | null
+          notes: string | null
+          payroll_entry_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          direction: string
+          employee_id: string
+          entry_date: string
+          id?: string
+          loan_id?: string | null
+          notes?: string | null
+          payroll_entry_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          direction?: string
+          employee_id?: string
+          entry_date?: string
+          id?: string
+          loan_id?: string | null
+          notes?: string | null
+          payroll_entry_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_ledger_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_ledger_entries_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_ledger_entries_payroll_entry_id_fkey"
+            columns: ["payroll_entry_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_loans: {
+        Row: {
+          category: string
+          created_at: string
+          employee_id: string
+          id: string
+          notes: string | null
+          num_installments: number
+          payment_method: string
+          principal_cents: number
+          request_date: string
+          start_period_half: number
+          start_period_month: number
+          start_period_year: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          num_installments?: number
+          payment_method?: string
+          principal_cents: number
+          request_date: string
+          start_period_half?: number
+          start_period_month: number
+          start_period_year: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          num_installments?: number
+          payment_method?: string
+          principal_cents?: number
+          request_date?: string
+          start_period_half?: number
+          start_period_month?: number
+          start_period_year?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
