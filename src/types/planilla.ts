@@ -48,6 +48,23 @@ export interface PayrollEmployee {
 
 export type PaymentMethod = "efectivo" | "transferencia" | "yappy" | "cheque";
 
+/** Una fila del historial de sueldos: "desde esta quincena el sueldo
+ *  mensual es X". El sueldo de una quincena es la fila más reciente con
+ *  fecha efectiva <= esa quincena. Es el único lugar que manda sobre el
+ *  sueldo; `PayrollEmployee.baseSalaryCents` es solo un reflejo. */
+export interface PayrollSalaryChange {
+  id: string;
+  employeeId: string;
+  monthlySalaryCents: number;
+  /** Base alterna para prestaciones en este tramo; null = igual al sueldo. */
+  benefitsBaseSalaryCents: number | null;
+  effectiveYear: number;
+  effectiveMonth: number;
+  effectiveHalf: 1 | 2;
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface PayrollEntry {
   id: string;
   employeeId: string;

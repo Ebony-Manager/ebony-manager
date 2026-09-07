@@ -15,8 +15,9 @@ If you later run `supabase link --project-ref jdfkfbopecqvvyxherku`, these
 files are already in the layout `supabase db push` expects. Note: applying via
 the MCP stamps its own `version` in `supabase_migrations.schema_migrations`,
 so the remote version does not match the local filename timestamp (Fase 1 →
-`20260906173300`, Fase 2 → `20260907010849`). When the CLI is finally linked,
-reconcile once with `supabase migration repair`.
+`20260906173300`, Fase 2 planilla → `20260907010849`, Fase 2 salary history →
+`20260907063931`). When the CLI is finally linked, reconcile once with
+`supabase migration repair`.
 
 ### 20260906170000_fase1_auth_rls.sql
 
@@ -53,6 +54,30 @@ remote version `20260907010849`.
   `private.is_admin()` and `private.touch_updated_at()` helpers (not
   redefined). A `vendedor` sees nothing here.
 - Ported from Atlas's Payroll module — see `docs/fase2-planilla-port.md`.
+
+### 20260907120000_fase2_salary_history.sql
+
+Fase 2 — Historial de sueldos / aumentos por fecha. Applied via MCP as remote
+version `20260907063931`.
+
+- `public.payroll_salary_changes` — one row per "from this quincena onward the
+  monthly salary is X" (`effective_year` / `effective_month` / `effective_half`,
+  not a free `date` — a raise always starts at the beginning of a quincena).
+  The salary in effect for a given quincena is the most recent row whose
+  effective quincena is `<=` it.
+- `UNIQUE (employee_id, effective_year, effective_month, effective_half)` — one
+  change per employee per quincena (upsert target); its index also serves the
+  "salary in effect at quincena X" lookup, so there is no standalone
+  `employee_id` index.
+- `benefits_base_salary_cents` nullable — per-effective-range alternate base for
+  Décimo/Vacación/Prima ("Acumulado a 500" case); NULL = same as
+  `monthly_salary_cents`.
+- Same security shape as the other four planilla tables (RLS on, one
+  `payroll_salary_changes_admin_all` policy, `anon` revoked, `updated_at`
+  trigger reuses `private.touch_updated_at()`).
+- No data migration — the payroll tables are empty. The service layer inserts
+  each employee's first row (effective from their start date) on create.
+  Payroll formulas (13th month, vacation, seniority, loans) are unchanged.
 
 ## Dashboard config that is NOT in these files
 

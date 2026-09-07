@@ -340,6 +340,21 @@ export function RegistroView({
                   </td>
                   {fieldColumns.map((c) => {
                     const value = (total.entry?.[c.key] ?? 0) as number;
+                    // "Base" es SOLO LECTURA: sale del historial de sueldos
+                    // (sueldo vigente de esta quincena ÷ 2), ya no se edita
+                    // a mano en la tabla.
+                    if (c.key === "basePayCents") {
+                      return (
+                        <td
+                          key={c.key}
+                          className="px-2 py-1 text-right tabular-nums text-muted-foreground"
+                          style={fieldCellStyle(c.category, fieldMinWidth(c))}
+                          title={tt("base_readonly_hint")}
+                        >
+                          {formatCents(value)}
+                        </td>
+                      );
+                    }
                     const quantityMeta = QUANTITY_FIELD_META[c.key];
                     if (quantityMeta) {
                       const quantity = (total.entry?.[quantityMeta.quantityField] ?? 0) as number;

@@ -325,6 +325,53 @@ export type Database = {
           },
         ]
       }
+      payroll_salary_changes: {
+        Row: {
+          benefits_base_salary_cents: number | null
+          created_at: string
+          effective_half: number
+          effective_month: number
+          effective_year: number
+          employee_id: string
+          id: string
+          monthly_salary_cents: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          benefits_base_salary_cents?: number | null
+          created_at?: string
+          effective_half?: number
+          effective_month: number
+          effective_year: number
+          employee_id: string
+          id?: string
+          monthly_salary_cents: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          benefits_base_salary_cents?: number | null
+          created_at?: string
+          effective_half?: number
+          effective_month?: number
+          effective_year?: number
+          employee_id?: string
+          id?: string
+          monthly_salary_cents?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_salary_changes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

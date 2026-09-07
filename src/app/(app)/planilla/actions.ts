@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/dal";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
+import * as salary from "@/services/payroll-salary";
 import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
+import { monthlySalaryAt } from "@/lib/planilla/salary-history";
 import type { LedgerCategory, LedgerDirection, LoanPaymentMethod } from "@/types/planilla";
 
 // La Planilla es solo-admin: cada action verifica `requireAdmin()` al
@@ -40,11 +42,11 @@ export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) 
 }
 
 /** Las cuatro columnas que se entran como cantidad (horas/días) — el
- *  monto en centavos se deriva acá, una vez, de la tarifa ACTUAL del
- *  empleado, y se guarda junto con la cantidad. No se recalcula en
- *  ningún otro lado: un cambio de salario futuro no debe reflotar una
- *  quincena ya registrada (misma regla de "congelar al entrar" que
- *  todo el módulo). */
+ *  monto en centavos se deriva acá, una vez, de la tarifa del sueldo
+ *  VIGENTE en esa quincena (según el historial), y se guarda junto con
+ *  la cantidad. No se recalcula en ningún otro lado: un aumento futuro
+ *  no reflota una quincena ya registrada (regla de "congelar al
+ *  entrar"). */
 export async function upsertPayrollQuantityFieldAction(input: {
   employeeId: string;
   periodYear: number;
@@ -54,11 +56,13 @@ export async function upsertPayrollQuantityFieldAction(input: {
   quantity: number;
 }) {
   await requireAdmin();
-  const employee = await employees.getPayrollEmployee(input.employeeId);
-  if (!employee) throw new Error("Empleado no encontrado");
+  const changes = salary.toSalaryChanges(await salary.getSalaryChanges(input.employeeId));
+  const monthly = monthlySalaryAt(changes, input.periodYear, input.periodMonth, input.periodHalf);
 
   const isHourly = input.field === "extraHours" || input.field === "horasDescontadas";
-  const rate = isHourly ? hourlyRateCents(employee) : dailyRateCents(employee);
+  const rate = isHourly
+    ? hourlyRateCents({ baseSalaryCents: monthly })
+    : dailyRateCents({ baseSalaryCents: monthly });
   const cents = quantityToCents(input.quantity, rate);
 
   const base = {
@@ -170,5 +174,35 @@ export async function createLoanAction(input: {
 export async function cancelLoanAction(loanId: string) {
   await requireAdmin();
   await payroll.cancelLoan(loanId);
+  revalidatePath(PATH);
+}
+
+// ── Sueldo / aumentos ─────────────────────────────────────────────────
+
+export async function getSalaryChangesAction(employeeId: string) {
+  await requireAdmin();
+  return salary.getSalaryChanges(employeeId);
+}
+
+export async function registerSalaryChangeAction(input: {
+  employeeId: string;
+  monthlySalaryCents: number;
+  benefitsBaseSalaryCents?: number | null;
+  effectiveYear: number;
+  effectiveMonth: number;
+  effectiveHalf: 1 | 2;
+  notes?: string | null;
+}) {
+  await requireAdmin();
+  const change = await salary.registerSalaryChange(input);
+  revalidatePath(PATH);
+  return change;
+}
+
+// ── Borrar empleado (irreversible; la UI confirma antes) ──────────────
+
+export async function deleteEmployeeAction(id: string) {
+  await requireAdmin();
+  await employees.deletePayrollEmployee(id);
   revalidatePath(PATH);
 }

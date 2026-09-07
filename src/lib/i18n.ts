@@ -395,6 +395,71 @@ export const strings = {
     li_desc_adelantos: { es: "Descuento a Adelantos", en: "Advance Deduction" },
     li_desc_herramientas: { es: "Descuento a Herramientas", en: "Tool Deduction" },
     li_desc_danos: { es: "Descuento por Daños", en: "Damage Deduction" },
+
+    // Sueldo / Aumentos
+    base_readonly_hint: {
+      es: "Se llena sola con el sueldo vigente de esta quincena (Sueldo / Aumentos en el perfil).",
+      en: "Auto-filled from the salary in effect this period (Salary / Raises in the profile).",
+    },
+    salary_edit_note: {
+      es: "El sueldo se cambia registrando un aumento en la sección “Sueldo / Aumentos” del perfil.",
+      en: "Change salary by registering a raise in the profile's “Salary / Raises” section.",
+    },
+    salary_section_title: { es: "Sueldo / Aumentos", en: "Salary / Raises" },
+    current_salary: { es: "Sueldo actual", en: "Current salary" },
+    current_label: { es: "actual", en: "current" },
+    register_raise: { es: "Registrar aumento", en: "Register raise" },
+    salary_history_empty: { es: "Sin historial de sueldos todavía.", en: "No salary history yet." },
+    salary_col_from: { es: "Desde", en: "From" },
+    salary_col_monthly: { es: "Sueldo mensual", en: "Monthly salary" },
+    salary_col_benefits: { es: "Base prestaciones", en: "Benefits base" },
+    salary_col_notes: { es: "Notas", en: "Notes" },
+    salary_col_registered: { es: "Registrado", en: "Recorded" },
+
+    raise_title: { es: "Registrar aumento de sueldo", en: "Register salary raise" },
+    raise_desc: {
+      es: "El sueldo nuevo aplica desde el inicio de la quincena elegida en adelante; las quincenas anteriores conservan el sueldo viejo.",
+      en: "The new salary applies from the start of the chosen period onward; earlier periods keep the old salary.",
+    },
+    raise_f_monthly: { es: "Nuevo sueldo mensual", en: "New monthly salary" },
+    raise_f_benefits: { es: "Base para prestaciones", en: "Benefits base" },
+    raise_f_from: { es: "Vigente desde la quincena", en: "Effective from period" },
+    raise_from_hint: {
+      es: "Un aumento siempre arranca al inicio de una quincena.",
+      en: "A raise always starts at the beginning of a period.",
+    },
+    raise_notes_ph: { es: "Ej. acuerdo verbal, ajuste anual…", en: "e.g. verbal agreement, annual adjustment…" },
+    raise_amount_required: { es: "El sueldo es obligatorio.", en: "Salary is required." },
+    raise_submit: { es: "Registrar aumento", en: "Register raise" },
+    raise_saved: { es: "Aumento registrado", en: "Raise recorded" },
+
+    // Estado / Liquidación (perfil)
+    status_section_title: { es: "Estado / Liquidación", en: "Status / Settlement" },
+    status_label: { es: "Estado", en: "Status" },
+    status_hint: {
+      es: "Inactivar saca al empleado de la lista de activos pero conserva toda su historia (aparece en “Ya no laboran”). La liquidación solo marca la fecha de salida y reinicia el cálculo de Décimo/Vacación/Prima hacia adelante — no cambia si está activo.",
+      en: "Deactivating removes the employee from the active list but keeps all their history (shows under “No longer employed”). A settlement only marks the end date and resets the 13th-month/Vacation/Seniority accrual going forward — it does not change whether they are active.",
+    },
+
+    // Zona de peligro / borrar
+    danger_zone: { es: "Zona de peligro", en: "Danger zone" },
+    danger_explain: {
+      es: "Inactivar conserva la historia del empleado. Borrar la elimina por completo — quincenas, préstamos, movimientos e historial de sueldos — y no se puede deshacer.",
+      en: "Deactivating keeps the employee's history. Deleting removes it entirely — periods, loans, movements and salary history — and cannot be undone.",
+    },
+    delete_employee: { es: "Eliminar empleado", en: "Delete employee" },
+    delete_title: { es: "Eliminar empleado", en: "Delete employee" },
+    delete_desc: {
+      es: "Esto borra al empleado y TODA su historia de forma permanente.",
+      en: "This permanently deletes the employee and ALL their history.",
+    },
+    delete_warning: {
+      es: "Se eliminan también sus quincenas, préstamos/adelantos, movimientos de ledger y el historial de sueldos. Irreversible.",
+      en: "Their periods, loans/advances, ledger movements and salary history are deleted too. Irreversible.",
+    },
+    delete_type_name: { es: "Para confirmar, escribe el nombre exacto:", en: "To confirm, type the exact name:" },
+    delete_confirm: { es: "Eliminar para siempre", en: "Delete permanently" },
+    delete_done: { es: "Empleado eliminado", en: "Employee deleted" },
   },
 
   common: {

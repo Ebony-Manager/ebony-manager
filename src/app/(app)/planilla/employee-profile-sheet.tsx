@@ -1,25 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Phone } from "lucide-react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { Pencil, Phone, LogOut, UserCheck, UserX, Trash2 } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCents } from "@/lib/planilla/payroll-period";
+import { formatDate } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { EmployeeFormDialog } from "./employee-form-dialog";
-
-/** Fecha `YYYY-MM-DD` -> texto local, sin depender de un helper de otro
- *  módulo (Atlas usaba `@/lib/finance/format-date`). */
-function formatDate(lang: "es" | "en", iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "short", year: "numeric" });
-}
+import { SalaryHistorySection } from "./salary-history-section";
+import { LiquidationDialog } from "./liquidation-dialog";
+import { DeleteEmployeeDialog } from "./delete-employee-dialog";
 
 function ProfileField({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value) return null;
@@ -32,10 +30,10 @@ function ProfileField({ label, value }: { label: string; value: React.ReactNode 
 }
 
 /**
- * Perfil de solo lectura de un empleado — datos personales/de contacto
- * más salario. "Editar" abre EmployeeFormDialog. Portado de Atlas; la
- * sección de Documentos (subida de archivos) queda para más adelante.
- * Terminar el empleo NO se hace desde acá (flujo propio, Tanda B2).
+ * Perfil del empleado. Datos personales + sección "Sueldo / Aumentos"
+ * (el único lugar donde se cambia el sueldo, registrando un aumento) +
+ * "Estado / Liquidación" (activar/desactivar y marcar liquidación) +
+ * "Zona de peligro" (borrar por completo, con confirmación).
  */
 export function EmployeeProfileSheet({
   employee,
@@ -48,7 +46,26 @@ export function EmployeeProfileSheet({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const router = useRouter();
+
   const [editOpen, setEditOpen] = React.useState(false);
+  const [liqOpen, setLiqOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [togglingStatus, setTogglingStatus] = React.useState(false);
+
+  async function toggleStatus() {
+    if (!employee) return;
+    setTogglingStatus(true);
+    try {
+      await updateEmployeeAction(employee.id, {
+        status: employee.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      });
+      toast.success(tt(employee.status === "ACTIVE" ? "mark_inactive" : "reactivate"));
+      router.refresh();
+    } finally {
+      setTogglingStatus(false);
+    }
+  }
 
   return (
     <>
@@ -57,12 +74,7 @@ export function EmployeeProfileSheet({
           <SheetHeader>
             <div className="flex items-center gap-3">
               {employee && (
-                <EmployeeAvatar
-                  name={employee.name}
-                  employeeId={employee.id}
-                  sortOrder={employee.sortOrder}
-                  size="md"
-                />
+                <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="md" />
               )}
               <div>
                 <SheetTitle>{employee?.name ?? ""}</SheetTitle>
@@ -119,22 +131,75 @@ export function EmployeeProfileSheet({
                 label={tt("f_start_date")}
                 value={employee?.startDate ? formatDate(lang, employee.startDate) : null}
               />
-              <ProfileField
-                label={tt("f_base_salary")}
-                value={employee ? formatCents(employee.baseSalaryCents) : null}
-              />
-              {employee?.benefitsBaseSalaryCents != null &&
-                employee.benefitsBaseSalaryCents !== employee.baseSalaryCents && (
-                  <ProfileField
-                    label={tt("f_benefits_salary")}
-                    value={formatCents(employee.benefitsBaseSalaryCents)}
-                  />
-                )}
             </div>
 
             {employee?.notes && (
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
                 {employee.notes}
+              </div>
+            )}
+
+            {employee && <SalaryHistorySection employee={employee} />}
+
+            {/* Estado / Liquidación */}
+            {employee && (
+              <div className="flex flex-col gap-3 border-t border-border pt-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground">{tt("status_section_title")}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {tt("status_label")}:{" "}
+                      <span className="font-medium text-foreground">
+                        {employee.status === "ACTIVE" ? tt("active_label") : tt("inactive_label")}
+                      </span>
+                      {employee.endDate && (
+                        <>
+                          {" · "}
+                          {employee.status === "INACTIVE" ? tt("liquidated_on") : tt("last_liquidation")}:{" "}
+                          {formatDate(lang, employee.endDate)}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" variant="outline" onClick={toggleStatus} disabled={togglingStatus}>
+                      {employee.status === "ACTIVE" ? (
+                        <UserX className="size-3.5" />
+                      ) : (
+                        <UserCheck className="size-3.5" />
+                      )}
+                      {employee.status === "ACTIVE" ? tt("mark_inactive") : tt("reactivate")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLiqOpen(true)}>
+                      <LogOut className="size-3.5" />
+                      {employee.endDate ? tt("liq_edit") : tt("liq_mark")}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{tt("status_hint")}</p>
+                {employee.liquidationNotes && (
+                  <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{tt("liq_notes_title")}: </span>
+                    <span className="whitespace-pre-wrap">{employee.liquidationNotes}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Zona de peligro */}
+            {employee && (
+              <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+                <h3 className="text-sm font-medium text-destructive">{tt("danger_zone")}</h3>
+                <p className="text-xs text-muted-foreground">{tt("danger_explain")}</p>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-1 self-start"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="size-3.5" />
+                  {tt("delete_employee")}
+                </Button>
               </div>
             )}
 
@@ -144,6 +209,22 @@ export function EmployeeProfileSheet({
       </Sheet>
 
       <EmployeeFormDialog mode="edit" employee={employee} open={editOpen} onOpenChange={setEditOpen} />
+      {employee && (
+        <LiquidationDialog
+          employee={employee}
+          open={liqOpen}
+          onOpenChange={setLiqOpen}
+          onSaved={() => router.refresh()}
+        />
+      )}
+      {employee && (
+        <DeleteEmployeeDialog
+          employee={employee}
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          onDeleted={() => onOpenChange(false)}
+        />
+      )}
     </>
   );
 }

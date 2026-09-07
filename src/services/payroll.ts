@@ -22,7 +22,6 @@ import {
   buildEmployeeContext,
   computeAnnualDetail,
   computePeriodTotalFromEntry,
-  periodFromDateString,
   type AnnualDetailRow,
 } from "@/lib/planilla/payroll-accruals";
 import {
@@ -35,39 +34,43 @@ import {
 } from "@/lib/planilla/payroll-reports";
 import { computeLoanSchedule, defaultLoanStartPeriod } from "@/lib/planilla/payroll-loans";
 import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
+import {
+  earliestSalary,
+  quincenaBaseCentsAt,
+  type SalaryChange,
+} from "@/lib/planilla/salary-history";
 import { getPayrollEmployee, getPayrollEmployees } from "@/services/payroll-employees";
+import { getAllSalaryChanges, getSalaryChanges, toSalaryChanges } from "@/services/payroll-salary";
 
-/** La quincena base "por defecto" de un empleado: salario mensual ÷ 2,
- *  redondeado a centavos enteros. Es lo que se pre-llena en la columna
- *  Base de Registro al abrir una quincena sin fila todavía, y lo que
- *  `upsertEntry` congela en la fila al primer guardado (misma regla de
- *  "congelar al entrar" que las horas extra). Un aumento de salario
- *  futuro no reflota quincenas ya registradas. */
-export function defaultQuincenaBaseCents(baseSalaryCents: number): number {
-  return Math.round((baseSalaryCents ?? 0) / 2);
-}
-
-/** ¿Corresponde pre-llenar la base para este empleado en esta quincena?
- *  Sí, salvo que la quincena caiga antes de la fecha de ingreso. */
-function shouldSeedBase(employee: PayrollEmployee, year: number, month: number, half: 1 | 2): boolean {
-  if ((employee.baseSalaryCents ?? 0) <= 0) return false;
-  if (!employee.startDate) return true;
-  const start = periodFromDateString(employee.startDate);
-  if (!start) return true;
-  return periodOrdinal(year, month, half) >= periodOrdinal(start.year, start.month, start.half);
+/** ¿Hay historial de sueldo vigente para esta quincena? Sí si la
+ *  quincena es igual o posterior a la primera fila del historial (que
+ *  se crea con el ingreso del empleado). Antes de eso: sin sueldo. */
+function hasSalaryFor(changes: SalaryChange[], year: number, month: number, half: 1 | 2): boolean {
+  const first = earliestSalary(changes);
+  if (!first) return false;
+  return (
+    periodOrdinal(year, month, half) >=
+    periodOrdinal(first.effectiveYear, first.effectiveMonth, first.effectiveHalf)
+  );
 }
 
 /** Entry sintética (no persistida, `id: ""`) que solo lleva la quincena
- *  base por defecto — para que la rejilla y los KPIs de Registro
- *  reflejen esa base antes de cualquier guardado. */
-function seededEntry(employee: PayrollEmployee, year: number, month: number, half: 1 | 2): PayrollEntry {
+ *  base derivada del historial — para que la rejilla y los KPIs de
+ *  Registro la reflejen antes de que exista una fila real. */
+function seededEntry(
+  employeeId: string,
+  year: number,
+  month: number,
+  half: 1 | 2,
+  baseCents: number
+): PayrollEntry {
   return {
     id: "",
-    employeeId: employee.id,
+    employeeId,
     periodYear: year,
     periodMonth: month,
     periodHalf: half,
-    basePayCents: defaultQuincenaBaseCents(employee.baseSalaryCents),
+    basePayCents: baseCents,
     extraHours: 0,
     extraHoursCents: 0,
     extraDays: 0,
@@ -179,7 +182,8 @@ export interface UpsertEntryInput {
   periodYear: number;
   periodMonth: number;
   periodHalf: 1 | 2;
-  basePayCents?: number;
+  // Sin basePayCents: la base la fija el historial de sueldos, no un
+  // formulario. `upsertEntry` la deriva y la escribe siempre.
   extraHours?: number;
   extraHoursCents?: number;
   extraDays?: number;
@@ -201,8 +205,10 @@ export interface UpsertEntryInput {
 }
 
 /** Crea-o-actualiza la fila de este empleado+quincena, mezclando los
- *  campos provistos sobre lo que ya haya (misma semántica que el
- *  `upsertEntry` de Atlas). `paid_at` se sella al guardar con `paid`. */
+ *  campos provistos sobre lo que ya haya. `base_pay_cents` SIEMPRE se
+ *  deriva del historial de sueldos para esa quincena (no del input): la
+ *  base ya no se congela ni se edita a mano. `paid_at` se sella al
+ *  guardar con `paid`. */
 export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry> {
   const supabase = await createClient();
   const existing = await getEntryRow(
@@ -214,20 +220,16 @@ export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry
   );
   const cur = existing ? mapEntry(existing) : null;
 
-  // Al CREAR la fila por primera vez sin base explícita, se congela la
-  // quincena base por defecto del empleado (salario mensual ÷ 2). Así
-  // cualquier primer guardado en esa quincena — tocar la base, marcar
-  // "pagado", entrar horas extra — deja la base sellada.
-  let seedBaseCents: number | undefined;
-  if (!existing && input.basePayCents === undefined) {
-    const employee = await getPayrollEmployee(input.employeeId);
-    if (employee && shouldSeedBase(employee, input.periodYear, input.periodMonth, input.periodHalf)) {
-      seedBaseCents = defaultQuincenaBaseCents(employee.baseSalaryCents);
-    }
-  }
+  const salaryChanges = toSalaryChanges(await getSalaryChanges(input.employeeId));
+  const basePayCents = quincenaBaseCentsAt(
+    salaryChanges,
+    input.periodYear,
+    input.periodMonth,
+    input.periodHalf
+  );
 
   const merged = {
-    base_pay_cents: input.basePayCents ?? cur?.basePayCents ?? seedBaseCents ?? 0,
+    base_pay_cents: basePayCents,
     extra_hours: input.extraHours ?? cur?.extraHours ?? 0,
     extra_hours_cents: input.extraHoursCents ?? cur?.extraHoursCents ?? 0,
     extra_days: input.extraDays ?? cur?.extraDays ?? 0,
@@ -308,7 +310,11 @@ export async function getPeriodTotal(
 ): Promise<PayrollPeriodTotal> {
   const supabase = await createClient();
   const row = await getEntryRow(supabase, employeeId, year, month, half);
-  const entry = row ? mapEntry(row) : null;
+  const changes = toSalaryChanges(await getSalaryChanges(employeeId));
+  const baseCents = quincenaBaseCentsAt(changes, year, month, half);
+  // La base la manda el historial de sueldos, no lo que quedó guardado
+  // en la fila.
+  const entry = row ? { ...mapEntry(row), basePayCents: baseCents } : null;
   const ledger = row ? (await ledgerForEntryIds(supabase, [row.id])).get(row.id) ?? { debt: 0, payment: 0 } : { debt: 0, payment: 0 };
   return computePeriodTotalFromEntry(entry, ledger);
 }
@@ -319,11 +325,13 @@ export interface RegistroRow {
 }
 
 /** Fuente de datos de la rejilla de Registro: una fila por empleado
- *  activo, con el total computado de esa quincena. Batchea todo el
- *  período en 2 queries (entries + ledger) en vez de una por empleado. */
+ *  activo, con el total computado de esa quincena. La "Quincena Base" de
+ *  cada fila se deriva del historial de sueldos (nunca de lo guardado ni
+ *  de un input). Batchea todo el período (entries + ledger + sueldos). */
 export async function getRegistroForPeriod(year: number, month: number, half: 1 | 2): Promise<RegistroRow[]> {
   const supabase = await createClient();
   const employees = (await getPayrollEmployees()).filter((e) => e.status === "ACTIVE");
+  const salaryByEmployee = await getAllSalaryChanges();
 
   const { data: entryRows, error } = await supabase
     .from("payroll_entries")
@@ -340,21 +348,25 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
   return employees.map((employee) => {
     const row = entryByEmployee.get(employee.id) ?? null;
     const ledger = row ? ledgerByEntry.get(row.id) ?? { debt: 0, payment: 0 } : { debt: 0, payment: 0 };
-    // Sin fila real: se muestra la quincena base por defecto (sintética,
-    // no persistida) para que Base, "Total quincena" y "Total a Pagar"
-    // la reflejen. Se persiste al primer guardado (ver upsertEntry).
+    const changes = toSalaryChanges(salaryByEmployee.get(employee.id) ?? []);
+    const baseCents = quincenaBaseCentsAt(changes, year, month, half);
+    // Con fila real: se le sobrescribe la base con la del historial.
+    // Sin fila: entry sintética (no persistida) para que Base, "Total
+    // quincena" y "Total a Pagar" la reflejen — salvo quincenas
+    // anteriores al ingreso del empleado (sin sueldo -> null).
     const entry = row
-      ? mapEntry(row)
-      : shouldSeedBase(employee, year, month, half)
-        ? seededEntry(employee, year, month, half)
+      ? { ...mapEntry(row), basePayCents: baseCents }
+      : hasSalaryFor(changes, year, month, half)
+        ? seededEntry(employee.id, year, month, half, baseCents)
         : null;
     return { employee, total: computePeriodTotalFromEntry(entry, ledger) };
   });
 }
 
-/** "Duplicar quincena anterior": copia base + método de la quincena
- *  previa para cada empleado activo que todavía no tiene fila en la
- *  quincena destino. Nunca pisa una edición ya hecha. */
+/** "Duplicar quincena anterior": crea la fila en la quincena destino
+ *  para cada empleado activo que tuvo fila en la previa y aún no la
+ *  tiene acá, copiando el método de pago. La base la deriva `upsertEntry`
+ *  del historial de sueldos. Nunca pisa una edición ya hecha. */
 export async function duplicatePreviousPeriod(year: number, month: number, half: 1 | 2): Promise<number> {
   const prev = previousPeriod(year, month, half);
   const supabase = await createClient();
@@ -362,7 +374,7 @@ export async function duplicatePreviousPeriod(year: number, month: number, half:
 
   const { data: prevRows, error: prevErr } = await supabase
     .from("payroll_entries")
-    .select("employee_id, base_pay_cents, payment_method")
+    .select("employee_id, payment_method")
     .eq("period_year", prev.year)
     .eq("period_month", prev.month)
     .eq("period_half", prev.half);
@@ -389,7 +401,6 @@ export async function duplicatePreviousPeriod(year: number, month: number, half:
       periodYear: year,
       periodMonth: month,
       periodHalf: half,
-      basePayCents: src.base_pay_cents,
       paymentMethod: (src.payment_method as PaymentMethod) ?? "efectivo",
     });
     copied += 1;
@@ -428,12 +439,25 @@ function toLedgerRowFull(r: LedgerRow): LedgerRowFull {
   };
 }
 
-/** Trae TODO el historial (entries + ledger) de todos los empleados en
- *  2 queries y lo agrupa por empleado — la base de Resumen Anual,
+/** Normaliza la base de cada quincena al sueldo vigente en esa quincena
+ *  según el historial — así todo lo que consume `entry.basePayCents`
+ *  (total, acumulados, Auditoría, Resumen, Detalle) refleja los aumentos
+ *  sin tocar ninguna fórmula. */
+function withHistoricalBase(entries: PayrollEntry[], changes: SalaryChange[]): PayrollEntry[] {
+  if (changes.length === 0) return entries;
+  return entries.map((e) => ({
+    ...e,
+    basePayCents: quincenaBaseCentsAt(changes, e.periodYear, e.periodMonth, e.periodHalf),
+  }));
+}
+
+/** Trae TODO el historial (entries + ledger + sueldos) de todos los
+ *  empleados y lo agrupa por empleado — la base de Resumen Anual,
  *  Auditoría y Dashboard. */
 async function loadAllHistories(): Promise<EmployeeHistory[]> {
   const supabase = await createClient();
   const employees = await getPayrollEmployees();
+  const salaryByEmp = await getAllSalaryChanges();
 
   const { data: entryRows, error: e1 } = await supabase.from("payroll_entries").select("*");
   if (e1) throw new Error(e1.message);
@@ -455,12 +479,15 @@ async function loadAllHistories(): Promise<EmployeeHistory[]> {
 
   return employees.map((employee) => ({
     employee,
-    entries: entriesByEmp.get(employee.id) ?? [],
+    entries: withHistoricalBase(
+      entriesByEmp.get(employee.id) ?? [],
+      toSalaryChanges(salaryByEmp.get(employee.id) ?? [])
+    ),
     ledger: ledgerByEmp.get(employee.id) ?? [],
   }));
 }
 
-/** Historial de un solo empleado (2 queries). */
+/** Historial de un solo empleado (3 queries). */
 async function loadHistory(employeeId: string): Promise<EmployeeHistory | null> {
   const supabase = await createClient();
   const employee = await getPayrollEmployee(employeeId);
@@ -477,9 +504,10 @@ async function loadHistory(employeeId: string): Promise<EmployeeHistory | null> 
     .eq("employee_id", employeeId);
   if (e2) throw new Error(e2.message);
 
+  const changes = toSalaryChanges(await getSalaryChanges(employeeId));
   return {
     employee,
-    entries: (entryRows ?? []).map(mapEntry),
+    entries: withHistoricalBase((entryRows ?? []).map(mapEntry), changes),
     ledger: (ledgerRows ?? []).map(toLedgerRowFull),
   };
 }
