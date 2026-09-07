@@ -66,10 +66,12 @@ export function RegistroView({
   employees,
   visibleColumns,
   onVisibleColumnsChange,
+  onViewDetail,
 }: {
   employees: PayrollEmployee[];
   visibleColumns: Record<ColumnKey, boolean>;
   onVisibleColumnsChange: (columns: Record<ColumnKey, boolean>) => void;
+  onViewDetail: (employeeId: string) => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -312,6 +314,7 @@ export function RegistroView({
               {visibleColumns.paymentMethod && <th className="px-3 py-2 text-left font-medium">{tt("col_metodo")}</th>}
               {visibleColumns.paid && <th className="px-3 py-2 text-center font-medium">{tt("col_pagado")}</th>}
               <th className="px-3 py-2 text-right font-medium">{tt("col_total")}</th>
+              <th className="px-2 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -404,6 +407,17 @@ export function RegistroView({
                   <td className="px-3 py-1.5 text-right font-medium tabular-nums text-foreground">
                     {formatCents(total.totalCents)}
                   </td>
+                  <td className="px-2 py-1.5 text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6"
+                      title={tt("view_detail_annual")}
+                      onClick={() => onViewDetail(employee.id)}
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
@@ -417,6 +431,7 @@ export function RegistroView({
                 <td className="px-3 py-2 text-right tabular-nums text-foreground">
                   {formatCents(rows.reduce((sum, r) => sum + r.total.totalCents, 0))}
                 </td>
+                <td />
               </tr>
             </tfoot>
           )}

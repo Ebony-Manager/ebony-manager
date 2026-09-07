@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, Phone, IdCard } from "lucide-react";
+import { Search, Phone, IdCard, ChevronRight } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,14 @@ import { EmployeeProfileSheet } from "./employee-profile-sheet";
  * este tab es sobre QUIÉN es alguien, no su pago. Filtra en el cliente
  * sobre `employees` ya cargado — sin fetch extra. Portado de Atlas.
  */
-export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
+export function EmpleadosView({
+  employees,
+  onViewDetail,
+}: {
+  employees: PayrollEmployee[];
+  /** Abre el sheet de Detalle del empleado (año en curso). */
+  onViewDetail?: (employeeId: string) => void;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
@@ -43,12 +50,12 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
 
   function Card({ employee }: { employee: PayrollEmployee }) {
     return (
-      <button
-        type="button"
-        onClick={() => setProfileEmployeeId(employee.id)}
-        className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30">
+        <button
+          type="button"
+          onClick={() => setProfileEmployeeId(employee.id)}
+          className="flex items-center gap-3 text-left"
+        >
           <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="md" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{employee.name}</p>
@@ -59,7 +66,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
               {tt("inactive")}
             </Badge>
           )}
-        </div>
+        </button>
         <div className="flex flex-col gap-1 border-t border-border pt-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Phone className="size-3.5 shrink-0" />
@@ -70,7 +77,17 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
             {employee.idDocument || tt("no_id")}
           </span>
         </div>
-      </button>
+        {onViewDetail && (
+          <button
+            type="button"
+            onClick={() => onViewDetail(employee.id)}
+            className="-mb-1 flex items-center gap-1 self-end text-xs font-medium text-primary hover:underline"
+          >
+            {tt("view_detail_annual")}
+            <ChevronRight className="size-3.5" />
+          </button>
+        )}
+      </div>
     );
   }
 

@@ -161,10 +161,17 @@
   --payroll-vacacion: var(--ebony-success);
   --payroll-prima: var(--ebony-medium);
   --payroll-descuentos: var(--ebony-destructive); /* rojo — descuentos */
+  /* Segundo rojo, distinto: "Descuento a Préstamos" debe leerse como
+     pariente de Descuentos pero no idéntico (pedido de Atlas). Vino
+     apagado — más oscuro y menos saturado que --ebony-destructive. */
+  --payroll-descuento-prestamos: oklch(42% 0.13 12);
   --payroll-prestamos: var(--ebony-medium);
   --payroll-total: var(--ebony-dark);
   --payroll-total-due: var(--ebony-success); /* acento "Total a Pagar" */
-  --payroll-next-pay: var(--ebony-gold-light); /* acento "Próximo pago" */
+  --payroll-next-pay: var(--ebony-gold-light); /* acento "Próximo pago" / info */
+  --payroll-paid: var(--ebony-light); /* stat "Pagado" (Atlas: --chart-1) */
+  --payroll-pending: var(--ebony-gold); /* stat "Pendiente" / warning (Atlas: --chart-3) */
+  --payroll-avg: var(--ebony-gold-light); /* stat "Prom. mensual" (Atlas: --chart-5) */
 
   /* Colores de identidad por empleado — eje independiente del de categorías
      (una categoría dice "qué tipo de dinero"; esto dice "de quién es esta

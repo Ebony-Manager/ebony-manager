@@ -8,9 +8,9 @@ import type { PayrollEmployee } from "@/types/planilla";
  * Capa de datos de empleados de planilla — portada de Atlas
  * `src/services/employees.ts`, de SQLite síncrono a Supabase async.
  * La tabla es `payroll_employees` (RLS solo-admin); sin `propertyId`
- * (Ebony es una sola empresa). Las funciones de "ending employment"
- * (deactivate/delete) y la de préstamos/liquidación se portan en la
- * Tanda B2.
+ * (Ebony es una sola empresa). El "activar/desactivar" y la liquidación
+ * pasan por `updatePayrollEmployee` (patch de `status` / `endDate` /
+ * `liquidationNotes`), como en Atlas.
  */
 
 type Row = Database["public"]["Tables"]["payroll_employees"]["Row"];
@@ -109,6 +109,10 @@ export interface UpdatePayrollEmployeeInput {
   name?: string;
   position?: string | null;
   startDate?: string | null;
+  /** Fin de empleo / ancla de reinicio de prestaciones (liquidación). */
+  endDate?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+  liquidationNotes?: string | null;
   baseSalaryCents?: number;
   benefitsBaseSalaryCents?: number | null;
   notes?: string | null;
@@ -128,6 +132,9 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.position !== undefined) patch.position = input.position;
   if (input.startDate !== undefined) patch.start_date = input.startDate;
+  if (input.endDate !== undefined) patch.end_date = input.endDate;
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.liquidationNotes !== undefined) patch.liquidation_notes = input.liquidationNotes;
   if (input.baseSalaryCents !== undefined) patch.base_salary_cents = input.baseSalaryCents;
   if (input.benefitsBaseSalaryCents !== undefined) patch.benefits_base_salary_cents = input.benefitsBaseSalaryCents;
   if (input.notes !== undefined) patch.notes = input.notes;
