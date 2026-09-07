@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
+import type { LedgerCategory, LedgerDirection, LoanPaymentMethod } from "@/types/planilla";
 
 // La Planilla es solo-admin: cada action verifica `requireAdmin()` al
 // entrar (además de la RLS admin-only de las 4 tablas). Un `vendedor`
@@ -86,4 +87,88 @@ export async function duplicatePreviousPeriodAction(year: number, month: number,
   const copied = await payroll.duplicatePreviousPeriod(year, month, half);
   revalidatePath(PATH);
   return { copied };
+}
+
+// ── Reportes (solo lectura; igual verifican admin) ─────────────────────
+
+export async function getAnnualSummaryAction(year: number) {
+  await requireAdmin();
+  return payroll.getAnnualSummary(year);
+}
+
+export async function getAuditoriaDataAction(year: number) {
+  await requireAdmin();
+  return payroll.getAuditoriaData(year);
+}
+
+export async function getUpcomingObligationsAction() {
+  await requireAdmin();
+  return payroll.getUpcomingObligations();
+}
+
+export async function getEmployeeAnnualDetailAction(employeeId: string, year: number, projectFuture = false) {
+  await requireAdmin();
+  return payroll.getEmployeeAnnualDetail(employeeId, year, projectFuture);
+}
+
+// ── Ledger genérico ───────────────────────────────────────────────────
+
+export async function getLedgerEntriesAction(employeeId: string) {
+  await requireAdmin();
+  return payroll.getLedgerEntries(employeeId);
+}
+
+export async function getLedgerBalanceAction(employeeId: string) {
+  await requireAdmin();
+  return payroll.getLedgerBalance(employeeId);
+}
+
+export async function createLedgerEntryAction(input: {
+  employeeId: string;
+  category: LedgerCategory;
+  direction: LedgerDirection;
+  amountCents: number;
+  entryDate: string;
+  payrollEntryId?: string | null;
+  notes?: string | null;
+}) {
+  await requireAdmin();
+  const entry = await payroll.createLedgerEntry(input);
+  revalidatePath(PATH);
+  return entry;
+}
+
+export async function deleteLedgerEntryAction(id: string) {
+  await requireAdmin();
+  await payroll.deleteLedgerEntry(id);
+  revalidatePath(PATH);
+}
+
+// ── Préstamos / adelantos ─────────────────────────────────────────────
+
+export async function getLoansAction(employeeId: string) {
+  await requireAdmin();
+  return payroll.getLoansForEmployee(employeeId);
+}
+
+export async function createLoanAction(input: {
+  employeeId: string;
+  category: "prestamo" | "adelanto";
+  principalCents: number;
+  paymentMethod?: LoanPaymentMethod;
+  requestDate: string;
+  numInstallments: number;
+  startPeriod?: { year: number; month: number; half: 1 | 2 };
+  notes?: string | null;
+}) {
+  await requireAdmin();
+  const loan = await payroll.createLoan(input);
+  revalidatePath(PATH);
+  return loan;
+}
+
+export async function cancelLoanAction(loanId: string) {
+  await requireAdmin();
+  await payroll.cancelLoan(loanId);
+  revalidatePath(PATH);
 }

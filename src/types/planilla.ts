@@ -168,3 +168,98 @@ export interface PayrollPeriodTotal {
    *  - diasDescontadosCents - otherDeductionCents - ledgerPaymentCents */
   totalCents: number;
 }
+
+/** Una fila del pivot de Resumen Anual: totales de un empleado a lo
+ *  largo de las 24 quincenas de un año, más el total anual. Portado de
+ *  Atlas `EmployeeAnnualSummary`. */
+export interface PayrollEmployeeAnnualSummary {
+  employee: PayrollEmployee;
+  /** Keyed "month-half", ej. "3-1" para la 1ra quincena de marzo. */
+  totalsByPeriod: Record<string, number>;
+  totalPaidCents: number;
+  conceptTotals: {
+    salarioCents: number;
+    decimoCents: number;
+    vacacionCents: number;
+    primaCents: number;
+    descuentosCents: number;
+    prestamosCents: number;
+  };
+  /** Meses (1-12) con al menos una entry real este año. */
+  monthsWithActivity: number;
+  /** Suma de totalCents en quincenas con entry.paid === true. */
+  paidCents: number;
+  /** Meses donde toda entry real de ese mes tiene paid === true. */
+  monthsPaid: number;
+}
+
+// ── Auditoría ──────────────────────────────────────────────────────────
+
+export interface AuditoriaLineItem {
+  key: string;
+  /** Clave i18n de `strings.planilla` para la etiqueta. */
+  labelKey: string;
+  /** 24 valores, en orden PERIODS_IN_YEAR (Ene-1Q…Dic-2Q). */
+  periods: number[];
+  totalCents: number;
+  /** Valor de acumulado por quincena (Décimo/Vacación/Prima) para el
+   *  toggle "Proyección de prestaciones" — nunca suma al total. */
+  previewPeriods?: number[];
+  /** Línea solo informativa (Caja de Seguro Social): se muestra pero no
+   *  cuenta en periods/totalCents del grupo. */
+  excludeFromSubtotal?: boolean;
+}
+
+export interface AuditoriaConceptGroup {
+  key: string;
+  labelKey: string;
+  periods: number[];
+  totalCents: number;
+  lineItems: AuditoriaLineItem[];
+}
+
+export interface AuditoriaEmployeeRow {
+  employee: PayrollEmployee;
+  periods: number[];
+  totalCents: number;
+  /** Quincena base pura por quincena — misma serie que la 1ra línea del
+   *  grupo Salarios; duplicada acá para la comparación Total-vs-Base. */
+  basePeriods: number[];
+  groups: AuditoriaConceptGroup[];
+}
+
+export type AuditFindingKind = "paid_zero" | "negative" | "gap";
+
+/** Hallazgo estructurado (sin texto): la vista lo formatea con el idioma
+ *  activo. Cruza la frontera server→client como datos planos. */
+export interface AuditFinding {
+  employeeId: string;
+  employeeName: string;
+  severity: "warning" | "error";
+  kind: AuditFindingKind;
+  year: number;
+  /** paid_zero / negative: quincena señalada. */
+  month?: number;
+  half?: 1 | 2;
+  totalCents?: number;
+  /** gap: meses entre los que falta actividad. */
+  monthA?: number;
+  monthB?: number;
+}
+
+export interface AuditoriaData {
+  rows: AuditoriaEmployeeRow[];
+  periodTotals: number[];
+  grandTotalCents: number;
+  findings: AuditFinding[];
+}
+
+// ── Dashboard / obligaciones ──────────────────────────────────────────
+
+export interface UpcomingObligations {
+  decimoPendingCents: number;
+  decimoDueDate: string;
+  vacacionPendingCents: number;
+  prestamosPendingCents: number;
+  employeesWithLoanBalance: number;
+}

@@ -2,18 +2,106 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import type { PayrollEmployee, PayrollEntry, PayrollPeriodTotal, PaymentMethod } from "@/types/planilla";
-import { computePeriodTotalFromEntry } from "@/lib/planilla/payroll-accruals";
-import { previousPeriod } from "@/lib/planilla/payroll-period";
-import { getPayrollEmployees } from "@/services/payroll-employees";
+import type {
+  AuditoriaData,
+  LedgerCategory,
+  LedgerDirection,
+  LoanPaymentMethod,
+  PayrollEmployee,
+  PayrollEmployeeAnnualSummary,
+  PayrollEntry,
+  PayrollLedgerEntry,
+  PayrollLoan,
+  PayrollLoanInstallment,
+  PayrollLoanWithSchedule,
+  PayrollPeriodTotal,
+  PaymentMethod,
+  UpcomingObligations,
+} from "@/types/planilla";
+import {
+  buildEmployeeContext,
+  computeAnnualDetail,
+  computePeriodTotalFromEntry,
+  periodFromDateString,
+  type AnnualDetailRow,
+} from "@/lib/planilla/payroll-accruals";
+import {
+  computeAnnualSummary,
+  computeAuditoriaData,
+  computeLedgerBalance,
+  computeUpcomingObligations,
+  type EmployeeHistory,
+  type LedgerRowFull,
+} from "@/lib/planilla/payroll-reports";
+import { computeLoanSchedule, defaultLoanStartPeriod } from "@/lib/planilla/payroll-loans";
+import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
+import { getPayrollEmployee, getPayrollEmployees } from "@/services/payroll-employees";
+
+/** La quincena base "por defecto" de un empleado: salario mensual ÷ 2,
+ *  redondeado a centavos enteros. Es lo que se pre-llena en la columna
+ *  Base de Registro al abrir una quincena sin fila todavía, y lo que
+ *  `upsertEntry` congela en la fila al primer guardado (misma regla de
+ *  "congelar al entrar" que las horas extra). Un aumento de salario
+ *  futuro no reflota quincenas ya registradas. */
+export function defaultQuincenaBaseCents(baseSalaryCents: number): number {
+  return Math.round((baseSalaryCents ?? 0) / 2);
+}
+
+/** ¿Corresponde pre-llenar la base para este empleado en esta quincena?
+ *  Sí, salvo que la quincena caiga antes de la fecha de ingreso. */
+function shouldSeedBase(employee: PayrollEmployee, year: number, month: number, half: 1 | 2): boolean {
+  if ((employee.baseSalaryCents ?? 0) <= 0) return false;
+  if (!employee.startDate) return true;
+  const start = periodFromDateString(employee.startDate);
+  if (!start) return true;
+  return periodOrdinal(year, month, half) >= periodOrdinal(start.year, start.month, start.half);
+}
+
+/** Entry sintética (no persistida, `id: ""`) que solo lleva la quincena
+ *  base por defecto — para que la rejilla y los KPIs de Registro
+ *  reflejen esa base antes de cualquier guardado. */
+function seededEntry(employee: PayrollEmployee, year: number, month: number, half: 1 | 2): PayrollEntry {
+  return {
+    id: "",
+    employeeId: employee.id,
+    periodYear: year,
+    periodMonth: month,
+    periodHalf: half,
+    basePayCents: defaultQuincenaBaseCents(employee.baseSalaryCents),
+    extraHours: 0,
+    extraHoursCents: 0,
+    extraDays: 0,
+    extraDaysCents: 0,
+    viaticosCents: 0,
+    bonusCents: 0,
+    diasLibresCents: 0,
+    horasDescontadas: 0,
+    horasDescontadasCents: 0,
+    diasDescontados: 0,
+    diasDescontadosCents: 0,
+    otherDeductionCents: 0,
+    decimoPaidCents: 0,
+    vacationPaidCents: 0,
+    primaAntiguedadPaidCents: 0,
+    paymentMethod: "efectivo",
+    paid: false,
+    paidAt: null,
+    notes: null,
+  };
+}
 
 /**
- * Capa de datos del Registro de quincena — portada de la parte
- * relevante de Atlas `src/services/payroll.ts`, de SQLite síncrono a
- * Supabase async. Las fórmulas (total de quincena, acumulados) NO se
- * reimplementan acá: se importan puras de `src/lib/planilla/`. Sin
- * `propertyId`. Los acumulados de Décimo/Vacación/Prima y las pantallas
- * que los usan (Resumen/Auditoría/Dashboard/Detalle) se portan en B2.
+ * Capa de datos de Planilla — portada de Atlas `src/services/payroll.ts`,
+ * de SQLite síncrono a Supabase async. Las fórmulas (total de quincena,
+ * acumulados de Décimo/Vacación/Prima, cuotas de préstamo) NO se
+ * reimplementan acá: se importan puras de `src/lib/planilla/`. Este
+ * archivo solo hace los queries y arma la forma que consumen las
+ * pantallas. Sin `propertyId` (Ebony es una sola empresa).
+ *
+ * Cubre: Registro (+ quincena base por defecto que se congela al primer
+ * guardado), Resumen Anual, Auditoría, obligaciones, Detalle de
+ * empleado, ledger genérico y préstamos/adelantos con su calendario de
+ * cuotas auto-aplicado.
  */
 
 type EntryRow = Database["public"]["Tables"]["payroll_entries"]["Row"];
@@ -126,8 +214,20 @@ export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry
   );
   const cur = existing ? mapEntry(existing) : null;
 
+  // Al CREAR la fila por primera vez sin base explícita, se congela la
+  // quincena base por defecto del empleado (salario mensual ÷ 2). Así
+  // cualquier primer guardado en esa quincena — tocar la base, marcar
+  // "pagado", entrar horas extra — deja la base sellada.
+  let seedBaseCents: number | undefined;
+  if (!existing && input.basePayCents === undefined) {
+    const employee = await getPayrollEmployee(input.employeeId);
+    if (employee && shouldSeedBase(employee, input.periodYear, input.periodMonth, input.periodHalf)) {
+      seedBaseCents = defaultQuincenaBaseCents(employee.baseSalaryCents);
+    }
+  }
+
   const merged = {
-    base_pay_cents: input.basePayCents ?? cur?.basePayCents ?? 0,
+    base_pay_cents: input.basePayCents ?? cur?.basePayCents ?? seedBaseCents ?? 0,
     extra_hours: input.extraHours ?? cur?.extraHours ?? 0,
     extra_hours_cents: input.extraHoursCents ?? cur?.extraHoursCents ?? 0,
     extra_days: input.extraDays ?? cur?.extraDays ?? 0,
@@ -239,8 +339,15 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
 
   return employees.map((employee) => {
     const row = entryByEmployee.get(employee.id) ?? null;
-    const entry = row ? mapEntry(row) : null;
     const ledger = row ? ledgerByEntry.get(row.id) ?? { debt: 0, payment: 0 } : { debt: 0, payment: 0 };
+    // Sin fila real: se muestra la quincena base por defecto (sintética,
+    // no persistida) para que Base, "Total quincena" y "Total a Pagar"
+    // la reflejen. Se persiste al primer guardado (ver upsertEntry).
+    const entry = row
+      ? mapEntry(row)
+      : shouldSeedBase(employee, year, month, half)
+        ? seededEntry(employee, year, month, half)
+        : null;
     return { employee, total: computePeriodTotalFromEntry(entry, ledger) };
   });
 }
@@ -288,4 +395,404 @@ export async function duplicatePreviousPeriod(year: number, month: number, half:
     copied += 1;
   }
   return copied;
+}
+
+// ============================================================================
+// Historial completo por empleado (para reportes)
+// ============================================================================
+
+type LedgerRow = Database["public"]["Tables"]["payroll_ledger_entries"]["Row"];
+type LoanRow = Database["public"]["Tables"]["payroll_loans"]["Row"];
+
+function mapLedger(r: LedgerRow): PayrollLedgerEntry {
+  return {
+    id: r.id,
+    employeeId: r.employee_id,
+    category: (r.category as LedgerCategory) ?? "otro",
+    direction: r.direction === "payment" ? "payment" : "debt",
+    amountCents: r.amount_cents,
+    entryDate: r.entry_date,
+    payrollEntryId: r.payroll_entry_id,
+    loanId: r.loan_id,
+    notes: r.notes,
+  };
+}
+
+function toLedgerRowFull(r: LedgerRow): LedgerRowFull {
+  return {
+    category: r.category,
+    direction: r.direction === "payment" ? "payment" : "debt",
+    amountCents: r.amount_cents,
+    entryDate: r.entry_date,
+    payrollEntryId: r.payroll_entry_id,
+  };
+}
+
+/** Trae TODO el historial (entries + ledger) de todos los empleados en
+ *  2 queries y lo agrupa por empleado — la base de Resumen Anual,
+ *  Auditoría y Dashboard. */
+async function loadAllHistories(): Promise<EmployeeHistory[]> {
+  const supabase = await createClient();
+  const employees = await getPayrollEmployees();
+
+  const { data: entryRows, error: e1 } = await supabase.from("payroll_entries").select("*");
+  if (e1) throw new Error(e1.message);
+  const { data: ledgerRows, error: e2 } = await supabase.from("payroll_ledger_entries").select("*");
+  if (e2) throw new Error(e2.message);
+
+  const entriesByEmp = new Map<string, PayrollEntry[]>();
+  for (const r of entryRows ?? []) {
+    const list = entriesByEmp.get(r.employee_id) ?? [];
+    list.push(mapEntry(r));
+    entriesByEmp.set(r.employee_id, list);
+  }
+  const ledgerByEmp = new Map<string, LedgerRowFull[]>();
+  for (const r of ledgerRows ?? []) {
+    const list = ledgerByEmp.get(r.employee_id) ?? [];
+    list.push(toLedgerRowFull(r));
+    ledgerByEmp.set(r.employee_id, list);
+  }
+
+  return employees.map((employee) => ({
+    employee,
+    entries: entriesByEmp.get(employee.id) ?? [],
+    ledger: ledgerByEmp.get(employee.id) ?? [],
+  }));
+}
+
+/** Historial de un solo empleado (2 queries). */
+async function loadHistory(employeeId: string): Promise<EmployeeHistory | null> {
+  const supabase = await createClient();
+  const employee = await getPayrollEmployee(employeeId);
+  if (!employee) return null;
+
+  const { data: entryRows, error: e1 } = await supabase
+    .from("payroll_entries")
+    .select("*")
+    .eq("employee_id", employeeId);
+  if (e1) throw new Error(e1.message);
+  const { data: ledgerRows, error: e2 } = await supabase
+    .from("payroll_ledger_entries")
+    .select("*")
+    .eq("employee_id", employeeId);
+  if (e2) throw new Error(e2.message);
+
+  return {
+    employee,
+    entries: (entryRows ?? []).map(mapEntry),
+    ledger: (ledgerRows ?? []).map(toLedgerRowFull),
+  };
+}
+
+// ============================================================================
+// Reportes
+// ============================================================================
+
+/** Fuente del pivot de Resumen Anual: una fila por empleado (activo o
+ *  no — el historial nunca se esconde). */
+export async function getAnnualSummary(year: number): Promise<PayrollEmployeeAnnualSummary[]> {
+  const histories = await loadAllHistories();
+  return histories.map((h) => computeAnnualSummary(h, year));
+}
+
+/** Fuente de Auditoría: 24 quincenas × empleado, por concepto, más los
+ *  hallazgos automáticos. */
+export async function getAuditoriaData(year: number): Promise<AuditoriaData> {
+  const histories = await loadAllHistories();
+  const asOf = currentPeriod();
+  return computeAuditoriaData(histories, year, periodOrdinal(asOf.year, asOf.month, asOf.half));
+}
+
+/** Las tres obligaciones vivas del negocio (Registro / Dashboard). */
+export async function getUpcomingObligations(): Promise<UpcomingObligations> {
+  const histories = await loadAllHistories();
+  const today = new Date();
+  return computeUpcomingObligations(histories, currentPeriod(), nextDecimoInstallmentDate(today).toISOString().slice(0, 10));
+}
+
+/** Próxima fecha legal de cuota de Décimo (15-abr, 15-ago, 15-dic). */
+function nextDecimoInstallmentDate(today: Date): Date {
+  const y = today.getFullYear();
+  const candidates = [new Date(y, 3, 15), new Date(y, 7, 15), new Date(y, 11, 15), new Date(y + 1, 3, 15)];
+  for (const c of candidates) if (c.getTime() >= today.getTime()) return c;
+  return candidates[candidates.length - 1];
+}
+
+/** Detalle mes a mes de un empleado para el sheet de Detalle. */
+export async function getEmployeeAnnualDetail(
+  employeeId: string,
+  year: number,
+  projectFuture = false
+): Promise<AnnualDetailRow[]> {
+  const history = await loadHistory(employeeId);
+  if (!history) return [];
+  const ctx = buildEmployeeContext(
+    history.entries,
+    history.ledger
+      .filter((r) => r.category !== "seguro_social")
+      .map((r) => ({ direction: r.direction, amountCents: r.amountCents, payrollEntryId: r.payrollEntryId }))
+  );
+  return computeAnnualDetail(history.employee, ctx, year, projectFuture);
+}
+
+// ============================================================================
+// Ledger genérico (herramientas, daños, seguro social, carnet, otros)
+// ============================================================================
+
+export async function getLedgerEntries(employeeId: string): Promise<PayrollLedgerEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("payroll_ledger_entries")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .order("entry_date", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapLedger);
+}
+
+/** Saldo que el empleado debe ahora mismo. */
+export async function getLedgerBalance(employeeId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data: ledgerRows, error } = await supabase
+    .from("payroll_ledger_entries")
+    .select("*")
+    .eq("employee_id", employeeId);
+  if (error) throw new Error(error.message);
+
+  const { data: entryRows, error: e2 } = await supabase
+    .from("payroll_entries")
+    .select("id, paid")
+    .eq("employee_id", employeeId);
+  if (e2) throw new Error(e2.message);
+  const entryPaidById = new Map((entryRows ?? []).map((r) => [r.id, r.paid]));
+
+  return computeLedgerBalance((ledgerRows ?? []).map(toLedgerRowFull), entryPaidById);
+}
+
+export async function createLedgerEntry(input: {
+  employeeId: string;
+  category: LedgerCategory;
+  direction: LedgerDirection;
+  amountCents: number;
+  entryDate: string;
+  payrollEntryId?: string | null;
+  loanId?: string | null;
+  notes?: string | null;
+}): Promise<PayrollLedgerEntry> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("payroll_ledger_entries")
+    .insert({
+      employee_id: input.employeeId,
+      category: input.category,
+      direction: input.direction,
+      amount_cents: input.amountCents,
+      entry_date: input.entryDate,
+      payroll_entry_id: input.payrollEntryId ?? null,
+      loan_id: input.loanId ?? null,
+      notes: input.notes ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapLedger(data);
+}
+
+export async function deleteLedgerEntry(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_ledger_entries").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// Préstamos / adelantos (calendario de cuotas auto-aplicado)
+// ============================================================================
+
+function mapLoan(r: LoanRow): PayrollLoan {
+  return {
+    id: r.id,
+    employeeId: r.employee_id,
+    category: r.category === "adelanto" ? "adelanto" : "prestamo",
+    principalCents: r.principal_cents,
+    paymentMethod: (r.payment_method as LoanPaymentMethod) ?? "cuota_fija",
+    numInstallments: r.num_installments,
+    requestDate: r.request_date,
+    startPeriod: {
+      year: r.start_period_year,
+      month: r.start_period_month,
+      half: r.start_period_half === 2 ? 2 : 1,
+    },
+    status: r.status === "cancelled" ? "cancelled" : "active",
+    notes: r.notes,
+  };
+}
+
+function periodApproxDate(p: Period): Date {
+  return new Date(p.year, p.month - 1, p.half === 1 ? 15 : 28);
+}
+
+/**
+ * Registra un préstamo/adelanto Y materializa de una vez todo su
+ * calendario: una fila 'debt' por el monto otorgado, más una fila
+ * 'payment' por cuota, cada una enganchada (vía payrollEntryId) a la
+ * fila real de esa quincena — creada acá si no existe. Portado de
+ * `createLoan` de Atlas.
+ */
+export async function createLoan(input: {
+  employeeId: string;
+  category: "prestamo" | "adelanto";
+  principalCents: number;
+  paymentMethod?: LoanPaymentMethod;
+  requestDate: string;
+  numInstallments: number;
+  startPeriod?: Period;
+  notes?: string | null;
+}): Promise<PayrollLoanWithSchedule> {
+  const supabase = await createClient();
+  const paymentMethod = input.paymentMethod ?? "cuota_fija";
+  const numInstallments = input.category === "adelanto" ? 1 : input.numInstallments;
+  const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
+  if (!startPeriod) throw new Error("Fecha de solicitud inválida");
+  const schedule = computeLoanSchedule(input.principalCents, numInstallments, startPeriod, paymentMethod);
+
+  const { data: loanRow, error } = await supabase
+    .from("payroll_loans")
+    .insert({
+      employee_id: input.employeeId,
+      category: input.category,
+      principal_cents: input.principalCents,
+      payment_method: paymentMethod,
+      num_installments: numInstallments,
+      request_date: input.requestDate,
+      start_period_year: startPeriod.year,
+      start_period_month: startPeriod.month,
+      start_period_half: startPeriod.half,
+      status: "active",
+      notes: input.notes ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  const loanId = loanRow.id;
+
+  // El monto otorgado — informativo, nunca atado a una quincena.
+  await createLedgerEntry({
+    employeeId: input.employeeId,
+    category: input.category,
+    direction: "debt",
+    amountCents: input.principalCents,
+    entryDate: input.requestDate,
+    loanId,
+    notes: input.notes ?? null,
+  });
+
+  const installments: PayrollLoanInstallment[] = [];
+  for (let i = 0; i < schedule.length; i++) {
+    const cuota = schedule[i];
+    const entry = await upsertEntry({
+      employeeId: input.employeeId,
+      periodYear: cuota.period.year,
+      periodMonth: cuota.period.month,
+      periodHalf: cuota.period.half,
+    });
+    const ledgerEntry = await createLedgerEntry({
+      employeeId: input.employeeId,
+      category: input.category,
+      direction: "payment",
+      amountCents: cuota.amountCents,
+      entryDate: periodApproxDate(cuota.period).toISOString().slice(0, 10),
+      payrollEntryId: entry.id,
+      loanId,
+      notes: numInstallments > 1 ? `Cuota ${i + 1} de ${numInstallments}` : null,
+    });
+    installments.push({
+      ledgerEntryId: ledgerEntry.id,
+      period: cuota.period,
+      amountCents: cuota.amountCents,
+      paid: entry.paid,
+    });
+  }
+
+  return { ...mapLoan(loanRow), installments };
+}
+
+/** Todos los préstamos de un empleado, con su calendario resuelto de
+ *  las filas reales de ledger vinculadas por loan_id. */
+export async function getLoansForEmployee(employeeId: string): Promise<PayrollLoanWithSchedule[]> {
+  const supabase = await createClient();
+  const { data: loanRows, error } = await supabase
+    .from("payroll_loans")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .order("request_date", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const { data: ledgerRows, error: e2 } = await supabase
+    .from("payroll_ledger_entries")
+    .select("id, amount_cents, loan_id, payroll_entry_id")
+    .eq("employee_id", employeeId)
+    .eq("direction", "payment")
+    .not("loan_id", "is", null);
+  if (e2) throw new Error(e2.message);
+
+  const entryIds = [...new Set((ledgerRows ?? []).map((r) => r.payroll_entry_id).filter((x): x is string => !!x))];
+  const entryById = new Map<string, { period_year: number; period_month: number; period_half: number; paid: boolean }>();
+  if (entryIds.length > 0) {
+    const { data: entryRows, error: e3 } = await supabase
+      .from("payroll_entries")
+      .select("id, period_year, period_month, period_half, paid")
+      .in("id", entryIds);
+    if (e3) throw new Error(e3.message);
+    for (const e of entryRows ?? []) entryById.set(e.id, e);
+  }
+
+  const installmentsByLoan = new Map<string, PayrollLoanInstallment[]>();
+  for (const r of ledgerRows ?? []) {
+    if (!r.loan_id || !r.payroll_entry_id) continue;
+    const e = entryById.get(r.payroll_entry_id);
+    if (!e) continue;
+    const list = installmentsByLoan.get(r.loan_id) ?? [];
+    list.push({
+      ledgerEntryId: r.id,
+      period: { year: e.period_year, month: e.period_month, half: e.period_half === 2 ? 2 : 1 },
+      amountCents: r.amount_cents,
+      paid: e.paid,
+    });
+    installmentsByLoan.set(r.loan_id, list);
+  }
+
+  return (loanRows ?? []).map((r) => ({ ...mapLoan(r), installments: installmentsByLoan.get(r.id) ?? [] }));
+}
+
+/** Cancela un préstamo y borra las cuotas que aún no se pagaron (su
+ *  quincena tiene paid = false). Las ya pagadas nunca se tocan. */
+export async function cancelLoan(loanId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: ledgerRows, error } = await supabase
+    .from("payroll_ledger_entries")
+    .select("id, payroll_entry_id")
+    .eq("loan_id", loanId);
+  if (error) throw new Error(error.message);
+
+  const entryIds = [...new Set((ledgerRows ?? []).map((r) => r.payroll_entry_id).filter((x): x is string => !!x))];
+  const paidById = new Map<string, boolean>();
+  if (entryIds.length > 0) {
+    const { data: entryRows, error: e2 } = await supabase
+      .from("payroll_entries")
+      .select("id, paid")
+      .in("id", entryIds);
+    if (e2) throw new Error(e2.message);
+    for (const e of entryRows ?? []) paidById.set(e.id, e.paid);
+  }
+
+  const toDelete = (ledgerRows ?? [])
+    .filter((r) => r.payroll_entry_id && paidById.get(r.payroll_entry_id) === false)
+    .map((r) => r.id);
+  if (toDelete.length > 0) {
+    const { error: e3 } = await supabase.from("payroll_ledger_entries").delete().in("id", toDelete);
+    if (e3) throw new Error(e3.message);
+  }
+
+  const { error: e4 } = await supabase.from("payroll_loans").update({ status: "cancelled" }).eq("id", loanId);
+  if (e4) throw new Error(e4.message);
 }
