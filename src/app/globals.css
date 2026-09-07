@@ -155,7 +155,10 @@
    ============================================================================= */
 
 :root {
-  --payroll-salario: var(--ebony-light); /* madera media — salario base */
+  /* Azul para Salarios / Base — como en Atlas (allá era --chart-1). Azul
+     apagado (L 55%, C 0.12, hue 250) para que se lea claramente como
+     "azul" al lado de la madera y el dorado, sin ser neón. */
+  --payroll-salario: oklch(55% 0.12 250);
   --payroll-bonos: var(--ebony-success); /* verde bosque — bonos y extras */
   --payroll-decimo: var(--ebony-gold); /* dorado de marca — prestaciones */
   --payroll-vacacion: var(--ebony-success);

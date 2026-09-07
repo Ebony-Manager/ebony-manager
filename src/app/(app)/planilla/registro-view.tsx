@@ -301,7 +301,9 @@ export function RegistroView({
         <table className="w-full min-w-[960px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-              <th className="px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
+              {/* Columna "Empleado" congelada al hacer scroll horizontal,
+                  igual que en la Auditoría (sticky left-0 + fondo propio). */}
+              <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
               {fieldColumns.map((c) => (
                 <th
                   key={c.key}
@@ -331,7 +333,7 @@ export function RegistroView({
                   key={`${key}-${periodKeySuffix}`}
                   className="group/row border-b border-border transition-colors last:border-0 hover:bg-muted/40 focus-within:bg-primary/[0.07]"
                 >
-                  <td className="relative px-3 py-1.5 font-medium text-foreground">
+                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground">
                     <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-focus-within/row:scale-y-100" />
                     <div className="flex items-center gap-2">
                       <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
@@ -344,11 +346,16 @@ export function RegistroView({
                     // (sueldo vigente de esta quincena ÷ 2), ya no se edita
                     // a mano en la tabla.
                     if (c.key === "basePayCents") {
+                      // Solo lectura + en el azul del token "salario"
+                      // (mismo color que la sección Salarios de Auditoría).
                       return (
                         <td
                           key={c.key}
-                          className="px-2 py-1 text-right tabular-nums text-muted-foreground"
-                          style={fieldCellStyle(c.category, fieldMinWidth(c))}
+                          className="px-2 py-1 text-right font-medium tabular-nums"
+                          style={{
+                            ...fieldCellStyle(c.category, fieldMinWidth(c)),
+                            color: PAYROLL_CATEGORY.salario.color,
+                          }}
                           title={tt("base_readonly_hint")}
                         >
                           {formatCents(value)}
