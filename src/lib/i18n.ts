@@ -572,7 +572,9 @@ export const strings = {
     },
     mov_saved: { es: "Movimiento guardado", en: "Movement saved" },
 
-    cat_trabajo: { es: "Trabajo", en: "Work" },
+    // El valor guardado en la base sigue siendo 'trabajo' (enum sin
+    // cambios); acá solo cambia la ETIQUETA visible a "Proyecto".
+    cat_trabajo: { es: "Proyecto", en: "Project" },
     cat_bono: { es: "Bono", en: "Bonus" },
     cat_extra: { es: "Extra", en: "Extra" },
     cat_pago: { es: "Pago", en: "Payment" },
@@ -581,6 +583,30 @@ export const strings = {
     cat_material: { es: "Material", en: "Material" },
     cat_gasto_operativo: { es: "Gasto operativo", en: "Operational expense" },
     cat_ajuste: { es: "Ajuste", en: "Adjustment" },
+
+    // KPIs de la ficha del contratista (arriba del estado de cuenta).
+    kpi_balance: { es: "Saldo pendiente", en: "Outstanding balance" },
+    kpi_billed: { es: "Total facturado", en: "Total billed" },
+    kpi_projects: { es: "Proyectos realizados", en: "Projects completed" },
+    kpi_projects_count: { es: "movimientos de proyecto", en: "project movements" },
+    kpi_paid: { es: "Total pagado", en: "Total paid" },
+    kpi_materials: { es: "Total en materiales", en: "Total in materials" },
+
+    // Selector de período del estado de cuenta. Filtrar por período solo
+    // cambia QUÉ filas se ven — el saldo corrido nunca se reinicia.
+    period_label: { es: "Período", en: "Period" },
+    period_month: { es: "Mes", en: "Month" },
+    period_quarter: { es: "Trimestre", en: "Quarter" },
+    period_semester: { es: "Semestre", en: "Semester" },
+    period_year: { es: "Año", en: "Year" },
+    period_last15: { es: "Últimos 15 movimientos", en: "Last 15 movements" },
+    period_all: { es: "Todo", en: "All" },
+    period_prev: { es: "Período anterior", en: "Previous period" },
+    period_next: { es: "Período siguiente", en: "Next period" },
+    period_empty: {
+      es: "Sin movimientos en este período. El saldo mostrado arrastra todo lo anterior.",
+      en: "No movements in this period. The balance shown still carries everything before it.",
+    },
   },
 
   common: {
