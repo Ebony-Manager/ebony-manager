@@ -506,6 +506,12 @@ export const strings = {
       en: "Add at least one contractor to get started.",
     },
     profile_fallback: { es: "Ficha del contratista", en: "Contractor profile" },
+    back_to_directory: { es: "Volver al directorio", en: "Back to directory" },
+    not_found: { es: "Contratista no encontrado", en: "Contractor not found" },
+    not_found_desc: {
+      es: "Este contratista no existe o fue eliminado.",
+      en: "This contractor doesn't exist or was removed.",
+    },
 
     balance_label: { es: "Saldo", en: "Balance" },
     bal_ebony_owes: { es: "Ebony le debe", en: "Ebony owes them" },

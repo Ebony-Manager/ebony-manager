@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { IdCard, Phone, Search } from "lucide-react";
 
 import type { ContractorWithBalance } from "@/types/contractors";
@@ -11,21 +12,20 @@ import { balanceTone, toneTextStyle } from "@/lib/contractors/contractor-colors"
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorAvatar } from "./contractor-avatar";
-import { ContractorProfileSheet } from "./contractor-profile-sheet";
 
 /**
  * Directorio de contratistas — una tarjeta por persona con nombre, tipo
  * y el SALDO ACTUAL calculado (verde si Ebony le debe, rojo si el
  * contratista debe, neutro si es 0). Click en la tarjeta abre la ficha
- * con el estado de cuenta completo. Filtra en el cliente sobre lo ya
- * cargado — sin fetch extra. Mismo patrón que el Directorio de Taller.
+ * A PANTALLA COMPLETA en `/contratistas/[id]` con el estado de cuenta
+ * completo. Filtra en el cliente sobre lo ya cargado — sin fetch extra.
+ * Mismo patrón que el Directorio de Taller.
  */
 export function ContractorDirectory({ contractors }: { contractors: ContractorWithBalance[] }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const [query, setQuery] = React.useState("");
-  const [openId, setOpenId] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -38,14 +38,11 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
     );
   }, [contractors, query]);
 
-  const openContractor = contractors.find((c) => c.id === openId) ?? null;
-
   function Card({ contractor }: { contractor: ContractorWithBalance }) {
     const tone = balanceTone(contractor.balanceCents);
     return (
-      <button
-        type="button"
-        onClick={() => setOpenId(contractor.id)}
+      <Link
+        href={`/contratistas/${contractor.id}`}
         className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
       >
         <div className="flex items-center gap-3">
@@ -78,7 +75,7 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
             {contractor.idDocument || tt("no_id")}
           </span>
         </div>
-      </button>
+      </Link>
     );
   }
 
@@ -114,12 +111,6 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
           ))}
         </div>
       )}
-
-      <ContractorProfileSheet
-        contractor={openContractor}
-        open={openId !== null}
-        onOpenChange={(next) => !next && setOpenId(null)}
-      />
     </div>
   );
 }
