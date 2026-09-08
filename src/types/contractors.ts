@@ -1,0 +1,77 @@
+/**
+ * Tipos de dominio del módulo Contratistas (camelCase) — separados de
+ * `src/types/database.ts` (los Row/Insert/Update snake_case que genera
+ * Supabase) a propósito: el servicio mapea de una forma a la otra y la
+ * capa de cálculos (`src/lib/contractors/`) trabaja solo con estos.
+ *
+ * Es un módulo HERMANO de Planilla, no una extensión: un contratista no
+ * es `PayrollEmployee` ni usuario de la app. No hay quincena ni
+ * prestaciones — solo un estado de cuenta cuyo saldo SIEMPRE se computa
+ * (ver `contractor-ledger.ts`), nunca se guarda.
+ */
+
+export type ContractorType = "ebanista" | "pintor";
+export type ContractorStatus = "ACTIVE" | "INACTIVE";
+
+export interface Contractor {
+  id: string;
+  name: string;
+  contractorType: ContractorType;
+  idDocument: string | null;
+  phone: string | null;
+  contactInfo: string | null;
+  startDate: string | null;
+  status: ContractorStatus;
+  endDate: string | null;
+  notes: string | null;
+  sortOrder: number;
+}
+
+/** Contratista + su saldo actual calculado (para el directorio). */
+export interface ContractorWithBalance extends Contractor {
+  balanceCents: number;
+}
+
+/** Las 9 categorías de la tabla `contractor_ledger_entries`. */
+export type ContractorLedgerCategory =
+  | "trabajo"
+  | "bono"
+  | "extra"
+  | "pago"
+  | "prestamo"
+  | "adelanto"
+  | "material"
+  | "gasto_operativo"
+  | "ajuste";
+
+/** `a_favor` sube el saldo (Ebony le debe más al contratista); `reduce`
+ *  lo baja. */
+export type ContractorLedgerDirection = "a_favor" | "reduce";
+
+export interface ContractorLedgerEntry {
+  id: string;
+  contractorId: string;
+  /** En la Etapa 1 siempre null — el proyecto va como texto libre en
+   *  `clientText`. La ficha de proyectos y el FK real llegan en la C2. */
+  projectId: string | null;
+  entryDate: string;
+  category: ContractorLedgerCategory;
+  direction: ContractorLedgerDirection;
+  mt2: number | null;
+  costPerMt2Cents: number | null;
+  /** Monto final congelado, magnitud SIEMPRE positiva; el sentido lo da
+   *  `direction`. Si hay `mt2` y `costPerMt2Cents`, = mt2 × costo. */
+  amountCents: number;
+  /** Solo para `category = 'material'`. true = Ebony asume el material:
+   *  el movimiento queda registrado pero NO mueve el saldo. */
+  ebonyAbsorbsMaterial: boolean;
+  clientText: string | null;
+  description: string | null;
+  notes: string | null;
+}
+
+/** Una fila del estado de cuenta con el saldo corrido justo después de
+ *  ella — derivado, nunca guardado. */
+export interface ContractorLedgerRow extends ContractorLedgerEntry {
+  balanceAfterCents: number;
+}

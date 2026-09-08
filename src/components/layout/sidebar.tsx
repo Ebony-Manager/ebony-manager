@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, X, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, X, type LucideIcon } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
   { href: "/planilla", icon: Users, label: strings.nav.planilla, adminOnly: true },
+  { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, adminOnly: true },
 ];
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
