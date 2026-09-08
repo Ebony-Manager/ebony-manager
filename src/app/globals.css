@@ -192,6 +192,23 @@
   --employee-accent-8: oklch(56% 0.03 70); /* topo cálido */
 }
 
+/* =============================================================================
+   CONTRATISTAS — color por categoría del estado de cuenta (Fase 2)
+
+   Réplica del enfoque de Planilla: la etiqueta de cada categoría del
+   estado de cuenta se pinta con un color, como en la hoja de Excel del
+   dueño. Solo tokens acá — ningún color literal en el código del módulo
+   (src/lib/contractors/contractor-colors.ts SOLO referencia estas vars).
+   El sentido ingreso/egreso de la FILA es un eje aparte y sigue usando
+   --success / --destructive (verde suave / rojo claro).
+   ============================================================================= */
+:root {
+  --contractor-cat-proyecto: oklch(50% 0.015 60); /* gris cálido — "Proyecto" */
+  --contractor-cat-material: oklch(55% 0.12 250); /* azul — compra de material (mismo azul que --payroll-salario) */
+  --contractor-cat-pago: var(--ebony-success); /* verde — abono / pago */
+  --contractor-cat-prestamo: oklch(62% 0.12 85); /* amarillo ámbar legible — préstamo */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
