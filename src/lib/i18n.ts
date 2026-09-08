@@ -21,6 +21,7 @@ export const strings = {
     gastos: { es: "Gastos", en: "Expenses" },
     dashboard: { es: "Dashboard", en: "Dashboard" },
     planilla: { es: "Planilla", en: "Payroll" },
+    contratistas: { es: "Contratistas", en: "Contractors" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -460,6 +461,120 @@ export const strings = {
     delete_type_name: { es: "Para confirmar, escribe el nombre exacto:", en: "To confirm, type the exact name:" },
     delete_confirm: { es: "Eliminar para siempre", en: "Delete permanently" },
     delete_done: { es: "Empleado eliminado", en: "Employee deleted" },
+  },
+
+  // Módulo Contratistas (Fase 2, Etapa 1). Solo-admin. Ebanistas y
+  // pintores por proyecto, con estado de cuenta de saldo calculado.
+  contratistas: {
+    title: { es: "Contratistas", en: "Contractors" },
+    subtitle: { es: "Ebanistas y pintores por proyecto", en: "Per-project cabinetmakers and painters" },
+
+    add_contractor: { es: "Agregar contratista", en: "Add contractor" },
+    dlg_add_title: { es: "Agregar contratista", en: "Add contractor" },
+    dlg_add_desc: {
+      es: "Ebanista o pintor. El estado de cuenta empieza en cero.",
+      en: "Cabinetmaker or painter. The account starts at zero.",
+    },
+
+    f_name: { es: "Nombre", en: "Name" },
+    f_name_ph: { es: "Nombre completo", en: "Full name" },
+    f_type: { es: "Tipo", en: "Type" },
+    type_ebanista: { es: "Ebanista", en: "Cabinetmaker" },
+    type_pintor: { es: "Pintor", en: "Painter" },
+    f_id_document: { es: "Cédula o pasaporte", en: "ID / Passport" },
+    f_phone: { es: "Teléfono", en: "Phone" },
+    f_contact: { es: "Contacto", en: "Contact" },
+    f_contact_ph: { es: "Otro número, un familiar, correo…", en: "Another number, a relative, email…" },
+    f_start_date: { es: "Fecha de inicio", en: "Start date" },
+    f_optional: { es: "Opcional", en: "Optional" },
+    f_name_required: { es: "El nombre es obligatorio.", en: "Name is required." },
+
+    action_add: { es: "Agregar", en: "Add" },
+    action_save: { es: "Guardar", en: "Save" },
+    action_cancel: { es: "Cancelar", en: "Cancel" },
+    action_edit: { es: "Editar", en: "Edit" },
+    saving: { es: "Guardando…", en: "Saving…" },
+    loading: { es: "Cargando…", en: "Loading…" },
+
+    search_ph: { es: "Buscar por nombre, cédula, teléfono…", en: "Search by name, ID, phone…" },
+    no_phone: { es: "Sin teléfono", en: "No phone" },
+    no_id: { es: "Sin cédula/pasaporte", en: "No ID / passport" },
+    no_results: { es: "Sin resultados", en: "No results" },
+    no_results_desc: { es: "Nada coincide con esa búsqueda.", en: "Nothing matches that search." },
+    empty: {
+      es: "Agrega al menos un contratista para empezar.",
+      en: "Add at least one contractor to get started.",
+    },
+    profile_fallback: { es: "Ficha del contratista", en: "Contractor profile" },
+
+    balance_label: { es: "Saldo", en: "Balance" },
+    bal_ebony_owes: { es: "Ebony le debe", en: "Ebony owes them" },
+    bal_owes_ebony: { es: "Debe a Ebony", en: "Owes Ebony" },
+    bal_settled: { es: "Al día", en: "Settled up" },
+
+    ledger_title: { es: "Estado de cuenta", en: "Account statement" },
+    ledger_add: { es: "Agregar movimiento", en: "Add movement" },
+    ledger_empty: { es: "Sin movimientos todavía.", en: "No movements yet." },
+    col_date: { es: "Fecha", en: "Date" },
+    col_category: { es: "Categoría", en: "Category" },
+    col_client: { es: "Cliente", en: "Client" },
+    col_description: { es: "Descripción", en: "Description" },
+    col_mt2: { es: "m²", en: "m²" },
+    col_cost_mt2: { es: "Costo/m²", en: "Cost/m²" },
+    col_a_favor: { es: "A favor", en: "Credit" },
+    col_reduce: { es: "Reduce", en: "Charge" },
+    col_balance: { es: "Saldo", en: "Balance" },
+    absorbed_note: { es: "Ebony asume — no afecta el saldo", en: "Ebony absorbs — no effect on balance" },
+
+    mov_add_title: { es: "Agregar movimiento", en: "Add movement" },
+    mov_edit_title: { es: "Editar movimiento", en: "Edit movement" },
+    mov_desc: {
+      es: "La categoría define sola si suma o resta al saldo. Solo en “Ajuste” lo eliges tú.",
+      en: "The category decides on its own whether it adds to or subtracts from the balance. Only in “Adjustment” do you choose.",
+    },
+    mov_f_category: { es: "Categoría", en: "Category" },
+    mov_f_date: { es: "Fecha", en: "Date" },
+    mov_f_adjust_dir: { es: "Este ajuste…", en: "This adjustment…" },
+    adjust_a_favor: {
+      es: "Suma al saldo (a favor del contratista)",
+      en: "Adds to the balance (in the contractor's favor)",
+    },
+    adjust_reduce: { es: "Resta del saldo", en: "Subtracts from the balance" },
+    mov_f_amount_mode: { es: "Monto", en: "Amount" },
+    amount_mode_flat: { es: "Monto fijo", en: "Flat amount" },
+    amount_mode_area: { es: "m² × costo/m²", en: "m² × cost/m²" },
+    mov_f_flat: { es: "Monto", en: "Amount" },
+    mov_f_mt2: { es: "m²", en: "m²" },
+    mov_f_cost_mt2: { es: "Costo por m²", en: "Cost per m²" },
+    mov_computed: { es: "Total calculado", en: "Computed total" },
+    mov_f_client: { es: "Cliente (texto libre)", en: "Client (free text)" },
+    mov_f_description: { es: "Descripción", en: "Description" },
+    mov_f_notes: { es: "Notas", en: "Notes" },
+    mov_f_ebony_absorbs: { es: "Ebony asume este material", en: "Ebony absorbs this material" },
+    mov_f_ebony_absorbs_hint: {
+      es: "Queda registrado pero no afecta el saldo del contratista.",
+      en: "It stays on record but does not affect the contractor's balance.",
+    },
+    mov_amount_required: {
+      es: "El monto debe ser mayor que cero.",
+      en: "The amount must be greater than zero.",
+    },
+    mov_delete_title: { es: "Eliminar movimiento", en: "Delete movement" },
+    mov_delete_confirm: {
+      es: "¿Eliminar este movimiento del estado de cuenta?",
+      en: "Delete this movement from the account statement?",
+    },
+    mov_saved: { es: "Movimiento guardado", en: "Movement saved" },
+
+    cat_trabajo: { es: "Trabajo", en: "Work" },
+    cat_bono: { es: "Bono", en: "Bonus" },
+    cat_extra: { es: "Extra", en: "Extra" },
+    cat_pago: { es: "Pago", en: "Payment" },
+    cat_prestamo: { es: "Préstamo", en: "Loan" },
+    cat_adelanto: { es: "Adelanto", en: "Advance" },
+    cat_material: { es: "Material", en: "Material" },
+    cat_gasto_operativo: { es: "Gasto operativo", en: "Operational expense" },
+    cat_ajuste: { es: "Ajuste", en: "Adjustment" },
   },
 
   common: {

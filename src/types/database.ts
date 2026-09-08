@@ -41,6 +41,123 @@ export type Database = {
         }
         Relationships: []
       }
+      contractor_ledger_entries: {
+        Row: {
+          amount_cents: number
+          category: string
+          client_text: string | null
+          contractor_id: string
+          cost_per_mt2_cents: number | null
+          created_at: string
+          description: string | null
+          direction: string
+          ebony_absorbs_material: boolean
+          entry_date: string
+          id: string
+          mt2: number | null
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          category: string
+          client_text?: string | null
+          contractor_id: string
+          cost_per_mt2_cents?: number | null
+          created_at?: string
+          description?: string | null
+          direction: string
+          ebony_absorbs_material?: boolean
+          entry_date: string
+          id?: string
+          mt2?: number | null
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          client_text?: string | null
+          contractor_id?: string
+          cost_per_mt2_cents?: number | null
+          created_at?: string
+          description?: string | null
+          direction?: string
+          ebony_absorbs_material?: boolean
+          entry_date?: string
+          id?: string
+          mt2?: number | null
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_ledger_entries_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_ledger_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractors: {
+        Row: {
+          contact_info: string | null
+          contractor_type: string
+          created_at: string
+          end_date: string | null
+          id: string
+          id_document: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          sort_order: number
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_info?: string | null
+          contractor_type: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          id_document?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_info?: string | null
+          contractor_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          id_document?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payroll_employees: {
         Row: {
           base_salary_cents: number
@@ -398,6 +515,36 @@ export type Database = {
           full_name?: string | null
           id?: string
           role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
