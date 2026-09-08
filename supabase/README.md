@@ -16,8 +16,8 @@ files are already in the layout `supabase db push` expects. Note: applying via
 the MCP stamps its own `version` in `supabase_migrations.schema_migrations`,
 so the remote version does not match the local filename timestamp (Fase 1 →
 `20260906173300`, Fase 2 planilla → `20260907010849`, Fase 2 salary history →
-`20260907063931`). When the CLI is finally linked, reconcile once with
-`supabase migration repair`.
+`20260907063931`, Fase 2 contractors → `20260908171225`). When the CLI is
+finally linked, reconcile once with `supabase migration repair`.
 
 ### 20260906170000_fase1_auth_rls.sql
 
@@ -78,6 +78,31 @@ version `20260907063931`.
 - No data migration — the payroll tables are empty. The service layer inserts
   each employee's first row (effective from their start date) on create.
   Payroll formulas (13th month, vacation, seniority, loans) are unchanged.
+
+### 20260907130000_fase2_contractors.sql
+
+Fase 2 — Contratistas por proyecto (ebanistas y pintores), ETAPA 1 (esquema
+solo). Applied via MCP as remote version `20260908171225`.
+
+- `public.contractors` — directorio de ebanistas/pintores. **Not** app users,
+  **not** `payroll_employees`. `contractor_type` ∈ `ebanista|pintor`;
+  `status` ∈ `ACTIVE|INACTIVE` (same tokens as `payroll_employees.status`).
+- `public.projects` — proyecto de Ebony, versión mínima (nombre, cliente,
+  estado `ACTIVE|COMPLETED`, notas). ETAPA 2 le añade campos de contrato de
+  forma aditiva.
+- `public.contractor_ledger_entries` — estado de cuenta. Saldo **derivado**:
+  `SUM(a_favor) − SUM(reduce)` sobre movimientos con
+  `ebony_absorbs_material = false`; nunca guardado. `category` ∈ 9 valores ES
+  (`trabajo|bono|extra|pago|prestamo|adelanto|material|gasto_operativo|ajuste`),
+  `direction` ∈ `a_favor|reduce`. `amount_cents ≥ 0` (magnitud; el signo lo da
+  `direction`). CHECK: `ebony_absorbs_material` solo con `category = 'material'`.
+  FKs: `contractor_id` → contractors **ON DELETE CASCADE**; `project_id`
+  (nullable) → projects **ON DELETE SET NULL**.
+- Same security shape as the planilla tables (RLS on, one `*_admin_all` policy
+  per table via `private.is_admin()`, `anon` revoked, `updated_at` trigger
+  reuses `private.touch_updated_at()`). Helpers not redefined.
+- No data migration — the three tables are empty. UI screens are ETAPA 1's next
+  step (not built yet).
 
 ## Dashboard config that is NOT in these files
 
