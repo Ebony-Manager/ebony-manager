@@ -33,31 +33,6 @@ export function toneTextStyle(tone: BalanceTone): React.CSSProperties {
   return { color: TONE_VAR[tone] };
 }
 
-/** Fondo tenue teñido para una fila del estado de cuenta — misma técnica
- *  `color-mix` que Registro de Planilla. `neutral` no tiñe. */
-export function toneRowTint(tone: BalanceTone, opacity = 5): React.CSSProperties {
-  if (tone === "neutral") return {};
-  return { backgroundColor: `color-mix(in oklch, ${TONE_VAR[tone]} ${opacity}%, transparent)` };
-}
-
-/** Fondo de una fila del estado de cuenta combinando el tinte
- *  ingreso/egreso con un realce de hover. El tinte inline gana sobre
- *  cualquier clase `hover:bg-*`, así que el hover se resuelve acá. */
-export function toneRowBackground(tone: BalanceTone, hovered: boolean): React.CSSProperties {
-  const tint = tone === "neutral" ? "transparent" : `color-mix(in oklch, ${TONE_VAR[tone]} 5%, transparent)`;
-  if (!hovered) return tone === "neutral" ? {} : { backgroundColor: tint };
-  return { backgroundColor: `color-mix(in oklch, var(--foreground) 6%, ${tint})` };
-}
-
-/** Igual que `toneRowBackground` pero OPACO (mezcla sobre `--background`),
- *  para la celda congelada de la izquierda: al hacer scroll horizontal el
- *  contenido no debe traslucirse por debajo. */
-export function toneStickyBackground(tone: BalanceTone, hovered: boolean): React.CSSProperties {
-  let bg = tone === "neutral" ? "var(--background)" : `color-mix(in oklch, ${TONE_VAR[tone]} 5%, var(--background))`;
-  if (hovered) bg = `color-mix(in oklch, var(--foreground) 6%, ${bg})`;
-  return { backgroundColor: bg };
-}
-
 /**
  * Color de la CATEGORÍA del movimiento (como la hoja de Excel del dueño):
  *
@@ -65,10 +40,12 @@ export function toneStickyBackground(tone: BalanceTone, hovered: boolean): React
  *   Compra de material        → azul
  *   Abono / Pago              → verde
  *   Préstamo                  → amarillo
- *   Las demás                 → sin color (neutro, texto normal)
+ *   Las demás                 → sin color (neutro)
  *
- * Es un eje independiente del tinte de fila ingreso/egreso. Devuelve un
- * string `var(--…)` de token, o `null` para las categorías neutras.
+ * En la C2 este color pinta la FILA ENTERA y manda sobre el sentido
+ * ingreso/egreso (que ya se ve en las columnas "A favor" / "Reduce").
+ * Devuelve un string `var(--…)` de token, o `null` para categorías
+ * neutras.
  */
 const CATEGORY_COLOR_VAR: Partial<Record<ContractorLedgerCategory, string>> = {
   trabajo: "var(--contractor-cat-proyecto)",
@@ -81,11 +58,38 @@ export function categoryColorVar(category: ContractorLedgerCategory): string | n
   return CATEGORY_COLOR_VAR[category] ?? null;
 }
 
-/** Estilo de "chip" para la etiqueta de categoría: su color de texto
- *  sobre un fondo teñido. `null` para categorías neutras (se muestran
- *  como texto normal, sin chip). */
-export function categoryChipStyle(category: ContractorLedgerCategory): React.CSSProperties | null {
+/** Texto de la etiqueta de categoría en su color (o sin estilo si la
+ *  categoría es neutra). */
+export function categoryTextStyle(category: ContractorLedgerCategory): React.CSSProperties | undefined {
   const v = categoryColorVar(category);
-  if (!v) return null;
-  return { color: v, backgroundColor: `color-mix(in oklch, ${v} 14%, transparent)` };
+  return v ? { color: v } : undefined;
+}
+
+/**
+ * Fondo de una fila del estado de cuenta, teñido por el color de la
+ * CATEGORÍA (no por ingreso/egreso). El tinte inline gana sobre cualquier
+ * clase `hover:bg-*`, así que el realce de hover se resuelve acá también.
+ * Categoría neutra → sin tinte (solo hover).
+ */
+export function categoryRowBackground(
+  category: ContractorLedgerCategory,
+  hovered: boolean
+): React.CSSProperties {
+  const v = categoryColorVar(category);
+  const tint = v ? `color-mix(in oklch, ${v} 9%, transparent)` : "transparent";
+  if (!hovered) return v ? { backgroundColor: tint } : {};
+  return { backgroundColor: `color-mix(in oklch, var(--foreground) 6%, ${tint})` };
+}
+
+/** Igual que `categoryRowBackground` pero OPACO (mezcla sobre
+ *  `--background`), para la celda congelada de la izquierda: al hacer
+ *  scroll horizontal el contenido no debe traslucirse por debajo. */
+export function categoryStickyBackground(
+  category: ContractorLedgerCategory,
+  hovered: boolean
+): React.CSSProperties {
+  const v = categoryColorVar(category);
+  let bg = v ? `color-mix(in oklch, ${v} 9%, var(--background))` : "var(--background)";
+  if (hovered) bg = `color-mix(in oklch, var(--foreground) 6%, ${bg})`;
+  return { backgroundColor: bg };
 }

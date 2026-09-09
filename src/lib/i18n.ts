@@ -607,6 +607,124 @@ export const strings = {
       es: "Sin movimientos en este período. El saldo mostrado arrastra todo lo anterior.",
       en: "No movements in this period. The balance shown still carries everything before it.",
     },
+
+    // Filtros y agrupación del estado de cuenta. Conviven con las vistas
+    // por período; filtrar/agrupar solo cambia QUÉ filas se ven — el saldo
+    // corrido nunca se reinicia.
+    filter_category: { es: "Categoría", en: "Category" },
+    filter_category_all: { es: "Todas las categorías", en: "All categories" },
+    filter_project: { es: "Proyecto", en: "Project" },
+    filter_project_all: { es: "Todos los proyectos", en: "All projects" },
+    filter_project_none: { es: "Sin proyecto", en: "No project" },
+    group_by: { es: "Agrupar por", en: "Group by" },
+    group_none: { es: "Sin agrupar", en: "No grouping" },
+    group_category: { es: "Categoría", en: "Category" },
+    group_project: { es: "Proyecto", en: "Project" },
+    group_month: { es: "Mes", en: "Month" },
+    group_subtotal: { es: "Subtotal del grupo", en: "Group subtotal" },
+    col_project: { es: "Proyecto", en: "Project" },
+    no_project: { es: "Sin proyecto", en: "No project" },
+
+    // Pestañas del módulo.
+    tab_directory: { es: "Contratistas", en: "Contractors" },
+    tab_projects: { es: "Proyectos", en: "Projects" },
+
+    // Directorio — contratistas inactivos.
+    no_longer_work: { es: "Ya no laboran", en: "No longer active" },
+    inactive_badge: { es: "Inactivo", en: "Inactive" },
+
+    // Proyectos (ficha simple).
+    projects_title: { es: "Proyectos", en: "Projects" },
+    projects_subtitle: {
+      es: "Proyectos de Ebony a los que se enganchan los movimientos.",
+      en: "Ebony projects that ledger movements link to.",
+    },
+    add_project: { es: "Agregar proyecto", en: "Add project" },
+    proj_search_ph: { es: "Buscar por nombre o cliente…", en: "Search by name or client…" },
+    proj_dlg_add_title: { es: "Agregar proyecto", en: "Add project" },
+    proj_dlg_edit_title: { es: "Editar proyecto", en: "Edit project" },
+    proj_f_name: { es: "Nombre del proyecto", en: "Project name" },
+    proj_f_name_ph: { es: "Ej. Cocina Apto. Costa del Este", en: "e.g. Kitchen — Costa del Este apt." },
+    proj_f_client: { es: "Cliente / diseñadora", en: "Client / designer" },
+    proj_f_status: { es: "Estado", en: "Status" },
+    proj_status_active: { es: "Activo", en: "Active" },
+    proj_status_completed: { es: "Terminado", en: "Completed" },
+    proj_f_notes: { es: "Notas", en: "Notes" },
+    proj_name_required: { es: "El nombre es obligatorio.", en: "Name is required." },
+    proj_col_name: { es: "Proyecto", en: "Project" },
+    proj_col_client: { es: "Cliente", en: "Client" },
+    proj_col_status: { es: "Estado", en: "Status" },
+    projects_empty: {
+      es: "Todavía no hay proyectos. Agrega el primero.",
+      en: "No projects yet. Add the first one.",
+    },
+    proj_saved: { es: "Proyecto guardado", en: "Project saved" },
+    proj_delete_title: { es: "Eliminar proyecto", en: "Delete project" },
+    proj_delete_desc: {
+      es: "Se elimina el proyecto de la lista.",
+      en: "The project is removed from the list.",
+    },
+    proj_delete_keeps_moves: {
+      es: "Los movimientos que lo tenían enganchado NO se borran: quedan sin proyecto.",
+      en: "Movements linked to it are NOT deleted: they stay with no project.",
+    },
+    proj_delete_confirm: { es: "Eliminar proyecto", en: "Delete project" },
+    proj_deleted: { es: "Proyecto eliminado", en: "Project deleted" },
+
+    // Movimiento — enganche a proyecto.
+    mov_f_project: { es: "Proyecto", en: "Project" },
+    mov_f_project_none: { es: "Sin proyecto", en: "No project" },
+    mov_f_project_new: { es: "＋ Crear proyecto nuevo…", en: "＋ Create new project…" },
+    mov_f_client_note: { es: "Cliente final / nota (opcional)", en: "End client / note (optional)" },
+
+    // Estado / liquidación del contratista (en su ficha).
+    status_section_title: { es: "Estado / Liquidación", en: "Status / Settlement" },
+    status_label: { es: "Estado", en: "Status" },
+    status_active: { es: "Activo", en: "Active" },
+    status_inactive: { es: "Inactivo", en: "Inactive" },
+    status_hint: {
+      es: "Inactivar conserva toda la historia y el saldo del contratista; solo lo mueve a “Ya no laboran”.",
+      en: "Deactivating keeps the contractor's full history and balance; it just moves them to “No longer active”.",
+    },
+    end_date_label: { es: "Fecha de salida", en: "End date" },
+    liq_mark: { es: "Inactivar / liquidar", en: "Deactivate / settle" },
+    liq_edit: { es: "Editar salida", en: "Edit exit" },
+    reactivate: { es: "Reactivar", en: "Reactivate" },
+    liq_dlg_title: { es: "Inactivar / liquidar contratista", en: "Deactivate / settle contractor" },
+    liq_dlg_desc: {
+      es: "Marca la salida del contratista: pasa a INACTIVO con fecha de salida y notas. La historia y el saldo se conservan.",
+      en: "Mark the contractor's exit: set to INACTIVE with an end date and notes. History and balance are kept.",
+    },
+    liq_f_end_date: { es: "Fecha de salida", en: "End date" },
+    liq_f_end_date_required: { es: "La fecha de salida es obligatoria.", en: "End date is required." },
+    liq_f_notes: { es: "Notas de salida / liquidación", en: "Exit / settlement notes" },
+    liq_balance_warning_title: { es: "Saldo pendiente", en: "Outstanding balance" },
+    liq_balance_warning: {
+      es: "Este contratista tiene un saldo distinto de cero. Inactivar NO salda la cuenta — registra primero el pago o el ajuste si corresponde.",
+      en: "This contractor has a non-zero balance. Deactivating does NOT settle the account — record the payment or adjustment first if needed.",
+    },
+    liq_done: { es: "Contratista inactivado", en: "Contractor deactivated" },
+    reactivate_done: { es: "Contratista reactivado", en: "Contractor reactivated" },
+
+    // Zona de peligro — borrar contratista.
+    danger_zone: { es: "Zona de peligro", en: "Danger zone" },
+    danger_explain: {
+      es: "Inactivar conserva. Borrar elimina al contratista y TODO su estado de cuenta, de forma irreversible.",
+      en: "Deactivating keeps everything. Deleting removes the contractor and their ENTIRE account statement, irreversibly.",
+    },
+    delete_contractor: { es: "Eliminar contratista", en: "Delete contractor" },
+    del_dlg_title: { es: "Eliminar contratista", en: "Delete contractor" },
+    del_dlg_desc: {
+      es: "Se elimina al contratista y todos sus movimientos. No se puede deshacer.",
+      en: "The contractor and all their movements are deleted. This cannot be undone.",
+    },
+    del_warning: {
+      es: "Esto borra el estado de cuenta completo. Si solo quieres cerrar la relación, usa “Inactivar / liquidar”.",
+      en: "This erases the full account statement. To just close the relationship, use “Deactivate / settle”.",
+    },
+    del_type_name: { es: "Para confirmar, escribe el nombre exacto:", en: "To confirm, type the exact name:" },
+    del_confirm: { es: "Eliminar para siempre", en: "Delete permanently" },
+    del_done: { es: "Contratista eliminado", en: "Contractor deleted" },
   },
 
   common: {

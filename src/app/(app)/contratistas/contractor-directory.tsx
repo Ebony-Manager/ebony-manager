@@ -38,6 +38,9 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
     );
   }, [contractors, query]);
 
+  const active = filtered.filter((c) => c.status === "ACTIVE");
+  const inactive = filtered.filter((c) => c.status === "INACTIVE");
+
   function Card({ contractor }: { contractor: ContractorWithBalance }) {
     const tone = balanceTone(contractor.balanceCents);
     return (
@@ -49,9 +52,14 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
           <ContractorAvatar name={contractor.name} size="md" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{contractor.name}</p>
-            <Badge variant="secondary" className="mt-0.5">
-              {contractor.contractorType === "pintor" ? tt("type_pintor") : tt("type_ebanista")}
-            </Badge>
+            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+              <Badge variant="secondary">
+                {contractor.contractorType === "pintor" ? tt("type_pintor") : tt("type_ebanista")}
+              </Badge>
+              {contractor.status === "INACTIVE" && (
+                <Badge variant="outline">{tt("inactive_badge")}</Badge>
+              )}
+            </div>
           </div>
         </div>
 
@@ -105,10 +113,25 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
           <p className="mt-1 text-xs text-muted-foreground">{tt("no_results_desc")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((c) => (
-            <Card key={c.id} contractor={c} />
-          ))}
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {active.map((c) => (
+              <Card key={c.id} contractor={c} />
+            ))}
+          </div>
+
+          {inactive.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                {tt("no_longer_work")} ({inactive.length})
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {inactive.map((c) => (
+                  <Card key={c.id} contractor={c} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
