@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 
 import type { Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,20 @@ import { Input } from "@/components/ui/input";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ProjectFormDialog } from "./project-form-dialog";
+import { ProjectDetailSheet } from "./project-detail-sheet";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 
+function hasContract(p: Project): boolean {
+  return Boolean(
+    p.scope || p.furnitureType || p.materialColor || p.specs || p.paymentTerms || p.totalMt2 != null
+  );
+}
+
 /**
- * Pestaña "Proyectos" del módulo Contratistas — lista simple (nombre,
- * cliente, estado) con crear / editar / borrar. Borrar un proyecto NO
- * borra movimientos (el FK del ledger es `on delete set null`).
+ * Pestaña "Proyectos" del módulo Contratistas — lista (nombre, cliente,
+ * estado). Click en una fila abre la FICHA DE CONTRATO del proyecto
+ * (`ProjectDetailSheet`); desde ahí se edita / borra. Borrar un proyecto
+ * NO borra movimientos (el FK del ledger es `on delete set null`).
  */
 export function ProjectsView({ projects }: { projects: Project[] }) {
   const { lang } = useLang();
@@ -23,6 +31,7 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
 
   const [query, setQuery] = React.useState("");
   const [addOpen, setAddOpen] = React.useState(false);
+  const [viewing, setViewing] = React.useState<Project | null>(null);
   const [editing, setEditing] = React.useState<Project | null>(null);
   const [deleting, setDeleting] = React.useState<Project | null>(null);
 
@@ -34,6 +43,14 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
         p.name.toLowerCase().includes(q) || (p.clientName ?? "").toLowerCase().includes(q)
     );
   }, [projects, query]);
+
+  // Si la lista se recarga (router.refresh tras guardar), refresca la
+  // copia que muestra la ficha abierta.
+  /* eslint-disable react-hooks/set-state-in-effect -- re-sincroniza con el proyecto ya seleccionado. */
+  React.useEffect(() => {
+    setViewing((cur) => (cur ? projects.find((p) => p.id === cur.id) ?? null : cur));
+  }, [projects]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="flex flex-col gap-4">
@@ -77,9 +94,17 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
               {filtered.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
+                  onClick={() => setViewing(p)}
+                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40"
                 >
-                  <td className="px-3 py-2 font-medium text-foreground">{p.name}</td>
+                  <td className="px-3 py-2 font-medium text-foreground">
+                    {p.name}
+                    {hasContract(p) && (
+                      <span className="ml-2 align-middle text-[10px] font-normal text-muted-foreground">
+                        {tt("proj_contract_section")}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-muted-foreground">{p.clientName || "—"}</td>
                   <td className="px-3 py-2">
                     <Badge variant={p.status === "ACTIVE" ? "secondary" : "outline"}>
@@ -90,18 +115,12 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-6 text-muted-foreground hover:text-foreground"
-                      title={tt("action_edit")}
-                      onClick={() => setEditing(p)}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
                       className="size-6 text-muted-foreground hover:text-destructive"
                       title={tt("proj_delete_title")}
-                      onClick={() => setDeleting(p)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleting(p);
+                      }}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -112,6 +131,17 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
           </table>
         </div>
       )}
+
+      <ProjectDetailSheet
+        project={viewing}
+        open={viewing !== null}
+        onOpenChange={(next) => !next && setViewing(null)}
+        onEdit={() => setEditing(viewing)}
+        onDelete={() => {
+          setDeleting(viewing);
+          setViewing(null);
+        }}
+      />
 
       <ProjectFormDialog project={null} open={addOpen} onOpenChange={setAddOpen} />
       <ProjectFormDialog

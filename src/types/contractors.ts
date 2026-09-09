@@ -24,6 +24,14 @@ export interface Project {
   clientName: string | null;
   status: ProjectStatus;
   notes: string | null;
+  /** Campos de "contrato" (Etapa 2-A) — todos opcionales. */
+  scope: string | null;
+  furnitureType: string | null;
+  materialColor: string | null;
+  specs: string | null;
+  paymentTerms: string | null;
+  /** m² totales del proyecto. `numeric` en la base → number acá. */
+  totalMt2: number | null;
 }
 
 export interface Contractor {

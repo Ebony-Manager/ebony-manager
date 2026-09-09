@@ -696,6 +696,17 @@ export const strings = {
     proj_delete_confirm: { es: "Eliminar proyecto", en: "Delete project" },
     proj_deleted: { es: "Proyecto eliminado", en: "Project deleted" },
 
+    // Ficha de contrato del proyecto (Etapa 2-A). Todos opcionales.
+    proj_contract_section: { es: "Contrato", en: "Contract" },
+    proj_contract_hint: { es: "Todos los campos son opcionales.", en: "All fields are optional." },
+    proj_contract_empty: { es: "Sin datos de contrato todavía.", en: "No contract details yet." },
+    proj_f_scope: { es: "Alcance / qué incluye", en: "Scope / what's included" },
+    proj_f_furniture_type: { es: "Tipo de mueble", en: "Furniture type" },
+    proj_f_material_color: { es: "Color del material", en: "Material color" },
+    proj_f_specs: { es: "Especificaciones", en: "Specifications" },
+    proj_f_payment_terms: { es: "Acuerdo de pago", en: "Payment terms" },
+    proj_f_total_mt2: { es: "m² totales", en: "Total m²" },
+
     // Movimiento — enganche a proyecto.
     mov_f_project: { es: "Proyecto", en: "Project" },
     mov_f_project_none: { es: "Sin proyecto", en: "No project" },
