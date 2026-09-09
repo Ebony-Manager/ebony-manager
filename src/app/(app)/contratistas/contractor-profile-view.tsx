@@ -6,15 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Banknote,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Hammer,
-  IdCard,
   LogOut,
   Package,
   Palette,
   Pencil,
-  Phone,
   Plus,
   Receipt,
   Settings,
@@ -27,6 +26,7 @@ import toast from "react-hot-toast";
 import type { Contractor, ContractorLedgerEntry, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCents, monthLabel } from "@/lib/planilla/payroll-period";
 import { formatDate, formatDateCompact } from "@/lib/planilla/format";
 // KPIs con el mismo componente que el Registro de Planilla (Taller) —
@@ -91,12 +92,13 @@ import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 
-function ProfileField({ label, value }: { label: string; value: React.ReactNode }) {
+/** Fila compacta de dato personal para el menú del engranaje. */
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value) return null;
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
+    <div className="flex items-start justify-between gap-3 py-0.5">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="text-right text-foreground">{value}</span>
     </div>
   );
 }
@@ -132,11 +134,23 @@ function readStoredPalette(): LedgerPalette | null {
   }
 }
 
+// Si la fila de KPIs va expandida o colapsada — también se recuerda.
+const KPIS_STORAGE_KEY = "contratistas:kpis-open";
+function readStoredKpisOpen(): boolean | null {
+  try {
+    const v = window.localStorage.getItem(KPIS_STORAGE_KEY);
+    return v === "1" ? true : v === "0" ? false : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Ficha del contratista A PANTALLA COMPLETA (`/contratistas/[id]`):
- * encabezado + saldo, KPIs, estado de cuenta y — al final — las acciones
- * de estado (inactivar / liquidar / reactivar / borrar), mismo patrón
- * que la ficha de Taller.
+ * tarjeta de encabezado (nombre/tipo + saldo), KPIs colapsables y el
+ * estado de cuenta. Los datos personales y las acciones de estado
+ * (inactivar / liquidar / reactivar / borrar) viven en el menú del
+ * engranaje del encabezado — nada de eso ocupa espacio en la ficha.
  *
  * SALDO: el saldo corrido de cada fila se calcula SIEMPRE sobre la
  * historia completa (`withRunningBalance`) y NUNCA se reinicia. El
@@ -208,6 +222,23 @@ export function ContractorProfileView({
       /* ignore */
     }
   }, [palette]);
+
+  // Fila de KPIs colapsable — por defecto expandida; la elección se
+  // recuerda para dar más espacio a la tabla cuando el usuario quiera.
+  const [kpisOpen, setKpisOpen] = React.useState(true);
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    const stored = readStoredKpisOpen();
+    if (stored !== null) setKpisOpen(stored);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(KPIS_STORAGE_KEY, kpisOpen ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [kpisOpen]);
 
   const contractorId = contractor.id;
 
@@ -334,10 +365,22 @@ export function ContractorProfileView({
   const isInactive = contractor.status === "INACTIVE";
   const totalColSpan = 10;
 
+  // Datos personales, ahora discretos dentro del menú del engranaje.
+  const startOrEnd = isInactive
+    ? contractor.endDate
+      ? { label: tt("end_date_label"), value: formatDate(lang, contractor.endDate) }
+      : null
+    : contractor.startDate
+      ? { label: tt("f_start_date"), value: formatDate(lang, contractor.startDate) }
+      : null;
+  const hasDetails = Boolean(
+    contractor.idDocument || contractor.phone || contractor.contactInfo || startOrEnd
+  );
+
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <div>
-        <div className="mb-2 flex items-start justify-between gap-2">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
           <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
             <Link href="/contratistas">
               <ArrowLeft className="size-3.5" />
@@ -345,8 +388,9 @@ export function ContractorProfileView({
             </Link>
           </Button>
 
-          {/* Ajustes del contratista: inactivar / liquidar / reactivar /
-              eliminar viven acá, no sueltos en la ficha. */}
+          {/* Ajustes del contratista: datos personales (discretos) +
+              inactivar / liquidar / reactivar / eliminar. Nada de esto va
+              suelto en la ficha. */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -359,18 +403,37 @@ export function ContractorProfileView({
                 <Settings className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-64">
+              {hasDetails && (
+                <>
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    {tt("details_title")}
+                  </DropdownMenuLabel>
+                  <div className="px-2 pb-1 text-xs">
+                    <DetailRow label={tt("f_id_document")} value={contractor.idDocument} />
+                    <DetailRow
+                      label={tt("f_phone")}
+                      value={
+                        contractor.phone ? (
+                          <a href={`tel:${contractor.phone}`} className="hover:text-primary">
+                            {contractor.phone}
+                          </a>
+                        ) : null
+                      }
+                    />
+                    <DetailRow label={tt("f_contact")} value={contractor.contactInfo} />
+                    {startOrEnd && (
+                      <DetailRow label={startOrEnd.label} value={startOrEnd.value} />
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                 {tt("status_label")}:{" "}
                 <span className="font-medium text-foreground">
                   {isInactive ? tt("status_inactive") : tt("status_active")}
                 </span>
-                {contractor.endDate && (
-                  <>
-                    {" · "}
-                    {tt("end_date_label")}: {formatDate(lang, contractor.endDate)}
-                  </>
-                )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => window.setTimeout(() => setLiqOpen(true), 0)}>
@@ -395,67 +458,31 @@ export function ContractorProfileView({
           </DropdownMenu>
         </div>
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <ContractorAvatar name={contractor.name} size="md" />
-            <div>
-              <h1 className="flex items-center gap-2 text-xl font-semibold text-foreground">
-                {contractor.name}
-                {isInactive && <Badge variant="secondary">{tt("inactive_badge")}</Badge>}
-              </h1>
-              <p className="text-sm text-muted-foreground">{typeLabel}</p>
+        {/* Tarjeta de encabezado única: nombre + tipo a la izquierda,
+            saldo a la derecha. Reemplaza la vieja tarjeta grande de
+            "Fecha de inicio". */}
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <ContractorAvatar name={contractor.name} size="md" />
+              <div>
+                <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                  {contractor.name}
+                  {isInactive && <Badge variant="secondary">{tt("inactive_badge")}</Badge>}
+                </h1>
+                <p className="text-sm text-muted-foreground">{typeLabel}</p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">{tt("balance_label")}</p>
+              <p className="text-2xl font-semibold tabular-nums" style={toneTextStyle(balTone)}>
+                {formatCents(balanceCents)}
+              </p>
+              <p className="text-xs text-muted-foreground">{balDescription}</p>
             </div>
           </div>
-
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">{tt("balance_label")}</p>
-            <p className="text-2xl font-semibold tabular-nums" style={toneTextStyle(balTone)}>
-              {formatCents(balanceCents)}
-            </p>
-            <p className="text-xs text-muted-foreground">{balDescription}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ProfileField
-          label={tt("f_id_document")}
-          value={
-            contractor.idDocument ? (
-              <span className="inline-flex items-center gap-1">
-                <IdCard className="size-3.5" />
-                {contractor.idDocument}
-              </span>
-            ) : null
-          }
-        />
-        <ProfileField
-          label={tt("f_phone")}
-          value={
-            contractor.phone ? (
-              <a
-                href={`tel:${contractor.phone}`}
-                className="inline-flex items-center gap-1 hover:text-primary"
-              >
-                <Phone className="size-3.5" />
-                {contractor.phone}
-              </a>
-            ) : null
-          }
-        />
-        <ProfileField label={tt("f_contact")} value={contractor.contactInfo} />
-        <ProfileField
-          label={isInactive ? tt("end_date_label") : tt("f_start_date")}
-          value={
-            isInactive
-              ? contractor.endDate
-                ? formatDate(lang, contractor.endDate)
-                : null
-              : contractor.startDate
-                ? formatDate(lang, contractor.startDate)
-                : null
-          }
-        />
+        </Card>
       </div>
 
       {contractor.notes && (
@@ -464,40 +491,59 @@ export function ContractorProfileView({
         </div>
       )}
 
-      {/* KPIs del contratista — estilo consistente con Planilla (Taller). */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <PayrollKpiCard
-          icon={Wallet}
-          label={tt("kpi_balance")}
-          value={formatCents(balanceCents)}
-          sublabel={balDescription}
-          color={toneVar(balTone)}
-        />
-        <PayrollKpiCard
-          icon={Receipt}
-          label={tt("kpi_billed")}
-          value={formatCents(kpis.billed)}
-          color="var(--ebony-gold)"
-        />
-        <PayrollKpiCard
-          icon={Hammer}
-          label={tt("kpi_projects")}
-          value={String(kpis.projectCount)}
-          sublabel={tt("kpi_projects_count")}
-          color="var(--contractor-cat-proyecto)"
-        />
-        <PayrollKpiCard
-          icon={Banknote}
-          label={tt("kpi_paid")}
-          value={formatCents(kpis.paid)}
-          color="var(--contractor-cat-pago)"
-        />
-        <PayrollKpiCard
-          icon={Package}
-          label={tt("kpi_materials")}
-          value={formatCents(kpis.materials)}
-          color="var(--contractor-cat-material)"
-        />
+      {/* KPIs del contratista — colapsables para ganar espacio para la
+          tabla. Estilo de tarjeta consistente con Planilla (Taller). */}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setKpisOpen((o) => !o)}
+          aria-expanded={kpisOpen}
+          title={tt("kpis_toggle_hint")}
+          className="flex items-center gap-1 self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          {kpisOpen ? (
+            <ChevronDown className="size-3.5" />
+          ) : (
+            <ChevronRight className="size-3.5" />
+          )}
+          {tt("kpis_title")}
+        </button>
+        {kpisOpen && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <PayrollKpiCard
+              icon={Wallet}
+              label={tt("kpi_balance")}
+              value={formatCents(balanceCents)}
+              sublabel={balDescription}
+              color={toneVar(balTone)}
+            />
+            <PayrollKpiCard
+              icon={Receipt}
+              label={tt("kpi_billed")}
+              value={formatCents(kpis.billed)}
+              color="var(--ebony-gold)"
+            />
+            <PayrollKpiCard
+              icon={Hammer}
+              label={tt("kpi_projects")}
+              value={String(kpis.projectCount)}
+              sublabel={tt("kpi_projects_count")}
+              color="var(--contractor-cat-proyecto)"
+            />
+            <PayrollKpiCard
+              icon={Banknote}
+              label={tt("kpi_paid")}
+              value={formatCents(kpis.paid)}
+              color="var(--contractor-cat-pago)"
+            />
+            <PayrollKpiCard
+              icon={Package}
+              label={tt("kpi_materials")}
+              value={formatCents(kpis.materials)}
+              color="var(--contractor-cat-material)"
+            />
+          </div>
+        )}
       </div>
 
       {/* Estado de cuenta */}
@@ -568,7 +614,7 @@ export function ContractorProfileView({
           </div>
         </div>
 
-        {/* Filtros + agrupar por */}
+        {/* Filtros (categoría, proyecto) + interruptor de paleta. */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={catFilter} onValueChange={setCatFilter}>
             <SelectTrigger className="h-8 w-[190px] text-xs" aria-label={tt("filter_category")}>
@@ -599,19 +645,6 @@ export function ContractorProfileView({
             </SelectContent>
           </Select>
 
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as LedgerGroupBy)}>
-            <SelectTrigger className="h-8 w-[170px] text-xs" aria-label={tt("group_by")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LEDGER_GROUP_BYS.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g === "none" ? tt("group_none") : `${tt("group_by")}: ${tt(GROUP_BY_LABEL_KEY[g])}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {/* Interruptor de paleta: fila a todo color ⇄ vista sobria.
               La elección se persiste en localStorage. */}
           <Button
@@ -626,6 +659,21 @@ export function ContractorProfileView({
             <Palette className="size-3.5" />
             {sober ? tt("palette_sober") : tt("palette_full")}
           </Button>
+        </div>
+
+        {/* Agrupar por — tabs pequeñas encima de la tabla. "Sin agrupar"
+            es la 4ª tab (vuelve al estado sin agrupación). */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">{tt("group_by")}:</span>
+          <Tabs value={groupBy} onValueChange={(v) => setGroupBy(v as LedgerGroupBy)}>
+            <TabsList className="h-8">
+              {LEDGER_GROUP_BYS.map((g) => (
+                <TabsTrigger key={g} value={g} className="px-2.5 text-xs">
+                  {g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g])}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
