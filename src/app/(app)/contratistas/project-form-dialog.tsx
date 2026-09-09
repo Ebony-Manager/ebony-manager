@@ -22,12 +22,19 @@ import { t, strings } from "@/lib/i18n";
 import { createProjectAction, updateProjectAction } from "./actions";
 import { Field } from "./field";
 
+/** "12.5" → 12.5 ; vacío o no-número o negativo → null. */
+function parseMt2(value: string): number | null {
+  const n = parseFloat(value.trim());
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 /**
- * Alta / edición de un proyecto de Ebony (ficha simple: nombre, cliente,
- * estado, notas). Se usa desde la pestaña "Proyectos" y también en línea
- * desde el diálogo de movimiento ("crear proyecto nuevo…"): en ese caso
- * `onCreated` recibe el proyecto recién creado para engancharlo al
- * movimiento sin cerrar el formulario padre.
+ * Alta / edición de un proyecto de Ebony: ficha básica (nombre, cliente,
+ * estado, notas) + los campos de "contrato" de la Etapa 2-A (alcance,
+ * tipo de mueble, color del material, especificaciones, acuerdo de pago,
+ * m² totales) — todos opcionales. Se usa desde la pestaña "Proyectos" y
+ * en línea desde el diálogo de movimiento ("crear proyecto nuevo…"): en
+ * ese caso `onCreated` recibe el proyecto recién creado.
  */
 export function ProjectFormDialog({
   project,
@@ -51,6 +58,13 @@ export function ProjectFormDialog({
   const [clientName, setClientName] = React.useState("");
   const [status, setStatus] = React.useState<ProjectStatus>("ACTIVE");
   const [notes, setNotes] = React.useState("");
+  // Contrato (Etapa 2-A) — todo texto salvo m² totales.
+  const [scope, setScope] = React.useState("");
+  const [furnitureType, setFurnitureType] = React.useState("");
+  const [materialColor, setMaterialColor] = React.useState("");
+  const [specs, setSpecs] = React.useState("");
+  const [paymentTerms, setPaymentTerms] = React.useState("");
+  const [totalMt2, setTotalMt2] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -61,6 +75,12 @@ export function ProjectFormDialog({
     setClientName(project?.clientName ?? "");
     setStatus(project?.status ?? "ACTIVE");
     setNotes(project?.notes ?? "");
+    setScope(project?.scope ?? "");
+    setFurnitureType(project?.furnitureType ?? "");
+    setMaterialColor(project?.materialColor ?? "");
+    setSpecs(project?.specs ?? "");
+    setPaymentTerms(project?.paymentTerms ?? "");
+    setTotalMt2(project?.totalMt2 != null ? String(project.totalMt2) : "");
     setError(null);
   }, [open, project]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -79,6 +99,12 @@ export function ProjectFormDialog({
         clientName: clientName.trim() || null,
         status,
         notes: notes.trim() || null,
+        scope: scope.trim() || null,
+        furnitureType: furnitureType.trim() || null,
+        materialColor: materialColor.trim() || null,
+        specs: specs.trim() || null,
+        paymentTerms: paymentTerms.trim() || null,
+        totalMt2: parseMt2(totalMt2),
       };
       if (project) {
         await updateProjectAction(project.id, payload);
@@ -135,8 +161,70 @@ export function ProjectFormDialog({
             </Field>
           </div>
           <Field label={tt("proj_f_notes")}>
-            <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
+
+          {/* Contrato — todo opcional. */}
+          <div className="flex flex-col gap-4 border-t border-border pt-4">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">{tt("proj_contract_section")}</h3>
+              <p className="text-xs text-muted-foreground">{tt("proj_contract_hint")}</p>
+            </div>
+
+            <Field label={tt("proj_f_scope")}>
+              <Textarea
+                rows={2}
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                placeholder={tt("f_optional")}
+              />
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tt("proj_f_furniture_type")}>
+                <Input
+                  value={furnitureType}
+                  onChange={(e) => setFurnitureType(e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("proj_f_material_color")}>
+                <Input
+                  value={materialColor}
+                  onChange={(e) => setMaterialColor(e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+            </div>
+            <Field label={tt("proj_f_specs")}>
+              <Textarea
+                rows={2}
+                value={specs}
+                onChange={(e) => setSpecs(e.target.value)}
+                placeholder={tt("f_optional")}
+              />
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tt("proj_f_payment_terms")}>
+                <Textarea
+                  rows={2}
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("proj_f_total_mt2")}>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={totalMt2}
+                  onChange={(e) => setTotalMt2(e.target.value)}
+                  placeholder="0.00"
+                />
+              </Field>
+            </div>
+          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -80,6 +80,12 @@ function mapProject(r: ProjectRow): Project {
     clientName: r.client_name,
     status: r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE",
     notes: r.notes,
+    scope: r.scope,
+    furnitureType: r.furniture_type,
+    materialColor: r.material_color,
+    specs: r.specs,
+    paymentTerms: r.payment_terms,
+    totalMt2: num(r.total_mt2),
   };
 }
 
@@ -163,7 +169,18 @@ export async function getProjects(): Promise<Project[]> {
   return (data ?? []).map(mapProject);
 }
 
-export interface CreateProjectInput {
+/** Campos de "contrato" del proyecto (Etapa 2-A). Todos opcionales; se
+ *  comparten entre crear y editar. */
+export interface ProjectContractInput {
+  scope?: string | null;
+  furnitureType?: string | null;
+  materialColor?: string | null;
+  specs?: string | null;
+  paymentTerms?: string | null;
+  totalMt2?: number | null;
+}
+
+export interface CreateProjectInput extends ProjectContractInput {
   name: string;
   clientName?: string | null;
   status?: ProjectStatus;
@@ -179,6 +196,12 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       client_name: input.clientName ?? null,
       status: input.status ?? "ACTIVE",
       notes: input.notes ?? null,
+      scope: input.scope ?? null,
+      furniture_type: input.furnitureType ?? null,
+      material_color: input.materialColor ?? null,
+      specs: input.specs ?? null,
+      payment_terms: input.paymentTerms ?? null,
+      total_mt2: input.totalMt2 ?? null,
     })
     .select("*")
     .single();
@@ -186,7 +209,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
   return mapProject(data);
 }
 
-export interface UpdateProjectInput {
+export interface UpdateProjectInput extends ProjectContractInput {
   name?: string;
   clientName?: string | null;
   status?: ProjectStatus;
@@ -199,6 +222,12 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
   if (input.clientName !== undefined) patch.client_name = input.clientName;
   if (input.status !== undefined) patch.status = input.status;
   if (input.notes !== undefined) patch.notes = input.notes;
+  if (input.scope !== undefined) patch.scope = input.scope;
+  if (input.furnitureType !== undefined) patch.furniture_type = input.furnitureType;
+  if (input.materialColor !== undefined) patch.material_color = input.materialColor;
+  if (input.specs !== undefined) patch.specs = input.specs;
+  if (input.paymentTerms !== undefined) patch.payment_terms = input.paymentTerms;
+  if (input.totalMt2 !== undefined) patch.total_mt2 = input.totalMt2;
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("projects").update(patch).eq("id", id).select("*").single();

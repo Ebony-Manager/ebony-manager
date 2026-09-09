@@ -519,32 +519,101 @@ export type Database = {
         }
         Relationships: []
       }
+      project_assignments: {
+        Row: {
+          assigned_mt2: number | null
+          contractor_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_mt2?: number | null
+          contractor_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_mt2?: number | null
+          contractor_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_assignments_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_name: string | null
           created_at: string
+          furniture_type: string | null
           id: string
+          material_color: string | null
           name: string
           notes: string | null
+          payment_terms: string | null
+          scope: string | null
+          specs: string | null
           status: string
+          total_mt2: number | null
           updated_at: string
         }
         Insert: {
           client_name?: string | null
           created_at?: string
+          furniture_type?: string | null
           id?: string
+          material_color?: string | null
           name: string
           notes?: string | null
+          payment_terms?: string | null
+          scope?: string | null
+          specs?: string | null
           status?: string
+          total_mt2?: number | null
           updated_at?: string
         }
         Update: {
           client_name?: string | null
           created_at?: string
+          furniture_type?: string | null
           id?: string
+          material_color?: string | null
           name?: string
           notes?: string | null
+          payment_terms?: string | null
+          scope?: string | null
+          specs?: string | null
           status?: string
+          total_mt2?: number | null
           updated_at?: string
         }
         Relationships: []
