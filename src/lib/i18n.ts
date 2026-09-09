@@ -636,6 +636,15 @@ export const strings = {
     // inactivar / liquidar / reactivar / eliminar.
     settings_menu: { es: "Ajustes del contratista", en: "Contractor settings" },
 
+    // Interruptor de color de la tabla del estado de cuenta (persistido).
+    palette_label: { es: "Colores", en: "Colors" },
+    palette_full: { es: "A todo color", en: "Full color" },
+    palette_sober: { es: "Sobria", en: "Sober" },
+    palette_toggle_hint: {
+      es: "Cambiar entre fila a todo color y vista sobria",
+      en: "Switch between full-color rows and the sober view",
+    },
+
     // Pestañas del módulo.
     tab_directory: { es: "Contratistas", en: "Contractors" },
     tab_projects: { es: "Proyectos", en: "Projects" },

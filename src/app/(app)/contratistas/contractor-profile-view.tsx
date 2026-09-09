@@ -12,6 +12,7 @@ import {
   IdCard,
   LogOut,
   Package,
+  Palette,
   Pencil,
   Phone,
   Plus,
@@ -54,10 +55,12 @@ import {
 } from "@/lib/contractors/contractor-ledger";
 import {
   balanceTone,
+  categoryDotStyle,
   categoryRowStyle,
   categoryTextStyle,
   toneTextStyle,
   toneVar,
+  type LedgerPalette,
 } from "@/lib/contractors/contractor-colors";
 import {
   calendarWindow,
@@ -118,6 +121,17 @@ const CAT_ALL = "all";
 const PROJ_ALL = "all";
 const PROJ_NONE = "__none__";
 
+// La elección de paleta ("full" / "sober") se recuerda por navegador.
+const PALETTE_STORAGE_KEY = "contratistas:ledger-palette";
+function readStoredPalette(): LedgerPalette | null {
+  try {
+    const v = window.localStorage.getItem(PALETTE_STORAGE_KEY);
+    return v === "full" || v === "sober" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Ficha del contratista A PANTALLA COMPLETA (`/contratistas/[id]`):
  * encabezado + saldo, KPIs, estado de cuenta y — al final — las acciones
@@ -130,9 +144,12 @@ const PROJ_NONE = "__none__";
  * — cada fila visible sigue mostrando su saldo real acumulado (igual que
  * la columna de saldo del Excel del dueño).
  *
- * COLOR DE FILA: la fila entera toma el color de su CATEGORÍA (Proyecto
- * gris, Material azul, Pago verde, Préstamo amarillo, resto neutro). El
- * sentido ingreso/egreso se lee en las columnas "A favor" / "Reduce".
+ * COLOR DE FILA: en la paleta "full" (por defecto) la fila entera toma el
+ * color de su CATEGORÍA (Proyecto gris, Material azul, Pago verde,
+ * Préstamo amarillo, resto neutro). En "sober" las filas van neutras y la
+ * categoría se marca con un puntito + el proyecto en negrita. El
+ * interruptor recuerda la elección en localStorage. El sentido
+ * ingreso/egreso se lee siempre en las columnas "A favor" / "Reduce".
  */
 export function ContractorProfileView({
   contractor,
@@ -172,6 +189,25 @@ export function ContractorProfileView({
   const [catFilter, setCatFilter] = React.useState<string>(CAT_ALL);
   const [projFilter, setProjFilter] = React.useState<string>(PROJ_ALL);
   const [groupBy, setGroupBy] = React.useState<LedgerGroupBy>("none");
+
+  // Paleta de la tabla: "full" (fila a todo color, por defecto) o "sober"
+  // (neutra). Arranca en "full" para que el server y el primer render del
+  // cliente coincidan; la preferencia guardada se aplica tras hidratar.
+  const [palette, setPalette] = React.useState<LedgerPalette>("full");
+  const sober = palette === "sober";
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    const stored = readStoredPalette();
+    if (stored) setPalette(stored);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+    } catch {
+      /* ignore */
+    }
+  }, [palette]);
 
   const contractorId = contractor.id;
 
@@ -575,6 +611,21 @@ export function ContractorProfileView({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Interruptor de paleta: fila a todo color ⇄ vista sobria.
+              La elección se persiste en localStorage. */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-auto h-8 text-xs"
+            aria-label={tt("palette_label")}
+            title={tt("palette_toggle_hint")}
+            onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
+          >
+            <Palette className="size-3.5" />
+            {sober ? tt("palette_sober") : tt("palette_full")}
+          </Button>
         </div>
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
@@ -653,11 +704,13 @@ export function ContractorProfileView({
                     const absorbed = row.ebonyAbsorbsMaterial;
                     const hovered = hoveredId === row.id;
                     const catText = label(CONTRACTOR_CATEGORY_LABEL_KEY[row.category]);
+                    const catDot = categoryDotStyle(row.category);
                     // MISMO objeto de estilo para el <tr> y para la celda
                     // de Fecha congelada — un único color opaco por fila,
                     // así el hover se ve parejo (nada de tono aparte ni
-                    // "atraso" en la sticky).
-                    const rowStyle = categoryRowStyle(row.category, hovered);
+                    // "atraso" en la sticky). La paleta decide si va teñido
+                    // por categoría ("full") o neutro ("sober").
+                    const rowStyle = categoryRowStyle(row.category, hovered, palette);
                     return (
                       <tr
                         key={row.id}
@@ -673,9 +726,22 @@ export function ContractorProfileView({
                           {formatDateCompact(lang, row.entryDate)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2">
-                          <span className="font-medium" style={categoryTextStyle(row.category)}>
-                            {catText}
-                          </span>
+                          {sober ? (
+                            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                              {catDot && (
+                                <span
+                                  className="size-1.5 shrink-0 rounded-full"
+                                  style={catDot}
+                                  aria-hidden
+                                />
+                              )}
+                              {catText}
+                            </span>
+                          ) : (
+                            <span className="font-medium" style={categoryTextStyle(row.category)}>
+                              {catText}
+                            </span>
+                          )}
                           {absorbed && (
                             <span className="block text-[10px] text-muted-foreground">
                               {tt("absorbed_note")}
@@ -683,14 +749,26 @@ export function ContractorProfileView({
                           )}
                         </td>
                         <td
-                          className="max-w-44 truncate px-3 py-2 text-muted-foreground"
+                          className={`max-w-44 truncate px-3 py-2 ${
+                            sober && row.projectName
+                              ? "font-medium text-foreground"
+                              : "text-muted-foreground"
+                          }`}
                           title={row.projectName ?? row.clientText ?? undefined}
                         >
-                          {row.projectName || (
+                          {row.projectName ? (
+                            sober ? (
+                              <span className="border-l-2 border-muted-foreground/30 pl-2">
+                                {row.projectName}
+                              </span>
+                            ) : (
+                              row.projectName
+                            )
+                          ) : (
                             <span className="text-muted-foreground/60">{tt("no_project")}</span>
                           )}
                           {row.clientText && (
-                            <span className="block truncate text-[10px] text-muted-foreground/70">
+                            <span className="block truncate text-[10px] font-normal text-muted-foreground/70">
                               {row.clientText}
                             </span>
                           )}
