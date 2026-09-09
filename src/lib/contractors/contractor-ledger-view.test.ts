@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ContractorLedgerRow } from "@/types/contractors";
-import { groupLedgerRows } from "@/lib/contractors/contractor-ledger-view";
+import { groupLedgerRows, ledgerRowsTotals } from "@/lib/contractors/contractor-ledger-view";
 
 function row(over: Partial<ContractorLedgerRow>): ContractorLedgerRow {
   return {
@@ -67,5 +67,23 @@ describe("groupLedgerRows", () => {
     const g = groupLedgerRows(rows, "month");
     const all = g.flatMap((x) => x.rows);
     expect(all.find((r) => r.id === "c")?.balanceAfterCents).toBe(11000);
+  });
+});
+
+describe("ledgerRowsTotals", () => {
+  it("suma a favor / reduce / neto, excluyendo el material que Ebony asume", () => {
+    const t = ledgerRowsTotals([
+      row({ direction: "a_favor", amountCents: 10000 }),
+      row({ direction: "a_favor", amountCents: 5000 }),
+      row({ direction: "reduce", amountCents: 4000 }),
+      row({ direction: "reduce", amountCents: 3000, ebonyAbsorbsMaterial: true }), // no cuenta
+    ]);
+    expect(t.aFavorCents).toBe(15000);
+    expect(t.reduceCents).toBe(4000);
+    expect(t.netCents).toBe(11000);
+  });
+
+  it("conjunto vacío → todo en cero", () => {
+    expect(ledgerRowsTotals([])).toEqual({ aFavorCents: 0, reduceCents: 0, netCents: 0 });
   });
 });

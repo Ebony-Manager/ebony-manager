@@ -625,6 +625,17 @@ export const strings = {
     col_project: { es: "Proyecto", en: "Project" },
     no_project: { es: "Sin proyecto", en: "No project" },
 
+    // Total de lo que queda visible tras filtrar (distinto del saldo
+    // corrido: esto es solo la suma del conjunto filtrado).
+    filtered_total: { es: "Total filtrado", en: "Filtered total" },
+    filtered_net: { es: "Neto", en: "Net" },
+    filtered_count_one: { es: "movimiento", en: "movement" },
+    filtered_count_many: { es: "movimientos", en: "movements" },
+
+    // Menú de ajustes del contratista (engranaje en el encabezado): oculta
+    // inactivar / liquidar / reactivar / eliminar.
+    settings_menu: { es: "Ajustes del contratista", en: "Contractor settings" },
+
     // Pestañas del módulo.
     tab_directory: { es: "Contratistas", en: "Contractors" },
     tab_projects: { es: "Proyectos", en: "Projects" },

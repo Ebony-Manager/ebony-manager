@@ -21,19 +21,31 @@ export const LEDGER_GROUP_BYS: readonly LedgerGroupBy[] = [
   "month",
 ] as const;
 
-export interface LedgerGroup {
+export interface LedgerRowsTotals {
+  /** Suma de montos con dirección a_favor (que mueven saldo). */
+  aFavorCents: number;
+  /** Suma de montos con dirección reduce (que mueven saldo). */
+  reduceCents: number;
+  /** aFavorCents − reduceCents: efecto neto del conjunto sobre el saldo.
+   *  NO es el saldo corrido — es solo el total de lo que se ve. */
+  netCents: number;
+}
+
+export interface LedgerGroup extends LedgerRowsTotals {
   /** Clave cruda del grupo: "" (sin agrupar), la categoría, el
    *  `projectId` ("" = sin proyecto), o "YYYY-MM". La UI resuelve la
    *  etiqueta visible. */
   key: string;
   rows: ContractorLedgerRow[];
-  /** Suma de montos con dirección a_favor del grupo (que mueven saldo). */
-  aFavorCents: number;
-  /** Suma de montos con dirección reduce del grupo (que mueven saldo). */
-  reduceCents: number;
 }
 
-function totals(rows: ContractorLedgerRow[]): { aFavorCents: number; reduceCents: number } {
+/**
+ * Suma "a favor" / "reduce" / neto de un conjunto de filas, con la misma
+ * regla que el saldo: los materiales que Ebony asume no cuentan. Sirve
+ * tanto para el subtotal por grupo como para el "total filtrado" (lo que
+ * queda visible tras aplicar filtros). NO es un saldo corrido.
+ */
+export function ledgerRowsTotals(rows: ContractorLedgerRow[]): LedgerRowsTotals {
   let aFavorCents = 0;
   let reduceCents = 0;
   for (const r of rows) {
@@ -41,7 +53,7 @@ function totals(rows: ContractorLedgerRow[]): { aFavorCents: number; reduceCents
     if (r.direction === "a_favor") aFavorCents += r.amountCents;
     else reduceCents += r.amountCents;
   }
-  return { aFavorCents, reduceCents };
+  return { aFavorCents, reduceCents, netCents: aFavorCents - reduceCents };
 }
 
 const CATEGORY_ORDER = new Map<ContractorLedgerCategory, number>(
@@ -62,7 +74,7 @@ export function groupLedgerRows(
   groupBy: LedgerGroupBy
 ): LedgerGroup[] {
   if (groupBy === "none") {
-    return [{ key: "", rows, ...totals(rows) }];
+    return [{ key: "", rows, ...ledgerRowsTotals(rows) }];
   }
 
   const keyOf = (r: ContractorLedgerRow): string => {
@@ -101,6 +113,6 @@ export function groupLedgerRows(
 
   return orderedKeys.map((key) => {
     const groupRows = buckets.get(key)!;
-    return { key, rows: groupRows, ...totals(groupRows) };
+    return { key, rows: groupRows, ...ledgerRowsTotals(groupRows) };
   });
 }

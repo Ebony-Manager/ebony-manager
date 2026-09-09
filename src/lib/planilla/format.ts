@@ -6,6 +6,18 @@ export function monthShort(lang: Lang, month1to12: number): string {
   return (lang === "en" ? MONTHS_EN : MONTHS_ES)[month1to12 - 1]?.slice(0, 3) ?? "";
 }
 
+/**
+ * Fecha `YYYY-MM-DD` en formato COMPACTO: "8-Ene-25" (ES) / "8-Jan-25"
+ * (EN). Día sin cero a la izquierda, mes en 3 letras, año en 2 dígitos.
+ * Se arma manualmente (sin `toLocaleDateString`) para evitar desajustes
+ * de hidratación servidor/cliente, igual que el resto del formateo aquí.
+ */
+export function formatDateCompact(lang: Lang, iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return iso;
+  return `${day}-${monthShort(lang, month)}-${String(year).slice(-2).padStart(2, "0")}`;
+}
+
 /** Fecha `YYYY-MM-DD` -> texto local ("5 sep 2026" / "Sep 5, 2026"). */
 export function formatDate(lang: Lang, iso: string): string {
   const d = new Date(`${iso}T00:00:00`);

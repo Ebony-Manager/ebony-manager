@@ -16,6 +16,7 @@ import {
   Phone,
   Plus,
   Receipt,
+  Settings,
   Trash2,
   UserCheck,
   Wallet,
@@ -26,6 +27,14 @@ import type { Contractor, ContractorLedgerEntry, Project } from "@/types/contrac
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCents, monthLabel } from "@/lib/planilla/payroll-period";
-import { formatDate } from "@/lib/planilla/format";
+import { formatDate, formatDateCompact } from "@/lib/planilla/format";
 // KPIs con el mismo componente que el Registro de Planilla (Taller) —
 // Contratistas es módulo hermano de Planilla y ya reutiliza su capa de
 // formato; reusar la tarjeta mantiene el estilo idéntico.
@@ -61,6 +70,7 @@ import {
 } from "@/lib/contractors/contractor-period";
 import {
   groupLedgerRows,
+  ledgerRowsTotals,
   LEDGER_GROUP_BYS,
   type LedgerGroupBy,
 } from "@/lib/contractors/contractor-ledger-view";
@@ -226,6 +236,11 @@ export function ContractorProfileView({
 
   const groups = React.useMemo(() => groupLedgerRows(filteredRows, groupBy), [filteredRows, groupBy]);
 
+  // Total de lo que queda VISIBLE tras filtrar (período + categoría +
+  // proyecto). Distinto del saldo corrido: es solo la suma del conjunto
+  // filtrado, y se recalcula al cambiar cualquier filtro.
+  const filteredTotals = React.useMemo(() => ledgerRowsTotals(filteredRows), [filteredRows]);
+
   const projectName = React.useCallback(
     (id: string) => projects.find((p) => p.id === id)?.name ?? id,
     [projects]
@@ -286,12 +301,63 @@ export function ContractorProfileView({
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2 text-muted-foreground">
-          <Link href="/contratistas">
-            <ArrowLeft className="size-3.5" />
-            {tt("back_to_directory")}
-          </Link>
-        </Button>
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
+            <Link href="/contratistas">
+              <ArrowLeft className="size-3.5" />
+              {tt("back_to_directory")}
+            </Link>
+          </Button>
+
+          {/* Ajustes del contratista: inactivar / liquidar / reactivar /
+              eliminar viven acá, no sueltos en la ficha. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground"
+                aria-label={tt("settings_menu")}
+                title={tt("settings_menu")}
+              >
+                <Settings className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                {tt("status_label")}:{" "}
+                <span className="font-medium text-foreground">
+                  {isInactive ? tt("status_inactive") : tt("status_active")}
+                </span>
+                {contractor.endDate && (
+                  <>
+                    {" · "}
+                    {tt("end_date_label")}: {formatDate(lang, contractor.endDate)}
+                  </>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => window.setTimeout(() => setLiqOpen(true), 0)}>
+                <LogOut className="size-3.5" />
+                {isInactive ? tt("liq_edit") : tt("liq_mark")}
+              </DropdownMenuItem>
+              {isInactive && (
+                <DropdownMenuItem disabled={reactivating} onSelect={() => handleReactivate()}>
+                  <UserCheck className="size-3.5" />
+                  {tt("reactivate")}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => window.setTimeout(() => setDeleteOpen(true), 0)}
+              >
+                <Trash2 className="size-3.5" />
+                {tt("delete_contractor")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -511,6 +577,37 @@ export function ContractorProfileView({
           </Select>
         </div>
 
+        {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
+        {filteredRows.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-muted/30 px-3 py-1.5 text-xs">
+            <span className="text-muted-foreground">
+              {tt("filtered_total")} · {filteredRows.length}{" "}
+              {filteredRows.length === 1 ? tt("filtered_count_one") : tt("filtered_count_many")}
+            </span>
+            <span className="text-muted-foreground">
+              {tt("col_a_favor")}:{" "}
+              <span className="font-medium tabular-nums" style={toneTextStyle("a_favor")}>
+                {formatCents(filteredTotals.aFavorCents)}
+              </span>
+            </span>
+            <span className="text-muted-foreground">
+              {tt("col_reduce")}:{" "}
+              <span className="font-medium tabular-nums" style={toneTextStyle("reduce")}>
+                {formatCents(filteredTotals.reduceCents)}
+              </span>
+            </span>
+            <span className="text-muted-foreground">
+              {tt("filtered_net")}:{" "}
+              <span
+                className="font-semibold tabular-nums"
+                style={toneTextStyle(balanceTone(filteredTotals.netCents))}
+              >
+                {formatCents(filteredTotals.netCents)}
+              </span>
+            </span>
+          </div>
+        )}
+
         {allRows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             {tt("ledger_empty")}
@@ -573,7 +670,7 @@ export function ContractorProfileView({
                           className="sticky left-0 z-10 whitespace-nowrap px-3 py-2 text-foreground transition-colors"
                           style={rowStyle}
                         >
-                          {formatDate(lang, row.entryDate)}
+                          {formatDateCompact(lang, row.entryDate)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2">
                           <span className="font-medium" style={categoryTextStyle(row.category)}>
@@ -675,50 +772,6 @@ export function ContractorProfileView({
             </table>
           </div>
         )}
-      </div>
-
-      {/* Estado / Liquidación */}
-      <div className="flex flex-col gap-3 border-t border-border pt-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-medium text-foreground">{tt("status_section_title")}</h2>
-            <p className="text-xs text-muted-foreground">
-              {tt("status_label")}:{" "}
-              <span className="font-medium text-foreground">
-                {isInactive ? tt("status_inactive") : tt("status_active")}
-              </span>
-              {contractor.endDate && (
-                <>
-                  {" · "}
-                  {tt("end_date_label")}: {formatDate(lang, contractor.endDate)}
-                </>
-              )}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {isInactive && (
-              <Button size="sm" variant="outline" onClick={handleReactivate} disabled={reactivating}>
-                <UserCheck className="size-3.5" />
-                {tt("reactivate")}
-              </Button>
-            )}
-            <Button size="sm" variant="outline" onClick={() => setLiqOpen(true)}>
-              <LogOut className="size-3.5" />
-              {isInactive ? tt("liq_edit") : tt("liq_mark")}
-            </Button>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">{tt("status_hint")}</p>
-      </div>
-
-      {/* Zona de peligro */}
-      <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-        <h2 className="text-sm font-medium text-destructive">{tt("danger_zone")}</h2>
-        <p className="text-xs text-muted-foreground">{tt("danger_explain")}</p>
-        <Button size="sm" variant="destructive" className="mt-1 self-start" onClick={() => setDeleteOpen(true)}>
-          <Trash2 className="size-3.5" />
-          {tt("delete_contractor")}
-        </Button>
       </div>
 
       <LedgerEntryDialog
