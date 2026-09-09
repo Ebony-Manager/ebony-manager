@@ -8,6 +8,7 @@ import type {
   ContractorLedgerCategory,
   ContractorLedgerDirection,
   ContractorLedgerEntry,
+  Project,
 } from "@/types/contractors";
 import {
   Dialog,
@@ -20,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import {
   CONTRACTOR_LEDGER_CATEGORIES,
@@ -33,8 +34,12 @@ import { t, strings } from "@/lib/i18n";
 import { createLedgerEntryAction, updateLedgerEntryAction } from "./actions";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { Field } from "./field";
+import { ProjectFormDialog } from "./project-form-dialog";
 
 type AmountMode = "flat" | "area";
+
+const NO_PROJECT = "__none__";
+const NEW_PROJECT = "__new__";
 
 function toCents(value: string): number {
   const n = parseFloat(value || "0");
@@ -52,23 +57,28 @@ function toNum(value: string): number | null {
  * el saldo (`directionForCategory`); ese control NO se le muestra al
  * usuario. Solo en "Ajuste" se le pregunta si suma o resta.
  *
- * El monto va como monto fijo o como m² × costo/m² (se multiplica solo).
- * El interruptor "Ebony asume este material" solo aparece en categoría
- * "Material": el movimiento queda registrado pero no mueve el saldo.
+ * PROYECTO (C2): el movimiento se engancha a un proyecto existente
+ * (`projectId`) o a ninguno; se puede crear un proyecto nuevo ahí mismo.
+ * `clientText` queda como nota libre opcional (cliente final).
  */
 export function LedgerEntryDialog({
   contractorId,
   entry,
+  projects,
   open,
   onOpenChange,
   onSaved,
+  onProjectsChanged,
 }: {
   contractorId: string;
   /** null = crear; una entrada = editar. */
   entry: ContractorLedgerEntry | null;
+  projects: Project[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  /** Recargar la lista de proyectos del padre tras crear uno en línea. */
+  onProjectsChanged: () => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -83,17 +93,23 @@ export function LedgerEntryDialog({
   const [mt2, setMt2] = React.useState("");
   const [costPerMt2, setCostPerMt2] = React.useState("");
   const [entryDate, setEntryDate] = React.useState(today);
+  const [projectId, setProjectId] = React.useState<string | null>(null);
   const [clientText, setClientText] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [ebonyAbsorbs, setEbonyAbsorbs] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Proyectos creados en línea desde este diálogo — se muestran al toque
+  // sin esperar a que el padre recargue.
+  const [extraProjects, setExtraProjects] = React.useState<Project[]>([]);
+  const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir; la entrada editada cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
     setError(null);
+    setExtraProjects([]);
     if (entry) {
       const area = entry.mt2 != null && entry.costPerMt2Cents != null;
       setCategory(entry.category);
@@ -103,6 +119,7 @@ export function LedgerEntryDialog({
       setMt2(entry.mt2 != null ? String(entry.mt2) : "");
       setCostPerMt2(entry.costPerMt2Cents != null ? (entry.costPerMt2Cents / 100).toFixed(2) : "");
       setEntryDate(entry.entryDate);
+      setProjectId(entry.projectId);
       setClientText(entry.clientText ?? "");
       setDescription(entry.description ?? "");
       setNotes(entry.notes ?? "");
@@ -115,6 +132,7 @@ export function LedgerEntryDialog({
       setMt2("");
       setCostPerMt2("");
       setEntryDate(today);
+      setProjectId(null);
       setClientText("");
       setDescription("");
       setNotes("");
@@ -126,9 +144,34 @@ export function LedgerEntryDialog({
   const fixedDirection = directionForCategory(category);
   const showMaterialToggle = isMaterialCategory(category);
 
+  // Lista para el selector: proyectos del padre + los creados en línea,
+  // sin duplicar, ordenados con los activos primero y por nombre.
+  const projectOptions = React.useMemo(() => {
+    const byId = new Map<string, Project>();
+    for (const p of [...projects, ...extraProjects]) byId.set(p.id, p);
+    return [...byId.values()].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [projects, extraProjects]);
+
   function onCategoryChange(next: ContractorLedgerCategory) {
     setCategory(next);
     if (!isMaterialCategory(next)) setEbonyAbsorbs(false);
+  }
+
+  function onProjectSelect(value: string) {
+    if (value === NEW_PROJECT) {
+      setProjectDialogOpen(true);
+      return;
+    }
+    setProjectId(value === NO_PROJECT ? null : value);
+  }
+
+  function onProjectCreated(created: Project) {
+    setExtraProjects((cur) => [...cur, created]);
+    setProjectId(created.id);
+    onProjectsChanged();
   }
 
   const computedCents =
@@ -146,6 +189,7 @@ export function LedgerEntryDialog({
     setError(null);
     try {
       const input = {
+        projectId,
         entryDate,
         category,
         direction: fixedDirection ?? adjustDirection,
@@ -174,160 +218,190 @@ export function LedgerEntryDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{entry ? tt("mov_edit_title") : tt("mov_add_title")}</DialogTitle>
-          <DialogDescription>{tt("mov_desc")}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{entry ? tt("mov_edit_title") : tt("mov_add_title")}</DialogTitle>
+            <DialogDescription>{tt("mov_desc")}</DialogDescription>
+          </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={tt("mov_f_category")}>
-              <Select value={category} onValueChange={(v) => onCategoryChange(v as ContractorLedgerCategory)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTRACTOR_LEDGER_CATEGORIES.map((key) => (
-                    <SelectItem key={key} value={key}>
-                      {t(lang, strings.contratistas[CONTRACTOR_CATEGORY_LABEL_KEY[key] as keyof typeof strings.contratistas])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label={tt("mov_f_date")}>
-              <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
-            </Field>
-
-            {/* Dirección: solo se pregunta en "Ajuste". */}
-            {fixedDirection === null && (
-              <Field label={tt("mov_f_adjust_dir")} className="sm:col-span-2">
-                <Select
-                  value={adjustDirection}
-                  onValueChange={(v) => setAdjustDirection(v as ContractorLedgerDirection)}
-                >
+          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tt("mov_f_category")}>
+                <Select value={category} onValueChange={(v) => onCategoryChange(v as ContractorLedgerCategory)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="a_favor">{tt("adjust_a_favor")}</SelectItem>
-                    <SelectItem value="reduce">{tt("adjust_reduce")}</SelectItem>
+                    {CONTRACTOR_LEDGER_CATEGORIES.map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {t(lang, strings.contratistas[CONTRACTOR_CATEGORY_LABEL_KEY[key] as keyof typeof strings.contratistas])}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
-            )}
-          </div>
+              <Field label={tt("mov_f_date")}>
+                <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
+              </Field>
 
-          {/* Monto: fijo o m² × costo/m². */}
-          <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
-              <Button
-                type="button"
-                size="sm"
-                variant={amountMode === "flat" ? "default" : "outline"}
-                onClick={() => setAmountMode("flat")}
-              >
-                {tt("amount_mode_flat")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={amountMode === "area" ? "default" : "outline"}
-                onClick={() => setAmountMode("area")}
-              >
-                {tt("amount_mode_area")}
-              </Button>
+              {/* Dirección: solo se pregunta en "Ajuste". */}
+              {fixedDirection === null && (
+                <Field label={tt("mov_f_adjust_dir")} className="sm:col-span-2">
+                  <Select
+                    value={adjustDirection}
+                    onValueChange={(v) => setAdjustDirection(v as ContractorLedgerDirection)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="a_favor">{tt("adjust_a_favor")}</SelectItem>
+                      <SelectItem value="reduce">{tt("adjust_reduce")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+
+              {/* Proyecto: el enganche real del movimiento. */}
+              <Field label={tt("mov_f_project")} className="sm:col-span-2">
+                <Select value={projectId ?? NO_PROJECT} onValueChange={onProjectSelect}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PROJECT}>{tt("mov_f_project_none")}</SelectItem>
+                    {projectOptions.length > 0 && <SelectSeparator />}
+                    {projectOptions.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                        {p.status === "COMPLETED" ? ` · ${tt("proj_status_completed")}` : ""}
+                      </SelectItem>
+                    ))}
+                    <SelectSeparator />
+                    <SelectItem value={NEW_PROJECT}>{tt("mov_f_project_new")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
 
-            {amountMode === "flat" ? (
-              <Field label={tt("mov_f_flat")}>
+            {/* Monto: fijo o m² × costo/m². */}
+            <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={amountMode === "flat" ? "default" : "outline"}
+                  onClick={() => setAmountMode("flat")}
+                >
+                  {tt("amount_mode_flat")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={amountMode === "area" ? "default" : "outline"}
+                  onClick={() => setAmountMode("area")}
+                >
+                  {tt("amount_mode_area")}
+                </Button>
+              </div>
+
+              {amountMode === "flat" ? (
+                <Field label={tt("mov_f_flat")}>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={flatAmount}
+                    onChange={(e) => setFlatAmount(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </Field>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label={tt("mov_f_mt2")}>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={mt2}
+                        onChange={(e) => setMt2(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </Field>
+                    <Field label={tt("mov_f_cost_mt2")}>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={costPerMt2}
+                        onChange={(e) => setCostPerMt2(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </Field>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {tt("mov_computed")}:{" "}
+                    <span className="font-medium text-foreground tabular-nums">{formatCents(computedCents)}</span>
+                  </p>
+                </>
+              )}
+            </div>
+
+            {showMaterialToggle && (
+              <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={ebonyAbsorbs}
+                  onChange={(e) => setEbonyAbsorbs(e.target.checked)}
+                  className="mt-0.5 size-4 rounded border-input accent-primary"
+                />
+                <span>
+                  <span className="font-medium text-foreground">{tt("mov_f_ebony_absorbs")}</span>
+                  <span className="block text-xs text-muted-foreground">{tt("mov_f_ebony_absorbs_hint")}</span>
+                </span>
+              </label>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              <Field label={tt("mov_f_client_note")}>
+                <Input value={clientText} onChange={(e) => setClientText(e.target.value)} placeholder={tt("f_optional")} />
+              </Field>
+              <Field label={tt("mov_f_description")}>
                 <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={flatAmount}
-                  onChange={(e) => setFlatAmount(e.target.value)}
-                  placeholder="0.00"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={tt("f_optional")}
                 />
               </Field>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={tt("mov_f_mt2")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={mt2}
-                      onChange={(e) => setMt2(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </Field>
-                  <Field label={tt("mov_f_cost_mt2")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={costPerMt2}
-                      onChange={(e) => setCostPerMt2(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </Field>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {tt("mov_computed")}:{" "}
-                  <span className="font-medium text-foreground tabular-nums">{formatCents(computedCents)}</span>
-                </p>
-              </>
-            )}
-          </div>
+              <Field label={tt("mov_f_notes")} className="sm:col-span-2">
+                <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </Field>
+            </div>
 
-          {showMaterialToggle && (
-            <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
-              <input
-                type="checkbox"
-                checked={ebonyAbsorbs}
-                onChange={(e) => setEbonyAbsorbs(e.target.checked)}
-                className="mt-0.5 size-4 rounded border-input accent-primary"
-              />
-              <span>
-                <span className="font-medium text-foreground">{tt("mov_f_ebony_absorbs")}</span>
-                <span className="block text-xs text-muted-foreground">{tt("mov_f_ebony_absorbs_hint")}</span>
-              </span>
-            </label>
-          )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
-            <Field label={tt("mov_f_client")}>
-              <Input value={clientText} onChange={(e) => setClientText(e.target.value)} placeholder={tt("f_optional")} />
-            </Field>
-            <Field label={tt("mov_f_description")}>
-              <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={tt("f_optional")}
-              />
-            </Field>
-            <Field label={tt("mov_f_notes")} className="sm:col-span-2">
-              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </Field>
-          </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+                {tt("action_cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? tt("saving") : entry ? tt("action_save") : tt("action_add")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-              {tt("action_cancel")}
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? tt("saving") : entry ? tt("action_save") : tt("action_add")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <ProjectFormDialog
+        project={null}
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        onCreated={onProjectCreated}
+      />
+    </>
   );
 }

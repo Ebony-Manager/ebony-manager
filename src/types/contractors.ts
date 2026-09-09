@@ -13,6 +13,19 @@
 export type ContractorType = "ebanista" | "pintor";
 export type ContractorStatus = "ACTIVE" | "INACTIVE";
 
+/** Proyecto de Ebony (tabla `projects`). Ficha mínima en la C2: nombre,
+ *  cliente, estado, notas. Los movimientos del estado de cuenta se
+ *  enganchan por `projectId`. */
+export type ProjectStatus = "ACTIVE" | "COMPLETED";
+
+export interface Project {
+  id: string;
+  name: string;
+  clientName: string | null;
+  status: ProjectStatus;
+  notes: string | null;
+}
+
 export interface Contractor {
   id: string;
   name: string;
@@ -51,9 +64,13 @@ export type ContractorLedgerDirection = "a_favor" | "reduce";
 export interface ContractorLedgerEntry {
   id: string;
   contractorId: string;
-  /** En la Etapa 1 siempre null — el proyecto va como texto libre en
-   *  `clientText`. La ficha de proyectos y el FK real llegan en la C2. */
+  /** FK al proyecto enganchado (C2). `clientText` queda como nota libre
+   *  opcional (cliente final). Si el proyecto se borra, esto vuelve a
+   *  null y el movimiento se conserva. */
   projectId: string | null;
+  /** Nombre del proyecto enganchado, resuelto en el `select` del
+   *  servicio — solo para mostrar, no se guarda. */
+  projectName: string | null;
   entryDate: string;
   category: ContractorLedgerCategory;
   direction: ContractorLedgerDirection;

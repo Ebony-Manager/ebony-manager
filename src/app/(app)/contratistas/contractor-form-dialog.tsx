@@ -24,8 +24,8 @@ import { Field } from "./field";
 /**
  * Alta de un contratista (ebanista o pintor). Inputs controlados con
  * `useState`, sin react-hook-form/zod — mismo patrón que
- * `employee-form-dialog` de Planilla. En la C1 solo hay alta: editar /
- * inactivar / borrar contratista llega en la C2.
+ * `employee-form-dialog` de Planilla. Inactivar / liquidar / borrar el
+ * contratista se hacen desde su ficha (`/contratistas/[id]`).
  */
 
 interface FormState {

@@ -3,22 +3,31 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { ContractorWithBalance } from "@/types/contractors";
+import type { ContractorWithBalance, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorDirectory } from "./contractor-directory";
 import { ContractorFormDialog } from "./contractor-form-dialog";
+import { ProjectsView } from "./projects-view";
 
 /**
- * Chrome del módulo Contratistas (Etapa 1 · C1): encabezado, "Agregar
- * contratista" y el directorio. Sin tabs — el estado de cuenta vive en
- * la ficha de cada contratista.
+ * Chrome del módulo Contratistas (C2): pestañas "Contratistas"
+ * (directorio) y "Proyectos". El estado de cuenta completo vive en la
+ * ficha de cada contratista (`/contratistas/[id]`).
  */
-export function ContratistasClient({ contractors }: { contractors: ContractorWithBalance[] }) {
+export function ContratistasClient({
+  contractors,
+  projects,
+}: {
+  contractors: ContractorWithBalance[];
+  projects: Project[];
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
+  const [tab, setTab] = React.useState("directory");
   const [addOpen, setAddOpen] = React.useState(false);
 
   return (
@@ -28,13 +37,27 @@ export function ContratistasClient({ contractors }: { contractors: ContractorWit
           <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
           <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
         </div>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="size-3.5" />
-          {tt("add_contractor")}
-        </Button>
+        {tab === "directory" && (
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3.5" />
+            {tt("add_contractor")}
+          </Button>
+        )}
       </div>
 
-      <ContractorDirectory contractors={contractors} />
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="directory">{tt("tab_directory")}</TabsTrigger>
+          <TabsTrigger value="projects">{tt("tab_projects")}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="directory" className="pt-4">
+          <ContractorDirectory contractors={contractors} />
+        </TabsContent>
+        <TabsContent value="projects" className="pt-4">
+          <ProjectsView projects={projects} />
+        </TabsContent>
+      </Tabs>
 
       <ContractorFormDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>

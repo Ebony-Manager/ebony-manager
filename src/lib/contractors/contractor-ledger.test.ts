@@ -15,6 +15,7 @@ function entry(over: Partial<ContractorLedgerEntry>): ContractorLedgerEntry {
     id: over.id ?? "x",
     contractorId: "c1",
     projectId: null,
+    projectName: null,
     entryDate: over.entryDate ?? "2026-01-01",
     category: over.category ?? "trabajo",
     direction: over.direction ?? "a_favor",

@@ -26,6 +26,46 @@ export async function createContractorAction(input: contractors.CreateContractor
   return contractor;
 }
 
+export async function updateContractorAction(id: string, input: contractors.UpdateContractorInput) {
+  await requireAdmin();
+  const contractor = await contractors.updateContractor(id, input);
+  revalidateContractors();
+  return contractor;
+}
+
+export async function deleteContractorAction(id: string) {
+  await requireAdmin();
+  await contractors.deleteContractor(id);
+  revalidateContractors();
+}
+
+// ── Proyectos ───────────────────────────────────────────────────────────
+
+export async function getProjectsAction() {
+  await requireAdmin();
+  return contractors.getProjects();
+}
+
+export async function createProjectAction(input: contractors.CreateProjectInput) {
+  await requireAdmin();
+  const project = await contractors.createProject(input);
+  revalidateContractors();
+  return project;
+}
+
+export async function updateProjectAction(id: string, input: contractors.UpdateProjectInput) {
+  await requireAdmin();
+  const project = await contractors.updateProject(id, input);
+  revalidateContractors();
+  return project;
+}
+
+export async function deleteProjectAction(id: string) {
+  await requireAdmin();
+  await contractors.deleteProject(id);
+  revalidateContractors();
+}
+
 export async function getContractorLedgerAction(contractorId: string) {
   await requireAdmin();
   return contractors.getContractorLedger(contractorId);

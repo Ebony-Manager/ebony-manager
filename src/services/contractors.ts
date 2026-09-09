@@ -7,24 +7,29 @@ import type {
   ContractorLedgerCategory,
   ContractorLedgerDirection,
   ContractorLedgerEntry,
+  ContractorStatus,
   ContractorType,
   ContractorWithBalance,
+  Project,
+  ProjectStatus,
 } from "@/types/contractors";
 import { contractorBalanceCents } from "@/lib/contractors/contractor-ledger";
 
 /**
- * Capa de datos del módulo Contratistas (tablas `contractors` y
- * `contractor_ledger_entries`, RLS solo-admin). Módulo hermano de
- * Planilla; el saldo del contratista NUNCA se guarda — se computa con
- * `contractorBalanceCents` (`src/lib/contractors/contractor-ledger.ts`).
+ * Capa de datos del módulo Contratistas (tablas `contractors`,
+ * `projects` y `contractor_ledger_entries`, RLS solo-admin). Módulo
+ * hermano de Planilla; el saldo del contratista NUNCA se guarda — se
+ * computa con `contractorBalanceCents`
+ * (`src/lib/contractors/contractor-ledger.ts`).
  *
- * Etapa 1 (C1): alta de contratista, y crear/editar/borrar movimientos
- * del estado de cuenta. Sin inactivar/liquidar/borrar contratista y sin
- * FK a proyectos (el proyecto va como texto libre en `client_text`).
+ * C2: proyectos (CRUD simple) enganchados a los movimientos por
+ * `project_id`; inactivar / liquidar / borrar contratista. Borrar un
+ * proyecto NO borra movimientos — el FK es `on delete set null`.
  */
 
 type ContractorRow = Database["public"]["Tables"]["contractors"]["Row"];
 type LedgerRow = Database["public"]["Tables"]["contractor_ledger_entries"]["Row"];
+type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
 /** `numeric` de Postgres vuelve como string por PostgREST — se
  *  normaliza a number (o null). */
@@ -49,11 +54,12 @@ function mapContractor(r: ContractorRow): Contractor {
   };
 }
 
-function mapLedger(r: LedgerRow): ContractorLedgerEntry {
+function mapLedger(r: LedgerRow, projectName: string | null = null): ContractorLedgerEntry {
   return {
     id: r.id,
     contractorId: r.contractor_id,
     projectId: r.project_id,
+    projectName,
     entryDate: r.entry_date,
     category: r.category as ContractorLedgerCategory,
     direction: r.direction === "a_favor" ? "a_favor" : "reduce",
@@ -63,6 +69,16 @@ function mapLedger(r: LedgerRow): ContractorLedgerEntry {
     ebonyAbsorbsMaterial: r.ebony_absorbs_material,
     clientText: r.client_text,
     description: r.description,
+    notes: r.notes,
+  };
+}
+
+function mapProject(r: ProjectRow): Project {
+  return {
+    id: r.id,
+    name: r.name,
+    clientName: r.client_name,
+    status: r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE",
     notes: r.notes,
   };
 }
@@ -114,17 +130,89 @@ export async function getContractor(id: string): Promise<Contractor | null> {
 }
 
 /** Movimientos de un contratista, en orden cronológico (fecha, luego
- *  fecha de registro) — el mismo orden que espera `withRunningBalance`. */
+ *  fecha de registro) — el mismo orden que espera `withRunningBalance`.
+ *  Trae el nombre del proyecto enganchado en el mismo query. */
 export async function getContractorLedger(contractorId: string): Promise<ContractorLedgerEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .select("*")
+    .select("*, projects(name)")
     .eq("contractor_id", contractorId)
     .order("entry_date", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []).map(mapLedger);
+  return (data ?? []).map((r) => {
+    const { projects, ...row } = r as LedgerRow & { projects: { name: string } | null };
+    return mapLedger(row, projects?.name ?? null);
+  });
+}
+
+// ============================================================================
+// Proyectos — CRUD simple (C2). El FK del ledger es `on delete set null`:
+// borrar un proyecto nunca borra un movimiento.
+// ============================================================================
+
+export async function getProjects(): Promise<Project[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("status", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapProject);
+}
+
+export interface CreateProjectInput {
+  name: string;
+  clientName?: string | null;
+  status?: ProjectStatus;
+  notes?: string | null;
+}
+
+export async function createProject(input: CreateProjectInput): Promise<Project> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      name: input.name,
+      client_name: input.clientName ?? null,
+      status: input.status ?? "ACTIVE",
+      notes: input.notes ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapProject(data);
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  clientName?: string | null;
+  status?: ProjectStatus;
+  notes?: string | null;
+}
+
+export async function updateProject(id: string, input: UpdateProjectInput): Promise<Project> {
+  const patch: Database["public"]["Tables"]["projects"]["Update"] = {};
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.clientName !== undefined) patch.client_name = input.clientName;
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.notes !== undefined) patch.notes = input.notes;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("projects").update(patch).eq("id", id).select("*").single();
+  if (error) throw new Error(error.message);
+  return mapProject(data);
+}
+
+/** Borra el proyecto. Los movimientos que lo tenían enganchado quedan
+ *  con `project_id = NULL` (FK `on delete set null`) — nunca se borra
+ *  plata por borrar un proyecto. */
+export async function deleteProject(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export interface CreateContractorInput {
@@ -154,8 +242,53 @@ export async function createContractor(input: CreateContractorInput): Promise<Co
   return mapContractor(data);
 }
 
+export interface UpdateContractorInput {
+  name?: string;
+  contractorType?: ContractorType;
+  idDocument?: string | null;
+  phone?: string | null;
+  contactInfo?: string | null;
+  startDate?: string | null;
+  /** Salida del contratista: INACTIVE + `endDate` + `notes` documentan el
+   *  cierre. La historia y el saldo NUNCA se borran por esto. */
+  status?: ContractorStatus;
+  endDate?: string | null;
+  notes?: string | null;
+}
+
+/** Patch parcial (una key `undefined` se deja como está). El trigger
+ *  `contractors_touch_updated_at` mantiene `updated_at`. */
+export async function updateContractor(id: string, input: UpdateContractorInput): Promise<Contractor> {
+  const patch: Database["public"]["Tables"]["contractors"]["Update"] = {};
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.contractorType !== undefined) patch.contractor_type = input.contractorType;
+  if (input.idDocument !== undefined) patch.id_document = input.idDocument;
+  if (input.phone !== undefined) patch.phone = input.phone;
+  if (input.contactInfo !== undefined) patch.contact_info = input.contactInfo;
+  if (input.startDate !== undefined) patch.start_date = input.startDate;
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.endDate !== undefined) patch.end_date = input.endDate;
+  if (input.notes !== undefined) patch.notes = input.notes;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("contractors").update(patch).eq("id", id).select("*").single();
+  if (error) throw new Error(error.message);
+  return mapContractor(data);
+}
+
+/** Borra por completo al contratista y TODO su estado de cuenta (el FK
+ *  `contractor_id` del ledger es `on delete cascade`). Irreversible — la
+ *  UI pide escribir el nombre exacto antes de llamar. */
+export async function deleteContractor(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("contractors").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export interface UpsertLedgerEntryInput {
   contractorId: string;
+  /** Proyecto enganchado (C2). null = sin proyecto. */
+  projectId?: string | null;
   entryDate: string;
   category: ContractorLedgerCategory;
   direction: ContractorLedgerDirection;
@@ -174,6 +307,7 @@ export interface UpsertLedgerEntryInput {
 function ledgerFields(input: Omit<UpsertLedgerEntryInput, "contractorId">) {
   const isMaterial = input.category === "material";
   return {
+    project_id: input.projectId ?? null,
     entry_date: input.entryDate,
     category: input.category,
     direction: input.direction,
@@ -191,11 +325,12 @@ export async function createLedgerEntry(input: UpsertLedgerEntryInput): Promise<
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .insert({ contractor_id: input.contractorId, project_id: null, ...ledgerFields(input) })
-    .select("*")
+    .insert({ contractor_id: input.contractorId, ...ledgerFields(input) })
+    .select("*, projects(name)")
     .single();
   if (error) throw new Error(error.message);
-  return mapLedger(data);
+  const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
+  return mapLedger(row, projects?.name ?? null);
 }
 
 export async function updateLedgerEntry(
@@ -207,10 +342,11 @@ export async function updateLedgerEntry(
     .from("contractor_ledger_entries")
     .update(ledgerFields(input))
     .eq("id", id)
-    .select("*")
+    .select("*, projects(name)")
     .single();
   if (error) throw new Error(error.message);
-  return mapLedger(data);
+  const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
+  return mapLedger(row, projects?.name ?? null);
 }
 
 export async function deleteLedgerEntry(id: string): Promise<void> {
