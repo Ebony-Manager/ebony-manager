@@ -353,9 +353,14 @@ export function RegistroView({
               return (
                 <tr
                   key={`${key}-${periodKeySuffix}`}
-                  className="group/row border-b border-border transition-colors last:border-0 hover:bg-muted/40 focus-within:bg-primary/[0.07]"
+                  className="group/row border-b border-border transition-colors last:border-0 hover:bg-[var(--row-hover)] focus-within:bg-[var(--row-focus)]"
                 >
-                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground">
+                  {/* Columna "Empleado" congelada: fondo OPACO propio, y el
+                      hover/focus se resuelve con el MISMO color opaco que la
+                      fila (`group-hover/row` / `group-focus-within/row`) +
+                      `transition-colors`, para que el resalte se vea parejo
+                      y sin atraso en toda la fila. */}
+                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground transition-colors group-hover/row:bg-[var(--row-hover)] group-focus-within/row:bg-[var(--row-focus)]">
                     <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-focus-within/row:scale-y-100" />
                     <div className="flex items-center gap-2">
                       <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />

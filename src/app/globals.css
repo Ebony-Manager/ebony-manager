@@ -135,6 +135,17 @@
   --input: var(--ebony-gray);
   --ring: var(--ebony-gold);
 
+  /* Realce OPACO de fila en hover, para tablas con columna congelada
+     (sticky): la celda sticky necesita fondo sólido y debe usar
+     EXACTAMENTE este mismo valor que el resto de la fila, así el hover se
+     ve parejo (Registro de Planilla, estado de cuenta de Contratistas).
+     Sin alpha a propósito — un tono translúcido sobre la sticky se
+     compone distinto que sobre el resto y se ve disparejo. */
+  --row-hover: color-mix(in oklch, var(--muted) 40%, var(--background));
+  /* Equivalente OPACO de `bg-primary/[0.07]` para el mismo caso en estado
+     de edición (focus-within) del Registro de Planilla. */
+  --row-focus: color-mix(in oklch, var(--primary) 7%, var(--background));
+
   --sidebar: var(--ebony-dark);
   --sidebar-foreground: var(--ebony-gray);
   --sidebar-border: var(--ebony-medium);

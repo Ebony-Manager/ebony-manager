@@ -66,30 +66,23 @@ export function categoryTextStyle(category: ContractorLedgerCategory): React.CSS
 }
 
 /**
- * Fondo de una fila del estado de cuenta, teñido por el color de la
- * CATEGORÍA (no por ingreso/egreso). El tinte inline gana sobre cualquier
- * clase `hover:bg-*`, así que el realce de hover se resuelve acá también.
- * Categoría neutra → sin tinte (solo hover).
+ * Fondo de UNA fila del estado de cuenta, teñido por el color de su
+ * CATEGORÍA. Devuelve UN solo color OPACO (mezclado sobre `--background`,
+ * sin alpha) — el MISMO valor para toda la fila, incluida la celda de
+ * Fecha congelada (que necesita fondo sólido para no dejar ver por
+ * debajo las otras columnas al hacer scroll horizontal).
+ *
+ * El hover suma un realce uniforme sobre ese mismo color. Se pasa el
+ * resultado tanto al `<tr>` como a la `<td>` sticky (mismo objeto), así
+ * el hover se ve parejo en toda la fila; ambos llevan `transition-colors`
+ * para que el cambio sea suave y sin "atraso".
  */
-export function categoryRowBackground(
+export function categoryRowStyle(
   category: ContractorLedgerCategory,
   hovered: boolean
 ): React.CSSProperties {
   const v = categoryColorVar(category);
-  const tint = v ? `color-mix(in oklch, ${v} 9%, transparent)` : "transparent";
-  if (!hovered) return v ? { backgroundColor: tint } : {};
-  return { backgroundColor: `color-mix(in oklch, var(--foreground) 6%, ${tint})` };
-}
-
-/** Igual que `categoryRowBackground` pero OPACO (mezcla sobre
- *  `--background`), para la celda congelada de la izquierda: al hacer
- *  scroll horizontal el contenido no debe traslucirse por debajo. */
-export function categoryStickyBackground(
-  category: ContractorLedgerCategory,
-  hovered: boolean
-): React.CSSProperties {
-  const v = categoryColorVar(category);
-  let bg = v ? `color-mix(in oklch, ${v} 9%, var(--background))` : "var(--background)";
-  if (hovered) bg = `color-mix(in oklch, var(--foreground) 6%, ${bg})`;
+  const base = v ? `color-mix(in oklch, ${v} 9%, var(--background))` : "var(--background)";
+  const bg = hovered ? `color-mix(in oklch, var(--foreground) 6%, ${base})` : base;
   return { backgroundColor: bg };
 }

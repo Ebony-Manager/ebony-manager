@@ -45,8 +45,7 @@ import {
 } from "@/lib/contractors/contractor-ledger";
 import {
   balanceTone,
-  categoryRowBackground,
-  categoryStickyBackground,
+  categoryRowStyle,
   categoryTextStyle,
   toneTextStyle,
   toneVar,
@@ -557,17 +556,22 @@ export function ContractorProfileView({
                     const absorbed = row.ebonyAbsorbsMaterial;
                     const hovered = hoveredId === row.id;
                     const catText = label(CONTRACTOR_CATEGORY_LABEL_KEY[row.category]);
+                    // MISMO objeto de estilo para el <tr> y para la celda
+                    // de Fecha congelada — un único color opaco por fila,
+                    // así el hover se ve parejo (nada de tono aparte ni
+                    // "atraso" en la sticky).
+                    const rowStyle = categoryRowStyle(row.category, hovered);
                     return (
                       <tr
                         key={row.id}
                         className="border-b border-border transition-colors last:border-0"
-                        style={categoryRowBackground(row.category, hovered)}
+                        style={rowStyle}
                         onMouseEnter={() => setHoveredId(row.id)}
                         onMouseLeave={() => setHoveredId((cur) => (cur === row.id ? null : cur))}
                       >
                         <td
-                          className="sticky left-0 z-10 whitespace-nowrap px-3 py-2 text-foreground"
-                          style={categoryStickyBackground(row.category, hovered)}
+                          className="sticky left-0 z-10 whitespace-nowrap px-3 py-2 text-foreground transition-colors"
+                          style={rowStyle}
                         >
                           {formatDate(lang, row.entryDate)}
                         </td>
