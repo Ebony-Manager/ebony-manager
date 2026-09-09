@@ -65,23 +65,40 @@ export function categoryTextStyle(category: ContractorLedgerCategory): React.CSS
   return v ? { color: v } : undefined;
 }
 
+/** Puntito sólido del color de la categoría, para la vista "sobria"
+ *  (marca la categoría sin pintar toda la fila). `null` para neutras. */
+export function categoryDotStyle(category: ContractorLedgerCategory): React.CSSProperties | null {
+  const v = categoryColorVar(category);
+  return v ? { backgroundColor: v } : null;
+}
+
 /**
- * Fondo de UNA fila del estado de cuenta, teñido por el color de su
- * CATEGORÍA. Devuelve UN solo color OPACO (mezclado sobre `--background`,
- * sin alpha) — el MISMO valor para toda la fila, incluida la celda de
- * Fecha congelada (que necesita fondo sólido para no dejar ver por
- * debajo las otras columnas al hacer scroll horizontal).
+ * Paleta del estado de cuenta:
+ *   - "full"  → la fila entera toma el color de su categoría.
+ *   - "sober" → filas sin fondo de color (neutro); la categoría se marca
+ *               con un puntito y el proyecto se resalta aparte.
+ */
+export type LedgerPalette = "full" | "sober";
+
+/**
+ * Fondo de UNA fila del estado de cuenta. En "full" va teñido por el
+ * color de su CATEGORÍA; en "sober" queda neutro (`--background`). Siempre
+ * devuelve UN solo color OPACO (mezclado sobre `--background`, sin alpha)
+ * — el MISMO valor para toda la fila, incluida la celda de Fecha
+ * congelada, que necesita fondo sólido para no dejar ver por debajo las
+ * otras columnas al hacer scroll horizontal.
  *
- * El hover suma un realce uniforme sobre ese mismo color. Se pasa el
- * resultado tanto al `<tr>` como a la `<td>` sticky (mismo objeto), así
- * el hover se ve parejo en toda la fila; ambos llevan `transition-colors`
- * para que el cambio sea suave y sin "atraso".
+ * El hover suma un realce uniforme sobre ese mismo color EN AMBAS vistas.
+ * Se pasa el resultado tanto al `<tr>` como a la `<td>` sticky (mismo
+ * objeto), y ambos llevan `transition-colors`, para que el hover se vea
+ * parejo y sin "atraso".
  */
 export function categoryRowStyle(
   category: ContractorLedgerCategory,
-  hovered: boolean
+  hovered: boolean,
+  palette: LedgerPalette = "full"
 ): React.CSSProperties {
-  const v = categoryColorVar(category);
+  const v = palette === "sober" ? null : categoryColorVar(category);
   const base = v ? `color-mix(in oklch, ${v} 9%, var(--background))` : "var(--background)";
   const bg = hovered ? `color-mix(in oklch, var(--foreground) 6%, ${base})` : base;
   return { backgroundColor: bg };
