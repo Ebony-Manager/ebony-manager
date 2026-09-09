@@ -632,9 +632,14 @@ export const strings = {
     filtered_count_one: { es: "movimiento", en: "movement" },
     filtered_count_many: { es: "movimientos", en: "movements" },
 
-    // Menú de ajustes del contratista (engranaje en el encabezado): oculta
-    // inactivar / liquidar / reactivar / eliminar.
+    // Menú de ajustes del contratista (engranaje en el encabezado): datos
+    // personales + inactivar / liquidar / reactivar / eliminar.
     settings_menu: { es: "Ajustes del contratista", en: "Contractor settings" },
+    details_title: { es: "Detalles", en: "Details" },
+
+    // Fila de KPIs colapsable.
+    kpis_title: { es: "Indicadores", en: "Key figures" },
+    kpis_toggle_hint: { es: "Mostrar u ocultar los indicadores", en: "Show or hide the key figures" },
 
     // Interruptor de color de la tabla del estado de cuenta (persistido).
     palette_label: { es: "Colores", en: "Colors" },
