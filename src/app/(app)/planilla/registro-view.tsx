@@ -1,7 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Copy, Columns3, Wallet, Banknote, Award, TrendingDown, CalendarClock } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Columns3,
+  Wallet,
+  Banknote,
+  Award,
+  TrendingDown,
+  CalendarClock,
+  Palette,
+  Rows3,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { PayrollEmployee, PaymentMethod } from "@/types/planilla";
@@ -14,7 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { currentPeriod, nextPeriod, formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
-import { PAYROLL_CATEGORY, type PayrollCategoryKey } from "@/lib/planilla/payroll-colors";
+import {
+  PAYROLL_CATEGORY,
+  payrollFieldHeaderStyle,
+  payrollFieldCellStyle,
+  type PayrollCategoryKey,
+  type PayrollPalette,
+} from "@/lib/planilla/payroll-colors";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
@@ -36,20 +54,31 @@ function periodPayDate(p: { year: number; month: number; half: 1 | 2 }): Date {
   return p.half === 1 ? new Date(p.year, p.month - 1, 15) : new Date(p.year, p.month, 0);
 }
 
-function fieldHeaderStyle(category: PayrollCategoryKey | undefined, minWidth: number): React.CSSProperties {
-  if (!category) return { minWidth };
-  const color = PAYROLL_CATEGORY[category].color;
-  return { minWidth, backgroundColor: `color-mix(in oklch, ${color} 14%, transparent)`, color };
-}
-
-function fieldCellStyle(category: PayrollCategoryKey | undefined, minWidth: number): React.CSSProperties {
-  if (!category) return { minWidth };
-  const color = PAYROLL_CATEGORY[category].color;
-  return { minWidth, backgroundColor: `color-mix(in oklch, ${color} 4%, transparent)` };
-}
-
 function fieldMinWidth(c: { key: FieldKey }): number {
   return QUANTITY_FIELD_META[c.key] ? 96 : 88;
+}
+
+// Paleta (Tanda 2/6) y vista compacta/expandida — cada una recuerda su
+// propia elección por navegador, igual criterio que Contratistas.
+const PALETTE_STORAGE_KEY = "ebony:planilla-registro-palette";
+function readStoredPalette(): PayrollPalette | null {
+  try {
+    const v = window.localStorage.getItem(PALETTE_STORAGE_KEY);
+    return v === "full" || v === "sober" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+type RegistroView = "expanded" | "compact";
+const VIEW_STORAGE_KEY = "ebony:planilla-registro-view";
+function readStoredView(): RegistroView | null {
+  try {
+    const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return v === "expanded" || v === "compact" ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -86,6 +115,40 @@ export function RegistroView({
   const [rows, setRows] = React.useState<{ period: Period; data: Row[] } | null>(null);
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
+
+  const [palette, setPalette] = React.useState<PayrollPalette>("full");
+  const [view, setView] = React.useState<RegistroView>("expanded");
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    const storedPalette = readStoredPalette();
+    if (storedPalette) setPalette(storedPalette);
+    const storedView = readStoredView();
+    if (storedView) setView(storedView);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+    } catch {
+      /* ignore */
+    }
+  }, [palette]);
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch {
+      /* ignore */
+    }
+  }, [view]);
+
+  // Closures sobre `palette` — mismo nombre y firma que antes, así los
+  // call-sites de la tabla no cambian.
+  function fieldHeaderStyle(category: PayrollCategoryKey | undefined, minWidth: number): React.CSSProperties {
+    return payrollFieldHeaderStyle(category, minWidth, palette);
+  }
+  function fieldCellStyle(category: PayrollCategoryKey | undefined, minWidth: number): React.CSSProperties {
+    return payrollFieldCellStyle(category, minWidth, palette);
+  }
 
   const load = React.useCallback(() => {
     const fetchedFor = period;
@@ -294,9 +357,21 @@ export function RegistroView({
           {tt("duplicate_prev")}
         </Button>
 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          title={tt("registro_view_toggle_hint")}
+          onClick={() => setView((v) => (v === "expanded" ? "compact" : "expanded"))}
+        >
+          <Rows3 className="size-3.5" />
+          {view === "compact" ? tt("registro_view_compact") : tt("registro_view_expanded")}
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" className="ml-auto">
+            <Button type="button" variant="outline" size="sm" disabled={view === "compact"}>
               <Columns3 className="size-3.5" />
               {tt("columns")}
             </Button>
@@ -313,8 +388,21 @@ export function RegistroView({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-label={tt("palette_label")}
+          title={tt("palette_toggle_hint")}
+          onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
+        >
+          <Palette className="size-3.5" />
+          {palette === "sober" ? tt("palette_sober") : tt("palette_full")}
+        </Button>
       </div>
 
+      {view === "expanded" && (
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[960px] border-collapse text-sm">
           <thead>
@@ -509,6 +597,83 @@ export function RegistroView({
           )}
         </table>
       </div>
+      )}
+
+      {view === "compact" && (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
+                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("salario", 96)}>
+                  {tt("col_base")}
+                </th>
+                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("bonos", 120)}>
+                  {tt("compact_col_bonif")}
+                </th>
+                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("descuentos", 120)}>
+                  {tt("compact_col_desc")}
+                </th>
+                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("decimo", 120)}>
+                  {tt("compact_col_prestaciones")}
+                </th>
+                <th className="px-3 py-2 text-right font-medium">{tt("col_total")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(visibleRows ?? []).map(({ employee, total }) => {
+                const e = total.entry;
+                const bonifCents = e ? e.extraHoursCents + e.extraDaysCents + e.bonusCents + e.diasLibresCents : 0;
+                const descCents = e ? e.horasDescontadasCents + e.diasDescontadosCents + e.otherDeductionCents : 0;
+                const prestacionesCents = e
+                  ? e.decimoPaidCents + e.vacationPaidCents + e.primaAntiguedadPaidCents
+                  : 0;
+                return (
+                  <tr key={employee.id} className="border-b border-border transition-colors last:border-0 hover:bg-[var(--row-hover)]">
+                    <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground">
+                      <div className="flex items-center gap-2">
+                        <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
+                        {employee.name}
+                      </div>
+                    </td>
+                    <td
+                      className="px-3 py-1.5 text-right tabular-nums"
+                      style={{ ...fieldCellStyle("salario", 96), color: PAYROLL_CATEGORY.salario.color }}
+                    >
+                      {formatCents(e?.basePayCents ?? 0)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("bonos", 120)}>
+                      {formatCents(bonifCents)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("descuentos", 120)}>
+                      {formatCents(descCents)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("decimo", 120)}>
+                      {formatCents(prestacionesCents)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-medium tabular-nums text-foreground">
+                      {formatCents(total.totalCents)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {visibleRows && visibleRows.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-border bg-muted/30 text-sm font-medium">
+                  <td className="px-3 py-2 text-foreground" colSpan={5}>
+                    {tt("total_quincena")}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                    {formatCents(visibleRows.reduce((sum, r) => sum + r.total.totalCents, 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      )}
+
       {(pending || visibleRows === null) && (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       )}

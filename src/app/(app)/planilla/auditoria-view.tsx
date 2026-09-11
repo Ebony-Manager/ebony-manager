@@ -10,6 +10,7 @@ import {
   AlertOctagon,
   Filter,
   Layers,
+  Palette,
   SlidersHorizontal,
   Sparkles,
   Scale,
@@ -30,7 +31,9 @@ import { monthShort, fmtSigned as fmtSignedHelper } from "@/lib/planilla/format"
 import {
   PAYROLL_CATEGORY,
   PAYROLL_CATEGORY_LABEL_KEY,
+  payrollCategoryRowStyle,
   type PayrollCategoryKey,
+  type PayrollPalette,
 } from "@/lib/planilla/payroll-colors";
 import { useLang } from "@/context/language-context";
 import { t, strings, type Lang } from "@/lib/i18n";
@@ -73,6 +76,7 @@ function defaultVisibleGroups(): Record<string, boolean> {
 const GROUPS_KEY = "ebony.planilla.auditoria.visibleGroups";
 const PREVIEW_KEY = "ebony.planilla.auditoria.showPrestacionesPreview";
 const BASE_KEY = "ebony.planilla.auditoria.showBaseComparison";
+const PALETTE_KEY = "ebony.planilla.auditoria.palette";
 
 type Densidad = "comprimida" | "expandida";
 const DENSITY: Record<Densidad, { table: string; head: string; empRow: string; groupRow: string; lineRow: string }> = {
@@ -161,6 +165,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
   const [visibleGroups, setVisibleGroups] = React.useState<Record<string, boolean>>(defaultVisibleGroups);
   const [showPrestacionesPreview, setShowPrestacionesPreview] = React.useState(true);
   const [showBaseComparison, setShowBaseComparison] = React.useState(true);
+  const [palette, setPalette] = React.useState<PayrollPalette>("full");
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
@@ -171,6 +176,8 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
       if (p !== null) setShowPrestacionesPreview(p === "true");
       const b = window.localStorage.getItem(BASE_KEY);
       if (b !== null) setShowBaseComparison(b === "true");
+      const pal = window.localStorage.getItem(PALETTE_KEY);
+      if (pal === "full" || pal === "sober") setPalette(pal);
     } catch {
       /* ignore */
     }
@@ -191,6 +198,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
       /* ignore */
     }
   }, [showPrestacionesPreview, showBaseComparison]);
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PALETTE_KEY, palette);
+    } catch {
+      /* ignore */
+    }
+  }, [palette]);
 
   const applyLevel = React.useCallback((level: NivelDetalle, d: AuditoriaData) => {
     if (level === "macro" || level === "quincenal") {
@@ -291,10 +305,10 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
           visibleRowGroups.map((g, gi) => {
             const groupKey = `${row.employee.id}-${g.key}`;
             const groupOpen = expandedGroups.has(groupKey);
-            const color = PAYROLL_CATEGORY[GROUP_CATEGORY[g.key]].color;
-            const borderColor = `color-mix(in oklch, ${color} 38%, transparent)`;
-            const headerBg = `color-mix(in oklch, ${color} 10%, var(--card))`;
-            const lineBg = `color-mix(in oklch, ${color} 3%, var(--card))`;
+            // Categoría "real" del grupo (siempre el color de marca,
+            // aparte de la paleta) — se usa para el puntito en "sober".
+            const trueColor = PAYROLL_CATEGORY[GROUP_CATEGORY[g.key]].color;
+            const { color, headerBg, lineBg, borderColor } = payrollCategoryRowStyle(GROUP_CATEGORY[g.key], palette);
             const isLastGroup = gi === visibleRowGroups.length - 1;
             const hasLineItems = groupOpen && g.lineItems.length > 0;
             const headerBorder: React.CSSProperties = {
@@ -314,6 +328,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                         className={`size-2.5 shrink-0 transition-transform ${groupOpen ? "" : "-rotate-90"}`}
                         style={{ color }}
                       />
+                      {palette === "sober" && (
+                        <span
+                          className="size-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: trueColor }}
+                          aria-hidden
+                        />
+                      )}
                       <span className="whitespace-nowrap font-semibold" style={{ color }}>
                         {t(lang, strings.planilla[g.labelKey as keyof typeof strings.planilla])}
                       </span>
@@ -508,6 +529,18 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
           <Button variant={showBaseComparison ? "default" : "outline"} size="sm" onClick={() => setShowBaseComparison((v) => !v)}>
             <Scale className="size-3.5" />
             {tt("comparar_base")}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label={tt("palette_label")}
+            title={tt("palette_toggle_hint")}
+            onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
+          >
+            <Palette className="size-3.5" />
+            {palette === "sober" ? tt("palette_sober") : tt("palette_full")}
           </Button>
 
           <Popover open={vistaOpen} onOpenChange={setVistaOpen}>

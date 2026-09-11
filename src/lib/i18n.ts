@@ -471,6 +471,29 @@ export const strings = {
       es: "Acumulado a la fecha, calculado — nunca guardado.",
       en: "Accrued to date, computed — never stored.",
     },
+
+    // Interruptor de paleta (Registro y Auditoría) — mismo patrón que
+    // Contratistas (`palette_*` de `strings.contratistas`), cada pantalla
+    // recuerda su propia elección aparte.
+    palette_label: { es: "Colores", en: "Colors" },
+    palette_full: { es: "A todo color", en: "Full color" },
+    palette_sober: { es: "Sobria", en: "Sober" },
+    palette_toggle_hint: {
+      es: "Cambiar entre celdas/filas a todo color y vista sobria",
+      en: "Switch between full-color cells/rows and the sober view",
+    },
+
+    // Vista compacta de Registro (Tanda 2/6) — de solo lectura; para
+    // editar un campo granular hay que volver a la vista expandida.
+    registro_view_compact: { es: "Compacta", en: "Compact" },
+    registro_view_expanded: { es: "Expandida", en: "Expanded" },
+    registro_view_toggle_hint: {
+      es: "Compacta agrupa las columnas en totales de solo lectura — para editar, vuelve a Expandida.",
+      en: "Compact groups the columns into read-only totals — switch back to Expanded to edit.",
+    },
+    compact_col_bonif: { es: "Total bonificaciones", en: "Total bonuses" },
+    compact_col_desc: { es: "Total descuentos", en: "Total deductions" },
+    compact_col_prestaciones: { es: "Total prestaciones", en: "Total benefits" },
   },
 
   // Módulo Contratistas (Fase 2, Etapa 1). Solo-admin. Ebanistas y
