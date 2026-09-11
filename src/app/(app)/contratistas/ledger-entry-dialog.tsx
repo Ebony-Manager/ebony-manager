@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type {
@@ -133,6 +133,10 @@ export function LedgerEntryDialog({
   const [ebonyAbsorbs, setEbonyAbsorbs] = React.useState(false);
   const [items, setItems] = React.useState<DraftItem[]>([]);
   const [itemPicker, setItemPicker] = React.useState(NO_ITEM_PICKED);
+  // key del ítem cuyo "Detalle" está en edición — solo lectura + lápiz
+  // para los demás, así la tabla no queda con un input siempre abierto
+  // por línea.
+  const [editingDetailKey, setEditingDetailKey] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   // Proyectos creados en línea desde este diálogo — se muestran al toque
@@ -146,6 +150,7 @@ export function LedgerEntryDialog({
     setError(null);
     setExtraProjects([]);
     setItemPicker(NO_ITEM_PICKED);
+    setEditingDetailKey(null);
     if (entry) {
       const area = entry.mt2 != null && entry.costPerMt2Cents != null;
       setCategory(entry.category);
@@ -354,7 +359,7 @@ export function LedgerEntryDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-[min(95vw,42rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{entry ? tt("mov_edit_title") : tt("mov_add_title")}</DialogTitle>
             <DialogDescription>{tt("mov_desc")}</DialogDescription>
@@ -447,8 +452,8 @@ export function LedgerEntryDialog({
                 </Select>
 
                 {items.length > 0 && (
-                  <div className="overflow-x-auto rounded-md border border-border">
-                    <table className="w-full min-w-[640px] border-collapse text-xs">
+                  <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-md border border-border">
+                    <table className="w-full min-w-[560px] border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                           <th className="px-2 py-1.5 text-left font-medium">{tt("rates_col_description")}</th>
@@ -468,17 +473,40 @@ export function LedgerEntryDialog({
                               {it.fase && (
                                 <span className="text-muted-foreground"> — {phaseLabel(it.fase)}</span>
                               )}
-                              {it.detalle.trim() && (
-                                <span className="text-muted-foreground"> — {it.detalle.trim()}</span>
-                              )}
                             </td>
                             <td className="px-2 py-1.5">
-                              <Input
-                                value={it.detalle}
-                                onChange={(e) => onItemDetailChange(it.key, e.target.value)}
-                                placeholder={tt("mov_items_detail_ph")}
-                                className="h-7 w-32"
-                              />
+                              {editingDetailKey === it.key ? (
+                                <Input
+                                  value={it.detalle}
+                                  onChange={(e) => onItemDetailChange(it.key, e.target.value)}
+                                  onBlur={() => setEditingDetailKey(null)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      setEditingDetailKey(null);
+                                    }
+                                  }}
+                                  placeholder={tt("mov_items_detail_ph")}
+                                  className="h-7 w-32"
+                                  autoFocus
+                                />
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <span className="truncate text-muted-foreground">
+                                    {it.detalle.trim() || "—"}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-5 shrink-0 text-muted-foreground hover:text-foreground"
+                                    title={tt("action_edit")}
+                                    onClick={() => setEditingDetailKey(it.key)}
+                                  >
+                                    <Pencil className="size-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">{unitLabel(it.unidad)}</td>
                             <td className="px-2 py-1.5 text-right">

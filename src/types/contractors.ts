@@ -93,6 +93,11 @@ export interface ContractorLedgerEntry {
   clientText: string | null;
   description: string | null;
   notes: string | null;
+  /** Resumen compacto de los ítems de trabajo del movimiento (si tiene),
+   *  resuelto en el `select` del servicio — "Descripción (detalle), …".
+   *  null cuando el movimiento no tiene ítems. Solo para mostrar en la
+   *  tabla del estado de cuenta sin tener que abrir el movimiento. */
+  itemsSummary: string | null;
 }
 
 /** Una fila del estado de cuenta con el saldo corrido justo después de

@@ -825,9 +825,9 @@ export function ContractorProfileView({
                         </td>
                         <td
                           className="max-w-56 truncate px-3 py-2 text-muted-foreground"
-                          title={row.description ?? undefined}
+                          title={row.itemsSummary ?? row.description ?? undefined}
                         >
-                          {row.description || "—"}
+                          {row.itemsSummary ?? row.description ?? "—"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                           {row.mt2 != null ? row.mt2.toFixed(2) : "—"}

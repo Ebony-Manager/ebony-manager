@@ -19,6 +19,7 @@ function row(over: Partial<ContractorLedgerRow>): ContractorLedgerRow {
     clientText: null,
     description: null,
     notes: null,
+    itemsSummary: null,
     balanceAfterCents: over.balanceAfterCents ?? 0,
   };
 }

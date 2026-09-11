@@ -60,7 +60,19 @@ function mapContractor(r: ContractorRow): Contractor {
   };
 }
 
-function mapLedger(r: LedgerRow, projectName: string | null = null): ContractorLedgerEntry {
+/** "Descripción (detalle), Descripción 2, …" — resumen compacto para la
+ *  columna "Descripción" del estado de cuenta cuando el movimiento tiene
+ *  ítems. null si no tiene ninguno. */
+function buildItemsSummary(items: { descripcion: string; detalle: string | null }[] | null | undefined): string | null {
+  if (!items || items.length === 0) return null;
+  return items.map((it) => (it.detalle ? `${it.descripcion} (${it.detalle})` : it.descripcion)).join(", ");
+}
+
+function mapLedger(
+  r: LedgerRow,
+  projectName: string | null = null,
+  itemsSummary: string | null = null
+): ContractorLedgerEntry {
   return {
     id: r.id,
     contractorId: r.contractor_id,
@@ -76,6 +88,7 @@ function mapLedger(r: LedgerRow, projectName: string | null = null): ContractorL
     clientText: r.client_text,
     description: r.description,
     notes: r.notes,
+    itemsSummary,
   };
 }
 
@@ -176,14 +189,17 @@ export async function getContractorLedger(contractorId: string): Promise<Contrac
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .select("*, projects(name)")
+    .select("*, projects(name), contractor_ledger_entry_items(descripcion, detalle)")
     .eq("contractor_id", contractorId)
     .order("entry_date", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => {
-    const { projects, ...row } = r as LedgerRow & { projects: { name: string } | null };
-    return mapLedger(row, projects?.name ?? null);
+    const { projects, contractor_ledger_entry_items, ...row } = r as LedgerRow & {
+      projects: { name: string } | null;
+      contractor_ledger_entry_items: { descripcion: string; detalle: string | null }[];
+    };
+    return mapLedger(row, projects?.name ?? null, buildItemsSummary(contractor_ledger_entry_items));
   });
 }
 
