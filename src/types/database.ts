@@ -110,6 +110,60 @@ export type Database = {
           },
         ]
       }
+      contractor_ledger_entry_items: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descripcion: string
+          fase: string | null
+          id: string
+          labor_rate_id: string | null
+          ledger_entry_id: string
+          precio_unitario_cents: number
+          subtotal_cents: number
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          descripcion: string
+          fase?: string | null
+          id?: string
+          labor_rate_id?: string | null
+          ledger_entry_id: string
+          precio_unitario_cents: number
+          subtotal_cents: number
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descripcion?: string
+          fase?: string | null
+          id?: string
+          labor_rate_id?: string | null
+          ledger_entry_id?: string
+          precio_unitario_cents?: number
+          subtotal_cents?: number
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_ledger_entry_items_labor_rate_id_fkey"
+            columns: ["labor_rate_id"]
+            isOneToOne: false
+            referencedRelation: "labor_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_ledger_entry_items_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractors: {
         Row: {
           contact_info: string | null

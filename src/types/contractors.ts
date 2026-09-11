@@ -123,3 +123,23 @@ export interface LaborRate {
   /** Orden manual de despliegue en el selector. */
   orden: number;
 }
+
+/** Línea de trabajo de un movimiento (categoría 'trabajo'), armada desde
+ *  `labor_rates`. TODO congelado al momento de agregar el ítem — nunca
+ *  un join en vivo — igual que `amountCents` en el movimiento dueño. */
+export interface ContractorLedgerEntryItem {
+  id: string;
+  ledgerEntryId: string;
+  /** Solo trazabilidad; null si la tarifa de origen se borró después. */
+  laborRateId: string | null;
+  descripcion: string;
+  fase: LaborRatePhase | null;
+  unidad: LaborRateUnit;
+  /** Precio de `labor_rates` AL MOMENTO de agregar el ítem — congelado,
+   *  nunca cambia aunque la tarifa original cambie después. */
+  precioUnitarioCents: number;
+  cantidad: number;
+  /** = round(cantidad × precioUnitarioCents), congelado igual que el
+   *  precio unitario. */
+  subtotalCents: number;
+}

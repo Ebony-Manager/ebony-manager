@@ -2,12 +2,17 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type {
   ContractorLedgerCategory,
   ContractorLedgerDirection,
   ContractorLedgerEntry,
+  ContractorType,
+  LaborRate,
+  LaborRatePhase,
+  LaborRateUnit,
   Project,
 } from "@/types/contractors";
 import {
@@ -31,7 +36,7 @@ import {
 } from "@/lib/contractors/contractor-ledger";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { createLedgerEntryAction, updateLedgerEntryAction } from "./actions";
+import { createLedgerEntryAction, getLedgerEntryItemsAction, updateLedgerEntryAction } from "./actions";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { Field } from "./field";
 import { ProjectFormDialog } from "./project-form-dialog";
@@ -40,6 +45,7 @@ type AmountMode = "flat" | "area";
 
 const NO_PROJECT = "__none__";
 const NEW_PROJECT = "__new__";
+const NO_ITEM_PICKED = "";
 
 function toCents(value: string): number {
   const n = parseFloat(value || "0");
@@ -48,6 +54,25 @@ function toCents(value: string): number {
 function toNum(value: string): number | null {
   const n = parseFloat(value || "");
   return Number.isFinite(n) ? n : null;
+}
+
+/** Línea de trabajo en construcción dentro del formulario — `cantidad`
+ *  queda como texto (igual que los demás inputs numéricos del diálogo)
+ *  hasta el submit, donde se convierte y se congela junto al resto. */
+interface DraftItem {
+  key: string;
+  laborRateId: string | null;
+  descripcion: string;
+  fase: LaborRatePhase | null;
+  unidad: LaborRateUnit;
+  precioUnitarioCents: number;
+  cantidad: string;
+}
+
+function itemSubtotalCents(it: DraftItem): number {
+  const qty = parseFloat(it.cantidad || "0");
+  if (!Number.isFinite(qty) || qty <= 0) return 0;
+  return Math.round(qty * it.precioUnitarioCents);
 }
 
 /**
@@ -63,6 +88,8 @@ function toNum(value: string): number | null {
  */
 export function LedgerEntryDialog({
   contractorId,
+  contractorType,
+  laborRates,
   entry,
   projects,
   open,
@@ -71,6 +98,10 @@ export function LedgerEntryDialog({
   onProjectsChanged,
 }: {
   contractorId: string;
+  /** Filtra el catálogo de ítems al tipo de ESTE contratista. */
+  contractorType: ContractorType;
+  /** Catálogo completo de tarifas; se filtra por tipo + activas acá. */
+  laborRates: LaborRate[];
   /** null = crear; una entrada = editar. */
   entry: ContractorLedgerEntry | null;
   projects: Project[];
@@ -98,6 +129,8 @@ export function LedgerEntryDialog({
   const [description, setDescription] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [ebonyAbsorbs, setEbonyAbsorbs] = React.useState(false);
+  const [items, setItems] = React.useState<DraftItem[]>([]);
+  const [itemPicker, setItemPicker] = React.useState(NO_ITEM_PICKED);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   // Proyectos creados en línea desde este diálogo — se muestran al toque
@@ -110,6 +143,7 @@ export function LedgerEntryDialog({
     if (!open) return;
     setError(null);
     setExtraProjects([]);
+    setItemPicker(NO_ITEM_PICKED);
     if (entry) {
       const area = entry.mt2 != null && entry.costPerMt2Cents != null;
       setCategory(entry.category);
@@ -124,6 +158,10 @@ export function LedgerEntryDialog({
       setDescription(entry.description ?? "");
       setNotes(entry.notes ?? "");
       setEbonyAbsorbs(entry.ebonyAbsorbsMaterial);
+      // Los ítems (si los hay) se cargan aparte, de forma asíncrona, en
+      // el efecto de abajo — acá arranca vacío para no mostrar datos
+      // viejos de la entrada anterior mientras llegan.
+      setItems([]);
     } else {
       setCategory("trabajo");
       setAdjustDirection("a_favor");
@@ -137,9 +175,35 @@ export function LedgerEntryDialog({
       setDescription("");
       setNotes("");
       setEbonyAbsorbs(false);
+      setItems([]);
     }
   }, [open, entry, today]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Carga los ítems ya guardados al reabrir un movimiento de categoría
+  // 'trabajo' para editar — con los valores CONGELADOS tal como se
+  // guardaron, no los precios actuales de labor_rates.
+  React.useEffect(() => {
+    if (!open || !entry || entry.category !== "trabajo") return;
+    let cancelled = false;
+    getLedgerEntryItemsAction(entry.id).then((loaded) => {
+      if (cancelled) return;
+      setItems(
+        loaded.map((it) => ({
+          key: it.id,
+          laborRateId: it.laborRateId,
+          descripcion: it.descripcion,
+          fase: it.fase,
+          unidad: it.unidad,
+          precioUnitarioCents: it.precioUnitarioCents,
+          cantidad: String(it.cantidad),
+        }))
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, entry]);
 
   const fixedDirection = directionForCategory(category);
   const showMaterialToggle = isMaterialCategory(category);
@@ -174,13 +238,63 @@ export function LedgerEntryDialog({
     onProjectsChanged();
   }
 
-  const computedCents =
-    amountMode === "area"
+  // Ítems de trabajo — solo para categoría 'trabajo'. Catálogo filtrado
+  // al tipo de ESTE contratista y a tarifas activas únicamente.
+  const isWorkCategory = category === "trabajo";
+  const activeRates = React.useMemo(
+    () => laborRates.filter((r) => r.contractorType === contractorType && r.activo),
+    [laborRates, contractorType]
+  );
+  const hasItems = isWorkCategory && items.length > 0;
+  const itemsTotalCents = items.reduce((sum, it) => sum + itemSubtotalCents(it), 0);
+
+  function onPickItem(rateId: string) {
+    const rate = activeRates.find((r) => r.id === rateId);
+    if (!rate) return;
+    setItems((cur) => [
+      ...cur,
+      {
+        key: crypto.randomUUID(),
+        laborRateId: rate.id,
+        descripcion: rate.descripcion,
+        fase: rate.fase,
+        unidad: rate.unidad,
+        precioUnitarioCents: rate.precioCents,
+        cantidad: "",
+      },
+    ]);
+    setItemPicker(NO_ITEM_PICKED);
+  }
+
+  function onItemQtyChange(key: string, value: string) {
+    setItems((cur) => cur.map((it) => (it.key === key ? { ...it, cantidad: value } : it)));
+  }
+
+  function onRemoveItem(key: string) {
+    setItems((cur) => cur.filter((it) => it.key !== key));
+  }
+
+  function unitLabel(u: LaborRateUnit) {
+    return u === "m2" ? tt("unit_m2") : u === "ml" ? tt("unit_ml") : tt("unit_unidad");
+  }
+
+  function phaseLabel(f: LaborRatePhase | null) {
+    if (!f) return null;
+    return f === "armado" ? tt("phase_armado") : tt("phase_instalacion");
+  }
+
+  const computedCents = hasItems
+    ? itemsTotalCents
+    : amountMode === "area"
       ? lineAmountCents({ mt2: toNum(mt2), costPerMt2Cents: toCents(costPerMt2), flatAmountCents: 0 })
       : toCents(flatAmount);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hasItems && items.some((it) => itemSubtotalCents(it) <= 0)) {
+      setError(tt("mov_item_qty_required"));
+      return;
+    }
     if (computedCents <= 0) {
       setError(tt("mov_amount_required"));
       return;
@@ -193,13 +307,24 @@ export function LedgerEntryDialog({
         entryDate,
         category,
         direction: fixedDirection ?? adjustDirection,
-        mt2: amountMode === "area" ? toNum(mt2) : null,
-        costPerMt2Cents: amountMode === "area" ? toCents(costPerMt2) : null,
+        mt2: !hasItems && amountMode === "area" ? toNum(mt2) : null,
+        costPerMt2Cents: !hasItems && amountMode === "area" ? toCents(costPerMt2) : null,
         amountCents: computedCents,
         ebonyAbsorbsMaterial: showMaterialToggle ? ebonyAbsorbs : false,
         clientText: clientText.trim() || null,
         description: description.trim() || null,
         notes: notes.trim() || null,
+        items: isWorkCategory
+          ? items.map((it) => ({
+              laborRateId: it.laborRateId,
+              descripcion: it.descripcion,
+              fase: it.fase,
+              unidad: it.unidad,
+              precioUnitarioCents: it.precioUnitarioCents,
+              cantidad: parseFloat(it.cantidad),
+              subtotalCents: itemSubtotalCents(it),
+            }))
+          : [],
       };
       if (entry) {
         await updateLedgerEntryAction(entry.id, input);
@@ -220,7 +345,7 @@ export function LedgerEntryDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{entry ? tt("mov_edit_title") : tt("mov_add_title")}</DialogTitle>
             <DialogDescription>{tt("mov_desc")}</DialogDescription>
@@ -286,70 +411,182 @@ export function LedgerEntryDialog({
               </Field>
             </div>
 
-            {/* Monto: fijo o m² × costo/m². */}
-            <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={amountMode === "flat" ? "default" : "outline"}
-                  onClick={() => setAmountMode("flat")}
-                >
-                  {tt("amount_mode_flat")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={amountMode === "area" ? "default" : "outline"}
-                  onClick={() => setAmountMode("area")}
-                >
-                  {tt("amount_mode_area")}
-                </Button>
-              </div>
+            {/* Ítems de trabajo — solo categoría 'trabajo'. Al agregar al
+                menos uno, reemplazan el monto a mano (ver bloque de abajo). */}
+            {isWorkCategory && (
+              <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                <span className="text-xs font-medium text-muted-foreground">{tt("mov_items_title")}</span>
 
-              {amountMode === "flat" ? (
-                <Field label={tt("mov_f_flat")}>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={flatAmount}
-                    onChange={(e) => setFlatAmount(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </Field>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label={tt("mov_f_mt2")}>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        value={mt2}
-                        onChange={(e) => setMt2(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </Field>
-                    <Field label={tt("mov_f_cost_mt2")}>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        value={costPerMt2}
-                        onChange={(e) => setCostPerMt2(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </Field>
+                <Select value={itemPicker} onValueChange={onPickItem}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={tt("mov_items_add_ph")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeRates.length === 0 ? (
+                      <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+                        {tt("mov_items_empty_catalog")}
+                      </div>
+                    ) : (
+                      activeRates.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.descripcion}
+                          {r.fase ? ` — ${phaseLabel(r.fase)}` : ""} · {formatCents(r.precioCents)}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {items.length > 0 && (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <table className="w-full min-w-[500px] border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                          <th className="px-2 py-1.5 text-left font-medium">{tt("rates_col_description")}</th>
+                          <th className="px-2 py-1.5 text-left font-medium">{tt("rates_col_unit")}</th>
+                          <th className="px-2 py-1.5 text-right font-medium">{tt("mov_items_col_qty")}</th>
+                          <th className="px-2 py-1.5 text-right font-medium">{tt("rates_col_price")}</th>
+                          <th className="px-2 py-1.5 text-right font-medium">{tt("mov_items_col_subtotal")}</th>
+                          <th className="px-1 py-1.5" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((it) => (
+                          <tr key={it.key} className="border-b border-border last:border-0">
+                            <td className="px-2 py-1.5 text-foreground">
+                              {it.descripcion}
+                              {it.fase && (
+                                <span className="text-muted-foreground"> — {phaseLabel(it.fase)}</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-muted-foreground">{unitLabel(it.unidad)}</td>
+                            <td className="px-2 py-1.5 text-right">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                inputMode="decimal"
+                                value={it.cantidad}
+                                onChange={(e) => onItemQtyChange(it.key, e.target.value)}
+                                placeholder="0.00"
+                                className="h-7 w-20 text-right"
+                              />
+                            </td>
+                            <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                              {formatCents(it.precioUnitarioCents)}
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-medium tabular-nums text-foreground">
+                              {formatCents(itemSubtotalCents(it))}
+                            </td>
+                            <td className="px-1 py-1.5 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-6 text-muted-foreground hover:text-destructive"
+                                title={tt("mov_items_remove")}
+                                onClick={() => onRemoveItem(it.key)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={4} className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground">
+                            {tt("mov_items_total")}
+                          </td>
+                          <td className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-foreground">
+                            {formatCents(itemsTotalCents)}
+                          </td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {tt("mov_computed")}:{" "}
-                    <span className="font-medium text-foreground tabular-nums">{formatCents(computedCents)}</span>
-                  </p>
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
+            {/* Monto: calculado desde los ítems (solo lectura) o fijo /
+                m² × costo/m² a mano — igual que antes cuando no hay ítems. */}
+            {hasItems ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{tt("mov_f_amount_mode")}</p>
+                  <p className="text-xs text-muted-foreground">{tt("mov_amount_from_items")}</p>
+                </div>
+                <span className="text-base font-semibold tabular-nums text-foreground">
+                  {formatCents(itemsTotalCents)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={amountMode === "flat" ? "default" : "outline"}
+                    onClick={() => setAmountMode("flat")}
+                  >
+                    {tt("amount_mode_flat")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={amountMode === "area" ? "default" : "outline"}
+                    onClick={() => setAmountMode("area")}
+                  >
+                    {tt("amount_mode_area")}
+                  </Button>
+                </div>
+
+                {amountMode === "flat" ? (
+                  <Field label={tt("mov_f_flat")}>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={flatAmount}
+                      onChange={(e) => setFlatAmount(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </Field>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label={tt("mov_f_mt2")}>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={mt2}
+                          onChange={(e) => setMt2(e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </Field>
+                      <Field label={tt("mov_f_cost_mt2")}>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={costPerMt2}
+                          onChange={(e) => setCostPerMt2(e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </Field>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {tt("mov_computed")}:{" "}
+                      <span className="font-medium text-foreground tabular-nums">{formatCents(computedCents)}</span>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
 
             {showMaterialToggle && (
               <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">

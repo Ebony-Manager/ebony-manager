@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/dal";
-import { getContractor, getContractorLedger, getProjects } from "@/services/contractors";
+import { getContractor, getContractorLedger, getLaborRates, getProjects } from "@/services/contractors";
 import { ContractorProfileView } from "../contractor-profile-view";
 
 // La ficha del contratista es solo-admin, igual que el resto del módulo:
@@ -21,13 +21,18 @@ export default async function ContractorDetailPage({
   const contractor = await getContractor(id);
   if (!contractor) notFound();
 
-  const [entries, projects] = await Promise.all([getContractorLedger(id), getProjects()]);
+  const [entries, projects, laborRates] = await Promise.all([
+    getContractorLedger(id),
+    getProjects(),
+    getLaborRates(),
+  ]);
 
   return (
     <ContractorProfileView
       contractor={contractor}
       initialEntries={entries}
       initialProjects={projects}
+      laborRates={laborRates}
     />
   );
 }

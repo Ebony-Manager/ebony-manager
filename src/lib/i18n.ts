@@ -812,6 +812,27 @@ export const strings = {
     rate_saved: { es: "Tarifa guardada", en: "Rate saved" },
     rate_activated: { es: "Tarifa activada", en: "Rate activated" },
     rate_deactivated: { es: "Tarifa desactivada", en: "Rate deactivated" },
+
+    // Ítems de trabajo dentro de "Agregar/Editar Movimiento" (categoría
+    // 'trabajo'), armados desde el catálogo de tarifas.
+    mov_items_title: { es: "Ítems de este trabajo", en: "Work items" },
+    mov_items_add_ph: { es: "+ Agregar ítem…", en: "+ Add item…" },
+    mov_items_empty_catalog: {
+      es: "No hay tarifas activas para este tipo de contratista.",
+      en: "No active rates for this contractor type.",
+    },
+    mov_items_col_qty: { es: "Cantidad", en: "Quantity" },
+    mov_items_col_subtotal: { es: "Subtotal", en: "Subtotal" },
+    mov_items_total: { es: "Total de ítems", en: "Items total" },
+    mov_items_remove: { es: "Quitar ítem", en: "Remove item" },
+    mov_amount_from_items: {
+      es: "Calculado automáticamente desde los ítems de arriba.",
+      en: "Computed automatically from the items above.",
+    },
+    mov_item_qty_required: {
+      es: "Ingresa una cantidad válida (mayor a 0) para cada ítem.",
+      en: "Enter a valid quantity (greater than 0) for each item.",
+    },
   },
 
   common: {

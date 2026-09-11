@@ -94,6 +94,11 @@ export async function deleteLedgerEntryAction(id: string) {
   revalidateContractors();
 }
 
+export async function getLedgerEntryItemsAction(ledgerEntryId: string) {
+  await requireAdmin();
+  return contractors.getLedgerEntryItems(ledgerEntryId);
+}
+
 // ── Tarifas de mano de obra ─────────────────────────────────────────────
 
 export async function getLaborRatesAction() {

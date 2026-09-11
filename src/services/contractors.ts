@@ -7,6 +7,7 @@ import type {
   ContractorLedgerCategory,
   ContractorLedgerDirection,
   ContractorLedgerEntry,
+  ContractorLedgerEntryItem,
   ContractorStatus,
   ContractorType,
   ContractorWithBalance,
@@ -34,6 +35,7 @@ type ContractorRow = Database["public"]["Tables"]["contractors"]["Row"];
 type LedgerRow = Database["public"]["Tables"]["contractor_ledger_entries"]["Row"];
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type LaborRateRow = Database["public"]["Tables"]["labor_rates"]["Row"];
+type LedgerEntryItemRow = Database["public"]["Tables"]["contractor_ledger_entry_items"]["Row"];
 
 /** `numeric` de Postgres vuelve como string por PostgREST — se
  *  normaliza a number (o null). */
@@ -87,6 +89,20 @@ function mapLaborRate(r: LaborRateRow): LaborRate {
     precioCents: r.precio_cents,
     activo: r.activo,
     orden: r.orden,
+  };
+}
+
+function mapLedgerEntryItem(r: LedgerEntryItemRow): ContractorLedgerEntryItem {
+  return {
+    id: r.id,
+    ledgerEntryId: r.ledger_entry_id,
+    laborRateId: r.labor_rate_id,
+    descripcion: r.descripcion,
+    fase: r.fase === "armado" || r.fase === "instalacion" ? r.fase : null,
+    unidad: r.unidad as LaborRateUnit,
+    precioUnitarioCents: r.precio_unitario_cents,
+    cantidad: num(r.cantidad) ?? 0,
+    subtotalCents: r.subtotal_cents,
   };
 }
 
@@ -331,6 +347,18 @@ export async function deleteContractor(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Un ítem de trabajo tal como lo arma el formulario — sin `id` ni
+ *  `ledgerEntryId` (los pone la inserción). */
+export interface LedgerEntryItemInput {
+  laborRateId: string | null;
+  descripcion: string;
+  fase: LaborRatePhase | null;
+  unidad: LaborRateUnit;
+  precioUnitarioCents: number;
+  cantidad: number;
+  subtotalCents: number;
+}
+
 export interface UpsertLedgerEntryInput {
   contractorId: string;
   /** Proyecto enganchado (C2). null = sin proyecto. */
@@ -345,6 +373,11 @@ export interface UpsertLedgerEntryInput {
   clientText?: string | null;
   description?: string | null;
   notes?: string | null;
+  /** Ítems de trabajo (categoría 'trabajo'). Si viene definido (incluso
+   *  `[]`), REEMPLAZA todos los ítems del movimiento; si se omite, no se
+   *  tocan — así otros flujos que no usan ítems (carga histórica, por
+   *  ejemplo) no pierden nada por no mandarlos. */
+  items?: LedgerEntryItemInput[];
 }
 
 /** Campos comunes de insert/update — normaliza el candado de negocio:
@@ -367,6 +400,43 @@ function ledgerFields(input: Omit<UpsertLedgerEntryInput, "contractorId">) {
   };
 }
 
+/** Borra TODOS los ítems del movimiento y carga los nuevos — más simple
+ *  que diffear línea por línea y evita ítems huérfanos. Se usa tanto al
+ *  crear como al editar; el formulario siempre manda el set completo. */
+async function replaceLedgerEntryItems(ledgerEntryId: string, items: LedgerEntryItemInput[]): Promise<void> {
+  const supabase = await createClient();
+  const { error: delError } = await supabase
+    .from("contractor_ledger_entry_items")
+    .delete()
+    .eq("ledger_entry_id", ledgerEntryId);
+  if (delError) throw new Error(delError.message);
+  if (items.length === 0) return;
+  const { error: insError } = await supabase.from("contractor_ledger_entry_items").insert(
+    items.map((it) => ({
+      ledger_entry_id: ledgerEntryId,
+      labor_rate_id: it.laborRateId,
+      descripcion: it.descripcion,
+      fase: it.fase,
+      unidad: it.unidad,
+      precio_unitario_cents: it.precioUnitarioCents,
+      cantidad: it.cantidad,
+      subtotal_cents: it.subtotalCents,
+    }))
+  );
+  if (insError) throw new Error(insError.message);
+}
+
+export async function getLedgerEntryItems(ledgerEntryId: string): Promise<ContractorLedgerEntryItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_ledger_entry_items")
+    .select("*")
+    .eq("ledger_entry_id", ledgerEntryId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapLedgerEntryItem);
+}
+
 export async function createLedgerEntry(input: UpsertLedgerEntryInput): Promise<ContractorLedgerEntry> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -375,6 +445,7 @@ export async function createLedgerEntry(input: UpsertLedgerEntryInput): Promise<
     .select("*, projects(name)")
     .single();
   if (error) throw new Error(error.message);
+  if (input.items !== undefined) await replaceLedgerEntryItems(data.id, input.items);
   const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
   return mapLedger(row, projects?.name ?? null);
 }
@@ -391,6 +462,7 @@ export async function updateLedgerEntry(
     .select("*, projects(name)")
     .single();
   if (error) throw new Error(error.message);
+  if (input.items !== undefined) await replaceLedgerEntryItems(id, input.items);
   const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
   return mapLedger(row, projects?.name ?? null);
 }

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { Contractor, ContractorLedgerEntry, Project } from "@/types/contractors";
+import type { Contractor, ContractorLedgerEntry, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -169,10 +169,12 @@ export function ContractorProfileView({
   contractor,
   initialEntries,
   initialProjects,
+  laborRates,
 }: {
   contractor: Contractor;
   initialEntries: ContractorLedgerEntry[];
   initialProjects: Project[];
+  laborRates: LaborRate[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -902,6 +904,8 @@ export function ContractorProfileView({
 
       <LedgerEntryDialog
         contractorId={contractor.id}
+        contractorType={contractor.contractorType}
+        laborRates={laborRates}
         entry={editing}
         projects={projects}
         open={dialogOpen}
