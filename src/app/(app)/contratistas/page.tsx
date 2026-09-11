@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/dal";
-import { getContractorsWithBalance, getProjects } from "@/services/contractors";
+import { getContractorsWithBalance, getLaborRates, getProjects } from "@/services/contractors";
 import { ContratistasClient } from "./contratistas-client";
 
 // El módulo de Contratistas es solo-admin. `requireAdmin()` rebota a un
@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function ContratistasPage() {
   await requireAdmin();
-  const [contractors, projects] = await Promise.all([getContractorsWithBalance(), getProjects()]);
+  const [contractors, projects, laborRates] = await Promise.all([
+    getContractorsWithBalance(),
+    getProjects(),
+    getLaborRates(),
+  ]);
 
-  return <ContratistasClient contractors={contractors} projects={projects} />;
+  return <ContratistasClient contractors={contractors} projects={projects} laborRates={laborRates} />;
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { ContractorWithBalance, Project } from "@/types/contractors";
+import type { ContractorWithBalance, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLang } from "@/context/language-context";
@@ -11,18 +11,22 @@ import { t, strings } from "@/lib/i18n";
 import { ContractorDirectory } from "./contractor-directory";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProjectsView } from "./projects-view";
+import { LaborRatesView } from "./labor-rates-view";
 
 /**
  * Chrome del módulo Contratistas (C2): pestañas "Contratistas"
- * (directorio) y "Proyectos". El estado de cuenta completo vive en la
- * ficha de cada contratista (`/contratistas/[id]`).
+ * (directorio), "Proyectos" y "Tarifas" (catálogo de mano de obra). El
+ * estado de cuenta completo vive en la ficha de cada contratista
+ * (`/contratistas/[id]`).
  */
 export function ContratistasClient({
   contractors,
   projects,
+  laborRates,
 }: {
   contractors: ContractorWithBalance[];
   projects: Project[];
+  laborRates: LaborRate[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -49,6 +53,7 @@ export function ContratistasClient({
         <TabsList>
           <TabsTrigger value="directory">{tt("tab_directory")}</TabsTrigger>
           <TabsTrigger value="projects">{tt("tab_projects")}</TabsTrigger>
+          <TabsTrigger value="rates">{tt("tab_rates")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory" className="pt-4">
@@ -56,6 +61,9 @@ export function ContratistasClient({
         </TabsContent>
         <TabsContent value="projects" className="pt-4">
           <ProjectsView projects={projects} />
+        </TabsContent>
+        <TabsContent value="rates" className="pt-4">
+          <LaborRatesView rates={laborRates} />
         </TabsContent>
       </Tabs>
 

@@ -158,6 +158,45 @@ export type Database = {
         }
         Relationships: []
       }
+      labor_rates: {
+        Row: {
+          activo: boolean
+          contractor_type: string
+          created_at: string
+          descripcion: string
+          fase: string | null
+          id: string
+          orden: number
+          precio_cents: number
+          unidad: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          contractor_type: string
+          created_at?: string
+          descripcion: string
+          fase?: string | null
+          id?: string
+          orden?: number
+          precio_cents: number
+          unidad: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          contractor_type?: string
+          created_at?: string
+          descripcion?: string
+          fase?: string | null
+          id?: string
+          orden?: number
+          precio_cents?: number
+          unidad?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payroll_employees: {
         Row: {
           base_salary_cents: number

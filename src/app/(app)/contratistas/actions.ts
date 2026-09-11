@@ -93,3 +93,24 @@ export async function deleteLedgerEntryAction(id: string) {
   await contractors.deleteLedgerEntry(id);
   revalidateContractors();
 }
+
+// ── Tarifas de mano de obra ─────────────────────────────────────────────
+
+export async function getLaborRatesAction() {
+  await requireAdmin();
+  return contractors.getLaborRates();
+}
+
+export async function createLaborRateAction(input: contractors.CreateLaborRateInput) {
+  await requireAdmin();
+  const rate = await contractors.createLaborRate(input);
+  revalidatePath(PATH);
+  return rate;
+}
+
+export async function updateLaborRateAction(id: string, input: contractors.UpdateLaborRateInput) {
+  await requireAdmin();
+  const rate = await contractors.updateLaborRate(id, input);
+  revalidatePath(PATH);
+  return rate;
+}

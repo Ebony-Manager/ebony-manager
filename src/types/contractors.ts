@@ -100,3 +100,26 @@ export interface ContractorLedgerEntry {
 export interface ContractorLedgerRow extends ContractorLedgerEntry {
   balanceAfterCents: number;
 }
+
+/** Catálogo de tarifas de mano de obra (tabla `labor_rates`), para armar
+ *  ítems de trabajo en "Agregar Movimiento" (siguiente tanda). Un pintor
+ *  cobra un precio único por ítem (`fase = null`); un ebanista tiene un
+ *  precio por fase (armado / instalación). */
+export type LaborRatePhase = "armado" | "instalacion";
+export type LaborRateUnit = "m2" | "ml" | "unidad";
+
+export interface LaborRate {
+  id: string;
+  contractorType: ContractorType;
+  /** null solo para `contractorType === 'pintor'`. */
+  fase: LaborRatePhase | null;
+  unidad: LaborRateUnit;
+  descripcion: string;
+  /** Precio en centavos enteros — nunca floats para dinero. */
+  precioCents: number;
+  /** Inactivar en vez de borrar: conserva la tarifa que ya se usó en
+   *  movimientos pasados. */
+  activo: boolean;
+  /** Orden manual de despliegue en el selector. */
+  orden: number;
+}

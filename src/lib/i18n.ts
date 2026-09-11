@@ -653,6 +653,7 @@ export const strings = {
     // Pestañas del módulo.
     tab_directory: { es: "Contratistas", en: "Contractors" },
     tab_projects: { es: "Proyectos", en: "Projects" },
+    tab_rates: { es: "Tarifas", en: "Rates" },
 
     // Directorio — contratistas inactivos.
     no_longer_work: { es: "Ya no laboran", en: "No longer active" },
@@ -761,6 +762,56 @@ export const strings = {
     del_type_name: { es: "Para confirmar, escribe el nombre exacto:", en: "To confirm, type the exact name:" },
     del_confirm: { es: "Eliminar para siempre", en: "Delete permanently" },
     del_done: { es: "Contratista eliminado", en: "Contractor deleted" },
+
+    // Tarifas de mano de obra (catálogo, tabla `labor_rates`). Se usan
+    // para armar ítems de trabajo en "Agregar Movimiento" (siguiente
+    // tanda) — esta pantalla es solo el catálogo.
+    rates_title: { es: "Tarifas de mano de obra", en: "Labor rates" },
+    rates_subtitle: {
+      es: "Catálogo de precios para ebanistas y pintores.",
+      en: "Price catalog for cabinetmakers and painters.",
+    },
+    add_rate: { es: "Agregar tarifa", en: "Add rate" },
+    rates_filter_all: { es: "Todos", en: "All" },
+    rates_col_description: { es: "Descripción", en: "Description" },
+    rates_col_phase: { es: "Fase", en: "Phase" },
+    rates_col_unit: { es: "Unidad", en: "Unit" },
+    rates_col_price: { es: "Precio", en: "Price" },
+    rates_col_status: { es: "Estado", en: "Status" },
+    rates_active: { es: "Activo", en: "Active" },
+    rates_inactive: { es: "Inactivo", en: "Inactive" },
+    rates_show_inactive: { es: "Mostrar inactivas", en: "Show inactive" },
+    action_activate: { es: "Activar", en: "Activate" },
+    action_deactivate: { es: "Desactivar", en: "Deactivate" },
+    rates_empty: {
+      es: "Todavía no hay tarifas para este tipo.",
+      en: "No rates yet for this type.",
+    },
+    phase_armado: { es: "Armado", en: "Assembly" },
+    phase_instalacion: { es: "Instalación", en: "Installation" },
+    unit_m2: { es: "m²", en: "m²" },
+    unit_ml: { es: "ml", en: "ml" },
+    unit_unidad: { es: "unidad", en: "unit" },
+
+    rate_dlg_add_title: { es: "Agregar tarifa", en: "Add rate" },
+    rate_dlg_edit_title: { es: "Editar tarifa", en: "Edit rate" },
+    rate_f_phase: { es: "Fase", en: "Phase" },
+    rate_f_phase_hint: {
+      es: "Los ebanistas cobran una tarifa distinta por armado e instalación.",
+      en: "Cabinetmakers charge a different rate for assembly and installation.",
+    },
+    rate_f_unit: { es: "Unidad", en: "Unit" },
+    rate_f_description: { es: "Descripción", en: "Description" },
+    rate_f_description_ph: { es: "Ej. Módulo mueble", en: "e.g. Furniture module" },
+    rate_f_price: { es: "Precio (USD)", en: "Price (USD)" },
+    rate_description_required: { es: "La descripción es obligatoria.", en: "Description is required." },
+    rate_price_invalid: {
+      es: "El precio debe ser mayor o igual a 0.",
+      en: "Price must be zero or greater.",
+    },
+    rate_saved: { es: "Tarifa guardada", en: "Rate saved" },
+    rate_activated: { es: "Tarifa activada", en: "Rate activated" },
+    rate_deactivated: { es: "Tarifa desactivada", en: "Rate deactivated" },
   },
 
   common: {

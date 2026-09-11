@@ -10,6 +10,9 @@ import type {
   ContractorStatus,
   ContractorType,
   ContractorWithBalance,
+  LaborRate,
+  LaborRatePhase,
+  LaborRateUnit,
   Project,
   ProjectStatus,
 } from "@/types/contractors";
@@ -30,6 +33,7 @@ import { contractorBalanceCents } from "@/lib/contractors/contractor-ledger";
 type ContractorRow = Database["public"]["Tables"]["contractors"]["Row"];
 type LedgerRow = Database["public"]["Tables"]["contractor_ledger_entries"]["Row"];
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+type LaborRateRow = Database["public"]["Tables"]["labor_rates"]["Row"];
 
 /** `numeric` de Postgres vuelve como string por PostgREST — se
  *  normaliza a number (o null). */
@@ -70,6 +74,19 @@ function mapLedger(r: LedgerRow, projectName: string | null = null): ContractorL
     clientText: r.client_text,
     description: r.description,
     notes: r.notes,
+  };
+}
+
+function mapLaborRate(r: LaborRateRow): LaborRate {
+  return {
+    id: r.id,
+    contractorType: r.contractor_type === "pintor" ? "pintor" : "ebanista",
+    fase: r.fase === "armado" || r.fase === "instalacion" ? r.fase : null,
+    unidad: r.unidad as LaborRateUnit,
+    descripcion: r.descripcion,
+    precioCents: r.precio_cents,
+    activo: r.activo,
+    orden: r.orden,
   };
 }
 
@@ -382,4 +399,78 @@ export async function deleteLedgerEntry(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("contractor_ledger_entries").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// Tarifas de mano de obra — catálogo de precios (tabla `labor_rates`).
+// No se borran registros (trazabilidad histórica): se inactivan con
+// `activo = false`.
+// ============================================================================
+
+export async function getLaborRates(): Promise<LaborRate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("labor_rates")
+    .select("*")
+    .order("contractor_type", { ascending: true })
+    .order("orden", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapLaborRate);
+}
+
+export interface CreateLaborRateInput {
+  contractorType: ContractorType;
+  /** Obligatoria si `contractorType === 'ebanista'`; se ignora (queda
+   *  NULL) para 'pintor'. */
+  fase?: LaborRatePhase | null;
+  unidad: LaborRateUnit;
+  descripcion: string;
+  precioCents: number;
+  orden?: number;
+}
+
+export async function createLaborRate(input: CreateLaborRateInput): Promise<LaborRate> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("labor_rates")
+    .insert({
+      contractor_type: input.contractorType,
+      fase: input.contractorType === "ebanista" ? (input.fase ?? null) : null,
+      unidad: input.unidad,
+      descripcion: input.descripcion.trim(),
+      precio_cents: input.precioCents,
+      orden: input.orden ?? 0,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapLaborRate(data);
+}
+
+export interface UpdateLaborRateInput {
+  contractorType?: ContractorType;
+  fase?: LaborRatePhase | null;
+  unidad?: LaborRateUnit;
+  descripcion?: string;
+  precioCents?: number;
+  activo?: boolean;
+  orden?: number;
+}
+
+/** Patch parcial. El trigger `labor_rates_touch_updated_at` mantiene
+ *  `updated_at`. */
+export async function updateLaborRate(id: string, input: UpdateLaborRateInput): Promise<LaborRate> {
+  const patch: Database["public"]["Tables"]["labor_rates"]["Update"] = {};
+  if (input.contractorType !== undefined) patch.contractor_type = input.contractorType;
+  if (input.fase !== undefined) patch.fase = input.fase;
+  if (input.unidad !== undefined) patch.unidad = input.unidad;
+  if (input.descripcion !== undefined) patch.descripcion = input.descripcion.trim();
+  if (input.precioCents !== undefined) patch.precio_cents = input.precioCents;
+  if (input.activo !== undefined) patch.activo = input.activo;
+  if (input.orden !== undefined) patch.orden = input.orden;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("labor_rates").update(patch).eq("id", id).select("*").single();
+  if (error) throw new Error(error.message);
+  return mapLaborRate(data);
 }
