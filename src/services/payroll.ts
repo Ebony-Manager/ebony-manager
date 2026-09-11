@@ -32,7 +32,12 @@ import {
   type EmployeeHistory,
   type LedgerRowFull,
 } from "@/lib/planilla/payroll-reports";
-import { computeLoanSchedule, defaultLoanStartPeriod } from "@/lib/planilla/payroll-loans";
+import {
+  computeLoanSchedule,
+  defaultLoanStartPeriod,
+  reflowLoanSchedule,
+  type PendingInstallment,
+} from "@/lib/planilla/payroll-loans";
 import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
 import {
   earliestSalary,
@@ -823,4 +828,115 @@ export async function cancelLoan(loanId: string): Promise<void> {
 
   const { error: e4 } = await supabase.from("payroll_loans").update({ status: "cancelled" }).eq("id", loanId);
   if (e4) throw new Error(e4.message);
+}
+
+/**
+ * Edita una cuota PENDIENTE (no pagada) de un préstamo — el monto se
+ * puede bajar (incluso a $0, "saltarla") o subir (un abono de más). El
+ * resto del calendario pendiente se reacomoda con `reflowLoanSchedule`
+ * (`lib/planilla/payroll-loans.ts`, pura) para que la suma de lo que
+ * falta siga cuadrando exacto con el saldo pendiente. Las cuotas YA
+ * PAGADAS (`payroll_entries.paid`) ni siquiera se cargan acá — quedan
+ * intactas.
+ *
+ * Igual patrón que `createLoan` para materializar una cuota nueva:
+ * primero la quincena real (`upsertEntry`, la crea si no existe), luego
+ * la fila de ledger enganchada a ella.
+ */
+export async function reflowLoanInstallment(input: {
+  loanId: string;
+  employeeId: string;
+  ledgerEntryId: string;
+  newAmountCents: number;
+}): Promise<void> {
+  const supabase = await createClient();
+
+  const { data: ledgerRows, error } = await supabase
+    .from("payroll_ledger_entries")
+    .select("id, amount_cents, payroll_entry_id")
+    .eq("loan_id", input.loanId)
+    .eq("direction", "payment");
+  if (error) throw new Error(error.message);
+
+  const entryIds = [...new Set((ledgerRows ?? []).map((r) => r.payroll_entry_id).filter((x): x is string => !!x))];
+  const entryById = new Map<string, { period_year: number; period_month: number; period_half: number; paid: boolean }>();
+  if (entryIds.length > 0) {
+    const { data: entryRows, error: e2 } = await supabase
+      .from("payroll_entries")
+      .select("id, period_year, period_month, period_half, paid")
+      .in("id", entryIds);
+    if (e2) throw new Error(e2.message);
+    for (const e of entryRows ?? []) entryById.set(e.id, e);
+  }
+
+  // Solo las NO pagadas entran al reflow — las pagadas se filtran acá y
+  // quedan fuera de la conversación por completo.
+  const pending: PendingInstallment[] = [];
+  for (const r of ledgerRows ?? []) {
+    if (!r.payroll_entry_id) continue;
+    const e = entryById.get(r.payroll_entry_id);
+    if (!e || e.paid) continue;
+    pending.push({
+      ledgerEntryId: r.id,
+      period: { year: e.period_year, month: e.period_month, half: e.period_half === 2 ? 2 : 1 },
+      amountCents: r.amount_cents,
+    });
+  }
+
+  const reflowed = reflowLoanSchedule(pending, input.ledgerEntryId, input.newAmountCents);
+  const reflowedById = new Map(
+    reflowed.filter((r): r is typeof r & { ledgerEntryId: string } => r.ledgerEntryId !== null).map((r) => [r.ledgerEntryId, r])
+  );
+  const newOnes = reflowed.filter((r) => r.ledgerEntryId === null);
+
+  // Cuotas pendientes que el reflow consumió por completo (o la propia
+  // editada, si quedó en $0) — se borran.
+  const toDelete = pending.filter((p) => !reflowedById.has(p.ledgerEntryId)).map((p) => p.ledgerEntryId);
+  if (toDelete.length > 0) {
+    const { error: eDel } = await supabase.from("payroll_ledger_entries").delete().in("id", toDelete);
+    if (eDel) throw new Error(eDel.message);
+  }
+
+  // Cuotas que se conservan pero cambiaron de monto.
+  for (const p of pending) {
+    const next = reflowedById.get(p.ledgerEntryId);
+    if (next && next.amountCents !== p.amountCents) {
+      const { error: eUpd } = await supabase
+        .from("payroll_ledger_entries")
+        .update({ amount_cents: next.amountCents })
+        .eq("id", p.ledgerEntryId);
+      if (eUpd) throw new Error(eUpd.message);
+    }
+  }
+
+  // Cuotas nuevas al final del calendario (el reflow alargó el
+  // préstamo) — mismo patrón que createLoan: la quincena real primero.
+  if (newOnes.length > 0) {
+    const { data: loanRow, error: eLoan } = await supabase
+      .from("payroll_loans")
+      .select("category")
+      .eq("id", input.loanId)
+      .single();
+    if (eLoan) throw new Error(eLoan.message);
+    const category = loanRow.category === "adelanto" ? "adelanto" : "prestamo";
+
+    for (const n of newOnes) {
+      const entry = await upsertEntry({
+        employeeId: input.employeeId,
+        periodYear: n.period.year,
+        periodMonth: n.period.month,
+        periodHalf: n.period.half,
+      });
+      await createLedgerEntry({
+        employeeId: input.employeeId,
+        category,
+        direction: "payment",
+        amountCents: n.amountCents,
+        entryDate: periodApproxDate(n.period).toISOString().slice(0, 10),
+        payrollEntryId: entry.id,
+        loanId: input.loanId,
+        notes: "Cuota agregada al reacomodar el calendario",
+      });
+    }
+  }
 }

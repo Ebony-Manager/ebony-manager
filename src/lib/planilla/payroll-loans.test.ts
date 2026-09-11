@@ -3,6 +3,8 @@ import {
   computeLoanSchedule,
   defaultLoanStartPeriod,
   loanPayoffPeriod,
+  reflowLoanSchedule,
+  type PendingInstallment,
 } from "./payroll-loans";
 
 // Cubre el reparto de cuotas de un préstamo/adelanto tal como lo hace la
@@ -76,5 +78,79 @@ describe("loanPayoffPeriod", () => {
 
   it("con una sola cuota, el payoff es el propio período de inicio", () => {
     expect(loanPayoffPeriod({ year: 2026, month: 6, half: 2 }, 1)).toEqual({ year: 2026, month: 6, half: 2 });
+  });
+});
+
+describe("reflowLoanSchedule", () => {
+  // 3 cuotas pendientes de $100 (P1, P2, P3) = $300 de saldo pendiente.
+  const P1 = { year: 2026, month: 1, half: 1 } as const;
+  const P2 = { year: 2026, month: 1, half: 2 } as const;
+  const P3 = { year: 2026, month: 2, half: 1 } as const;
+  const P4 = { year: 2026, month: 2, half: 2 } as const;
+  function threeEqual(): PendingInstallment[] {
+    return [
+      { ledgerEntryId: "a", period: P1, amountCents: 10_000 },
+      { ledgerEntryId: "b", period: P2, amountCents: 10_000 },
+      { ledgerEntryId: "c", period: P3, amountCents: 10_000 },
+    ];
+  }
+  const sum = (xs: { amountCents: number }[]) => xs.reduce((s, x) => s + x.amountCents, 0);
+
+  it("saltar una cuota (a $0): las demás quedan igual, se agrega una quincena al final", () => {
+    const result = reflowLoanSchedule(threeEqual(), "b", 0);
+    // "b" (P2) se saltó y desaparece del calendario.
+    expect(result.find((r) => r.ledgerEntryId === "b")).toBeUndefined();
+    expect(result.find((r) => r.ledgerEntryId === "a")).toEqual({ ledgerEntryId: "a", period: P1, amountCents: 10_000 });
+    expect(result.find((r) => r.ledgerEntryId === "c")).toEqual({ ledgerEntryId: "c", period: P3, amountCents: 10_000 });
+    // Se agregó UNA quincena más al final (P4) por los $100 que faltan.
+    const added = result.find((r) => r.ledgerEntryId === null);
+    expect(added).toEqual({ ledgerEntryId: null, period: P4, amountCents: 10_000 });
+    expect(sum(result)).toBe(30_000);
+  });
+
+  it("reducir una cuota (no a $0): las que siguen quedan igual, se agrega el faltante al final", () => {
+    const result = reflowLoanSchedule(threeEqual(), "b", 6_000);
+    expect(result.find((r) => r.ledgerEntryId === "a")!.amountCents).toBe(10_000);
+    expect(result.find((r) => r.ledgerEntryId === "b")!.amountCents).toBe(6_000);
+    expect(result.find((r) => r.ledgerEntryId === "c")!.amountCents).toBe(10_000);
+    const added = result.find((r) => r.ledgerEntryId === null);
+    expect(added).toEqual({ ledgerEntryId: null, period: P4, amountCents: 4_000 });
+    expect(sum(result)).toBe(30_000);
+  });
+
+  it("pagar de más (abonar más en la primera cuota): el calendario se acorta, nunca se alarga", () => {
+    // Sube "a" de 100 a 250 — el sobrante ($150) se descuenta de las
+    // últimas cuotas primero: "c" ($100) desaparece, "b" baja a $50.
+    const result = reflowLoanSchedule(threeEqual(), "a", 25_000);
+    expect(result).toHaveLength(2);
+    expect(result.find((r) => r.ledgerEntryId === "a")!.amountCents).toBe(25_000);
+    expect(result.find((r) => r.ledgerEntryId === "b")!.amountCents).toBe(5_000);
+    expect(result.find((r) => r.ledgerEntryId === "c")).toBeUndefined();
+    expect(sum(result)).toBe(30_000);
+  });
+
+  it("pagar exacto (saldar todo en una sola cuota): el calendario queda en una sola cuota", () => {
+    const result = reflowLoanSchedule(threeEqual(), "a", 30_000);
+    expect(result).toEqual([{ ledgerEntryId: "a", period: P1, amountCents: 30_000 }]);
+  });
+
+  it("acota un monto mayor a lo que queda por cobrar de ahí en adelante", () => {
+    // Pedir más que el total pendiente no tiene sentido — se acota.
+    const result = reflowLoanSchedule(threeEqual(), "a", 999_999);
+    expect(sum(result)).toBe(30_000);
+    expect(result).toEqual([{ ledgerEntryId: "a", period: P1, amountCents: 30_000 }]);
+  });
+
+  it("editar sin cambiar el monto no altera nada", () => {
+    const result = reflowLoanSchedule(threeEqual(), "b", 10_000);
+    expect(result).toEqual(threeEqual());
+  });
+
+  it("tira error si la cuota a editar no está entre las pendientes", () => {
+    expect(() => reflowLoanSchedule(threeEqual(), "z", 5_000)).toThrow();
+  });
+
+  it("tira error con una lista de pendientes vacía", () => {
+    expect(() => reflowLoanSchedule([], "a", 5_000)).toThrow();
   });
 });

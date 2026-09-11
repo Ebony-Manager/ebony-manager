@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
+import toast from "react-hot-toast";
 
-import type { PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
+import type { PayrollLedgerEntry, PayrollLoanInstallment, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDate, monthShort } from "@/lib/planilla/format";
@@ -15,9 +16,11 @@ import {
   deleteLedgerEntryAction,
   getLoansAction,
   cancelLoanAction,
+  reflowLoanInstallmentAction,
 } from "./actions";
 import { LedgerEntryDialog, type LedgerPeriodOption } from "./ledger-entry-dialog";
 import { LoanDialog } from "./loan-dialog";
+import { EditInstallmentDialog } from "./edit-installment-dialog";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 
 function ordinalOf(p: { year: number; month: number; half: 1 | 2 }): number {
@@ -34,13 +37,21 @@ function LoanCard({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const [cancelling, setCancelling] = React.useState(false);
+  const [skippingId, setSkippingId] = React.useState<string | null>(null);
+  const [installmentsOpen, setInstallmentsOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<PayrollLoanInstallment | null>(null);
 
   const sorted = [...loan.installments].sort((a, b) => ordinalOf(a.period) - ordinalOf(b.period));
   const paidCount = sorted.filter((i) => i.paid).length;
-  const nextPending = sorted.find((i) => !i.paid);
+  const pending = sorted.filter((i) => !i.paid);
+  const nextPending = pending[0];
   const last = sorted[sorted.length - 1];
   const isAdelanto = loan.category === "adelanto";
   const canCancel = loan.status === "active" && Boolean(nextPending);
+  // Saldo pendiente DE ESTE préstamo (no el del empleado entero, que ya
+  // muestra el header de la sección) — suma de las cuotas no pagadas.
+  // Se recalcula solo con lo que vuelve del reload tras cada edición.
+  const pendingBalanceCents = pending.reduce((sum, i) => sum + i.amountCents, 0);
 
   const pl = (p: { year: number; month: number; half: 1 | 2 }) =>
     `${monthShort(lang, p.month)} ${p.year} · ${p.half === 1 ? "1ra" : "2da"}`;
@@ -52,6 +63,22 @@ function LoanCard({
       onCancelled();
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleSkip(inst: PayrollLoanInstallment) {
+    setSkippingId(inst.ledgerEntryId);
+    try {
+      await reflowLoanInstallmentAction({
+        loanId: loan.id,
+        employeeId: loan.employeeId,
+        ledgerEntryId: inst.ledgerEntryId,
+        newAmountCents: 0,
+      });
+      toast.success(tt("loan_installment_skipped"));
+      onCancelled();
+    } finally {
+      setSkippingId(null);
     }
   }
 
@@ -104,7 +131,76 @@ function LoanCard({
           )}
         </div>
       )}
+      {loan.status === "active" && pending.length > 0 && (
+        <p className="mt-1 font-medium text-foreground">
+          {tt("loan_balance_remaining")}: {formatCents(pendingBalanceCents)}
+        </p>
+      )}
       {loan.notes && <p className="mt-1 italic text-muted-foreground">{loan.notes}</p>}
+
+      {sorted.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 font-medium text-foreground hover:text-primary"
+            onClick={() => setInstallmentsOpen((v) => !v)}
+          >
+            <ChevronDown className={`size-3 transition-transform ${installmentsOpen ? "" : "-rotate-90"}`} />
+            {tt("loan_installments_toggle")}
+          </button>
+          {installmentsOpen && (
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {sorted.map((inst) => (
+                <li key={inst.ledgerEntryId} className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">
+                    {pl(inst.period)} · {formatCents(inst.amountCents)}
+                  </span>
+                  {inst.paid ? (
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {tt("loan_installment_paid_badge")}
+                    </span>
+                  ) : (
+                    loan.status === "active" && (
+                      <span className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-5 text-muted-foreground hover:text-foreground"
+                          title={tt("loan_installment_edit")}
+                          onClick={() => setEditing(inst)}
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-5 text-muted-foreground hover:text-destructive"
+                          title={tt("loan_installment_skip")}
+                          disabled={skippingId === inst.ledgerEntryId}
+                          onClick={() => handleSkip(inst)}
+                        >
+                          <SkipForward className="size-3" />
+                        </Button>
+                      </span>
+                    )
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <EditInstallmentDialog
+        loanId={loan.id}
+        employeeId={loan.employeeId}
+        ledgerEntryId={editing?.ledgerEntryId ?? null}
+        period={editing?.period ?? null}
+        currentAmountCents={editing?.amountCents ?? 0}
+        open={editing !== null}
+        onOpenChange={(next) => !next && setEditing(null)}
+        onSaved={onCancelled}
+      />
     </div>
   );
 }

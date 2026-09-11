@@ -1,5 +1,5 @@
 import type { Period } from "@/lib/planilla/payroll-period";
-import { nextPeriod } from "@/lib/planilla/payroll-period";
+import { nextPeriod, periodOrdinal } from "@/lib/planilla/payroll-period";
 import type { LoanPaymentMethod } from "@/types/planilla";
 
 export type { LoanPaymentMethod };
@@ -75,4 +75,108 @@ export function loanPayoffPeriod(startPeriod: Period, numInstallments: number): 
     period = nextPeriod(period);
   }
   return period;
+}
+
+// ============================================================================
+// Cuotas flexibles: reflow del calendario tras editar una cuota pendiente
+// ============================================================================
+
+/** Una cuota PENDIENTE (no pagada) del calendario de un préstamo, tal
+ *  como existe hoy — con su fila real de ledger. Las cuotas ya pagadas
+ *  ni siquiera entran acá: viven aparte, inmutables. */
+export interface PendingInstallment {
+  ledgerEntryId: string;
+  period: Period;
+  amountCents: number;
+}
+
+/** El nuevo calendario de cuotas pendientes tras un reflow.
+ *  `ledgerEntryId: null` marca una cuota NUEVA que el llamador todavía
+ *  tiene que materializar (crear su `payroll_entries` + fila de ledger);
+ *  el resto conserva su `ledgerEntryId` de siempre, así el llamador solo
+ *  actualiza el monto. Una cuota que faltaba en el resultado (comparada
+ *  contra `pending`) se borró — el reflow ya la consumió por completo. */
+export interface ReflowedInstallment {
+  ledgerEntryId: string | null;
+  period: Period;
+  amountCents: number;
+}
+
+function periodOrd(p: Period): number {
+  return periodOrdinal(p.year, p.month, p.half);
+}
+
+/**
+ * Reacomoda el calendario de cuotas PENDIENTES de un préstamo después de
+ * editar una de ellas (`editLedgerEntryId`) a `newAmountCents` — la suma
+ * de TODAS las cuotas pendientes después del reflow es SIEMPRE igual a
+ * la suma de antes (el saldo pendiente nunca cambia por esto; solo lo
+ * cambia una cuota que se marca `paid`, fuera de esta función).
+ *
+ * Las cuotas ANTERIORES a la editada (cronológicamente) nunca se tocan
+ * — no deberían existir pendientes de todos modos si el tiempo avanza en
+ * orden, pero por si acaso quedan intactas.
+ *
+ *   - Cuota editada BAJA (o se salta a $0): las cuotas que siguen quedan
+ *     EXACTAMENTE igual — se agrega una quincena más al final del
+ *     calendario por la diferencia. Nunca se "inflan" las que siguen.
+ *   - Cuota editada SUBE (un abono de más): la diferencia se descuenta
+ *     de las cuotas que siguen, empezando por la MÁS TARDÍA — el
+ *     préstamo se acorta (o termina de una vez), nunca se alarga. Subir
+ *     más de lo que queda por cobrar de ahí en adelante se acota a ese
+ *     máximo (no tiene sentido pedirle a una sola cuota más de lo que
+ *     falta pagar).
+ *
+ * Una cuota que termina en $0 desaparece del resultado — "saltarla" es
+ * simplemente que ya no esté en el calendario.
+ */
+export function reflowLoanSchedule(
+  pending: PendingInstallment[],
+  editLedgerEntryId: string,
+  newAmountCents: number
+): ReflowedInstallment[] {
+  if (pending.length === 0) throw new Error("No hay cuotas pendientes para reacomodar");
+  const sorted = [...pending].sort((a, b) => periodOrd(a.period) - periodOrd(b.period));
+  const editIndex = sorted.findIndex((i) => i.ledgerEntryId === editLedgerEntryId);
+  if (editIndex === -1) throw new Error("La cuota a editar no está entre las pendientes");
+
+  // Anteriores a la editada — nunca se tocan.
+  const before: ReflowedInstallment[] = sorted.slice(0, editIndex);
+  const oldAmount = sorted[editIndex].amountCents;
+  // Posteriores — las únicas candidatas a absorber la diferencia.
+  const after = sorted.slice(editIndex + 1).map((i) => ({ ...i }));
+
+  const availableToShift = after.reduce((sum, i) => sum + i.amountCents, 0);
+  const maxAllowed = oldAmount + availableToShift;
+  const clampedAmount = Math.max(0, Math.min(Math.round(newAmountCents), maxAllowed));
+  const delta = clampedAmount - oldAmount;
+
+  let tail: ReflowedInstallment[];
+  if (delta < 0) {
+    const shortfall = -delta;
+    const lastPeriod = after.length > 0 ? after[after.length - 1].period : sorted[editIndex].period;
+    tail = [...after, { ledgerEntryId: null, period: nextPeriod(lastPeriod), amountCents: shortfall }];
+  } else if (delta > 0) {
+    let surplus = delta;
+    const reduced = [...after];
+    for (let i = reduced.length - 1; i >= 0 && surplus > 0; i--) {
+      if (reduced[i].amountCents <= surplus) {
+        surplus -= reduced[i].amountCents;
+        reduced.splice(i, 1);
+      } else {
+        reduced[i].amountCents -= surplus;
+        surplus = 0;
+      }
+    }
+    tail = reduced;
+  } else {
+    tail = after;
+  }
+
+  const edited: ReflowedInstallment = {
+    ledgerEntryId: editLedgerEntryId,
+    period: sorted[editIndex].period,
+    amountCents: clampedAmount,
+  };
+  return [...before, edited, ...tail].filter((i) => i.amountCents > 0);
 }

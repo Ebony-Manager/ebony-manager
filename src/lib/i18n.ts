@@ -189,6 +189,24 @@ export const strings = {
     loan_requested: { es: "Solicitado", en: "Requested" },
     loan_of: { es: "de", en: "of" },
 
+    // Cuotas flexibles (Taller · Tanda 4/6) — la cuota sugerida de cada
+    // quincena se puede editar o saltar; el resto del calendario se
+    // reacomoda solo para seguir cuadrando con el saldo pendiente.
+    loan_balance_remaining: { es: "Saldo pendiente de este préstamo", en: "This loan's remaining balance" },
+    loan_installments_toggle: { es: "Ver cuotas", en: "View installments" },
+    loan_installment_paid_badge: { es: "Pagada", en: "Paid" },
+    loan_installment_edit: { es: "Editar cuota", en: "Edit installment" },
+    loan_installment_skip: { es: "Saltar", en: "Skip" },
+    loan_installment_skipped: { es: "Cuota saltada", en: "Installment skipped" },
+    loan_edit_dlg_title: { es: "Editar cuota", en: "Edit installment" },
+    loan_edit_dlg_desc: {
+      es: "El resto del calendario se reacomoda solo para seguir cuadrando con el saldo pendiente.",
+      en: "The rest of the schedule reflows automatically to keep matching the pending balance.",
+    },
+    loan_edit_f_amount: { es: "Monto de esta cuota", en: "This installment's amount" },
+    loan_edit_amount_hint: { es: "Déjalo en 0 para saltar esta cuota.", en: "Leave it at 0 to skip this installment." },
+    loan_edit_saved: { es: "Cuota actualizada", en: "Installment updated" },
+
     movimientos_title: { es: "Herramientas, daños y otros movimientos", en: "Tools, damages & other movements" },
     movimiento_add: { es: "Agregar movimiento", en: "Add movement" },
     movimientos_empty: { es: "Sin movimientos registrados.", en: "No movements on record." },

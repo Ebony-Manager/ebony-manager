@@ -177,6 +177,19 @@ export async function cancelLoanAction(loanId: string) {
   revalidatePath(PATH);
 }
 
+/** Edita una cuota pendiente (no pagada) de un préstamo — el resto del
+ *  calendario se reacomoda solo (`reflowLoanInstallment`). */
+export async function reflowLoanInstallmentAction(input: {
+  loanId: string;
+  employeeId: string;
+  ledgerEntryId: string;
+  newAmountCents: number;
+}) {
+  await requireAdmin();
+  await payroll.reflowLoanInstallment(input);
+  revalidatePath(PATH);
+}
+
 // ── Sueldo / aumentos ─────────────────────────────────────────────────
 
 export async function getSalaryChangesAction(employeeId: string) {
