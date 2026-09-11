@@ -63,6 +63,8 @@ interface DraftItem {
   key: string;
   laborRateId: string | null;
   descripcion: string;
+  /** Nota opcional de la pieza específica de mueble (ej. "Mueble de TV"). */
+  detalle: string;
   fase: LaborRatePhase | null;
   unidad: LaborRateUnit;
   precioUnitarioCents: number;
@@ -193,6 +195,7 @@ export function LedgerEntryDialog({
           key: it.id,
           laborRateId: it.laborRateId,
           descripcion: it.descripcion,
+          detalle: it.detalle ?? "",
           fase: it.fase,
           unidad: it.unidad,
           precioUnitarioCents: it.precioUnitarioCents,
@@ -257,6 +260,7 @@ export function LedgerEntryDialog({
         key: crypto.randomUUID(),
         laborRateId: rate.id,
         descripcion: rate.descripcion,
+        detalle: "",
         fase: rate.fase,
         unidad: rate.unidad,
         precioUnitarioCents: rate.precioCents,
@@ -268,6 +272,10 @@ export function LedgerEntryDialog({
 
   function onItemQtyChange(key: string, value: string) {
     setItems((cur) => cur.map((it) => (it.key === key ? { ...it, cantidad: value } : it)));
+  }
+
+  function onItemDetailChange(key: string, value: string) {
+    setItems((cur) => cur.map((it) => (it.key === key ? { ...it, detalle: value } : it)));
   }
 
   function onRemoveItem(key: string) {
@@ -318,6 +326,7 @@ export function LedgerEntryDialog({
           ? items.map((it) => ({
               laborRateId: it.laborRateId,
               descripcion: it.descripcion,
+              detalle: it.detalle.trim() || null,
               fase: it.fase,
               unidad: it.unidad,
               precioUnitarioCents: it.precioUnitarioCents,
@@ -439,10 +448,11 @@ export function LedgerEntryDialog({
 
                 {items.length > 0 && (
                   <div className="overflow-x-auto rounded-md border border-border">
-                    <table className="w-full min-w-[500px] border-collapse text-xs">
+                    <table className="w-full min-w-[640px] border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                           <th className="px-2 py-1.5 text-left font-medium">{tt("rates_col_description")}</th>
+                          <th className="px-2 py-1.5 text-left font-medium">{tt("mov_items_col_detail")}</th>
                           <th className="px-2 py-1.5 text-left font-medium">{tt("rates_col_unit")}</th>
                           <th className="px-2 py-1.5 text-right font-medium">{tt("mov_items_col_qty")}</th>
                           <th className="px-2 py-1.5 text-right font-medium">{tt("rates_col_price")}</th>
@@ -458,6 +468,17 @@ export function LedgerEntryDialog({
                               {it.fase && (
                                 <span className="text-muted-foreground"> — {phaseLabel(it.fase)}</span>
                               )}
+                              {it.detalle.trim() && (
+                                <span className="text-muted-foreground"> — {it.detalle.trim()}</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <Input
+                                value={it.detalle}
+                                onChange={(e) => onItemDetailChange(it.key, e.target.value)}
+                                placeholder={tt("mov_items_detail_ph")}
+                                className="h-7 w-32"
+                              />
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">{unitLabel(it.unidad)}</td>
                             <td className="px-2 py-1.5 text-right">
@@ -495,7 +516,7 @@ export function LedgerEntryDialog({
                       </tbody>
                       <tfoot>
                         <tr>
-                          <td colSpan={4} className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground">
+                          <td colSpan={5} className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground">
                             {tt("mov_items_total")}
                           </td>
                           <td className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-foreground">

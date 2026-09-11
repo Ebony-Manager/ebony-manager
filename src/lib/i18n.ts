@@ -821,6 +821,8 @@ export const strings = {
       es: "No hay tarifas activas para este tipo de contratista.",
       en: "No active rates for this contractor type.",
     },
+    mov_items_col_detail: { es: "Detalle", en: "Detail" },
+    mov_items_detail_ph: { es: "ej. Mueble de TV", en: "e.g. TV unit" },
     mov_items_col_qty: { es: "Cantidad", en: "Quantity" },
     mov_items_col_subtotal: { es: "Subtotal", en: "Subtotal" },
     mov_items_total: { es: "Total de ítems", en: "Items total" },

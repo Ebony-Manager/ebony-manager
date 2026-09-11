@@ -133,6 +133,11 @@ export interface ContractorLedgerEntryItem {
   /** Solo trazabilidad; null si la tarifa de origen se borró después. */
   laborRateId: string | null;
   descripcion: string;
+  /** Nota opcional de la pieza específica de mueble a la que corresponde
+   *  esta línea (ej. "Mueble de TV") — para cuando un mismo ítem del
+   *  catálogo se factura varias veces en el mismo proyecto por piezas
+   *  distintas. */
+  detalle: string | null;
   fase: LaborRatePhase | null;
   unidad: LaborRateUnit;
   /** Precio de `labor_rates` AL MOMENTO de agregar el ítem — congelado,

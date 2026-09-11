@@ -98,6 +98,7 @@ function mapLedgerEntryItem(r: LedgerEntryItemRow): ContractorLedgerEntryItem {
     ledgerEntryId: r.ledger_entry_id,
     laborRateId: r.labor_rate_id,
     descripcion: r.descripcion,
+    detalle: r.detalle,
     fase: r.fase === "armado" || r.fase === "instalacion" ? r.fase : null,
     unidad: r.unidad as LaborRateUnit,
     precioUnitarioCents: r.precio_unitario_cents,
@@ -352,6 +353,8 @@ export async function deleteContractor(id: string): Promise<void> {
 export interface LedgerEntryItemInput {
   laborRateId: string | null;
   descripcion: string;
+  /** Nota opcional de la pieza específica de mueble (ej. "Mueble de TV"). */
+  detalle: string | null;
   fase: LaborRatePhase | null;
   unidad: LaborRateUnit;
   precioUnitarioCents: number;
@@ -416,6 +419,7 @@ async function replaceLedgerEntryItems(ledgerEntryId: string, items: LedgerEntry
       ledger_entry_id: ledgerEntryId,
       labor_rate_id: it.laborRateId,
       descripcion: it.descripcion,
+      detalle: it.detalle,
       fase: it.fase,
       unidad: it.unidad,
       precio_unitario_cents: it.precioUnitarioCents,

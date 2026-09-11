@@ -115,6 +115,7 @@ export type Database = {
           cantidad: number
           created_at: string
           descripcion: string
+          detalle: string | null
           fase: string | null
           id: string
           labor_rate_id: string | null
@@ -127,6 +128,7 @@ export type Database = {
           cantidad: number
           created_at?: string
           descripcion: string
+          detalle?: string | null
           fase?: string | null
           id?: string
           labor_rate_id?: string | null
@@ -139,6 +141,7 @@ export type Database = {
           cantidad?: number
           created_at?: string
           descripcion?: string
+          detalle?: string | null
           fase?: string | null
           id?: string
           labor_rate_id?: string | null
