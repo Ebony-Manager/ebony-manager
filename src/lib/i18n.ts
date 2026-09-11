@@ -494,6 +494,50 @@ export const strings = {
     compact_col_bonif: { es: "Total bonificaciones", en: "Total bonuses" },
     compact_col_desc: { es: "Total descuentos", en: "Total deductions" },
     compact_col_prestaciones: { es: "Total prestaciones", en: "Total benefits" },
+
+    // Panorama (Tanda 3/6) — vista de lectura en lenguaje simple, sin
+    // jerga contable, pensada para alguien sin experiencia financiera.
+    tab_panorama: { es: "Panorama", en: "Overview" },
+    pan_title: { es: "Panorama", en: "Overview" },
+    pan_subtitle: {
+      es: "Un vistazo simple a cómo va cada quien este año.",
+      en: "A simple look at how everyone's doing this year.",
+    },
+    pan_overview_title: { es: "En general", en: "Overall" },
+    pan_overview_decimo_pre: { es: "La empresa lleva acumulado", en: "The company has accrued" },
+    pan_overview_decimo_post: {
+      es: "de Décimo (aguinaldo), que toca pagar el",
+      en: "in 13th-month bonus, due on",
+    },
+    pan_overview_vacacion_pre: { es: "También lleva acumulado", en: "It has also accrued" },
+    pan_overview_vacacion_post: {
+      es: "en vacaciones de los empleados activos.",
+      en: "in vacation for active employees.",
+    },
+    pan_overview_loans_none: {
+      es: "Ningún empleado tiene préstamos ni adelantos pendientes.",
+      en: "No employee has pending loans or advances.",
+    },
+    pan_overview_loans_pre: {
+      es: "Hay préstamos o adelantos pendientes con",
+      en: "There are pending loans or advances with",
+    },
+    pan_overview_loans_mid: { es: "empleado(s), por un total de", en: "employee(s), for a total of" },
+    pan_no_employees: { es: "Todavía no hay empleados activos.", en: "No active employees yet." },
+    pan_paid_this_year_pre: { es: "Le hemos pagado", en: "We've paid them" },
+    pan_paid_this_year_post: { es: "este año.", en: "this year." },
+    pan_no_activity: {
+      es: "Todavía no se le ha registrado ningún pago este año.",
+      en: "No payments have been recorded for them yet this year.",
+    },
+    pan_up_to_date: { es: "Está al día con sus pagos.", en: "They're up to date with their payments." },
+    pan_pending_payments: {
+      es: "Tiene pagos de este año que todavía no se han marcado como pagados.",
+      en: "They have payments this year that haven't been marked as paid yet.",
+    },
+    pan_owes_loans_pre: { es: "Debe", en: "They owe" },
+    pan_owes_loans_post: { es: "en préstamos o adelantos.", en: "in loans or advances." },
+    pan_no_loans: { es: "Sin préstamos ni adelantos pendientes.", en: "No pending loans or advances." },
   },
 
   // Módulo Contratistas (Fase 2, Etapa 1). Solo-admin. Ebanistas y

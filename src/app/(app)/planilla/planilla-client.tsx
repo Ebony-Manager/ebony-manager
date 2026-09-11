@@ -12,6 +12,7 @@ import { t, strings } from "@/lib/i18n";
 import { RegistroView } from "./registro-view";
 import { EmpleadosView } from "./empleados-view";
 import { DashboardView } from "./dashboard-view";
+import { PanoramaView } from "./panorama-view";
 import { AuditoriaView } from "./auditoria-view";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
 import { EmployeeFormDialog } from "./employee-form-dialog";
@@ -30,12 +31,14 @@ function readStoredColumns(): Record<ColumnKey, boolean> | null {
 }
 
 /**
- * Chrome del módulo Planilla (Fase 2 completa): Dashboard, Registro,
- * Auditoría y Empleados, + el sheet de Detalle (abierto desde Registro)
- * y "Agregar empleado". La vieja pestaña "Resumen Anual" se retiró
- * (Taller · Tanda 1): su función la reemplaza el Historial dentro del
- * perfil de cada empleado (`/planilla/[id]`), que también es donde
- * "Empleados" navega ahora en vez de abrir un sheet.
+ * Chrome del módulo Planilla (Fase 2 completa): Dashboard, Panorama,
+ * Registro, Auditoría y Empleados, + el sheet de Detalle (abierto desde
+ * Registro) y "Agregar empleado". La vieja pestaña "Resumen Anual" se
+ * retiró (Taller · Tanda 1): su función la reemplaza el Historial dentro
+ * del perfil de cada empleado (`/planilla/[id]`), que también es donde
+ * "Empleados" navega ahora en vez de abrir un sheet. "Panorama" (Tanda 3)
+ * es la misma idea en lenguaje simple, sin jerga — Dashboard sigue
+ * siendo el panel financiero, sin tocar.
  *
  * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro,
  * persistido) viven acá para sobrevivir al cambio de tab.
@@ -82,6 +85,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
       <Tabs defaultValue="registro">
         <TabsList className="flex-wrap">
           <TabsTrigger value="dashboard">{tt("tab_dashboard")}</TabsTrigger>
+          <TabsTrigger value="panorama">{tt("tab_panorama")}</TabsTrigger>
           <TabsTrigger value="registro">{tt("tab_registro")}</TabsTrigger>
           <TabsTrigger value="auditoria">{tt("tab_auditoria")}</TabsTrigger>
           <TabsTrigger value="empleados">{tt("tab_empleados")}</TabsTrigger>
@@ -89,6 +93,9 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
 
         <TabsContent value="dashboard" className="pt-4">
           <DashboardView year={year} onYearChange={setYear} />
+        </TabsContent>
+        <TabsContent value="panorama" className="pt-4">
+          <PanoramaView />
         </TabsContent>
         <TabsContent value="registro" className="pt-4">
           <RegistroView
