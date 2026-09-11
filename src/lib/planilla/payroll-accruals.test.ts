@@ -83,6 +83,9 @@ function makeEmployee(
     emergencyContactName: null,
     emergencyContactPhone: null,
     contractInfo: null,
+    bankName: null,
+    bankAccountType: null,
+    bankAccountNumber: null,
   };
 }
 

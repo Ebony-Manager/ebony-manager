@@ -256,6 +256,9 @@ export type Database = {
       }
       payroll_employees: {
         Row: {
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_name: string | null
           base_salary_cents: number
           benefits_base_salary_cents: number | null
           contract_info: string | null
@@ -276,6 +279,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
           contract_info?: string | null
@@ -296,6 +302,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
           contract_info?: string | null

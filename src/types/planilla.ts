@@ -17,6 +17,8 @@
 
 export type EmployeeStatus = "ACTIVE" | "INACTIVE";
 
+export type BankAccountType = "ahorro" | "corriente";
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -44,6 +46,12 @@ export interface PayrollEmployee {
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   contractInfo: string | null;
+  /** Cuenta donde se le paga. Base para el export a Banco General
+   *  (Tanda 5) — si el formato real necesita más campos, se agregan
+   *  entonces. Los tres son independientes y opcionales. */
+  bankName: string | null;
+  bankAccountType: BankAccountType | null;
+  bankAccountNumber: string | null;
 }
 
 export type PaymentMethod = "efectivo" | "transferencia" | "yappy" | "cheque";

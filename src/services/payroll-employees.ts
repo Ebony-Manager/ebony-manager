@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import type { PayrollEmployee } from "@/types/planilla";
+import type { BankAccountType, PayrollEmployee } from "@/types/planilla";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { periodFromDateString } from "@/lib/planilla/payroll-accruals";
 import { insertInitialSalaryChange, recomputeCurrentSalary } from "@/services/payroll-salary";
@@ -45,6 +45,9 @@ function mapEmployee(r: Row): PayrollEmployee {
     emergencyContactName: r.emergency_contact_name,
     emergencyContactPhone: r.emergency_contact_phone,
     contractInfo: r.contract_info,
+    bankName: r.bank_name,
+    bankAccountType: r.bank_account_type === "ahorro" || r.bank_account_type === "corriente" ? r.bank_account_type : null,
+    bankAccountNumber: r.bank_account_number,
   };
 }
 
@@ -84,6 +87,9 @@ export interface CreatePayrollEmployeeInput {
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
+  bankName?: string | null;
+  bankAccountType?: BankAccountType | null;
+  bankAccountNumber?: string | null;
 }
 
 export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): Promise<PayrollEmployee> {
@@ -112,6 +118,9 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       emergency_contact_name: input.emergencyContactName ?? null,
       emergency_contact_phone: input.emergencyContactPhone ?? null,
       contract_info: input.contractInfo ?? null,
+      bank_name: input.bankName ?? null,
+      bank_account_type: input.bankAccountType ?? null,
+      bank_account_number: input.bankAccountNumber ?? null,
       sort_order: nextSort,
     })
     .select("*")
@@ -152,6 +161,9 @@ export interface UpdatePayrollEmployeeInput {
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
+  bankName?: string | null;
+  bankAccountType?: BankAccountType | null;
+  bankAccountNumber?: string | null;
   // NOTA: sin baseSalaryCents / benefitsBaseSalaryCents a propósito. El
   // sueldo solo se cambia registrando un aumento en payroll_salary_changes.
 }
@@ -172,6 +184,9 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.emergencyContactName !== undefined) patch.emergency_contact_name = input.emergencyContactName;
   if (input.emergencyContactPhone !== undefined) patch.emergency_contact_phone = input.emergencyContactPhone;
   if (input.contractInfo !== undefined) patch.contract_info = input.contractInfo;
+  if (input.bankName !== undefined) patch.bank_name = input.bankName;
+  if (input.bankAccountType !== undefined) patch.bank_account_type = input.bankAccountType;
+  if (input.bankAccountNumber !== undefined) patch.bank_account_number = input.bankAccountNumber;
 
   if (Object.keys(patch).length === 0) return;
 

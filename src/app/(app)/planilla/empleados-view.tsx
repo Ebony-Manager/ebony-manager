@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Search, Phone, IdCard, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Search, Phone, IdCard } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Input } from "@/components/ui/input";
@@ -9,28 +10,20 @@ import { Badge } from "@/components/ui/badge";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { EmployeeAvatar } from "./employee-avatar";
-import { EmployeeProfileSheet } from "./employee-profile-sheet";
 
 /**
  * Directorio de empleados — tarjeta de contacto por persona
- * (nombre/posición/teléfono/cédula), click para abrir el perfil
- * completo. Rejilla de tarjetas en vez de la tabla densa de Registro:
+ * (nombre/posición/teléfono/cédula), click para ir al perfil completo
+ * (`/planilla/[id]`, pantalla completa — incluye el Historial de
+ * quincenas). Rejilla de tarjetas en vez de la tabla densa de Registro:
  * este tab es sobre QUIÉN es alguien, no su pago. Filtra en el cliente
  * sobre `employees` ya cargado — sin fetch extra. Portado de Atlas.
  */
-export function EmpleadosView({
-  employees,
-  onViewDetail,
-}: {
-  employees: PayrollEmployee[];
-  /** Abre el sheet de Detalle del empleado (año en curso). */
-  onViewDetail?: (employeeId: string) => void;
-}) {
+export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [query, setQuery] = React.useState("");
-  const [profileEmployeeId, setProfileEmployeeId] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,16 +39,14 @@ export function EmpleadosView({
 
   const active = filtered.filter((e) => e.status === "ACTIVE");
   const inactive = filtered.filter((e) => e.status === "INACTIVE");
-  const profileEmployee = employees.find((e) => e.id === profileEmployeeId) ?? null;
 
   function Card({ employee }: { employee: PayrollEmployee }) {
     return (
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30">
-        <button
-          type="button"
-          onClick={() => setProfileEmployeeId(employee.id)}
-          className="flex items-center gap-3 text-left"
-        >
+      <Link
+        href={`/planilla/${employee.id}`}
+        className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+      >
+        <div className="flex items-center gap-3">
           <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="md" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{employee.name}</p>
@@ -66,7 +57,7 @@ export function EmpleadosView({
               {tt("inactive")}
             </Badge>
           )}
-        </button>
+        </div>
         <div className="flex flex-col gap-1 border-t border-border pt-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Phone className="size-3.5 shrink-0" />
@@ -77,17 +68,7 @@ export function EmpleadosView({
             {employee.idDocument || tt("no_id")}
           </span>
         </div>
-        {onViewDetail && (
-          <button
-            type="button"
-            onClick={() => onViewDetail(employee.id)}
-            className="-mb-1 flex items-center gap-1 self-end text-xs font-medium text-primary hover:underline"
-          >
-            {tt("view_detail_annual")}
-            <ChevronRight className="size-3.5" />
-          </button>
-        )}
-      </div>
+      </Link>
     );
   }
 
@@ -138,12 +119,6 @@ export function EmpleadosView({
           )}
         </div>
       )}
-
-      <EmployeeProfileSheet
-        employee={profileEmployee}
-        open={profileEmployeeId !== null}
-        onOpenChange={(open) => !open && setProfileEmployeeId(null)}
-      />
     </div>
   );
 }

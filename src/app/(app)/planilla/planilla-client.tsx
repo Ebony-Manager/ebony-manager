@@ -12,7 +12,6 @@ import { t, strings } from "@/lib/i18n";
 import { RegistroView } from "./registro-view";
 import { EmpleadosView } from "./empleados-view";
 import { DashboardView } from "./dashboard-view";
-import { ResumenView } from "./resumen-view";
 import { AuditoriaView } from "./auditoria-view";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
 import { EmployeeFormDialog } from "./employee-form-dialog";
@@ -32,11 +31,14 @@ function readStoredColumns(): Record<ColumnKey, boolean> | null {
 
 /**
  * Chrome del módulo Planilla (Fase 2 completa): Dashboard, Registro,
- * Resumen Anual, Auditoría y Empleados, + el sheet de Detalle (abierto
- * desde Registro, Resumen y el Directorio) y "Agregar empleado".
+ * Auditoría y Empleados, + el sheet de Detalle (abierto desde Registro)
+ * y "Agregar empleado". La vieja pestaña "Resumen Anual" se retiró
+ * (Taller · Tanda 1): su función la reemplaza el Historial dentro del
+ * perfil de cada empleado (`/planilla/[id]`), que también es donde
+ * "Empleados" navega ahora en vez de abrir un sheet.
  *
- * `year` (Dashboard/Resumen/Auditoría/Detalle) y `visibleColumns`
- * (Registro, persistido) viven acá para sobrevivir al cambio de tab.
+ * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro,
+ * persistido) viven acá para sobrevivir al cambio de tab.
  */
 export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) {
   const { lang } = useLang();
@@ -81,7 +83,6 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
         <TabsList className="flex-wrap">
           <TabsTrigger value="dashboard">{tt("tab_dashboard")}</TabsTrigger>
           <TabsTrigger value="registro">{tt("tab_registro")}</TabsTrigger>
-          <TabsTrigger value="resumen">{tt("tab_resumen")}</TabsTrigger>
           <TabsTrigger value="auditoria">{tt("tab_auditoria")}</TabsTrigger>
           <TabsTrigger value="empleados">{tt("tab_empleados")}</TabsTrigger>
         </TabsList>
@@ -97,14 +98,11 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
             onViewDetail={setDetailEmployeeId}
           />
         </TabsContent>
-        <TabsContent value="resumen" className="pt-4">
-          <ResumenView year={year} onYearChange={setYear} onViewDetail={setDetailEmployeeId} />
-        </TabsContent>
         <TabsContent value="auditoria" className="pt-4">
           <AuditoriaView year={year} onYearChange={setYear} />
         </TabsContent>
         <TabsContent value="empleados" className="pt-4">
-          <EmpleadosView employees={employees} onViewDetail={setDetailEmployeeId} />
+          <EmpleadosView employees={employees} />
         </TabsContent>
       </Tabs>
 

@@ -122,12 +122,10 @@ export const strings = {
       en: "Add at least one employee to start recording payments.",
     },
     loading: { es: "Cargando…", en: "Loading…" },
-    view_detail: { es: "Ver detalle", en: "View detail" },
     view_detail_annual: { es: "Ver detalle anual", en: "View annual detail" },
 
     // Tabs B2
     tab_dashboard: { es: "Dashboard", en: "Dashboard" },
-    tab_resumen: { es: "Resumen Anual", en: "Annual Summary" },
     tab_auditoria: { es: "Auditoría", en: "Audit" },
 
     // Categorías (leyendas)
@@ -242,18 +240,6 @@ export const strings = {
     liq_f_notes: { es: "Notas de liquidación", en: "Settlement notes" },
     liq_f_date_required: { es: "La fecha es obligatoria.", en: "Date is required." },
 
-    // Resumen Anual
-    resumen_title: { es: "Resumen Anual", en: "Annual Summary" },
-    resumen_subtitle: {
-      es: "Vista anual por empleado. Haz clic en un empleado para ver el desglose mensual y por concepto.",
-      en: "Annual view per employee. Click an employee for the monthly and per-concept breakdown.",
-    },
-    project_next: { es: "Proyectar próximos meses", en: "Project upcoming months" },
-    stat_total_anual: { es: "Total Anual", en: "Annual Total" },
-    stat_pagado: { es: "Pagado", en: "Paid" },
-    stat_pendiente: { es: "Pendiente", en: "Pending" },
-    stat_prom_mensual: { es: "Prom. mensual", en: "Monthly avg." },
-    months_label: { es: "meses", en: "months" },
     active_label: { es: "Activo", en: "Active" },
     inactive_label: { es: "Inactivo", en: "Inactive" },
     base_salary_month: { es: "Salario base", en: "Base salary" },
@@ -261,17 +247,10 @@ export const strings = {
     liquidated_on: { es: "Liquidado", en: "Settled" },
     last_liquidation: { es: "Última liquidación", en: "Last settlement" },
     liq_notes_title: { es: "Notas de liquidación", en: "Settlement notes" },
-    desglose_concepto: { es: "Desglose anual por concepto", en: "Annual breakdown by concept" },
     no_longer_work_full: { es: "Empleados que no laboran más", en: "Employees no longer working" },
-    no_employees_yet: { es: "Sin empleados todavía.", en: "No employees yet." },
     mark_inactive: { es: "Marcar como inactivo", en: "Mark as inactive" },
     reactivate: { es: "Reactivar", en: "Reactivate" },
-    concept_salario_base: { es: "Salario Base", en: "Base Salary" },
     concept_decimo: { es: "Décimo", en: "13th Month" },
-    concept_vacaciones: { es: "Vacaciones", en: "Vacation" },
-    concept_prima: { es: "Prima Antigüedad", en: "Seniority Premium" },
-    concept_descuentos: { es: "Descuentos", en: "Deductions" },
-    concept_prestamos: { es: "Préstamos", en: "Loans" },
     chart_total: { es: "Total", en: "Total" },
     chart_acumulado: { es: "Acumulado", en: "Cumulative" },
 
@@ -461,6 +440,37 @@ export const strings = {
     delete_type_name: { es: "Para confirmar, escribe el nombre exacto:", en: "To confirm, type the exact name:" },
     delete_confirm: { es: "Eliminar para siempre", en: "Delete permanently" },
     delete_done: { es: "Empleado eliminado", en: "Employee deleted" },
+
+    // Perfil del empleado a pantalla completa (Taller · Tanda 1).
+    settings_menu: { es: "Ajustes del empleado", en: "Employee settings" },
+    back_to_employees: { es: "Volver a Empleados", en: "Back to Employees" },
+    details_title: { es: "Datos personales", en: "Personal details" },
+
+    // Cuenta bancaria — base para el export a Banco General (Tanda 5).
+    bank_section_title: { es: "Cuenta bancaria", en: "Bank account" },
+    f_bank_name: { es: "Banco", en: "Bank" },
+    f_bank_account_type: { es: "Tipo de cuenta", en: "Account type" },
+    bank_type_ahorro: { es: "Ahorro", en: "Savings" },
+    bank_type_corriente: { es: "Corriente", en: "Checking" },
+    f_bank_account_number: { es: "Número de cuenta", en: "Account number" },
+    no_bank_account: { es: "Sin cuenta bancaria registrada", en: "No bank account on file" },
+
+    // Historial (de solo lectura) dentro del perfil — reemplaza a la
+    // pestaña global "Resumen Anual", ahora por empleado.
+    hist_title: { es: "Historial", en: "History" },
+    hist_subtitle: {
+      es: "Detalle de quincenas, de solo lectura. Para editar, usa Registro.",
+      en: "Period detail, read-only. To edit, use Registro.",
+    },
+    hist_overview_toggle: { es: "Panorama anual", en: "Annual overview" },
+    hist_total_paid: { es: "Total pagado", en: "Total paid" },
+    hist_decimo_accrued: { es: "Décimo acumulado", en: "13th month accrued" },
+    hist_vacacion_accrued: { es: "Vacación acumulada", en: "Vacation accrued" },
+    hist_prima_accrued: { es: "Prima de antigüedad acumulada", en: "Seniority bonus accrued" },
+    hist_accrued_hint: {
+      es: "Acumulado a la fecha, calculado — nunca guardado.",
+      en: "Accrued to date, computed — never stored.",
+    },
   },
 
   // Módulo Contratistas (Fase 2, Etapa 1). Solo-admin. Ebanistas y

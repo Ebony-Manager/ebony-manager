@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-import type { PayrollEmployee } from "@/types/planilla";
+import type { BankAccountType, PayrollEmployee } from "@/types/planilla";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createEmployeeAction, updateEmployeeAction } from "./actions";
+
+const NO_ACCOUNT_TYPE = "__none__";
 
 /**
  * Alta y edición de un empleado de planilla en un solo diálogo. Inputs
@@ -44,6 +47,9 @@ interface FormState {
   emergencyContactPhone: string;
   contractInfo: string;
   notes: string;
+  bankName: string;
+  bankAccountType: BankAccountType | typeof NO_ACCOUNT_TYPE;
+  bankAccountNumber: string;
 }
 
 const EMPTY: FormState = {
@@ -58,6 +64,9 @@ const EMPTY: FormState = {
   emergencyContactPhone: "",
   contractInfo: "",
   notes: "",
+  bankName: "",
+  bankAccountType: NO_ACCOUNT_TYPE,
+  bankAccountNumber: "",
 };
 
 function fromEmployee(e: PayrollEmployee): FormState {
@@ -73,6 +82,9 @@ function fromEmployee(e: PayrollEmployee): FormState {
     emergencyContactPhone: e.emergencyContactPhone ?? "",
     contractInfo: e.contractInfo ?? "",
     notes: e.notes ?? "",
+    bankName: e.bankName ?? "",
+    bankAccountType: e.bankAccountType ?? NO_ACCOUNT_TYPE,
+    bankAccountNumber: e.bankAccountNumber ?? "",
   };
 }
 
@@ -132,6 +144,9 @@ export function EmployeeFormDialog({
         emergencyContactPhone: form.emergencyContactPhone.trim() || null,
         contractInfo: form.contractInfo.trim() || null,
         notes: form.notes.trim() || null,
+        bankName: form.bankName.trim() || null,
+        bankAccountType: form.bankAccountType === NO_ACCOUNT_TYPE ? null : form.bankAccountType,
+        bankAccountNumber: form.bankAccountNumber.trim() || null,
       };
       if (mode === "edit" && employee) {
         await updateEmployeeAction(employee.id, common);
@@ -251,6 +266,41 @@ export function EmployeeFormDialog({
             <Field label={tt("f_notes")} className="sm:col-span-2">
               <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
             </Field>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-border pt-4">
+            <h3 className="text-sm font-medium text-foreground">{tt("bank_section_title")}</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tt("f_bank_name")}>
+                <Input
+                  value={form.bankName}
+                  onChange={(e) => set("bankName", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("f_bank_account_type")}>
+                <Select
+                  value={form.bankAccountType}
+                  onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_ACCOUNT_TYPE}>{tt("f_optional")}</SelectItem>
+                    <SelectItem value="ahorro">{tt("bank_type_ahorro")}</SelectItem>
+                    <SelectItem value="corriente">{tt("bank_type_corriente")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tt("f_bank_account_number")} className="sm:col-span-2">
+                <Input
+                  value={form.bankAccountNumber}
+                  onChange={(e) => set("bankAccountNumber", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
