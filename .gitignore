@@ -15,6 +15,11 @@ node_modules/
 # misc
 .DS_Store
 
+# CSVs sueltos en la raíz (ej. exports/limpiezas de datos que no deben
+# quedar trackeados por accidente) — un CSV real de datos vive fuera del
+# repo, no en la raíz del proyecto.
+/*.csv
+
 # legacy (Vite) artifacts, kept out even though the source under
 # _legacy/ itself is tracked
 _legacy/node_modules/
