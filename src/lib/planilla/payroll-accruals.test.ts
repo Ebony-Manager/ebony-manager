@@ -86,6 +86,7 @@ function makeEmployee(
     bankName: null,
     bankAccountType: null,
     bankAccountNumber: null,
+    bankRoutingCode: null,
   };
 }
 

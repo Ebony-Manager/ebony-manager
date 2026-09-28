@@ -50,6 +50,7 @@ interface FormState {
   bankName: string;
   bankAccountType: BankAccountType | typeof NO_ACCOUNT_TYPE;
   bankAccountNumber: string;
+  bankRoutingCode: string;
 }
 
 const EMPTY: FormState = {
@@ -67,6 +68,7 @@ const EMPTY: FormState = {
   bankName: "",
   bankAccountType: NO_ACCOUNT_TYPE,
   bankAccountNumber: "",
+  bankRoutingCode: "",
 };
 
 function fromEmployee(e: PayrollEmployee): FormState {
@@ -85,6 +87,7 @@ function fromEmployee(e: PayrollEmployee): FormState {
     bankName: e.bankName ?? "",
     bankAccountType: e.bankAccountType ?? NO_ACCOUNT_TYPE,
     bankAccountNumber: e.bankAccountNumber ?? "",
+    bankRoutingCode: e.bankRoutingCode ?? "",
   };
 }
 
@@ -147,6 +150,7 @@ export function EmployeeFormDialog({
         bankName: form.bankName.trim() || null,
         bankAccountType: form.bankAccountType === NO_ACCOUNT_TYPE ? null : form.bankAccountType,
         bankAccountNumber: form.bankAccountNumber.trim() || null,
+        bankRoutingCode: form.bankRoutingCode.trim() || null,
       };
       if (mode === "edit" && employee) {
         await updateEmployeeAction(employee.id, common);
@@ -293,7 +297,14 @@ export function EmployeeFormDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={tt("f_bank_account_number")} className="sm:col-span-2">
+              <Field label={tt("f_bank_routing_code")}>
+                <Input
+                  value={form.bankRoutingCode}
+                  onChange={(e) => set("bankRoutingCode", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("f_bank_account_number")}>
                 <Input
                   value={form.bankAccountNumber}
                   onChange={(e) => set("bankAccountNumber", e.target.value)}

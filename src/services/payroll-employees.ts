@@ -48,6 +48,7 @@ function mapEmployee(r: Row): PayrollEmployee {
     bankName: r.bank_name,
     bankAccountType: r.bank_account_type === "ahorro" || r.bank_account_type === "corriente" ? r.bank_account_type : null,
     bankAccountNumber: r.bank_account_number,
+    bankRoutingCode: r.bank_routing_code,
   };
 }
 
@@ -90,6 +91,7 @@ export interface CreatePayrollEmployeeInput {
   bankName?: string | null;
   bankAccountType?: BankAccountType | null;
   bankAccountNumber?: string | null;
+  bankRoutingCode?: string | null;
 }
 
 export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): Promise<PayrollEmployee> {
@@ -121,6 +123,7 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       bank_name: input.bankName ?? null,
       bank_account_type: input.bankAccountType ?? null,
       bank_account_number: input.bankAccountNumber ?? null,
+      bank_routing_code: input.bankRoutingCode ?? null,
       sort_order: nextSort,
     })
     .select("*")
@@ -164,6 +167,7 @@ export interface UpdatePayrollEmployeeInput {
   bankName?: string | null;
   bankAccountType?: BankAccountType | null;
   bankAccountNumber?: string | null;
+  bankRoutingCode?: string | null;
   // NOTA: sin baseSalaryCents / benefitsBaseSalaryCents a propósito. El
   // sueldo solo se cambia registrando un aumento en payroll_salary_changes.
 }
@@ -187,6 +191,7 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.bankName !== undefined) patch.bank_name = input.bankName;
   if (input.bankAccountType !== undefined) patch.bank_account_type = input.bankAccountType;
   if (input.bankAccountNumber !== undefined) patch.bank_account_number = input.bankAccountNumber;
+  if (input.bankRoutingCode !== undefined) patch.bank_routing_code = input.bankRoutingCode;
 
   if (Object.keys(patch).length === 0) return;
 

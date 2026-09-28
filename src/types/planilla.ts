@@ -48,10 +48,12 @@ export interface PayrollEmployee {
   contractInfo: string | null;
   /** Cuenta donde se le paga. Base para el export a Banco General
    *  (Tanda 5) — si el formato real necesita más campos, se agregan
-   *  entonces. Los tres son independientes y opcionales. */
+   *  entonces. Los cuatro son independientes y opcionales. */
   bankName: string | null;
   bankAccountType: BankAccountType | null;
   bankAccountNumber: string | null;
+  /** Ruta del banco / código de ruta — texto libre, lo llena el dueño a mano. */
+  bankRoutingCode: string | null;
 }
 
 export type PaymentMethod = "efectivo" | "transferencia" | "yappy" | "cheque";

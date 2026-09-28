@@ -471,6 +471,7 @@ export const strings = {
     bank_type_ahorro: { es: "Ahorro", en: "Savings" },
     bank_type_corriente: { es: "Corriente", en: "Checking" },
     f_bank_account_number: { es: "Número de cuenta", en: "Account number" },
+    f_bank_routing_code: { es: "Ruta del banco (código de ruta)", en: "Bank routing code" },
     no_bank_account: { es: "Sin cuenta bancaria registrada", en: "No bank account on file" },
 
     // Historial (de solo lectura) dentro del perfil — reemplaza a la

@@ -77,7 +77,9 @@ export function EmployeeProfileView({ employee }: { employee: PayrollEmployee })
   }
 
   const isInactive = employee.status === "INACTIVE";
-  const hasBankAccount = Boolean(employee.bankName || employee.bankAccountType || employee.bankAccountNumber);
+  const hasBankAccount = Boolean(
+    employee.bankName || employee.bankAccountType || employee.bankAccountNumber || employee.bankRoutingCode,
+  );
   const bankAccountTypeLabel =
     employee.bankAccountType === "ahorro"
       ? tt("bank_type_ahorro")
@@ -153,7 +155,9 @@ export function EmployeeProfileView({ employee }: { employee: PayrollEmployee })
                     <>
                       <DetailRow label={tt("f_bank_name")} value={employee.bankName} />
                       <DetailRow label={tt("f_bank_account_type")} value={bankAccountTypeLabel} />
+                      <DetailRow label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} />
                       <DetailRow label={tt("f_bank_account_number")} value={employee.bankAccountNumber} />
+                      <DetailRow label={tt("f_id_document")} value={employee.idDocument} />
                     </>
                   ) : (
                     <p className="py-1 text-muted-foreground">{tt("no_bank_account")}</p>
