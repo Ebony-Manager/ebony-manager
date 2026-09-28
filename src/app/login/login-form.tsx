@@ -12,7 +12,7 @@ export function LoginForm() {
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
       <div className="bg-ebony-warm rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
         <div className="mx-auto w-16 h-16 rounded-2xl bg-ebony-dark flex items-center justify-center">
-          <span className="text-ebony-gold font-black text-2xl tracking-tight">E</span>
+          <span className="text-cream-100 font-black text-2xl tracking-tight">E</span>
         </div>
 
         <div>

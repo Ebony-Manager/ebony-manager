@@ -116,7 +116,9 @@ export function RegistroView({
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
 
-  const [palette, setPalette] = React.useState<PayrollPalette>("full");
+  // "sober" por defecto — la marca no tiene acento de color, así que la
+  // vista sobria es la que se ve al abrir Registro.
+  const [palette, setPalette] = React.useState<PayrollPalette>("sober");
   const [view, setView] = React.useState<RegistroView>("expanded");
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {

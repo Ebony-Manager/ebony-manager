@@ -165,7 +165,9 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
   const [visibleGroups, setVisibleGroups] = React.useState<Record<string, boolean>>(defaultVisibleGroups);
   const [showPrestacionesPreview, setShowPrestacionesPreview] = React.useState(true);
   const [showBaseComparison, setShowBaseComparison] = React.useState(true);
-  const [palette, setPalette] = React.useState<PayrollPalette>("full");
+  // "sober" por defecto — la marca no tiene acento de color, así que la
+  // vista sobria es la que se ve al abrir Auditoría.
+  const [palette, setPalette] = React.useState<PayrollPalette>("sober");
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {

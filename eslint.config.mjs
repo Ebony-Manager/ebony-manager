@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Old Vite app, archived as reference — not linted against the new config.
     "_legacy/**",
+    // Brand design-system reference material (gitignored, not part of the app).
+    "_diseño-ebony-fuente/**",
   ]),
 ]);
 

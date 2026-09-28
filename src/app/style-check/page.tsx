@@ -3,10 +3,11 @@
 // Throwaway verification route — NOT part of the real app nav. Shows every
 // piece pulled from Atlas (src/components/ui/) rendered through Ebony's own
 // tokens (globals.css), to confirm the shared-pieces contract actually
-// resolves to Ebony's identity (wood/gold/warm-white, Inter) and not
-// Atlas's (espresso/gold-oklch, Geist). Outside the (app) route group on
-// purpose — no auth gate, so it's reachable without a working Google
-// Client ID while iterating.
+// resolves to Ebony's real identity (ink/stone/cream, no color accent,
+// square corners, Work Sans + Catamaran) and not Atlas's (espresso/
+// gold-oklch, Geist). Outside the (app) route group on purpose — no auth
+// gate, so it's reachable without a working Google Client ID while
+// iterating.
 
 import * as React from "react";
 

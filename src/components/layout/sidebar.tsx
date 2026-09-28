@@ -50,10 +50,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-ebony-medium/30">
           <div>
-            <p className="text-ebony-gold font-bold text-sm tracking-widest uppercase">Ebony</p>
+            <p className="text-cream-100 font-bold text-sm tracking-widest uppercase">Ebony</p>
             <p className="text-ebony-gray/50 text-[10px] tracking-wide">Custom Woodwork</p>
           </div>
-          <button onClick={onClose} className="text-ebony-gray/40 hover:text-ebony-gold md:hidden">
+          <button onClick={onClose} className="text-ebony-gray/40 hover:text-cream-100 md:hidden">
             <X size={16} />
           </button>
         </div>
@@ -70,12 +70,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                   transition-colors duration-100
-                  ${isActive ? "bg-ebony-gold/15 text-ebony-gold" : "text-ebony-gray/70 hover:bg-ebony-medium/30 hover:text-ebony-gray"}
+                  ${isActive ? "bg-cream-100/15 text-cream-100" : "text-ebony-gray/70 hover:bg-ebony-medium/30 hover:text-ebony-gray"}
                 `}
               >
                 <Icon size={16} className="shrink-0" />
                 <span>{t(lang, label)}</span>
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-ebony-gold" />}
+                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-cream-100" />}
               </Link>
             );
           })}

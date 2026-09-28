@@ -11,7 +11,7 @@ export default function AuthCodeErrorPage() {
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
       <div className="bg-ebony-warm rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center space-y-5">
         <div className="mx-auto w-14 h-14 rounded-2xl bg-ebony-dark flex items-center justify-center">
-          <span className="text-ebony-gold font-black text-xl">!</span>
+          <span className="text-cream-100 font-black text-xl">!</span>
         </div>
         <div className="space-y-1.5">
           <h1 className="text-lg font-bold text-ebony-dark">No se pudo iniciar sesión</h1>
@@ -23,7 +23,7 @@ export default function AuthCodeErrorPage() {
         </div>
         <Link
           href="/login"
-          className="inline-block w-full bg-ebony-dark text-ebony-gold rounded-xl px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
+          className="inline-block w-full bg-ebony-dark text-cream-100 rounded-xl px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
         >
           Volver a intentar
         </Link>

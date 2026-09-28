@@ -206,10 +206,12 @@ export function ContractorProfileView({
   const [projFilter, setProjFilter] = React.useState<string>(PROJ_ALL);
   const [groupBy, setGroupBy] = React.useState<LedgerGroupBy>("none");
 
-  // Paleta de la tabla: "full" (fila a todo color, por defecto) o "sober"
-  // (neutra). Arranca en "full" para que el server y el primer render del
-  // cliente coincidan; la preferencia guardada se aplica tras hidratar.
-  const [palette, setPalette] = React.useState<LedgerPalette>("full");
+  // Paleta de la tabla: "full" (fila a todo color) o "sober" (neutra, por
+  // defecto — la marca no tiene acento de color, así que la vista sobria
+  // es la que se ve al abrir). Arranca en "sober" para que el server y el
+  // primer render del cliente coincidan; la preferencia guardada se
+  // aplica tras hidratar.
+  const [palette, setPalette] = React.useState<LedgerPalette>("sober");
   const sober = palette === "sober";
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {

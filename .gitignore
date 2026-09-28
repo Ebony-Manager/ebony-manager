@@ -25,3 +25,6 @@ node_modules/
 _legacy/node_modules/
 _legacy/dist/
 _legacy/vite.config.js.timestamp*
+
+# Material de referencia del diseño de marca (no es parte de la app)
+_diseño-ebony-fuente/

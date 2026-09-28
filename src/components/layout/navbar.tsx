@@ -14,7 +14,7 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="text-ebony-gray hover:text-ebony-gold transition-colors p-1 rounded md:hidden"
+          className="text-ebony-gray hover:text-cream-100 transition-colors p-1 rounded md:hidden"
           aria-label="menu"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -23,13 +23,13 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="text-ebony-gold font-bold tracking-wide text-base select-none">Ebony Manager</span>
+        <span className="text-cream-100 font-bold tracking-wide text-base select-none">Ebony Manager</span>
       </div>
 
       <div className="flex items-center gap-2">
         <button
           onClick={toggle}
-          className="flex items-center gap-1.5 text-xs font-semibold text-ebony-gray hover:text-ebony-gold transition-colors px-2 py-1 rounded-lg border border-ebony-medium/40 hover:border-ebony-gold/40"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ebony-gray hover:text-cream-100 transition-colors px-2 py-1 rounded-lg border border-ebony-medium/40 hover:border-cream-100/40"
         >
           <Globe size={13} />
           {lang.toUpperCase()}
@@ -41,20 +41,20 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
               // eslint-disable-next-line @next/next/no-img-element -- external Google avatar URL, not a local/optimizable asset
               <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-ebony-medium/60" />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-ebony-gold/20 flex items-center justify-center text-ebony-gold text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-cream-100/20 flex items-center justify-center text-cream-100 text-xs font-bold">
                 {user.name?.[0]?.toUpperCase()}
               </div>
             )}
             <span className="text-ebony-gray text-xs hidden sm:block max-w-[120px] truncate">{user.name}</span>
             {role && (
-              <span className="hidden sm:block text-[10px] uppercase tracking-wide text-ebony-gold/70 border border-ebony-gold/30 rounded px-1.5 py-0.5">
+              <span className="hidden sm:block text-[10px] uppercase tracking-wide text-cream-100/70 border border-cream-100/30 rounded px-1.5 py-0.5">
                 {role}
               </span>
             )}
             <button
               onClick={() => void signOut()}
               title={t(lang, strings.auth.signOut)}
-              className="text-ebony-gray/60 hover:text-ebony-gold transition-colors p-1"
+              className="text-ebony-gray/60 hover:text-cream-100 transition-colors p-1"
             >
               <LogOut size={15} />
             </button>

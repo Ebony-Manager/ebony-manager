@@ -30,42 +30,77 @@
 /* =============================================================================
    EBONY — identidad visual (específico de esta app)
 
-   Paleta "Ebony Custom Woodwork": maderas oscuras, blanco cálido, dorado.
-   Estos 7 valores son los ÚNICOS colores de marca; todo lo demás de este
-   archivo los referencia. Vienen sin cambios de tailwind.config.js /
-   index.css de la versión Vite — no se tocó ningún hex en la migración.
+   Paleta REAL de la marca Ebony Custom Woodwork (brand guidelines p.20,
+   ver _diseño-ebony-fuente/tokens/colors.css) — reemplaza la aproximación
+   inventada que había acá antes (maderas/dorado no eran la marca real).
+   Cinco valores y nada más: tinta, tres piedras y una crema. NO hay
+   acento de color en la marca — el énfasis viene de contraste de valor y
+   escala, nunca de un color. Los --status-* son la única adición del
+   sistema real (la guía no define semántica de color; la UI necesita
+   tres), desaturados para calzar con la paleta.
    ============================================================================= */
 
 :root {
-  --ebony-dark: #2c1a0e;
-  --ebony-medium: #5c3a1e;
-  --ebony-light: #8b5e3c;
-  --ebony-warm: #faf7f2;
-  --ebony-gray: #e8e2d9;
-  --ebony-gold: #c9a84c;
-  --ebony-gold-light: #e2c87a;
+  --ink-900: #040707; /* NEGRO — tinta primaria, logo */
+  --ink-700: #2a2c2c; /* negro alzado, para texto largo sobre crema */
+  --stone-500: #a8a8a7; /* Pantone Cool Gray 7 C */
+  --stone-400: #cac1b9; /* Pantone 406 C */
+  --stone-200: #dfdbd6; /* Pantone 2330 C */
+  --cream-100: #f3eddf; /* C6 M7 Y14 K0 */
+  --white: #ffffff;
 
-  /* No estaba en la paleta de marca original — ya se usaba tal cual en el
-     color del ícono de error de los toasts (main.jsx). Se sube a token acá
-     para no dejar un literal suelto. */
-  --ebony-destructive: #dc2626;
+  /* Únicas transparencias del sistema — hairline (bordes) y texto
+     tenue sobre tinta. */
+  --ink-a16: rgba(4, 7, 7, 0.16);
+  --white-a72: rgba(255, 255, 255, 0.72);
 
-  /* Nuevos — descubiertos al traer las piezas de Atlas (badge.tsx tiene
-     variantes success/warning que Ebony no tenía token para). Elegidos
-     para mantener la misma templanza que el resto de la paleta (verde
-     bosque, no un verde saturado de Tailwind; naranja quemado, distinto
-     del dorado de marca para que "warning" nunca se confunda con
-     "énfasis"). Son mi propuesta, no una decisión de marca ya tomada —
-     ajustar si no calzan. */
-  --ebony-success: #4f7942;
-  --ebony-success-foreground: #faf7f2;
-  --ebony-warning: #b0651d;
-  --ebony-warning-foreground: #faf7f2;
+  --status-ok: #5a6b5c;
+  --status-warn: #8c7a4f;
+  --status-error: #8c4f49;
+  --status-info: var(--stone-500);
 
-  --radius: 0.75rem;
+  /* Alias --ebony-* — nombres heredados de la versión Vite. YA NO son una
+     paleta inventada: cada uno resuelve a su equivalente real de arriba.
+     Se conservan (en vez de borrarse) porque payroll-colors.ts y
+     contractor-colors.ts los referencian para las categorías de Planilla
+     y Contratistas — fuera de alcance de este cambio (ver más abajo). El
+     nombre "gold" ya no describe el valor real (ya no existe el dorado);
+     renombrarlos es limpieza pendiente para una pasada aparte, igual que
+     los 47 archivos con rounded-* a mano. */
+  --ebony-dark: var(--ink-900);
+  --ebony-medium: var(--ink-700);
+  --ebony-light: var(--stone-500);
+  --ebony-warm: var(--cream-100);
+  --ebony-gray: var(--stone-200);
+  --ebony-gold: var(--status-warn);
+  --ebony-gold-light: var(--stone-400);
+
+  --ebony-destructive: var(--status-error);
+
+  --ebony-success: var(--status-ok);
+  --ebony-success-foreground: var(--cream-100);
+  --ebony-warning: var(--status-warn);
+  --ebony-warning-foreground: var(--cream-100);
+
+  /* La marca es cuadrada — radius-none del sistema real. Los cálculos de
+     --radius-sm/md/lg/xl de abajo siguen sin tocarse (piden eso aparte);
+     sm/md se acotan a 0 para no terminar en un valor negativo inválido. */
+  --radius: 0px;
 }
 
 @theme inline {
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-stone-500: var(--stone-500);
+  --color-stone-400: var(--stone-400);
+  --color-stone-200: var(--stone-200);
+  --color-cream-100: var(--cream-100);
+
+  /* --color-ebony-* — todavía consumidas como clases bg-ebony-x/text-ebony-x
+     en 6 archivos de chrome (navbar, sidebar, login, etc.) que no se
+     tocaron a fondo en este cambio; solo se corrigieron ahí los usos de
+     "gold" que quedaban ilegibles con el valor real (ver alias arriba).
+     Sin esto, esas clases dejan de existir y Tailwind no compila. */
   --color-ebony-dark: var(--ebony-dark);
   --color-ebony-medium: var(--ebony-medium);
   --color-ebony-light: var(--ebony-light);
@@ -74,66 +109,63 @@
   --color-ebony-gold: var(--ebony-gold);
   --color-ebony-gold-light: var(--ebony-gold-light);
 
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-work-sans);
+  --font-body: var(--font-catamaran);
 }
 
 /* =============================================================================
-   CONTRATO DE PIEZAS COMPARTIDAS — preparación, sin componentes todavía
+   CONTRATO DE PIEZAS COMPARTIDAS — tokens estilo shadcn/ui
 
    Nombres de token estilo shadcn/ui (--background, --primary, --card...)
-   mapeados a los 7 hex de arriba. Hoy nada los usa (la UI existente sigue
-   con las clases bg-ebony-x / text-ebony-x de siempre, sin tocar). Se
-   dejan listos para cuando se traigan las piezas compartidas (Atlas) en
-   un paso futuro: esas piezas van a leer bg-primary/bg-card/border-border,
-   y ya van a resolver al look de Ebony sin que haya que retocar esta hoja.
+   mapeados a la paleta real de arriba, siguiendo los alias semánticos del
+   propio sistema de diseño (surface-page, text-primary, border-hairline,
+   etc. de _diseño-ebony-fuente/tokens/colors.css). NO hay acento de
+   color en la marca: --primary es tinta con texto crema ("Primary
+   button: ink → ink-700" en el hover), no dorado.
 
-   --radius es un valor inferido (coincide con el rounded-xl que ya usa
-   .card) — no había una escala de radio explícita antes; confirmar cuando
-   lleguen las piezas reales. Ver FOUNDATION.md.
-
-   Probado contra las 21 piezas reales de Atlas (ver FOUNDATION.md): el
-   radio se confirmó tal cual. Se agregaron acá tres cosas que ese primer
-   armado no tenía y las piezas sí necesitan: --success/--warning (badge.tsx
-   trae esas variantes), la escala --shadow-* (button/card/dialog/popover/
-   etc. usan shadow-sm/md/lg — quedaban resolviendo a los valores por
-   defecto de Tailwind sin pasar por ningún token propio de Ebony) y
-   --animate-fade-in/--animate-slide-in + sus @keyframes (dialog/sheet/
-   popover/dropdown-menu las usan para la transición de apertura).
+   --radius es 0px (esquinas cuadradas, radius-none del sistema real).
+   sm/md se acotan con max(0px, …) para no terminar en un calc negativo
+   inválido; lg/xl no se tocan — igual que los 47 archivos con rounded-*
+   a mano, es limpieza para una segunda etapa aparte.
    ============================================================================= */
 
 :root {
-  --background: var(--ebony-warm);
-  --foreground: var(--ebony-dark);
+  --background: var(--cream-100);
+  --foreground: var(--ink-900);
 
-  --card: #ffffff;
-  --card-foreground: var(--ebony-dark);
+  --card: var(--white);
+  --card-foreground: var(--ink-900);
 
-  --popover: #ffffff;
-  --popover-foreground: var(--ebony-dark);
+  --popover: var(--white);
+  --popover-foreground: var(--ink-900);
 
-  --primary: var(--ebony-gold);
-  --primary-foreground: var(--ebony-dark);
+  --primary: var(--ink-900);
+  --primary-foreground: var(--cream-100);
 
-  --secondary: var(--ebony-gray);
-  --secondary-foreground: var(--ebony-dark);
+  --secondary: var(--stone-200);
+  --secondary-foreground: var(--ink-900);
 
-  --muted: var(--ebony-gray);
-  --muted-foreground: var(--ebony-light);
+  --muted: var(--stone-200);
+  --muted-foreground: var(--stone-500);
 
-  --accent: var(--ebony-gold-light);
-  --accent-foreground: var(--ebony-dark);
+  --accent: var(--stone-400);
+  --accent-foreground: var(--ink-900);
 
-  --destructive: var(--ebony-destructive);
-  --destructive-foreground: #ffffff;
+  --destructive: var(--status-error);
+  --destructive-foreground: var(--cream-100);
 
-  --success: var(--ebony-success);
-  --success-foreground: var(--ebony-success-foreground);
-  --warning: var(--ebony-warning);
-  --warning-foreground: var(--ebony-warning-foreground);
+  --success: var(--status-ok);
+  --success-foreground: var(--cream-100);
+  --warning: var(--status-warn);
+  --warning-foreground: var(--cream-100);
 
-  --border: var(--ebony-gray);
-  --input: var(--ebony-gray);
-  --ring: var(--ebony-gold);
+  /* El hairline (tinta al 16%) es el separador primario de la marca —
+     "Borders & shadows" en el readme del sistema. --input reusa el mismo
+     valor: antes --border/--input también eran idénticos (los dos
+     --ebony-gray). */
+  --border: var(--ink-a16);
+  --input: var(--ink-a16);
+  --ring: var(--ink-900);
 
   /* Realce OPACO de fila en hover, para tablas con columna congelada
      (sticky): la celda sticky necesita fondo sólido y debe usar
@@ -146,12 +178,12 @@
      de edición (focus-within) del Registro de Planilla. */
   --row-focus: color-mix(in oklch, var(--primary) 7%, var(--background));
 
-  --sidebar: var(--ebony-dark);
-  --sidebar-foreground: var(--ebony-gray);
-  --sidebar-border: var(--ebony-medium);
-  --sidebar-accent: var(--ebony-gold);
-  --sidebar-accent-foreground: var(--ebony-dark);
-  --sidebar-muted-foreground: var(--ebony-gray);
+  --sidebar: var(--ink-900);
+  --sidebar-foreground: var(--cream-100);
+  --sidebar-border: var(--ink-700);
+  --sidebar-accent: var(--cream-100);
+  --sidebar-accent-foreground: var(--ink-900);
+  --sidebar-muted-foreground: var(--white-a72);
 }
 
 /* =============================================================================
@@ -251,8 +283,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
 
-  --radius-sm: calc(var(--radius) - 0.375rem);
-  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-sm: max(0px, calc(var(--radius) - 0.375rem));
+  --radius-md: max(0px, calc(var(--radius) - 0.125rem));
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.375rem);
 
@@ -297,51 +329,14 @@
   }
 }
 
-/* =============================================================================
-   EBONY — clases de componente heredadas (idénticas a index.css de la
-   versión Vite, solo trasladadas). Se mantienen tal cual: no se traen
-   piezas compartidas en este paso.
-   ============================================================================= */
-
 @layer components {
-  .btn-primary {
-    @apply bg-ebony-gold hover:bg-ebony-gold-light text-ebony-dark font-semibold px-4 py-2 rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .btn-secondary {
-    @apply bg-ebony-gray hover:bg-ebony-gray/70 text-ebony-dark font-medium px-4 py-2 rounded-lg transition-colors duration-150;
-  }
-
-  .btn-ghost {
-    @apply text-ebony-medium hover:bg-ebony-gray/50 font-medium px-3 py-2 rounded-lg transition-colors duration-150;
-  }
-
-  .card {
-    @apply bg-white rounded-xl shadow-sm border border-ebony-gray/40 p-5;
-  }
-
-  .input {
-    @apply w-full rounded-lg border border-ebony-gray bg-white px-3 py-2 text-sm text-ebony-dark placeholder-ebony-light/60 focus:outline-none focus:ring-2 focus:ring-ebony-gold/50 focus:border-ebony-gold transition-colors;
-  }
-
-  .label {
-    @apply block text-xs font-semibold text-ebony-medium uppercase tracking-wide mb-1;
-  }
-
-  /* Tailwind v4 can't @apply a custom @layer components class from
-     another one (only real utilities) — v3 allowed @apply input here.
-     Spelled out in full instead; same rules as .input, plus
-     appearance-none. */
-  .select {
-    @apply w-full appearance-none rounded-lg border border-ebony-gray bg-white px-3 py-2 text-sm text-ebony-dark placeholder-ebony-light/60 focus:outline-none focus:ring-2 focus:ring-ebony-gold/50 focus:border-ebony-gold transition-colors;
-  }
-
   .skeleton {
     @apply animate-pulse bg-ebony-gray/50 rounded;
   }
 }
 
-/* Custom scrollbar — idéntico al de la versión Vite */
+/* Custom scrollbar — idéntico al de la versión Vite, colores actualizados
+   a la paleta real (antes hex literales sueltos, ni siquiera un token). */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -350,9 +345,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e8e2d9;
+  background: var(--stone-400);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c9a84c;
+  background: var(--ink-700);
 }
