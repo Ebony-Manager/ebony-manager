@@ -25,7 +25,7 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
           </svg>
         </button>
         <div className="flex items-center gap-2">
-          <EbonyLogo variant="isotipo" tone="white" height={20} />
+          <EbonyLogo variant="isotipo" tone="white" height={26} />
           <span className="text-cream-100 font-bold tracking-wide text-base select-none">Manager</span>
         </div>
       </div>

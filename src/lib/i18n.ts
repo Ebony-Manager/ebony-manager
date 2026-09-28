@@ -22,6 +22,13 @@ export const strings = {
     dashboard: { es: "Dashboard", en: "Dashboard" },
     planilla: { es: "Planilla", en: "Payroll" },
     contratistas: { es: "Contratistas", en: "Contractors" },
+    // Rail + panel (Fase 2, sidebar de dos columnas): "Administración" es el
+    // ícono del rail que abre/activa el panel; "Taller" es cómo se llama
+    // Planilla ahí adentro — un nombre corto de sección, no el título de la
+    // página (esa sigue diciendo "Planilla" en su propio encabezado).
+    administracion: { es: "Administración", en: "Administration" },
+    panel_section_planillas: { es: "Planillas", en: "Payroll" },
+    taller: { es: "Taller", en: "Workshop" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el

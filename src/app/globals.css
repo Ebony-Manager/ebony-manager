@@ -130,7 +130,7 @@
    ============================================================================= */
 
 :root {
-  --background: var(--cream-100);
+  --background: var(--white);
   --foreground: var(--ink-900);
 
   --card: var(--white);
