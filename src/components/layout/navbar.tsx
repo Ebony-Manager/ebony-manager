@@ -4,6 +4,7 @@ import { LogOut, Globe } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { EbonyLogo } from "@/components/brand/ebony-logo";
 
 export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, role, signOut } = useAuth();
@@ -23,7 +24,10 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="text-cream-100 font-bold tracking-wide text-base select-none">Ebony Manager</span>
+        <div className="flex items-center gap-2">
+          <EbonyLogo variant="isotipo" tone="white" height={20} />
+          <span className="text-cream-100 font-bold tracking-wide text-base select-none">Manager</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

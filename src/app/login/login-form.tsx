@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { EbonyLogo } from "@/components/brand/ebony-logo";
 
 export function LoginForm() {
   const { signInWithGoogle, loading } = useAuth();
@@ -11,8 +12,11 @@ export function LoginForm() {
   return (
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
       <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
-        <div className="mx-auto w-16 h-16 rounded-none bg-ebony-dark flex items-center justify-center">
-          <span className="text-cream-100 font-black text-2xl tracking-tight">E</span>
+        {/* Sin bg-ebony-dark: isotipo-black.png ya es la marca oscura, y
+            esta tarjeta (bg-ebony-warm) es clara — un fondo oscuro detrás
+            la volvería a tapar, como pasaba con la "E" antes. */}
+        <div className="mx-auto flex h-16 items-center justify-center">
+          <EbonyLogo variant="isotipo" tone="black" height={28} />
         </div>
 
         <div>

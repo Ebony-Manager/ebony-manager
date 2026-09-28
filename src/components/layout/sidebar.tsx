@@ -6,6 +6,7 @@ import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, X, ty
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
+import { EbonyLogo } from "@/components/brand/ebony-logo";
 
 interface NavItem {
   href: string;
@@ -50,7 +51,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-ebony-medium/30">
           <div>
-            <p className="text-cream-100 font-bold text-sm tracking-widest uppercase">Ebony</p>
+            <EbonyLogo variant="wordmark" tone="white" height={18} />
             <p className="text-ebony-gray/50 text-[10px] tracking-wide">Custom Woodwork</p>
           </div>
           <button onClick={onClose} className="text-ebony-gray/40 hover:text-cream-100 md:hidden">
