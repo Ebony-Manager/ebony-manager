@@ -428,7 +428,7 @@ export function LedgerEntryDialog({
             {/* Ítems de trabajo — solo categoría 'trabajo'. Al agregar al
                 menos uno, reemplazan el monto a mano (ver bloque de abajo). */}
             {isWorkCategory && (
-              <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+              <div className="flex flex-col gap-3 rounded-none border border-border p-3">
                 <span className="text-xs font-medium text-muted-foreground">{tt("mov_items_title")}</span>
 
                 <Select value={itemPicker} onValueChange={onPickItem}>
@@ -452,7 +452,7 @@ export function LedgerEntryDialog({
                 </Select>
 
                 {items.length > 0 && (
-                  <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-md border border-border">
+                  <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-none border border-border">
                     <table className="w-full min-w-[560px] border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
@@ -562,7 +562,7 @@ export function LedgerEntryDialog({
             {/* Monto: calculado desde los ítems (solo lectura) o fijo /
                 m² × costo/m² a mano — igual que antes cuando no hay ítems. */}
             {hasItems ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-none border border-border bg-muted/30 px-3 py-2.5">
                 <div>
                   <p className="text-sm font-medium text-foreground">{tt("mov_f_amount_mode")}</p>
                   <p className="text-xs text-muted-foreground">{tt("mov_amount_from_items")}</p>
@@ -572,7 +572,7 @@ export function LedgerEntryDialog({
                 </span>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+              <div className="flex flex-col gap-3 rounded-none border border-border p-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
                   <Button
@@ -638,12 +638,12 @@ export function LedgerEntryDialog({
             )}
 
             {showMaterialToggle && (
-              <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+              <label className="flex items-start gap-2 rounded-none border border-border p-3 text-sm">
                 <input
                   type="checkbox"
                   checked={ebonyAbsorbs}
                   onChange={(e) => setEbonyAbsorbs(e.target.checked)}
-                  className="mt-0.5 size-4 rounded border-input accent-primary"
+                  className="mt-0.5 size-4 rounded-none border-input accent-primary"
                 />
                 <span>
                   <span className="font-medium text-foreground">{tt("mov_f_ebony_absorbs")}</span>

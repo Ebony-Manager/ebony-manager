@@ -265,7 +265,7 @@ export function RegistroView({
 
   if (employees.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-none border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
         {tt("empty_registro")}
       </div>
     );
@@ -343,7 +343,7 @@ export function RegistroView({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-md border border-border px-1">
+        <div className="flex items-center gap-1 rounded-none border border-border px-1">
           <Button variant="ghost" size="icon" className="size-7" onClick={() => shiftPeriod(-1)}>
             <ChevronLeft className="size-4" />
           </Button>
@@ -405,7 +405,7 @@ export function RegistroView({
       </div>
 
       {view === "expanded" && (
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-none border border-border">
         <table className="w-full min-w-[960px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
@@ -501,7 +501,7 @@ export function RegistroView({
                                   if (Math.abs(next - (quantity || 0)) < 1e-9) return;
                                   saveQuantityField(key, p, quantityMeta.quantityField, e.target.value);
                                 }}
-                                className="w-14 rounded-md border border-transparent bg-transparent px-1 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
+                                className="w-14 rounded-none border border-transparent bg-transparent px-1 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                               />
                               <span className="text-xs text-muted-foreground">{quantityMeta.unit}</span>
                             </div>
@@ -526,7 +526,7 @@ export function RegistroView({
                             if (nextCents === (value || 0)) return;
                             saveField(key, p, c.key, e.target.value);
                           }}
-                          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
+                          className="w-full rounded-none border border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                         />
                       </td>
                     );
@@ -562,7 +562,7 @@ export function RegistroView({
                           if (e.target.checked === (total.entry?.paid ?? false)) return;
                           togglePaid(key, p, e.target.checked);
                         }}
-                        className="size-4 rounded border-input accent-primary"
+                        className="size-4 rounded-none border-input accent-primary"
                       />
                     </td>
                   )}
@@ -602,7 +602,7 @@ export function RegistroView({
       )}
 
       {view === "compact" && (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">

@@ -14,7 +14,7 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="text-ebony-gray hover:text-cream-100 transition-colors p-1 rounded md:hidden"
+          className="text-ebony-gray hover:text-cream-100 transition-colors p-1 rounded-none md:hidden"
           aria-label="menu"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -29,7 +29,7 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
       <div className="flex items-center gap-2">
         <button
           onClick={toggle}
-          className="flex items-center gap-1.5 text-xs font-semibold text-ebony-gray hover:text-cream-100 transition-colors px-2 py-1 rounded-lg border border-ebony-medium/40 hover:border-cream-100/40"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ebony-gray hover:text-cream-100 transition-colors px-2 py-1 rounded-none border border-ebony-medium/40 hover:border-cream-100/40"
         >
           <Globe size={13} />
           {lang.toUpperCase()}
@@ -47,7 +47,7 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             )}
             <span className="text-ebony-gray text-xs hidden sm:block max-w-[120px] truncate">{user.name}</span>
             {role && (
-              <span className="hidden sm:block text-[10px] uppercase tracking-wide text-cream-100/70 border border-cream-100/30 rounded px-1.5 py-0.5">
+              <span className="hidden sm:block text-[10px] uppercase tracking-wide text-cream-100/70 border border-cream-100/30 rounded-none px-1.5 py-0.5">
                 {role}
               </span>
             )}

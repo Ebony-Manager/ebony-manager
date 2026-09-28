@@ -10,8 +10,8 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
-      <div className="bg-ebony-warm rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-ebony-dark flex items-center justify-center">
+      <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
+        <div className="mx-auto w-16 h-16 rounded-none bg-ebony-dark flex items-center justify-center">
           <span className="text-cream-100 font-black text-2xl tracking-tight">E</span>
         </div>
 
@@ -23,7 +23,7 @@ export function LoginForm() {
         <button
           onClick={() => void signInWithGoogle()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-ebony-gray rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow font-medium text-ebony-dark text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 bg-white border border-ebony-gray rounded-none px-4 py-3 shadow-sm hover:shadow-md transition-shadow font-medium text-ebony-dark text-sm disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path

@@ -86,7 +86,7 @@ export function DeleteEmployeeDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-none border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
             {tt("delete_warning")}
           </div>
           <div className="flex flex-col gap-1.5">

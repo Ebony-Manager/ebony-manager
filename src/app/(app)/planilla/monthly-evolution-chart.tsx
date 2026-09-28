@@ -47,21 +47,21 @@ export function MonthlyEvolutionChart({ rows, title }: { rows: PayrollEmployeeAn
   const max = Math.max(...monthTotals, 1);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-none border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{title ?? tt("evolution_title")}</p>
-        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5 text-xs">
+        <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
           <button
             type="button"
             onClick={() => setMode("total")}
-            className={`rounded px-2 py-1 font-medium transition-colors ${mode === "total" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`rounded-none px-2 py-1 font-medium transition-colors ${mode === "total" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             {tt("chart_total")}
           </button>
           <button
             type="button"
             onClick={() => setMode("acumulado")}
-            className={`rounded px-2 py-1 font-medium transition-colors ${mode === "acumulado" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`rounded-none px-2 py-1 font-medium transition-colors ${mode === "acumulado" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             {tt("chart_acumulado")}
           </button>
@@ -79,7 +79,7 @@ export function MonthlyEvolutionChart({ rows, title }: { rows: PayrollEmployeeAn
               if (!hasData) {
                 return (
                   <div key={m} className="flex flex-1 flex-col items-center justify-end gap-1">
-                    <div className="w-full rounded-t-sm" style={{ height: 22, border: "1px dashed var(--border)" }} />
+                    <div className="w-full rounded-t-none" style={{ height: 22, border: "1px dashed var(--border)" }} />
                     <span className="text-[10px] text-muted-foreground">{monthShort(lang, m)}</span>
                   </div>
                 );
@@ -88,7 +88,7 @@ export function MonthlyEvolutionChart({ rows, title }: { rows: PayrollEmployeeAn
               return (
                 <div key={m} className="flex flex-1 flex-col items-center justify-end gap-1">
                   <span className="text-[10px] font-medium tabular-nums text-foreground">{formatCents(total)}</span>
-                  <div className="flex w-full flex-col-reverse overflow-hidden rounded-t-sm" style={{ height: barHeight }}>
+                  <div className="flex w-full flex-col-reverse overflow-hidden rounded-t-none" style={{ height: barHeight }}>
                     {withData.map((row, empIdx) => {
                       const value = seriesByEmployee[empIdx][i];
                       if (value <= 0) return null;

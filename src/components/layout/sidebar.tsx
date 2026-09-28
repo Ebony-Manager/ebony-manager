@@ -68,7 +68,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 href={href}
                 onClick={onClose}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium
                   transition-colors duration-100
                   ${isActive ? "bg-cream-100/15 text-cream-100" : "text-ebony-gray/70 hover:bg-ebony-medium/30 hover:text-ebony-gray"}
                 `}

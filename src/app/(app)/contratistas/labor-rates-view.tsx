@@ -92,11 +92,11 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
           {tt("rates_empty")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">

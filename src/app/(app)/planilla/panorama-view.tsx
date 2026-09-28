@@ -66,7 +66,7 @@ export function PanoramaView() {
       </div>
 
       {obligations && (
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-2 rounded-none border border-border bg-card p-4">
           <h3 className="text-sm font-medium text-foreground">{tt("pan_overview_title")}</h3>
           <p className="text-sm text-muted-foreground">
             {tt("pan_overview_decimo_pre")}{" "}
@@ -95,7 +95,7 @@ export function PanoramaView() {
       {rows === null ? (
         <p className="text-sm text-muted-foreground">{tt("loading")}</p>
       ) : active.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
           {tt("pan_no_employees")}
         </div>
       ) : (
@@ -113,7 +113,7 @@ export function PanoramaView() {
               <Link
                 key={employee.id}
                 href={`/planilla/${employee.id}`}
-                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/30"
+                className="flex flex-col gap-3 rounded-none border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/30"
               >
                 <div className="flex items-center gap-3">
                   <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="md" />

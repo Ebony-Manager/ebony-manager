@@ -100,7 +100,7 @@ export function ContractorLiquidationDialog({
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           {balanceCents !== 0 && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs">
+            <div className="flex items-start gap-2 rounded-none border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
               <span className="text-muted-foreground">
                 <span className="font-medium text-foreground">

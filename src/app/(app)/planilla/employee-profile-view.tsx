@@ -219,13 +219,13 @@ export function EmployeeProfileView({ employee }: { employee: PayrollEmployee })
         </div>
 
         {employee.notes && (
-          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
             {employee.notes}
           </div>
         )}
 
         {employee.liquidationNotes && (
-          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{tt("liq_notes_title")}: </span>
             <span className="whitespace-pre-wrap">{employee.liquidationNotes}</span>
           </div>

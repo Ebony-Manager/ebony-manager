@@ -204,7 +204,7 @@ export function LoanDialog({
       </Field>
 
       {amountCents > 0 && schedule.length > 0 && (
-        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-none border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           {isAdelanto ? (
             <p>
               {tt("loan_preview_adelanto")}{" "}

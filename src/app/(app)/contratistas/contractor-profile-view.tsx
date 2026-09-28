@@ -490,7 +490,7 @@ export function ContractorProfileView({
       </div>
 
       {contractor.notes && (
-        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
           {contractor.notes}
         </div>
       )}
@@ -567,7 +567,7 @@ export function ContractorProfileView({
 
           <div className="flex flex-wrap items-center gap-2">
             {isCalendarView(periodView) && (
-              <div className="flex items-center gap-1 rounded-md border border-border px-1">
+              <div className="flex items-center gap-1 rounded-none border border-border px-1">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -682,7 +682,7 @@ export function ContractorProfileView({
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
         {filteredRows.length > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-muted/30 px-3 py-1.5 text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-none bg-muted/30 px-3 py-1.5 text-xs">
             <span className="text-muted-foreground">
               {tt("filtered_total")} · {filteredRows.length}{" "}
               {filteredRows.length === 1 ? tt("filtered_count_one") : tt("filtered_count_many")}
@@ -712,15 +712,15 @@ export function ContractorProfileView({
         )}
 
         {allRows.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-none border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             {tt("ledger_empty")}
           </p>
         ) : filteredRows.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-none border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             {periodRows.length === 0 ? tt("period_empty") : tt("no_results")}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-none border border-border">
             <table className="w-full min-w-[1150px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">

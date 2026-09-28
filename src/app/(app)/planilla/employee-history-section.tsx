@@ -97,7 +97,7 @@ export function EmployeeHistorySection({ employee }: { employee: PayrollEmployee
           <h3 className="text-sm font-medium text-foreground">{tt("hist_title")}</h3>
           <p className="text-xs text-muted-foreground">{tt("hist_subtitle")}</p>
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-border px-1">
+        <div className="flex items-center gap-1 rounded-none border border-border px-1">
           <button
             type="button"
             className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
@@ -117,7 +117,7 @@ export function EmployeeHistorySection({ employee }: { employee: PayrollEmployee
       </div>
 
       {/* Panorama anual — colapsado por default. */}
-      <div className="rounded-lg border border-border">
+      <div className="rounded-none border border-border">
         <button
           type="button"
           className="flex w-full items-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/40"
@@ -169,7 +169,7 @@ export function EmployeeHistorySection({ employee }: { employee: PayrollEmployee
           {tt("no_pagos_en")} {year}.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">

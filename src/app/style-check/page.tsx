@@ -78,7 +78,7 @@ export default function StyleCheckPage() {
           </p>
           <p className="text-sm text-muted-foreground">
             Modo oscuro: Ebony no tiene paleta oscura definida todavía (no hay bloque{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">@media (prefers-color-scheme: dark)</code> en
+            <code className="rounded-none bg-muted px-1 py-0.5 text-xs">@media (prefers-color-scheme: dark)</code> en
             globals.css) — emular oscuro en el navegador debería verse IGUAL a claro hoy. Eso es lo esperado, no un bug.
           </p>
         </header>
@@ -171,7 +171,7 @@ export default function StyleCheckPage() {
         </Section>
 
         <Section title="Table">
-          <div className="w-full rounded-lg border border-border">
+          <div className="w-full rounded-none border border-border">
             <Table>
               <TableCaption>Cotizaciones recientes</TableCaption>
               <TableHeader>
@@ -296,7 +296,7 @@ export default function StyleCheckPage() {
         </Section>
 
         <Section title="ScrollArea">
-          <ScrollArea className="h-32 w-64 rounded-lg border border-border p-3">
+          <ScrollArea className="h-32 w-64 rounded-none border border-border p-3">
             <div className="space-y-2 text-sm text-muted-foreground">
               {Array.from({ length: 12 }).map((_, i) => (
                 <p key={i}>Ítem de catálogo #{i + 1}</p>
@@ -306,7 +306,7 @@ export default function StyleCheckPage() {
         </Section>
 
         <Section title="Command">
-          <Command className="w-72 rounded-lg border border-border">
+          <Command className="w-72 rounded-none border border-border">
             <CommandInput placeholder="Buscar ítem…" />
             <CommandList>
               <CommandEmpty>Sin resultados.</CommandEmpty>

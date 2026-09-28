@@ -83,7 +83,7 @@ function LoanCard({
   }
 
   return (
-    <div className="rounded-md border border-border p-3 text-xs">
+    <div className="rounded-none border border-border p-3 text-xs">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium text-foreground">

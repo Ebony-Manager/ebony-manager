@@ -93,7 +93,7 @@ export function SalaryHistorySection({ employee }: { employee: PayrollEmployee }
                     {monthShort(lang, c.effectiveMonth)} {c.effectiveYear} ·{" "}
                     {c.effectiveHalf === 1 ? tt("quincena_1") : tt("quincena_2")}
                     {i === 0 && (
-                      <span className="ml-1 rounded bg-primary/15 px-1 text-[10px] font-medium text-primary">
+                      <span className="ml-1 rounded-none bg-primary/15 px-1 text-[10px] font-medium text-primary">
                         {tt("current_label")}
                       </span>
                     )}

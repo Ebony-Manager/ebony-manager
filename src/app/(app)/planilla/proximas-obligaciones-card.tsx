@@ -28,8 +28,8 @@ function ObligationRow({
   sublabel: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg px-2 py-2" style={payrollCategoryTint(category, 10)}>
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={payrollCategoryTint(category, 22)}>
+    <div className="flex items-center gap-3 rounded-none px-2 py-2" style={payrollCategoryTint(category, 10)}>
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-none" style={payrollCategoryTint(category, 22)}>
         <Icon className="size-4" style={payrollCategoryTextStyle(category)} />
       </div>
       <div className="min-w-0 flex-1">
@@ -47,7 +47,7 @@ export function ProximasObligacionesCard({ obligations }: { obligations: Upcomin
   const n = obligations.employeesWithLoanBalance;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+    <div className="flex flex-col gap-2 rounded-none border border-border bg-card p-4">
       <p className="text-sm font-medium text-foreground">{tt("prox_obligaciones")}</p>
       <ObligationRow
         icon={Award}

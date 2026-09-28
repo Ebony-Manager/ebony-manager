@@ -322,7 +322,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               <React.Fragment key={g.key}>
                 <tr className={`cursor-pointer text-[11px] ${d.groupRow}`} onClick={() => toggleGroup(groupKey)}>
                   <td
-                    className={`sticky left-0 z-10 pl-8 pr-2 ${d.groupRow} ${hasLineItems ? "rounded-t-md" : "rounded-md"}`}
+                    className={`sticky left-0 z-10 pl-8 pr-2 ${d.groupRow} ${hasLineItems ? "rounded-t-none" : "rounded-none"}`}
                     style={{ ...headerBorder, borderLeft: `1px solid ${borderColor}` }}
                   >
                     <div className="flex items-center gap-1">
@@ -348,7 +348,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                     </td>
                   ))}
                   <td
-                    className={`px-2 ${d.groupRow} text-right font-semibold tabular-nums ${hasLineItems ? "rounded-tr-md" : "rounded-tr-md rounded-br-md"}`}
+                    className={`px-2 ${d.groupRow} text-right font-semibold tabular-nums ${hasLineItems ? "rounded-tr-none" : "rounded-tr-none rounded-br-none"}`}
                     style={{ ...headerBorder, borderRight: `1px solid ${borderColor}`, color }}
                   >
                     {fmtSigned(g.totalCents)}
@@ -364,7 +364,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                     return (
                       <tr key={li.key} className={`text-[11px] ${d.lineRow}`}>
                         <td
-                          className={`sticky left-0 z-10 pl-14 pr-2 ${d.lineRow} text-foreground/80 ${isLastLine ? "rounded-bl-md" : ""}`}
+                          className={`sticky left-0 z-10 pl-14 pr-2 ${d.lineRow} text-foreground/80 ${isLastLine ? "rounded-bl-none" : ""}`}
                           style={{ ...lineBorder, borderLeft: `1px solid ${borderColor}` }}
                         >
                           {t(lang, strings.planilla[li.labelKey as keyof typeof strings.planilla])}
@@ -385,7 +385,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                           );
                         })}
                         <td
-                          className={`px-2 ${d.lineRow} text-right tabular-nums text-foreground/80 ${isLastLine ? "rounded-br-md" : ""}`}
+                          className={`px-2 ${d.lineRow} text-right tabular-nums text-foreground/80 ${isLastLine ? "rounded-br-none" : ""}`}
                           style={{ ...lineBorder, borderRight: `1px solid ${borderColor}` }}
                         >
                           {fmtSigned(li.totalCents)}
@@ -427,7 +427,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-muted">
             <ClipboardCheck className="size-4 text-muted-foreground" />
           </div>
           <div>
@@ -453,7 +453,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                     {tt("col_empleado")}
                     {employeeFilter.size > 0 ? ` (${employeeFilter.size})` : ""}
                   </div>
-                  <div className="max-h-48 overflow-y-auto rounded-md border border-border">
+                  <div className="max-h-48 overflow-y-auto rounded-none border border-border">
                     {(data?.rows ?? []).map((r) => (
                       <label
                         key={r.employee.id}
@@ -472,13 +472,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="text-xs font-medium text-muted-foreground">{tt("estado")}</div>
-                  <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5 text-xs">
+                  <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
                     {(["todos", "activo", "inactivo"] as const).map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => setStatusFilter(s)}
-                        className={`flex-1 rounded px-2 py-1 font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        className={`flex-1 rounded-none px-2 py-1 font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                       >
                         {s === "todos" ? tt("filtro_todos") : s === "activo" ? tt("filtro_activo") : tt("filtro_inactivo")}
                       </button>
@@ -556,13 +556,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <div className="text-xs font-medium text-muted-foreground">{tt("densidad")}</div>
-                  <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5 text-xs">
+                  <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
                     {(["comprimida", "expandida"] as const).map((v) => (
                       <button
                         key={v}
                         type="button"
                         onClick={() => setVista(v)}
-                        className={`flex-1 rounded px-2 py-1 font-medium transition-colors ${vista === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        className={`flex-1 rounded-none px-2 py-1 font-medium transition-colors ${vista === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                       >
                         {v === "comprimida" ? tt("comprimida") : tt("expandida")}
                       </button>
@@ -577,7 +577,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                         key={l.key}
                         type="button"
                         onClick={() => setNivelMode(l.key)}
-                        className={`rounded px-2 py-1.5 text-left font-medium transition-colors ${nivel === l.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                        className={`rounded-none px-2 py-1.5 text-left font-medium transition-colors ${nivel === l.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                       >
                         {tt(l.labelKey)}
                       </button>
@@ -593,7 +593,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             {tt("exportar")}
           </Button>
 
-          <div className="flex items-center gap-1 rounded-md border border-border px-1">
+          <div className="flex items-center gap-1 rounded-none border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year - 1)}>
               <ChevronLeft className="size-4" />
             </Button>
@@ -606,14 +606,14 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
       </div>
 
       <p
-        className="rounded-lg px-3 py-2 text-xs text-muted-foreground"
+        className="rounded-none px-3 py-2 text-xs text-muted-foreground"
         style={{ backgroundColor: "color-mix(in oklch, var(--payroll-next-pay) 12%, transparent)" }}
       >
         {isMonthly ? tt("auditoria_note_monthly") : tt("auditoria_note_biweekly")}
       </p>
 
       {data && data.findings.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-col gap-1 rounded-none border border-border bg-card p-3">
           <p className="text-xs font-medium text-foreground">
             {tt("findings_title")} ({data.findings.length})
           </p>
@@ -635,7 +635,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
       {!data ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table
             className={`w-full ${isMonthly ? "min-w-[1000px]" : "min-w-[2200px]"} ${d.table}`}
             style={{ borderCollapse: "separate", borderSpacing: 0 }}

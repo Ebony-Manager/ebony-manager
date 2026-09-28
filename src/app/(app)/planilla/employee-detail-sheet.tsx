@@ -202,7 +202,7 @@ export function EmployeeDetailSheet({
           </div>
 
           {rows && (
-            <div className="mt-4 rounded-lg border border-border">
+            <div className="mt-4 rounded-none border border-border">
               <button
                 type="button"
                 className="flex w-full items-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/40"
