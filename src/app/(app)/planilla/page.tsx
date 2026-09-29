@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/dal";
 import { getPayrollEmployees } from "@/services/payroll-employees";
+import { getPayrollPositions } from "@/services/payroll-positions";
 import { PlanillaClient } from "./planilla-client";
 
 // La Planilla es solo-admin. `requireAdmin()` rebota a un no-admin (a
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlanillaPage() {
   await requireAdmin();
-  const employees = await getPayrollEmployees();
+  const [employees, positions] = await Promise.all([getPayrollEmployees(), getPayrollPositions()]);
 
-  return <PlanillaClient employees={employees} />;
+  return <PlanillaClient employees={employees} positions={positions} />;
 }

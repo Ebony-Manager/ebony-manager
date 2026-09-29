@@ -28,7 +28,7 @@ export const strings = {
     // página (esa sigue diciendo "Planilla" en su propio encabezado).
     administracion: { es: "Administración", en: "Administration" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
-    taller: { es: "Taller", en: "Workshop" },
+    taller: { es: "Taller + Admin", en: "Workshop + Admin" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -48,6 +48,13 @@ export const strings = {
     f_name: { es: "Nombre", en: "Name" },
     f_name_ph: { es: "Nombre completo", en: "Full name" },
     f_position: { es: "Posición", en: "Position" },
+    f_categoria: { es: "Categoría", en: "Category" },
+    categoria_taller: { es: "Taller", en: "Workshop" },
+    categoria_administrativo: { es: "Administrativo", en: "Administrative" },
+    categoria_filter_all: { es: "Todos", en: "All" },
+    position_other: { es: "Otro…", en: "Other…" },
+    position_other_ph: { es: "Escribe la posición", en: "Type the position" },
+    manage_positions: { es: "Gestionar funciones", en: "Manage positions" },
     f_optional: { es: "Opcional", en: "Optional" },
     f_start_date: { es: "Fecha de ingreso", en: "Start date" },
     f_base_salary: { es: "Salario base (mensual)", en: "Base salary (monthly)" },
@@ -66,7 +73,19 @@ export const strings = {
     action_save: { es: "Guardar", en: "Save" },
     action_cancel: { es: "Cancelar", en: "Cancel" },
     action_edit: { es: "Editar", en: "Edit" },
+    action_close: { es: "Cerrar", en: "Close" },
     saving: { es: "Guardando…", en: "Saving…" },
+
+    dlg_positions_title: { es: "Funciones / Posiciones", en: "Positions" },
+    dlg_positions_desc: {
+      es: "Catálogo de posiciones para el formulario de empleado.",
+      en: "Catalog of positions for the employee form.",
+    },
+    position_name_ph: { es: "Nombre de la posición", en: "Position name" },
+    position_active: { es: "Activa", en: "Active" },
+    position_inactive: { es: "Inactiva", en: "Inactive" },
+    position_empty: { es: "Todavía no hay posiciones.", en: "No positions yet." },
+    position_name_required: { es: "El nombre no puede quedar vacío.", en: "Name can't be empty." },
 
     search_ph: {
       es: "Buscar por nombre, posición, teléfono, cédula…",

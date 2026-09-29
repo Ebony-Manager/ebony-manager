@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { PayrollEmployee } from "@/types/planilla";
+import type { EmployeeCategoria, PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { SectionSubbar, SectionSubbarTab } from "@/components/layout/section-subbar";
@@ -43,8 +43,22 @@ function readStoredColumns(): Record<ColumnKey, boolean> | null {
  *
  * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro,
  * persistido) viven acá para sobrevivir al cambio de tab.
+ *
+ * `categoriaFilter` (Taller/Administrativo/Todos) filtra `employees` ANTES
+ * de pasarlo a Registro y Empleados — los únicos dos tabs que reciben la
+ * lista completa como prop hoy. Dashboard/Panorama/Auditoría piden sus
+ * propios datos ya resumidos vía server actions (no reciben `employees`),
+ * así que quedan sin filtrar por ahora a propósito; ese trabajo se suma
+ * después junto con el Resumen de Planillas global, que va a necesitar lo
+ * mismo.
  */
-export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) {
+export function PlanillaClient({
+  employees,
+  positions,
+}: {
+  employees: PayrollEmployee[];
+  positions: PayrollPosition[];
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
@@ -53,6 +67,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
+  const [categoriaFilter, setCategoriaFilter] = React.useState<EmployeeCategoria | "todos">("todos");
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
@@ -70,6 +85,14 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
   }, [visibleColumns]);
 
   const detailEmployee = employees.find((e) => e.id === detailEmployeeId) ?? null;
+  const filteredEmployees =
+    categoriaFilter === "todos" ? employees : employees.filter((e) => e.categoria === categoriaFilter);
+
+  const CATEGORIA_FILTERS: Array<{ value: EmployeeCategoria | "todos"; label: string }> = [
+    { value: "todos", label: tt("categoria_filter_all") },
+    { value: "taller", label: tt("categoria_taller") },
+    { value: "administrativo", label: tt("categoria_administrativo") },
+  ];
 
   const TABS = [
     { value: "dashboard", label: tt("tab_dashboard") },
@@ -88,10 +111,25 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
           </SectionSubbarTab>
         ))}
         actions={
-          <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
-            <Plus className="size-3.5" />
-            {tt("add_employee")}
-          </Button>
+          <>
+            <div className="flex items-center gap-1">
+              {CATEGORIA_FILTERS.map(({ value, label }) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={categoriaFilter === value ? "secondary" : "ghost"}
+                  className={categoriaFilter === value ? "" : "text-white/80 hover:text-white"}
+                  onClick={() => setCategoriaFilter(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
+              <Plus className="size-3.5" />
+              {tt("add_employee")}
+            </Button>
+          </>
         }
       />
 
@@ -107,7 +145,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
           </TabsContent>
           <TabsContent value="registro" className="pt-0">
             <RegistroView
-              employees={employees}
+              employees={filteredEmployees}
               visibleColumns={visibleColumns}
               onVisibleColumnsChange={setVisibleColumns}
               onViewDetail={setDetailEmployeeId}
@@ -117,7 +155,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
             <AuditoriaView year={year} onYearChange={setYear} />
           </TabsContent>
           <TabsContent value="empleados" className="pt-0">
-            <EmpleadosView employees={employees} />
+            <EmpleadosView employees={filteredEmployees} />
           </TabsContent>
         </Tabs>
 
@@ -128,7 +166,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
           onOpenChange={(open) => !open && setDetailEmployeeId(null)}
         />
 
-        <EmployeeFormDialog mode="add" open={addOpen} onOpenChange={setAddOpen} />
+        <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />
       </div>
     </div>
   );

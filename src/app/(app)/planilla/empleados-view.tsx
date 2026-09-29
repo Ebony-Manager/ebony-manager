@@ -52,11 +52,12 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
             <p className="truncate text-sm font-medium text-foreground">{employee.name}</p>
             <p className="truncate text-xs text-muted-foreground">{employee.position || tt("no_position")}</p>
           </div>
-          {employee.status === "INACTIVE" && (
-            <Badge variant="secondary" className="shrink-0">
-              {tt("inactive")}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {employee.status === "INACTIVE" && <Badge variant="secondary">{tt("inactive")}</Badge>}
+            <Badge variant="outline">
+              {employee.categoria === "administrativo" ? tt("categoria_administrativo") : tt("categoria_taller")}
             </Badge>
-          )}
+          </div>
         </div>
         <div className="flex flex-col gap-1 border-t border-border pt-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">

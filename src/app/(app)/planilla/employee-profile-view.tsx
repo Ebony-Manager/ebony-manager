@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { ArrowLeft, LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react";
 
-import type { PayrollEmployee } from "@/types/planilla";
+import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -53,7 +53,13 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
  * para el export a Banco General de una tanda futura) + estado/
  * liquidación/borrar.
  */
-export function EmployeeProfileView({ employee }: { employee: PayrollEmployee }) {
+export function EmployeeProfileView({
+  employee,
+  positions,
+}: {
+  employee: PayrollEmployee;
+  positions: PayrollPosition[];
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const router = useRouter();
@@ -240,7 +246,13 @@ export function EmployeeProfileView({ employee }: { employee: PayrollEmployee })
         <EmployeeHistorySection employee={employee} />
       </div>
 
-      <EmployeeFormDialog mode="edit" employee={employee} open={editOpen} onOpenChange={setEditOpen} />
+      <EmployeeFormDialog
+        mode="edit"
+        employee={employee}
+        positions={positions}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <LiquidationDialog
         employee={employee}
         open={liqOpen}

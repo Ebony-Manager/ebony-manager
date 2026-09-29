@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/dal";
 import { getPayrollEmployee } from "@/services/payroll-employees";
+import { getPayrollPositions } from "@/services/payroll-positions";
 import { EmployeeProfileView } from "../employee-profile-view";
 
 // El perfil del empleado es solo-admin, igual que el resto de Planilla:
@@ -18,8 +19,8 @@ export default async function EmployeeDetailPage({
   await requireAdmin();
   const { id } = await params;
 
-  const employee = await getPayrollEmployee(id);
+  const [employee, positions] = await Promise.all([getPayrollEmployee(id), getPayrollPositions()]);
   if (!employee) notFound();
 
-  return <EmployeeProfileView employee={employee} />;
+  return <EmployeeProfileView employee={employee} positions={positions} />;
 }
