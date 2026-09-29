@@ -19,6 +19,7 @@ type Tone = "white" | "black";
 const ASSETS: Record<Variant, Partial<Record<Tone, { file: string; width: number; height: number }>>> = {
   wordmark: {
     white: { file: "logo-wordmark-white.png", width: 3020, height: 886 },
+    black: { file: "logo-wordmark-black.png", width: 3161, height: 1067 },
   },
   isotipo: {
     white: { file: "isotipo-white.png", width: 5001, height: 5001 },

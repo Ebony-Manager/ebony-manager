@@ -49,6 +49,13 @@
   --cream-100: #f3eddf; /* C6 M7 Y14 K0 */
   --white: #ffffff;
 
+  /* NO es del manual de marca (esa página solo tiene tinta/piedras/crema,
+     sin acento) — es una extensión aprobada a mano por Teofilo, inspirada
+     en las fotos de madera del manual, para usarse como acento puntual
+     (ej. el panel de Administración, la barra de sub-tabs). No reemplaza
+     ni se mezcla con la paleta oficial de arriba. */
+  --walnut: #6b5744;
+
   /* Únicas transparencias del sistema — hairline (bordes) y texto
      tenue sobre tinta. */
   --ink-a16: rgba(4, 7, 7, 0.16);
@@ -95,6 +102,7 @@
   --color-stone-400: var(--stone-400);
   --color-stone-200: var(--stone-200);
   --color-cream-100: var(--cream-100);
+  --color-walnut: var(--walnut);
 
   /* --color-ebony-* — todavía consumidas como clases bg-ebony-x/text-ebony-x
      en 6 archivos de chrome (navbar, sidebar, login, etc.) que no se

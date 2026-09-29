@@ -78,19 +78,20 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Rail — angosto, siempre visible, fondo carbón (ink-700). Solo
-            íconos: el isotipo arriba, los módulos placeholder, y
-            "Administración" al final (no navega, abre el panel). */}
-        <aside className="relative w-16 h-full flex flex-col shrink-0 bg-ink-700">
+        {/* Rail — angosto, siempre visible, fondo crema. Solo íconos: el
+            isotipo arriba, los módulos placeholder, y "Administración" al
+            final (no navega, abre el panel) — este último con el acento
+            nogal cuando el panel está abierto. */}
+        <aside className="relative w-16 h-full flex flex-col shrink-0 bg-cream-100 border-r border-black/8">
           <button
             onClick={onClose}
-            className="md:hidden absolute top-1.5 right-1.5 text-cream-100/50 hover:text-cream-100"
+            className="md:hidden absolute top-1.5 right-1.5 text-ink-900/40 hover:text-ink-900"
           >
             <X size={14} />
           </button>
 
-          <div className="h-14 flex items-center justify-center border-b border-white/10">
-            <EbonyLogo variant="isotipo" tone="white" height={24} />
+          <div className="h-14 flex items-center justify-center border-b border-black/8">
+            <EbonyLogo variant="isotipo" tone="black" height={24} />
           </div>
 
           <nav className="flex-1 py-3 flex flex-col items-stretch gap-0.5 overflow-y-auto">
@@ -105,9 +106,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   title={t(lang, label)}
                   aria-label={t(lang, label)}
                   className={`
-                    mx-2 h-10 flex items-center justify-center rounded-none
+                    mx-2 h-10 flex items-center justify-center rounded-none border border-transparent
                     transition-colors duration-100
-                    ${isActive ? "bg-cream-100/15 text-cream-100" : "text-cream-100/55 hover:bg-white/10 hover:text-cream-100"}
+                    ${isActive ? "text-ink-900" : "text-ink-900/50 hover:text-ink-900"}
                   `}
                 >
                   <Icon size={18} className="shrink-0" />
@@ -117,7 +118,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </nav>
 
           {isAdmin && (
-            <div className="py-3 border-t border-white/10">
+            <div className="py-3 border-t border-black/8">
               <button
                 type="button"
                 onClick={() => setManuallyOpen((o) => !o)}
@@ -125,9 +126,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 aria-label={t(lang, strings.nav.administracion)}
                 aria-pressed={panelOpen}
                 className={`
-                  mx-2 h-10 flex items-center justify-center rounded-none
+                  mx-2 h-10 flex items-center justify-center rounded-none border
                   transition-colors duration-100
-                  ${panelOpen ? "bg-cream-100/15 text-cream-100" : "text-cream-100/55 hover:bg-white/10 hover:text-cream-100"}
+                  ${panelOpen ? "border-walnut text-walnut bg-walnut/8" : "border-transparent text-ink-900/50 hover:text-ink-900"}
                 `}
               >
                 <Briefcase size={18} className="shrink-0" />
@@ -136,17 +137,19 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           )}
         </aside>
 
-        {/* Panel — solo cuando "Administración" está activo. Fondo CLARO
-            (stone-200): texto/íconos en ink-900, nunca los tonos claros que
-            usa el rail sobre fondo oscuro — se verían invisibles acá. */}
+        {/* Panel — solo cuando "Administración" está activo. Dos partes:
+            encabezado sólido nogal (texto blanco) + cuerpo blanco con los
+            links. El link activo usa el acento nogal (borde izquierdo +
+            texto + fondo sutil), nunca el tratamiento oscuro que tenía
+            antes cuando el panel entero era un solo color. */}
         {panelOpen && (
-          <aside className="w-56 h-full flex flex-col shrink-0 bg-stone-200 border-r border-ink-900/10">
-            <div className="h-14 flex items-center px-4 border-b border-ink-900/10">
-              <h2 className="text-sm font-bold text-ink-900 tracking-wide">{t(lang, strings.nav.administracion)}</h2>
+          <aside className="w-56 h-full flex flex-col shrink-0 bg-white border-r border-black/8">
+            <div className="h-14 flex items-center px-4 shrink-0 bg-walnut">
+              <h2 className="text-sm font-bold text-white tracking-wide">{t(lang, strings.nav.administracion)}</h2>
             </div>
 
             <nav className="flex-1 py-4 px-2 overflow-y-auto">
-              <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-900/50">
+              <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-900/45">
                 {t(lang, strings.nav.panel_section_planillas)}
               </p>
               <div className="space-y-0.5">
@@ -159,14 +162,17 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                       href={href}
                       onClick={closeOnNavigate}
                       className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium
+                        w-full flex items-center gap-3 border-l-2 px-2.5 py-2.5 rounded-none text-sm font-medium
                         transition-colors duration-100
-                        ${isActive ? "bg-ink-900/8 text-ink-900" : "text-ink-900/70 hover:bg-ink-900/5 hover:text-ink-900"}
+                        ${
+                          isActive
+                            ? "border-walnut bg-walnut/8 text-walnut"
+                            : "border-transparent text-ink-900/70 hover:bg-ink-900/5 hover:text-ink-900"
+                        }
                       `}
                     >
                       <Icon size={16} className="shrink-0" />
                       <span>{t(lang, label)}</span>
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-ink-900" />}
                     </Link>
                   );
                 })}

@@ -4,8 +4,9 @@ import * as React from "react";
 import { Plus } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { SectionSubbar, SectionSubbarTab } from "@/components/layout/section-subbar";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -48,6 +49,7 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [addOpen, setAddOpen] = React.useState(false);
+  const [tab, setTab] = React.useState("registro");
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
@@ -69,58 +71,65 @@ export function PlanillaClient({ employees }: { employees: PayrollEmployee[] }) 
 
   const detailEmployee = employees.find((e) => e.id === detailEmployeeId) ?? null;
 
+  const TABS = [
+    { value: "dashboard", label: tt("tab_dashboard") },
+    { value: "panorama", label: tt("tab_panorama") },
+    { value: "registro", label: tt("tab_registro") },
+    { value: "auditoria", label: tt("tab_auditoria") },
+    { value: "empleados", label: tt("tab_empleados") },
+  ];
+
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
-          <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
-        </div>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="size-3.5" />
-          {tt("add_employee")}
-        </Button>
-      </div>
-
-      <Tabs defaultValue="registro">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="dashboard">{tt("tab_dashboard")}</TabsTrigger>
-          <TabsTrigger value="panorama">{tt("tab_panorama")}</TabsTrigger>
-          <TabsTrigger value="registro">{tt("tab_registro")}</TabsTrigger>
-          <TabsTrigger value="auditoria">{tt("tab_auditoria")}</TabsTrigger>
-          <TabsTrigger value="empleados">{tt("tab_empleados")}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="pt-4">
-          <DashboardView year={year} onYearChange={setYear} />
-        </TabsContent>
-        <TabsContent value="panorama" className="pt-4">
-          <PanoramaView />
-        </TabsContent>
-        <TabsContent value="registro" className="pt-4">
-          <RegistroView
-            employees={employees}
-            visibleColumns={visibleColumns}
-            onVisibleColumnsChange={setVisibleColumns}
-            onViewDetail={setDetailEmployeeId}
-          />
-        </TabsContent>
-        <TabsContent value="auditoria" className="pt-4">
-          <AuditoriaView year={year} onYearChange={setYear} />
-        </TabsContent>
-        <TabsContent value="empleados" className="pt-4">
-          <EmpleadosView employees={employees} />
-        </TabsContent>
-      </Tabs>
-
-      <EmployeeDetailSheet
-        employee={detailEmployee}
-        year={year}
-        open={detailEmployeeId !== null}
-        onOpenChange={(open) => !open && setDetailEmployeeId(null)}
+    <div className="flex flex-col gap-4">
+      <SectionSubbar
+        tabs={TABS.map(({ value, label }) => (
+          <SectionSubbarTab key={value} active={tab === value} onClick={() => setTab(value)}>
+            {label}
+          </SectionSubbarTab>
+        ))}
+        actions={
+          <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3.5" />
+            {tt("add_employee")}
+          </Button>
+        }
       />
 
-      <EmployeeFormDialog mode="add" open={addOpen} onOpenChange={setAddOpen} />
+      <div className="flex flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
+        <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
+
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsContent value="dashboard" className="pt-0">
+            <DashboardView year={year} onYearChange={setYear} />
+          </TabsContent>
+          <TabsContent value="panorama" className="pt-0">
+            <PanoramaView />
+          </TabsContent>
+          <TabsContent value="registro" className="pt-0">
+            <RegistroView
+              employees={employees}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              onViewDetail={setDetailEmployeeId}
+            />
+          </TabsContent>
+          <TabsContent value="auditoria" className="pt-0">
+            <AuditoriaView year={year} onYearChange={setYear} />
+          </TabsContent>
+          <TabsContent value="empleados" className="pt-0">
+            <EmpleadosView employees={employees} />
+          </TabsContent>
+        </Tabs>
+
+        <EmployeeDetailSheet
+          employee={detailEmployee}
+          year={year}
+          open={detailEmployeeId !== null}
+          onOpenChange={(open) => !open && setDetailEmployeeId(null)}
+        />
+
+        <EmployeeFormDialog mode="add" open={addOpen} onOpenChange={setAddOpen} />
+      </div>
     </div>
   );
 }
