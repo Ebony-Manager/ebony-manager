@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import type { BankAccountType, PayrollEmployee } from "@/types/planilla";
+import type { BankAccountType, EmployeeCategoria, PayrollEmployee } from "@/types/planilla";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { periodFromDateString } from "@/lib/planilla/payroll-accruals";
 import { insertInitialSalaryChange, recomputeCurrentSalary } from "@/services/payroll-salary";
@@ -35,6 +35,7 @@ function mapEmployee(r: Row): PayrollEmployee {
     startDate: r.start_date,
     endDate: r.end_date,
     status: r.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+    categoria: r.categoria === "administrativo" ? "administrativo" : "taller",
     baseSalaryCents: r.base_salary_cents,
     benefitsBaseSalaryCents: r.benefits_base_salary_cents,
     notes: r.notes,
@@ -75,6 +76,9 @@ export async function getPayrollEmployee(id: string): Promise<PayrollEmployee | 
 export interface CreatePayrollEmployeeInput {
   name: string;
   position?: string | null;
+  /** 'taller' | 'administrativo' — default 'taller' si se omite, igual
+   *  que la columna en la base (NOT NULL, mismo criterio que `status`). */
+  categoria?: EmployeeCategoria;
   startDate?: string | null;
   /** Sueldo mensual inicial. Se guarda como la primera fila del
    *  historial (vigente desde la quincena de `startDate`, o la quincena
@@ -110,6 +114,7 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
     .insert({
       name: input.name,
       position: input.position ?? null,
+      categoria: input.categoria ?? "taller",
       start_date: input.startDate ?? null,
       // Reflejo inicial; recompute lo confirma abajo desde el historial.
       base_salary_cents: input.baseSalaryCents ?? 0,
@@ -153,6 +158,9 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
 export interface UpdatePayrollEmployeeInput {
   name?: string;
   position?: string | null;
+  /** 'taller' | 'administrativo' — NOT NULL en la base, mismo criterio
+   *  que `status`: no acepta null, solo se omite si no cambia. */
+  categoria?: EmployeeCategoria;
   startDate?: string | null;
   /** Fin de empleo / ancla de reinicio de prestaciones (liquidación). */
   endDate?: string | null;
@@ -178,6 +186,7 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   const patch: Database["public"]["Tables"]["payroll_employees"]["Update"] = {};
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.position !== undefined) patch.position = input.position;
+  if (input.categoria !== undefined) patch.categoria = input.categoria;
   if (input.startDate !== undefined) patch.start_date = input.startDate;
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.status !== undefined) patch.status = input.status;

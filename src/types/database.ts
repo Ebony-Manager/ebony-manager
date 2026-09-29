@@ -262,6 +262,7 @@ export type Database = {
           bank_routing_code: string | null
           base_salary_cents: number
           benefits_base_salary_cents: number | null
+          categoria: string
           contract_info: string | null
           created_at: string
           emergency_contact_name: string | null
@@ -286,6 +287,7 @@ export type Database = {
           bank_routing_code?: string | null
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
+          categoria?: string
           contract_info?: string | null
           created_at?: string
           emergency_contact_name?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           bank_routing_code?: string | null
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
+          categoria?: string
           contract_info?: string | null
           created_at?: string
           emergency_contact_name?: string | null
@@ -549,6 +552,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payroll_positions: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       payroll_salary_changes: {
         Row: {

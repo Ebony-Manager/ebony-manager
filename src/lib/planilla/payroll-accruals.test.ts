@@ -73,6 +73,7 @@ function makeEmployee(
     startDate,
     endDate: null,
     status: "ACTIVE",
+    categoria: "taller",
     baseSalaryCents,
     benefitsBaseSalaryCents,
     notes: null,

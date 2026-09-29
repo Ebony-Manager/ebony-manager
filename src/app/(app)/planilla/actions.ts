@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
+import * as positions from "@/services/payroll-positions";
 import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
 import { monthlySalaryAt } from "@/lib/planilla/salary-history";
 import type { LedgerCategory, LedgerDirection, LoanPaymentMethod } from "@/types/planilla";
@@ -210,6 +211,26 @@ export async function registerSalaryChangeAction(input: {
   const change = await salary.registerSalaryChange(input);
   revalidatePath(PATH);
   return change;
+}
+
+// ── Posiciones (catálogo editable) ─────────────────────────────────────
+
+export async function getPayrollPositionsAction() {
+  await requireAdmin();
+  return positions.getPayrollPositions();
+}
+
+export async function createPayrollPositionAction(name: string) {
+  await requireAdmin();
+  const position = await positions.createPayrollPosition(name);
+  revalidatePath(PATH);
+  return position;
+}
+
+export async function updatePayrollPositionAction(id: string, input: { name?: string; active?: boolean }) {
+  await requireAdmin();
+  await positions.updatePayrollPosition(id, input);
+  revalidatePath(PATH);
 }
 
 // ── Borrar empleado (irreversible; la UI confirma antes) ──────────────

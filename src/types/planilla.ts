@@ -19,6 +19,11 @@ export type EmployeeStatus = "ACTIVE" | "INACTIVE";
 
 export type BankAccountType = "ahorro" | "corriente";
 
+/** Solo una etiqueta para filtrar/agrupar — Taller y Administrativo usan
+ *  el mismo motor de planilla (mismas fórmulas de décimo/vacación/prima,
+ *  mismo Registro), no es un sistema aparte. */
+export type EmployeeCategoria = "taller" | "administrativo";
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -26,6 +31,7 @@ export interface PayrollEmployee {
   startDate: string | null;
   endDate: string | null;
   status: EmployeeStatus;
+  categoria: EmployeeCategoria;
   /** Salario MENSUAL en papel al día de hoy. La base realmente pagada en
    *  una quincena vive en cada PayrollEntry, porque un aumento real no
    *  reescribe la historia. */
@@ -54,6 +60,20 @@ export interface PayrollEmployee {
   bankAccountNumber: string | null;
   /** Ruta del banco / código de ruta — texto libre, lo llena el dueño a mano. */
   bankRoutingCode: string | null;
+}
+
+/** Una posición/función del catálogo editable (Calificado, Ayudante,
+ *  Jefe de Taller...) — alimenta el dropdown de "Posición" del formulario
+ *  de empleado. `PayrollEmployee.position` sigue siendo texto libre; este
+ *  catálogo solo cura las opciones sugeridas, nunca fuerza los datos ya
+ *  cargados. Desactivar (`active: false`) es el único "borrado" — nunca
+ *  delete real, así ningún empleado histórico con esa posición queda
+ *  roto. */
+export interface PayrollPosition {
+  id: string;
+  name: string;
+  active: boolean;
+  sortOrder: number;
 }
 
 export type PaymentMethod = "efectivo" | "transferencia" | "yappy" | "cheque";
