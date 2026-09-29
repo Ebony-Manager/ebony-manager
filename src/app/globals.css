@@ -55,6 +55,9 @@
      (ej. el panel de Administración, la barra de sub-tabs). No reemplaza
      ni se mezcla con la paleta oficial de arriba. */
   --walnut: #6b5744;
+  --walnut-tint: #ede6d9; /* nogal muy aclarado — fondo del panel de Administración,
+    para diferenciarlo del blanco del área de trabajo. Opción A aprobada por Teofilo
+    entre dos variantes. */
 
   /* Únicas transparencias del sistema — hairline (bordes) y texto
      tenue sobre tinta. */
@@ -103,6 +106,7 @@
   --color-stone-200: var(--stone-200);
   --color-cream-100: var(--cream-100);
   --color-walnut: var(--walnut);
+  --color-walnut-tint: var(--walnut-tint);
 
   /* --color-ebony-* — todavía consumidas como clases bg-ebony-x/text-ebony-x
      en 6 archivos de chrome (navbar, sidebar, login, etc.) que no se

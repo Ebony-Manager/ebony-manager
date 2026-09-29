@@ -143,7 +143,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             texto + fondo sutil), nunca el tratamiento oscuro que tenía
             antes cuando el panel entero era un solo color. */}
         {panelOpen && (
-          <aside className="w-56 h-full flex flex-col shrink-0 bg-white border-r border-black/8">
+          <aside className="w-56 h-full flex flex-col shrink-0 bg-walnut-tint border-r border-black/8">
             <div className="h-[46px] flex items-center px-4 shrink-0 bg-walnut">
               <h2 className="text-sm font-bold text-white tracking-wide">{t(lang, strings.nav.administracion)}</h2>
             </div>
