@@ -52,6 +52,7 @@ export function EbonyLogo({ variant, tone, height, className, alt = "Ebony" }: E
       height={asset.height}
       style={{ height, width: "auto" }}
       className={className}
+      unoptimized
     />
   );
 }
