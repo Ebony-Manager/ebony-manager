@@ -90,7 +90,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             <X size={14} />
           </button>
 
-          <div className="h-14 flex items-center justify-center border-b border-black/8">
+          <div className="h-14 flex items-center justify-center">
             <EbonyLogo variant="isotipo" tone="black" height={24} />
           </div>
 

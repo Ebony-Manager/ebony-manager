@@ -24,14 +24,11 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col justify-center leading-none">
-            <EbonyLogo variant="wordmark" tone="black" height={18} />
-            <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-ink-900/50 select-none">
-              Woodwork Studio
-            </span>
-          </div>
-          <span className="text-ink-900 font-bold tracking-wide text-base select-none">Manager</span>
+        <div className="flex flex-col justify-center leading-none">
+          <EbonyLogo variant="wordmark" tone="black" height={20} />
+          <span className="mt-1 text-[10px] font-medium tracking-[0.08em] text-ink-900/50 select-none">
+            woodwork studio
+          </span>
         </div>
       </div>
 
