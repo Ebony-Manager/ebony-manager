@@ -13,11 +13,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <Navbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
