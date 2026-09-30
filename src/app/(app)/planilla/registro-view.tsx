@@ -400,13 +400,13 @@ export function RegistroView({
       </div>
 
       {view === "expanded" && (
-      <div className="overflow-x-auto rounded-none border border-border">
+      <div className="overflow-x-auto rounded-none border border-border bg-card">
         <table className="w-full min-w-[960px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+            <tr className="border-b border-border text-xs text-muted-foreground">
               {/* Columna "Empleado" congelada al hacer scroll horizontal,
                   igual que en la Auditoría (sticky left-0 + fondo propio). */}
-              <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
+              <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
               {fieldColumns.map((c) => (
                 <th
                   key={c.key}
@@ -445,7 +445,7 @@ export function RegistroView({
                       fila (`group-hover/row` / `group-focus-within/row`) +
                       `transition-colors`, para que el resalte se vea parejo
                       y sin atraso en toda la fila. */}
-                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground transition-colors group-hover/row:bg-[var(--row-hover)] group-focus-within/row:bg-[var(--row-focus)]">
+                  <td className="sticky left-0 z-10 bg-card px-3 py-1.5 font-medium text-foreground transition-colors group-hover/row:bg-[var(--row-hover)] group-focus-within/row:bg-[var(--row-focus)]">
                     <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-focus-within/row:scale-y-100" />
                     <div className="flex items-center gap-2">
                       <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
@@ -597,11 +597,11 @@ export function RegistroView({
       )}
 
       {view === "compact" && (
-        <div className="overflow-x-auto rounded-none border border-border">
+        <div className="overflow-x-auto rounded-none border border-border bg-card">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
                 <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("salario", 96)}>
                   {tt("col_base")}
                 </th>
@@ -627,7 +627,7 @@ export function RegistroView({
                   : 0;
                 return (
                   <tr key={employee.id} className="border-b border-border transition-colors last:border-0 hover:bg-[var(--row-hover)]">
-                    <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium text-foreground">
+                    <td className="sticky left-0 z-10 bg-card px-3 py-1.5 font-medium text-foreground">
                       <div className="flex items-center gap-2">
                         <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
                         {employee.name}
