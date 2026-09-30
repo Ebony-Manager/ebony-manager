@@ -42,7 +42,7 @@ import {
   duplicatePreviousPeriodAction,
 } from "./actions";
 import { COLUMN_DEFS, QUANTITY_FIELD_META, type ColumnKey, type FieldKey } from "./registro-columns";
-import { PayrollKpiCard } from "./payroll-kpi-card";
+import { RegistroKpiCard } from "./registro-kpi-card";
 import { EmployeeAvatar } from "./employee-avatar";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
@@ -305,40 +305,35 @@ export function RegistroView({
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <PayrollKpiCard
+        <RegistroKpiCard
           icon={Wallet}
           label={tt("kpi_total_due")}
           value={formatCents(totalCents)}
           sublabel={`${(visibleRows ?? []).length} ${tt("kpi_employees_count")}`}
-          color="var(--payroll-total-due)"
         />
-        <PayrollKpiCard
+        <RegistroKpiCard
           icon={Banknote}
           label={tt("kpi_cash")}
           value={formatCents(cashCents)}
           sublabel={pct(cashCents)}
-          category="salario"
         />
-        <PayrollKpiCard
+        <RegistroKpiCard
           icon={Award}
           label={tt("kpi_decimo")}
           value={formatCents(decimoCents)}
           sublabel={pct(decimoCents)}
-          category="decimo"
         />
-        <PayrollKpiCard
+        <RegistroKpiCard
           icon={TrendingDown}
           label={tt("kpi_deductions")}
           value={formatCents(descuentosCents)}
           sublabel={pct(descuentosCents)}
-          category="descuentos"
         />
-        <PayrollKpiCard
+        <RegistroKpiCard
           icon={CalendarClock}
           label={tt("kpi_next_pay")}
           value={nextPayLabel}
           sublabel={quincenaLabel(upcoming.half)}
-          color="var(--payroll-next-pay)"
         />
       </div>
 
