@@ -12,9 +12,9 @@ export function LoginForm() {
   return (
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
       <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
-        {/* Sin bg-ebony-dark: isotipo-black.png ya es la marca oscura, y
-            esta tarjeta (bg-ebony-warm) es clara — un fondo oscuro detrás
-            la volvería a tapar, como pasaba con la "E" antes. */}
+        {/* Sin bg-ebony-dark: tone="black" ya es la marca oscura, y esta
+            tarjeta (bg-ebony-warm) es clara — un fondo oscuro detrás la
+            volvería a tapar, como pasaba con la "E" antes. */}
         <div className="mx-auto flex h-16 items-center justify-center">
           <EbonyLogo variant="isotipo" tone="black" height={28} />
         </div>
