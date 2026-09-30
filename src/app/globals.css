@@ -51,13 +51,20 @@
 
   /* NO es del manual de marca (esa página solo tiene tinta/piedras/crema,
      sin acento) — es una extensión aprobada a mano por Teofilo, inspirada
-     en las fotos de madera del manual, para usarse como acento puntual
-     (ej. el panel de Administración, la barra de sub-tabs). No reemplaza
-     ni se mezcla con la paleta oficial de arriba. */
+     en las fotos de madera del manual. Arrancó como "acento puntual"
+     (el panel de Administración, la barra de sub-tabs), pero Teofilo
+     aprobó expandir su uso — hoy también pinta la barra de navegación,
+     el logo del navbar y las tarjetas KPI de Registro. Sigue sin ser
+     parte de la paleta OFICIAL del manual (eso no cambió); lo que cambió
+     es cuánto de la interfaz se apoya en esta extensión aprobada. */
   --walnut: #6b5744;
   --walnut-tint: #ede6d9; /* nogal muy aclarado — fondo del panel de Administración,
     para diferenciarlo del blanco del área de trabajo. Opción A aprobada por Teofilo
     entre dos variantes. */
+  --bg-tint: #faf7f1; /* fondo general de toda la app — crema/nogal MUY clarito.
+    Reemplaza el blanco liso como --background, para que las ventanas blancas
+    (tarjetas, tablas) se destaquen arriba de este fondo en vez de perderse
+    contra un blanco igual. Aprobado por Teofilo, referencia: Baytek. */
 
   /* Únicas transparencias del sistema — hairline (bordes) y texto
      tenue sobre tinta. */
@@ -142,7 +149,7 @@
    ============================================================================= */
 
 :root {
-  --background: var(--white);
+  --background: var(--bg-tint);
   --foreground: var(--ink-900);
 
   --card: var(--white);
