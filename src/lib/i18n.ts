@@ -36,6 +36,11 @@ export const strings = {
     // construir, ver sidebar.tsx.
     resumenPlanillas: { es: "Dashboard", en: "Dashboard" },
     proximamente: { es: "Pronto", en: "Soon" },
+    // Navbar (rediseño Opción C): breadcrumb a la izquierda, campana entre
+    // el selector de idioma y el usuario a la derecha. Sin backend de
+    // notificaciones todavía — es un ícono inerte, mismo criterio que el
+    // placeholder "Pronto" de arriba.
+    notifications: { es: "Notificaciones", en: "Notifications" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el

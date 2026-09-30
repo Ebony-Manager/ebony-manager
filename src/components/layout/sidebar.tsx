@@ -2,50 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  FileText,
-  Folder,
-  Calendar,
-  DollarSign,
-  BarChart2,
-  Users,
-  Hammer,
-  LayoutGrid,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { LayoutGrid, X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { EbonyLogo } from "@/components/brand/ebony-logo";
-
-interface NavItem {
-  href: string;
-  icon: LucideIcon;
-  label: (typeof strings.nav)[keyof typeof strings.nav];
-}
-
-// Barra angosta siempre visible — los módulos de trabajo del día a día.
-// Nogal sólido + íconos blancos grandes (estilo ClickUp, aprobado por
-// Teofilo) en vez del crema neutro que tenía antes.
-const RAIL_ITEMS: NavItem[] = [
-  { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion },
-  { href: "/proyectos", icon: Folder, label: strings.nav.proyectos },
-  { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
-  { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
-  { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
-];
-
-// Planilla y Contratistas viven en el panel de "Administración". Ya NO es
-// un toggle escondido: para un admin, este panel queda siempre a la vista
-// al lado de la barra nogal, sin importar en qué página esté — el cambio
-// que pidió Teofilo explícitamente, para que nunca más haya que "encontrar"
-// dónde está Planilla. El gate de verdad sigue siendo requireAdmin() en
-// cada página + RLS.
-const ADMIN_PANEL_ITEMS: NavItem[] = [
-  { href: "/planilla", icon: Users, label: strings.nav.taller },
-  { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas },
-];
+import { RAIL_ITEMS, ADMIN_PANEL_ITEMS } from "./nav-items";
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
@@ -104,7 +66,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         {/* Panel "Administración" — solo para admins, siempre visible. */}
         {isAdmin && (
           <aside className="w-56 h-full flex flex-col shrink-0 bg-walnut-tint border-r border-black/8">
-            <div className="px-5 pt-[22px] pb-4">
+            <div className="px-5 pt-[18px] pb-4">
+              {/* Identidad de marca — se movió acá del navbar (ver
+                  navbar.tsx, ahora un breadcrumb). El isotipo sigue arriba
+                  en la barra nogal; "ebony" chico va justo encima de
+                  "Administración". */}
+              <EbonyLogo variant="wordmark" tone="walnut" height={11} className="mb-1.5 opacity-75" />
               <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
             </div>
             <div className="h-px bg-black/8 mx-5 mb-3.5" />

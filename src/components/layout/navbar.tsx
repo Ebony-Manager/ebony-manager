@@ -1,18 +1,37 @@
 "use client";
 
-import { LogOut, Globe } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LogOut, Globe, Bell } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { EbonyLogo } from "@/components/brand/ebony-logo";
+import { RAIL_ITEMS, ADMIN_PANEL_ITEMS } from "./nav-items";
+
+/**
+ * "Administración / Planilla" a la izquierda — la identidad de marca ya
+ * NO vive acá (se movió al panel de Administración del sidebar, ver
+ * sidebar.tsx): esta franja es solo ubicación. Un módulo del rail (sin
+ * panel) da un solo crumb ("Cronograma"); uno del panel de Administración
+ * da dos ("Administración / Planilla"), reflejando dónde vive de verdad.
+ * Sin match (ej. `/`, fuera de (app)) no rinde nada.
+ */
+function useBreadcrumb(pathname: string, lang: "es" | "en"): string[] {
+  const adminItem = ADMIN_PANEL_ITEMS.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  if (adminItem) return [t(lang, strings.nav.administracion), t(lang, adminItem.label)];
+  const railItem = RAIL_ITEMS.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  if (railItem) return [t(lang, railItem.label)];
+  return [];
+}
 
 export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, role, signOut } = useAuth();
   const { lang, toggle } = useLang();
+  const pathname = usePathname();
+  const crumbs = useBreadcrumb(pathname, lang);
 
   return (
     <header className="h-14 bg-cream-100 border-b border-ink-900/10 flex items-center justify-between px-4 shrink-0">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuToggle}
           className="text-ink-900/60 hover:text-ink-900 transition-colors p-1 rounded-none md:hidden"
@@ -24,12 +43,22 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <div className="flex flex-col justify-center leading-none">
-          <EbonyLogo variant="wordmark" tone="walnut" height={20} />
-          <span className="mt-1 text-[10px] font-medium tracking-[0.08em] text-walnut/55 select-none">
-            woodwork studio
-          </span>
-        </div>
+
+        {crumbs.length > 0 && (
+          <nav aria-label="breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+            {crumbs.map((crumb, i) => {
+              const isLast = i === crumbs.length - 1;
+              return (
+                <span key={crumb} className="flex min-w-0 items-center gap-1.5">
+                  {i > 0 && <span className="text-ink-900/30">/</span>}
+                  <span className={isLast ? "truncate font-semibold text-ink-900" : "truncate text-ink-900/50"}>
+                    {crumb}
+                  </span>
+                </span>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -39,6 +68,15 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
         >
           <Globe size={13} />
           {lang.toUpperCase()}
+        </button>
+
+        <button
+          type="button"
+          title={t(lang, strings.nav.notifications)}
+          aria-label={t(lang, strings.nav.notifications)}
+          className="text-ink-900/60 hover:text-ink-900 transition-colors p-1.5"
+        >
+          <Bell size={16} />
         </button>
 
         {user && (
