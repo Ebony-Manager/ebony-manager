@@ -25,7 +25,7 @@ export function RegistroKpiCard({
   className?: string;
 }) {
   return (
-    <div className={cn("relative overflow-hidden rounded-xl border border-border bg-card px-4 py-4", className)}>
+    <div className={cn("relative overflow-hidden rounded-xl border border-ink-900/8 bg-card px-4 py-4", className)}>
       <div
         className="absolute inset-x-0 top-0 h-1"
         style={{
@@ -37,11 +37,11 @@ export function RegistroKpiCard({
         className="mt-1 mb-2.5 flex size-[30px] items-center justify-center rounded-[8px]"
         style={{ backgroundColor: "var(--walnut-tint)" }}
       >
-        <Icon size={15} style={{ color: "var(--walnut)" }} />
+        <Icon size={15} strokeWidth={1.7} style={{ color: "var(--walnut)" }} />
       </div>
-      <p className="truncate text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="truncate text-[10.5px] font-semibold uppercase tracking-[0.04em] text-ink-900/45">{label}</p>
       <p
-        className="mt-0.5 text-xl font-extrabold tabular-nums"
+        className="mt-0.5 text-[22px] font-extrabold tabular-nums"
         style={{
           background:
             "linear-gradient(90deg, color-mix(in oklch, var(--walnut) 100%, black 8%), color-mix(in oklch, var(--walnut) 100%, white 25%))",
@@ -52,7 +52,7 @@ export function RegistroKpiCard({
       >
         {value}
       </p>
-      {sublabel && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{sublabel}</p>}
+      {sublabel && <p className="mt-0.5 truncate text-[11px] text-ink-900/40">{sublabel}</p>}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   CalendarClock,
   Palette,
   Rows3,
+  Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -70,12 +71,12 @@ function readStoredPalette(): PayrollPalette | null {
   }
 }
 
-type RegistroView = "expanded" | "compact";
+type RegistroView = "expanded" | "simple";
 const VIEW_STORAGE_KEY = "ebony:planilla-registro-view";
 function readStoredView(): RegistroView | null {
   try {
     const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    return v === "expanded" || v === "compact" ? v : null;
+    return v === "expanded" || v === "simple" ? v : null;
   } catch {
     return null;
   }
@@ -119,7 +120,7 @@ export function RegistroView({
   // "sober" por defecto — la marca no tiene acento de color, así que la
   // vista sobria es la que se ve al abrir Registro.
   const [palette, setPalette] = React.useState<PayrollPalette>("sober");
-  const [view, setView] = React.useState<RegistroView>("expanded");
+  const [view, setView] = React.useState<RegistroView>("simple");
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
     const storedPalette = readStoredPalette();
@@ -304,7 +305,7 @@ export function RegistroView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 lg:grid-cols-5">
         <RegistroKpiCard
           icon={Wallet}
           label={tt("kpi_total_due")}
@@ -360,15 +361,15 @@ export function RegistroView({
           size="sm"
           className="ml-auto"
           title={tt("registro_view_toggle_hint")}
-          onClick={() => setView((v) => (v === "expanded" ? "compact" : "expanded"))}
+          onClick={() => setView((v) => (v === "expanded" ? "simple" : "expanded"))}
         >
           <Rows3 className="size-3.5" />
-          {view === "compact" ? tt("registro_view_compact") : tt("registro_view_expanded")}
+          {view === "simple" ? tt("registro_view_simple") : tt("registro_view_expanded")}
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" disabled={view === "compact"}>
+            <Button type="button" variant="outline" size="sm" disabled={view === "simple"}>
               <Columns3 className="size-3.5" />
               {tt("columns")}
             </Button>
@@ -400,7 +401,7 @@ export function RegistroView({
       </div>
 
       {view === "expanded" && (
-      <div className="overflow-x-auto rounded-none border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
         <table className="w-full min-w-[960px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">
@@ -581,7 +582,7 @@ export function RegistroView({
           </tbody>
           {visibleRows && visibleRows.length > 0 && (
             <tfoot>
-              <tr className="border-t border-border bg-muted/30 text-sm font-medium">
+              <tr className="border-t border-ink-900/8 bg-ink-900/[2.5%] text-sm font-medium">
                 <td className="px-3 py-2 text-foreground" colSpan={visibleCount}>
                   {tt("total_quincena")}
                 </td>
@@ -596,59 +597,163 @@ export function RegistroView({
       </div>
       )}
 
-      {view === "compact" && (
-        <div className="overflow-x-auto rounded-none border border-border bg-card">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+      {/* Vista Simple (mockup Opción C) — lo esencial de cada quincena:
+          quién es, categoría/función, base, décimo/vacación PAGADOS (sigue
+          editable, mismo saveField que la vista Expandida, solo que sin el
+          look de grilla de entrada), método y pagado. Para Horas Extra,
+          Bonos, Días Libres y el resto de columnas granulares hay que
+          pasar a Expandida — nada de esto se perdió, solo dejó de ser lo
+          primero que se ve. Sigue siendo <table>, no los <div> de grid del
+          mockup: misma fidelidad visual (colgroup con los mismos anchos
+          relativos) pero con semántica de tabla real. */}
+      {view === "simple" && (
+        <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
+            <colgroup>
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "10.5%" }} />
+              <col style={{ width: "11.5%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "11.5%" }} />
+              <col style={{ width: "7.5%" }} />
+              <col style={{ width: "9.5%" }} />
+            </colgroup>
             <thead>
-              <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
-                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("salario", 96)}>
+              <tr className="border-b border-ink-900/8">
+                <th className="sticky left-0 z-10 bg-card py-[11px] pl-[18px] pr-3 text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_empleado")}
+                </th>
+                <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_categoria")}
+                </th>
+                <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_funcion")}
+                </th>
+                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
                   {tt("col_base")}
                 </th>
-                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("bonos", 120)}>
-                  {tt("compact_col_bonif")}
+                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_decimo")}
                 </th>
-                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("descuentos", 120)}>
-                  {tt("compact_col_desc")}
+                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_vacacion")}
                 </th>
-                <th className="px-3 py-2 text-right font-medium" style={fieldHeaderStyle("decimo", 120)}>
-                  {tt("compact_col_prestaciones")}
+                <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_metodo")}
                 </th>
-                <th className="px-3 py-2 text-right font-medium">{tt("col_total")}</th>
+                <th className="px-3 py-[11px] text-center text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_pagado")}
+                </th>
+                <th className="py-[11px] pr-[18px] pl-3 text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                  {tt("col_total")}
+                </th>
               </tr>
             </thead>
             <tbody>
               {(visibleRows ?? []).map(({ employee, total }) => {
+                const key = employee.id;
+                const p = dataPeriod;
                 const e = total.entry;
-                const bonifCents = e ? e.extraHoursCents + e.extraDaysCents + e.bonusCents + e.diasLibresCents : 0;
-                const descCents = e ? e.horasDescontadasCents + e.diasDescontadosCents + e.otherDeductionCents : 0;
-                const prestacionesCents = e
-                  ? e.decimoPaidCents + e.vacationPaidCents + e.primaAntiguedadPaidCents
-                  : 0;
+                const isAdmin = employee.categoria === "administrativo";
                 return (
-                  <tr key={employee.id} className="border-b border-border transition-colors last:border-0 hover:bg-[var(--row-hover)]">
-                    <td className="sticky left-0 z-10 bg-card px-3 py-1.5 font-medium text-foreground">
-                      <div className="flex items-center gap-2">
+                  <tr
+                    key={`${key}-simple-${p.year}-${p.month}-${p.half}`}
+                    className="border-b border-ink-900/6 transition-colors last:border-0 hover:bg-[var(--row-hover)]"
+                  >
+                    <td className="sticky left-0 z-10 bg-card py-[13px] pl-[18px] pr-3 font-semibold text-ink-900">
+                      <div className="flex items-center gap-2.5">
                         <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
-                        {employee.name}
+                        <span className="text-[13px]">{employee.name}</span>
                       </div>
                     </td>
-                    <td
-                      className="px-3 py-1.5 text-right tabular-nums"
-                      style={{ ...fieldCellStyle("salario", 96), color: PAYROLL_CATEGORY.salario.color }}
-                    >
+                    <td className="px-3 py-[13px]">
+                      <span
+                        className={
+                          isAdmin
+                            ? "w-fit rounded-[6px] bg-walnut-tint px-[9px] py-[3px] text-[11.5px] font-semibold text-walnut"
+                            : "w-fit rounded-[6px] bg-ink-900/6 px-[9px] py-[3px] text-[11.5px] font-semibold text-ink-900/55"
+                        }
+                      >
+                        {isAdmin ? tt("categoria_administrativo_short") : tt("categoria_taller")}
+                      </span>
+                    </td>
+                    <td className="px-3 py-[13px] text-[12.5px] text-ink-900/65">{employee.position || "—"}</td>
+                    <td className="px-3 py-[13px] text-right text-[12.5px] text-ink-900" title={tt("base_readonly_hint")}>
                       {formatCents(e?.basePayCents ?? 0)}
                     </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("bonos", 120)}>
-                      {formatCents(bonifCents)}
+                    <td className="px-1 py-[13px] text-right">
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={e?.decimoPaidCents ? (e.decimoPaidCents / 100).toFixed(2) : ""}
+                        placeholder="0.00"
+                        onBlur={(ev) => {
+                          const raw = ev.target.value.trim();
+                          const nextCents = raw === "" ? 0 : Math.round(parseFloat(raw) * 100);
+                          if (!Number.isFinite(nextCents)) return;
+                          if (nextCents === (e?.decimoPaidCents ?? 0)) return;
+                          saveField(key, p, "decimoPaidCents", ev.target.value);
+                        }}
+                        className="w-full rounded-none border border-transparent bg-transparent px-1 py-0.5 text-right text-[12.5px] text-ink-900/45 tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
+                      />
                     </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("descuentos", 120)}>
-                      {formatCents(descCents)}
+                    <td className="px-1 py-[13px] text-right">
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={e?.vacationPaidCents ? (e.vacationPaidCents / 100).toFixed(2) : ""}
+                        placeholder="0.00"
+                        onBlur={(ev) => {
+                          const raw = ev.target.value.trim();
+                          const nextCents = raw === "" ? 0 : Math.round(parseFloat(raw) * 100);
+                          if (!Number.isFinite(nextCents)) return;
+                          if (nextCents === (e?.vacationPaidCents ?? 0)) return;
+                          saveField(key, p, "vacationPaidCents", ev.target.value);
+                        }}
+                        className="w-full rounded-none border border-transparent bg-transparent px-1 py-0.5 text-right text-[12.5px] text-ink-900/45 tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
+                      />
                     </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground" style={fieldCellStyle("decimo", 120)}>
-                      {formatCents(prestacionesCents)}
+                    <td className="px-3 py-[13px]">
+                      <Select
+                        value={e?.paymentMethod ?? "efectivo"}
+                        onValueChange={(v) => {
+                          if ((v as PaymentMethod) === (e?.paymentMethod ?? "efectivo")) return;
+                          savePaymentMethod(key, p, v as PaymentMethod);
+                        }}
+                      >
+                        <SelectTrigger className="h-auto w-fit gap-1.5 rounded-[7px] border-ink-900/12 px-[9px] py-1 text-[12px] font-medium text-ink-900/60 shadow-none">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {PAYMENT_METHOD_LABEL[value]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
-                    <td className="px-3 py-1.5 text-right font-medium tabular-nums text-foreground">
+                    <td className="px-3 py-[13px]">
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={e?.paid ?? false}
+                          aria-label={tt("col_pagado")}
+                          onClick={() => togglePaid(key, p, !(e?.paid ?? false))}
+                          className={
+                            e?.paid
+                              ? "flex size-[18px] items-center justify-center rounded-[5px] bg-walnut"
+                              : "size-[18px] rounded-[5px] border-[1.5px] border-ink-900/20"
+                          }
+                        >
+                          {e?.paid && <Check className="size-3 text-white" strokeWidth={2.4} />}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-[13px] pr-[18px] pl-3 text-right text-[13.5px] font-bold text-ink-900">
                       {formatCents(total.totalCents)}
                     </td>
                   </tr>
@@ -657,11 +762,11 @@ export function RegistroView({
             </tbody>
             {visibleRows && visibleRows.length > 0 && (
               <tfoot>
-                <tr className="border-t border-border bg-muted/30 text-sm font-medium">
-                  <td className="px-3 py-2 text-foreground" colSpan={5}>
+                <tr className="border-t border-ink-900/8 bg-ink-900/[2.5%]">
+                  <td className="py-3 pr-[18px] pl-3 text-right text-[12.5px] font-semibold text-ink-900/50" colSpan={8}>
                     {tt("total_quincena")}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                  <td className="py-3 pr-[18px] pl-3 text-right text-[14px] font-bold text-ink-900">
                     {formatCents(visibleRows.reduce((sum, r) => sum + r.total.totalCents, 0))}
                   </td>
                 </tr>
