@@ -28,7 +28,14 @@ export const strings = {
     // página (esa sigue diciendo "Planilla" en su propio encabezado).
     administracion: { es: "Administración", en: "Administration" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
-    taller: { es: "Taller + Admin", en: "Workshop + Admin" },
+    // El filtro Todos/Taller/Administrativo que ya vive DENTRO del módulo
+    // es lo que distingue ahora — el nombre del menú no necesita cargarlo.
+    taller: { es: "Planilla", en: "Payroll" },
+    // Panel "Administración" (rediseño visual): placeholder del Resumen de
+    // Planillas global (Taller + Contratistas juntos) — todavía sin
+    // construir, ver sidebar.tsx.
+    resumenPlanillas: { es: "Dashboard", en: "Dashboard" },
+    proximamente: { es: "Pronto", en: "Soon" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
