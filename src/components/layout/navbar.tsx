@@ -25,8 +25,8 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
           </svg>
         </button>
         <div className="flex flex-col justify-center leading-none">
-          <EbonyLogo variant="wordmark" tone="black" height={20} />
-          <span className="mt-1 text-[10px] font-medium tracking-[0.08em] text-ink-900/50 select-none">
+          <EbonyLogo variant="wordmark" tone="walnut" height={20} />
+          <span className="mt-1 text-[10px] font-medium tracking-[0.08em] text-walnut/55 select-none">
             woodwork studio
           </span>
         </div>

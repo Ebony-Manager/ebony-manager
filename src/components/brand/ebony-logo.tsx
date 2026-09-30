@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 type Variant = "wordmark" | "isotipo";
-type Tone = "white" | "black";
+type Tone = "white" | "black" | "walnut";
 
 /**
  * The real Ebony mark — never redrawn, never type standing in for it.
@@ -20,6 +20,9 @@ const ASSETS: Record<Variant, Partial<Record<Tone, { file: string; width: number
   wordmark: {
     white: { file: "logo-wordmark-white.png", width: 3020, height: 886 },
     black: { file: "logo-wordmark-black.png", width: 3161, height: 1067 },
+    // Mismo archivo que black, recoloreado pixel por pixel a #6b5744
+    // (--walnut) conservando forma y anti-aliasing — mismas dimensiones.
+    walnut: { file: "logo-wordmark-walnut.png", width: 3161, height: 1067 },
   },
   isotipo: {
     white: { file: "isotipo-white.png", width: 5001, height: 5001 },
