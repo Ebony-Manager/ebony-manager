@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, X } from "lucide-react";
+import { Layers, Settings, X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
@@ -14,6 +14,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const { role } = useAuth();
   const pathname = usePathname();
   const isAdmin = role === "admin";
+  const [planillaItem, contratistasItem] = ADMIN_PANEL_ITEMS;
 
   return (
     <>
@@ -36,7 +37,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             <X size={14} />
           </button>
 
-          <div className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center mb-5 shrink-0">
+          <div className="w-9 h-9 rounded-[10px] bg-white/16 flex items-center justify-center mb-[22px] shrink-0">
             <EbonyLogo variant="isotipo" tone="white" height={20} />
           </div>
 
@@ -56,61 +57,92 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     ${isActive ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
                   `}
                 >
-                  <Icon size={23} className="shrink-0" strokeWidth={1.6} />
+                  <Icon size={23} className="shrink-0" strokeWidth={1.5} />
                 </Link>
               );
             })}
           </nav>
+
+          {/* Inerte por ahora — el mockup lo pinta pero no define a dónde
+              lleva (¿ajustes de perfil? ¿de la app?). Avisar antes de
+              cablearlo a algo. */}
+          <div
+            className="mt-auto w-11 h-11 flex items-center justify-center rounded-[11px] text-white/65"
+            title={t(lang, strings.nav.settings)}
+          >
+            <Settings size={20} strokeWidth={1.5} />
+          </div>
         </aside>
 
         {/* Panel "Administración" — solo para admins, siempre visible. */}
         {isAdmin && (
-          <aside className="w-56 h-full flex flex-col shrink-0 bg-walnut-tint border-r border-black/8">
-            <div className="px-5 pt-[18px] pb-4">
-              {/* Identidad de marca — se movió acá del navbar (ver
-                  navbar.tsx, ahora un breadcrumb). El isotipo sigue arriba
-                  en la barra nogal; "ebony" chico va justo encima de
-                  "Administración". */}
-              <EbonyLogo variant="wordmark" tone="walnut" height={11} className="mb-1.5 opacity-75" />
+          <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
+            <div className="px-5 pt-[22px] pb-4">
               <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
             </div>
-            <div className="h-px bg-black/8 mx-5 mb-3.5" />
+            <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
-              {ADMIN_PANEL_ITEMS.map(({ href, icon: Icon, label }) => {
-                const isActive = pathname === href || pathname.startsWith(`${href}/`);
+              {(() => {
+                const isActive =
+                  pathname === planillaItem.href || pathname.startsWith(`${planillaItem.href}/`);
+                const Icon = planillaItem.icon;
                 return (
                   <Link
-                    key={href}
-                    href={href}
+                    href={planillaItem.href}
                     onClick={onClose}
                     className={`
-                      w-full flex items-center gap-3 border-l-[3px] px-2.5 py-2.5 rounded-[9px] text-sm font-medium
+                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
                       transition-colors duration-100
                       ${
                         isActive
-                          ? "border-walnut bg-walnut/8 text-walnut"
-                          : "border-transparent text-ink-900/70 hover:bg-ink-900/5 hover:text-ink-900"
+                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
+                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
                       }
                     `}
                   >
-                    <Icon size={17} className="shrink-0" />
-                    <span>{t(lang, label)}</span>
+                    <Icon size={18} className="shrink-0" strokeWidth={1.7} />
+                    <span>{t(lang, planillaItem.label)}</span>
                   </Link>
                 );
-              })}
+              })()}
 
-              {/* Placeholder — la función "Resumen de Planillas" (Taller +
-                  Contratistas juntos) todavía no está construida. Cuando
-                  exista su página, esto pasa a ser un <Link> más de la
-                  lista de arriba, igual que Planilla/Contratistas. */}
-              <div className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-[9px] text-sm font-medium text-ink-900/35 cursor-not-allowed">
-                <LayoutGrid size={17} className="shrink-0" />
+              {/* "Dashboard" acá es el Resumen de Planillas global (Taller +
+                  Contratistas juntos) — todavía sin construir. El mockup lo
+                  pinta como un ítem normal (no apagado) con etiqueta
+                  "NUEVO" en vez de "Pronto"; sigue sin ser un <Link> real
+                  porque no hay página a la que mandarlo todavía. */}
+              <div className="flex items-center gap-[11px] rounded-[9px] px-3 py-[9px] text-[13.5px] font-medium text-ink-900/55">
+                <Layers size={18} className="shrink-0" strokeWidth={1.7} />
                 <span>{t(lang, strings.nav.resumenPlanillas)}</span>
-                <span className="ml-auto text-[9px] font-semibold tracking-wide text-ink-900/40 bg-ink-900/6 px-1.5 py-0.5 rounded-[5px]">
-                  {t(lang, strings.nav.proximamente)}
+                <span className="ml-auto rounded-[5px] bg-walnut-tint px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.04em] text-walnut">
+                  {t(lang, strings.nav.nuevo)}
                 </span>
               </div>
+
+              {(() => {
+                const isActive =
+                  pathname === contratistasItem.href || pathname.startsWith(`${contratistasItem.href}/`);
+                const Icon = contratistasItem.icon;
+                return (
+                  <Link
+                    href={contratistasItem.href}
+                    onClick={onClose}
+                    className={`
+                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
+                      transition-colors duration-100
+                      ${
+                        isActive
+                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
+                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
+                      }
+                    `}
+                  >
+                    <Icon size={18} className="shrink-0" strokeWidth={1.7} />
+                    <span>{t(lang, contratistasItem.label)}</span>
+                  </Link>
+                );
+              })()}
             </nav>
           </aside>
         )}

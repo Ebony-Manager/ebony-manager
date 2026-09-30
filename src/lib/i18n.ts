@@ -36,11 +36,18 @@ export const strings = {
     // construir, ver sidebar.tsx.
     resumenPlanillas: { es: "Dashboard", en: "Dashboard" },
     proximamente: { es: "Pronto", en: "Soon" },
+    // Mockup Opción C (Rail): el ítem "Dashboard" del panel se ve como
+    // cualquier otro (no apagado/disabled) con una etiqueta "NUEVO" en vez
+    // de "Pronto" — pero sigue sin link real, la página todavía no existe.
+    nuevo: { es: "NUEVO", en: "NEW" },
     // Navbar (rediseño Opción C): breadcrumb a la izquierda, campana entre
     // el selector de idioma y el usuario a la derecha. Sin backend de
     // notificaciones todavía — es un ícono inerte, mismo criterio que el
     // placeholder "Pronto" de arriba.
     notifications: { es: "Notificaciones", en: "Notifications" },
+    // Engranaje al pie de la barra nogal (mockup Opción C) — inerte, sin
+    // destino todavía (ver sidebar.tsx).
+    settings: { es: "Configuración", en: "Settings" },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -63,6 +70,9 @@ export const strings = {
     f_categoria: { es: "Categoría", en: "Category" },
     categoria_taller: { es: "Taller", en: "Workshop" },
     categoria_administrativo: { es: "Administrativo", en: "Administrative" },
+    // Badge corto de la tabla de Registro (poco espacio) — "Administrativo"
+    // completo se sigue usando en el Select del formulario y el filtro.
+    categoria_administrativo_short: { es: "Admin.", en: "Admin." },
     categoria_filter_all: { es: "Todos", en: "All" },
     position_other: { es: "Otro…", en: "Other…" },
     position_other_ph: { es: "Escribe la posición", en: "Type the position" },
@@ -134,6 +144,8 @@ export const strings = {
     columns: { es: "Columnas", en: "Columns" },
 
     col_empleado: { es: "Empleado", en: "Employee" },
+    col_categoria: { es: "Categoría", en: "Category" },
+    col_funcion: { es: "Función", en: "Role" },
     col_base: { es: "Base", en: "Base" },
     col_extra_hours: { es: "Horas Extra", en: "Overtime Hours" },
     col_extra_days: { es: "Días Extra", en: "Extra Days" },
@@ -540,13 +552,15 @@ export const strings = {
       en: "Switch between full-color cells/rows and the sober view",
     },
 
-    // Vista compacta de Registro (Tanda 2/6) — de solo lectura; para
-    // editar un campo granular hay que volver a la vista expandida.
-    registro_view_compact: { es: "Compacta", en: "Compact" },
+    // Vista por defecto de Registro (Opción C): Empleado/Categoría/Función/
+    // Base/Décimo/Vacación/Método/Pagado/Total — editable en lo que
+    // importa quincena a quincena. Para Horas Extra, Bonos, Días Libres y
+    // demás columnas granulares hay que pasar a Expandida.
+    registro_view_simple: { es: "Simple", en: "Simple" },
     registro_view_expanded: { es: "Expandida", en: "Expanded" },
     registro_view_toggle_hint: {
-      es: "Compacta agrupa las columnas en totales de solo lectura — para editar, vuelve a Expandida.",
-      en: "Compact groups the columns into read-only totals — switch back to Expanded to edit.",
+      es: "Simple muestra solo lo esencial — para Horas Extra, Bonos y demás columnas, pasa a Expandida.",
+      en: "Simple shows only the essentials — switch to Expanded for Overtime, Bonuses and the rest.",
     },
     compact_col_bonif: { es: "Total bonificaciones", en: "Total bonuses" },
     compact_col_desc: { es: "Total descuentos", en: "Total deductions" },
