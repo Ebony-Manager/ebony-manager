@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import type { EmployeeCategoria, PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { SectionSubbar, SectionSubbarTab } from "@/components/layout/section-subbar";
+import { breadcrumbFor } from "@/components/layout/nav-items";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -32,14 +33,18 @@ function readStoredColumns(): Record<ColumnKey, boolean> | null {
 }
 
 /**
- * Chrome del módulo Planilla (Fase 2 completa): Dashboard, Panorama,
- * Registro, Auditoría y Empleados, + el sheet de Detalle (abierto desde
- * Registro) y "Agregar empleado". La vieja pestaña "Resumen Anual" se
+ * Chrome del módulo Planilla (Fase 2 completa, mockup Opción C): Dashboard,
+ * Panorama, Registro, Auditoría y Empleados, + el sheet de Detalle (abierto
+ * desde Registro) y "Agregar empleado". La vieja pestaña "Resumen Anual" se
  * retiró (Taller · Tanda 1): su función la reemplaza el Historial dentro
  * del perfil de cada empleado (`/planilla/[id]`), que también es donde
  * "Empleados" navega ahora en vez de abrir un sheet. "Panorama" (Tanda 3)
- * es la misma idea en lenguaje simple, sin jerga — Dashboard sigue
- * siendo el panel financiero, sin tocar.
+ * es la misma idea en lenguaje simple, sin jerga — Dashboard sigue siendo
+ * el panel financiero, sin tocar.
+ *
+ * Las pestañas ya NO viven en una franja nogal aparte (`SectionSubbar`,
+ * retirado) — son texto simple con subrayado sobre el mismo fondo claro
+ * de la página, como el resto de la pantalla en el mockup.
  *
  * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro,
  * persistido) viven acá para sobrevivir al cambio de tab.
@@ -61,6 +66,8 @@ export function PlanillaClient({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const pathname = usePathname();
+  const crumbs = breadcrumbFor(pathname, lang);
 
   const [addOpen, setAddOpen] = React.useState(false);
   const [tab, setTab] = React.useState("registro");
@@ -103,71 +110,108 @@ export function PlanillaClient({
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <SectionSubbar
-        tabs={TABS.map(({ value, label }) => (
-          <SectionSubbarTab key={value} active={tab === value} onClick={() => setTab(value)}>
-            {label}
-          </SectionSubbarTab>
-        ))}
-        actions={
-          <>
-            <div className="flex items-center gap-1">
-              {CATEGORIA_FILTERS.map(({ value, label }) => (
-                <Button
+    <div className="flex flex-col gap-5 px-7 pt-6 pb-10">
+      {crumbs.length > 0 && (
+        <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
+          {crumbs.map((crumb, i) => {
+            const isLast = i === crumbs.length - 1;
+            return (
+              <span key={crumb} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-ink-900/30">/</span>}
+                <span className={isLast ? "font-semibold text-ink-900" : "text-ink-900/50"}>{crumb}</span>
+              </span>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Section tabs — texto simple con subrayado, sin franja de color. */}
+      <div className="flex items-center gap-[22px] border-b border-ink-900/8">
+        {TABS.map(({ value, label }) => {
+          const isActive = tab === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTab(value)}
+              className={
+                isActive
+                  ? "pb-[10px] text-[13.5px] font-semibold text-walnut border-b-2 border-walnut"
+                  : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Title row + filtro + acción. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-[19px] font-bold text-ink-900">{tt("subtitle")}</h1>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5 rounded-[9px] border border-ink-900/10 bg-white p-[3px]">
+            {CATEGORIA_FILTERS.map(({ value, label }) => {
+              const active = categoriaFilter === value;
+              return (
+                <button
                   key={value}
-                  size="sm"
-                  variant={categoriaFilter === value ? "secondary" : "ghost"}
-                  className={categoriaFilter === value ? "" : "text-white/80 hover:text-white"}
+                  type="button"
                   onClick={() => setCategoriaFilter(value)}
+                  className={
+                    active
+                      ? "rounded-[6px] bg-walnut px-[13px] py-1.5 text-[12.5px] font-semibold text-white"
+                      : "rounded-[6px] px-[13px] py-1.5 text-[12.5px] font-medium text-[#5b5b58]"
+                  }
                 >
                   {label}
-                </Button>
-              ))}
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
-              <Plus className="size-3.5" />
-              {tt("add_employee")}
-            </Button>
-          </>
-        }
+                </button>
+              );
+            })}
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setAddOpen(true)}
+            className="rounded-[9px] bg-walnut px-4 py-[9px] text-[13px] font-semibold text-white hover:bg-walnut/90"
+          >
+            <Plus className="size-[15px]" />
+            {tt("add_employee")}
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsContent value="dashboard" className="pt-0">
+          <DashboardView year={year} onYearChange={setYear} />
+        </TabsContent>
+        <TabsContent value="panorama" className="pt-0">
+          <PanoramaView />
+        </TabsContent>
+        <TabsContent value="registro" className="pt-0">
+          <RegistroView
+            employees={filteredEmployees}
+            visibleColumns={visibleColumns}
+            onVisibleColumnsChange={setVisibleColumns}
+            onViewDetail={setDetailEmployeeId}
+          />
+        </TabsContent>
+        <TabsContent value="auditoria" className="pt-0">
+          <AuditoriaView year={year} onYearChange={setYear} />
+        </TabsContent>
+        <TabsContent value="empleados" className="pt-0">
+          <EmpleadosView employees={filteredEmployees} />
+        </TabsContent>
+      </Tabs>
+
+      <EmployeeDetailSheet
+        employee={detailEmployee}
+        year={year}
+        open={detailEmployeeId !== null}
+        onOpenChange={(open) => !open && setDetailEmployeeId(null)}
       />
 
-      <div className="flex flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
-        <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
-
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsContent value="dashboard" className="pt-0">
-            <DashboardView year={year} onYearChange={setYear} />
-          </TabsContent>
-          <TabsContent value="panorama" className="pt-0">
-            <PanoramaView />
-          </TabsContent>
-          <TabsContent value="registro" className="pt-0">
-            <RegistroView
-              employees={filteredEmployees}
-              visibleColumns={visibleColumns}
-              onVisibleColumnsChange={setVisibleColumns}
-              onViewDetail={setDetailEmployeeId}
-            />
-          </TabsContent>
-          <TabsContent value="auditoria" className="pt-0">
-            <AuditoriaView year={year} onYearChange={setYear} />
-          </TabsContent>
-          <TabsContent value="empleados" className="pt-0">
-            <EmpleadosView employees={filteredEmployees} />
-          </TabsContent>
-        </Tabs>
-
-        <EmployeeDetailSheet
-          employee={detailEmployee}
-          year={year}
-          open={detailEmployeeId !== null}
-          onOpenChange={(open) => !open && setDetailEmployeeId(null)}
-        />
-
-        <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />
-      </div>
+      <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
