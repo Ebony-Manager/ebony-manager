@@ -621,8 +621,8 @@ export function RegistroView({
               <col style={{ width: "9.5%" }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-ink-900/8">
-                <th className="sticky left-0 z-10 bg-card py-[11px] pl-[18px] pr-3 text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+              <tr className="border-b border-ink-900/8 bg-walnut-tint">
+                <th className="sticky left-0 z-10 bg-walnut-tint py-[11px] pl-[18px] pr-3 text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
                   {tt("col_empleado")}
                 </th>
                 <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
