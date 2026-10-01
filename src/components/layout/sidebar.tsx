@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layers, Settings, X } from "lucide-react";
+import { Briefcase, Layers, Settings, X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
@@ -15,6 +15,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const pathname = usePathname();
   const isAdmin = role === "admin";
   const [planillaItem, contratistasItem] = ADMIN_PANEL_ITEMS;
+  const isAdminRoute = ADMIN_PANEL_ITEMS.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
 
   return (
     <>
@@ -61,6 +62,27 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 </Link>
               );
             })}
+
+            {/* Administración — un Link normal como los 5 de arriba (no un
+                toggle que abre/cierra nada); el panel crema de al lado
+                aparece solo, según la ruta (ver isAdminRoute), al entrar
+                acá. Solo para admin: un vendedor no tiene nada que ver en
+                Planilla/Contratistas. */}
+            {isAdmin && (
+              <Link
+                href={planillaItem.href}
+                onClick={onClose}
+                title={t(lang, strings.nav.administracion)}
+                aria-label={t(lang, strings.nav.administracion)}
+                className={`
+                  w-11 h-11 flex items-center justify-center rounded-[11px]
+                  transition-colors duration-100
+                  ${isAdminRoute ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
+                `}
+              >
+                <Briefcase size={23} className="shrink-0" strokeWidth={1.5} />
+              </Link>
+            )}
           </nav>
 
           {/* Inerte por ahora — el mockup lo pinta pero no define a dónde
@@ -74,8 +96,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </div>
         </aside>
 
-        {/* Panel "Administración" — solo para admins, siempre visible. */}
-        {isAdmin && (
+        {/* Panel "Administración" — solo para admins, y solo dentro de
+            Planilla o Contratistas (antes aparecía en cualquier ruta). */}
+        {isAdmin && isAdminRoute && (
           <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
             <div className="px-5 pt-[22px] pb-4">
               <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
