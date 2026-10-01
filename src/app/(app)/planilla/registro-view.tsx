@@ -582,7 +582,7 @@ export function RegistroView({
           </tbody>
           {visibleRows && visibleRows.length > 0 && (
             <tfoot>
-              <tr className="border-t border-ink-900/8 bg-ink-900/[2.5%] text-sm font-medium">
+              <tr className="border-t border-ink-900/8 bg-walnut-tint text-sm font-medium">
                 <td className="px-3 py-2 text-foreground" colSpan={visibleCount}>
                   {tt("total_quincena")}
                 </td>
@@ -634,10 +634,16 @@ export function RegistroView({
                 <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
                   {tt("col_base")}
                 </th>
-                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                <th
+                  className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] uppercase"
+                  style={{ ...fieldHeaderStyle("decimo", 88), minWidth: undefined }}
+                >
                   {tt("col_decimo")}
                 </th>
-                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
+                <th
+                  className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] uppercase"
+                  style={{ ...fieldHeaderStyle("decimo", 88), minWidth: undefined }}
+                >
                   {tt("col_vacacion")}
                 </th>
                 <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/45 uppercase">
@@ -683,7 +689,10 @@ export function RegistroView({
                     <td className="px-3 py-[13px] text-right text-[12.5px] text-ink-900" title={tt("base_readonly_hint")}>
                       {formatCents(e?.basePayCents ?? 0)}
                     </td>
-                    <td className="px-1 py-[13px] text-right">
+                    <td
+                      className="px-1 py-[13px] text-right"
+                      style={{ ...fieldCellStyle("decimo", 88), minWidth: undefined }}
+                    >
                       <input
                         type="number"
                         step="0.01"
@@ -699,7 +708,10 @@ export function RegistroView({
                         className="w-full rounded-none border border-transparent bg-transparent px-1 py-0.5 text-right text-[12.5px] text-ink-900/45 tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                       />
                     </td>
-                    <td className="px-1 py-[13px] text-right">
+                    <td
+                      className="px-1 py-[13px] text-right"
+                      style={{ ...fieldCellStyle("decimo", 88), minWidth: undefined }}
+                    >
                       <input
                         type="number"
                         step="0.01"
@@ -762,7 +774,7 @@ export function RegistroView({
             </tbody>
             {visibleRows && visibleRows.length > 0 && (
               <tfoot>
-                <tr className="border-t border-ink-900/8 bg-ink-900/[2.5%]">
+                <tr className="border-t border-ink-900/8 bg-walnut-tint">
                   <td className="py-3 pr-[18px] pl-3 text-right text-[12.5px] font-semibold text-ink-900/50" colSpan={8}>
                     {tt("total_quincena")}
                   </td>
