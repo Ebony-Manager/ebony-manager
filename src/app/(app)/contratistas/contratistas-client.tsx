@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import type { ContractorWithBalance, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { breadcrumbFor } from "@/components/layout/nav-items";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorDirectory } from "./contractor-directory";
@@ -30,12 +32,56 @@ export function ContratistasClient({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
+  const pathname = usePathname();
+  const crumbs = breadcrumbFor(pathname, lang);
 
   const [tab, setTab] = React.useState("directory");
   const [addOpen, setAddOpen] = React.useState(false);
 
+  const TABS = [
+    { value: "directory", label: tt("tab_directory") },
+    { value: "projects", label: tt("tab_projects") },
+    { value: "rates", label: tt("tab_rates") },
+  ];
+
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
+    <div className="flex flex-col gap-5 px-7 pt-6 pb-10">
+      {crumbs.length > 0 && (
+        <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
+          {crumbs.map((crumb, i) => {
+            const isLast = i === crumbs.length - 1;
+            return (
+              <span key={crumb} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-ink-900/30">/</span>}
+                <span className={isLast ? "font-semibold text-ink-900" : "text-ink-900/50"}>{crumb}</span>
+              </span>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Pestañas — texto simple con subrayado, mismo patrón que Planilla
+          (ver planilla-client.tsx), en vez de las pastillas grises viejas. */}
+      <div className="flex items-center gap-[22px] border-b border-ink-900/8">
+        {TABS.map(({ value, label }) => {
+          const isActive = tab === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTab(value)}
+              className={
+                isActive
+                  ? "pb-[10px] text-[13.5px] font-semibold text-walnut border-b-2 border-walnut"
+                  : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
@@ -50,19 +96,13 @@ export function ContratistasClient({
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="directory">{tt("tab_directory")}</TabsTrigger>
-          <TabsTrigger value="projects">{tt("tab_projects")}</TabsTrigger>
-          <TabsTrigger value="rates">{tt("tab_rates")}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="directory" className="pt-4">
+        <TabsContent value="directory" className="pt-0">
           <ContractorDirectory contractors={contractors} />
         </TabsContent>
-        <TabsContent value="projects" className="pt-4">
+        <TabsContent value="projects" className="pt-0">
           <ProjectsView projects={projects} />
         </TabsContent>
-        <TabsContent value="rates" className="pt-4">
+        <TabsContent value="rates" className="pt-0">
           <LaborRatesView rates={laborRates} />
         </TabsContent>
       </Tabs>

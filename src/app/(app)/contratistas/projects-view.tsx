@@ -71,19 +71,19 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
       </div>
 
       {projects.length === 0 ? (
-        <div className="rounded-none border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-10 text-center text-sm text-muted-foreground">
           {tt("projects_empty")}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-none border border-dashed border-border px-6 py-10 text-center">
+        <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-10 text-center">
           <p className="text-sm font-medium text-foreground">{tt("no_results")}</p>
           <p className="mt-1 text-xs text-muted-foreground">{tt("no_results_desc")}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-border">
+        <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
                 <th className="px-3 py-2 text-left font-medium">{tt("proj_col_name")}</th>
                 <th className="px-3 py-2 text-left font-medium">{tt("proj_col_client")}</th>
                 <th className="px-3 py-2 text-left font-medium">{tt("proj_col_status")}</th>
