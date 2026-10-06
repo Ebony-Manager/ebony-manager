@@ -92,6 +92,13 @@ const DETAIL_LEVELS: { key: NivelDetalle; labelKey: keyof typeof strings.planill
   { key: "micro", labelKey: "nivel_micro" },
 ];
 
+// Equivalentes OPACOS de bg-muted/40, bg-muted/30 y bg-foreground/90: las
+// celdas sticky no pueden ser translúcidas, o los números que pasan por
+// debajo al hacer scroll horizontal se ven a través de ellas.
+const HEAD_BG = "bg-[color-mix(in_oklch,var(--muted)_40%,var(--card))]";
+const FOOT_BG = "bg-[color-mix(in_oklch,var(--muted)_30%,var(--card))]";
+const TOTAL_DARK_BG = "bg-[color-mix(in_oklch,var(--foreground)_90%,var(--card))]";
+
 function fmtSigned(cents: number): string {
   return fmtSignedHelper(cents, formatCents);
 }
@@ -261,8 +268,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
     const visibleRowGroups = row.groups.filter((g) => visibleGroups[g.key] !== false);
     return (
       <React.Fragment key={row.employee.id}>
-        <tr className="cursor-pointer border-b border-border hover:bg-accent/40" onClick={() => toggleEmployee(row.employee.id)}>
-          <td className={`sticky left-0 z-10 bg-background px-2 ${d.empRow}`}>
+        <tr
+          className="group/row cursor-pointer border-b border-border hover:bg-[var(--row-hover)]"
+          onClick={() => toggleEmployee(row.employee.id)}
+        >
+          <td
+            className={`sticky left-0 z-10 bg-card px-2 transition-colors group-hover/row:bg-[var(--row-hover)] ${d.empRow}`}
+          >
             <div className="flex items-center gap-1.5">
               <ChevronDown className={`size-3 shrink-0 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
               <EmployeeAvatar name={row.employee.name} employeeId={row.employee.id} sortOrder={row.employee.sortOrder} />
@@ -270,7 +282,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             </div>
           </td>
           {displayPeriods(row.periods).map((v, i) => (
-            <td key={i} className={`px-1.5 ${d.empRow} text-right tabular-nums text-muted-foreground`}>
+            <td key={i} className={`px-1.5 ${d.empRow} text-right font-medium tabular-nums text-foreground`}>
               {v !== 0 ? formatCents(v) : "–"}
             </td>
           ))}
@@ -278,7 +290,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
         </tr>
         {showBaseComparison && (
           <tr className="border-b border-border/50 text-[11px]">
-            <td className={`sticky left-0 z-10 bg-background pl-8 pr-2 ${d.groupRow} italic text-muted-foreground`}>
+            <td className={`sticky left-0 z-10 bg-card pl-8 pr-2 ${d.groupRow} italic text-muted-foreground`}>
               {tt("quincena_base")}
             </td>
             {displayPeriods(row.basePeriods).map((v, i) => {
@@ -287,20 +299,20 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               return (
                 <td
                   key={i}
-                  className={`px-1.5 ${d.groupRow} text-right italic tabular-nums ${differs ? "text-foreground/70" : "text-muted-foreground/40"}`}
+                  className={`px-1.5 ${d.groupRow} text-right italic tabular-nums ${differs ? "text-muted-foreground" : "text-muted-foreground/50"}`}
                 >
                   {v !== 0 ? formatCents(v) : "–"}
                 </td>
               );
             })}
-            <td className={`px-2 ${d.groupRow} text-right italic tabular-nums text-muted-foreground/60`}>
+            <td className={`px-2 ${d.groupRow} text-right italic tabular-nums text-muted-foreground/70`}>
               {formatCents(row.basePeriods.reduce((s, v) => s + v, 0))}
             </td>
           </tr>
         )}
         {isOpen && (
           <tr aria-hidden style={{ height: 6 }}>
-            <td className="sticky left-0 z-10 bg-background p-0" colSpan={totalColumns} />
+            <td className="sticky left-0 z-10 bg-card p-0" colSpan={totalColumns} />
           </tr>
         )}
         {isOpen &&
@@ -342,7 +354,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                       </span>
                     </div>
                   </td>
-                  {g.periods.map((v, i) => (
+                  {displayPeriods(g.periods).map((v, i) => (
                     <td key={i} className={`px-1.5 ${d.groupRow} text-right font-medium tabular-nums`} style={{ ...headerBorder, color }}>
                       {v !== 0 ? fmtSigned(v) : "–"}
                     </td>
@@ -361,6 +373,24 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                       backgroundColor: lineBg,
                       borderBottom: isLastLine ? `1px solid ${borderColor}` : "none",
                     };
+                    // `li.periods` y `li.previewPeriods` vienen SIEMPRE en
+                    // 24 quincenas; en Macro se pliegan a 12 meses para
+                    // respetar las mismas columnas que el encabezado.
+                    const perQuincena = li.periods.map((v, i) => {
+                      const preview = li.previewPeriods?.[i];
+                      const isPreview = v === 0 && showPrestacionesPreview && preview !== undefined && preview !== 0;
+                      return { value: v !== 0 ? v : isPreview ? preview! : 0, isPreview };
+                    });
+                    const lineCells = isMonthly
+                      ? Array.from({ length: 12 }, (_, m) => {
+                          const a = perQuincena[m * 2];
+                          const b = perQuincena[m * 2 + 1];
+                          return {
+                            value: a.value + b.value,
+                            isPreview: (a.isPreview || a.value === 0) && (b.isPreview || b.value === 0) && (a.isPreview || b.isPreview),
+                          };
+                        })
+                      : perQuincena;
                     return (
                       <tr key={li.key} className={`text-[11px] ${d.lineRow}`}>
                         <td
@@ -369,21 +399,15 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                         >
                           {t(lang, strings.planilla[li.labelKey as keyof typeof strings.planilla])}
                         </td>
-                        {li.periods.map((v, i) => {
-                          const preview = li.previewPeriods?.[i];
-                          const showingPreview =
-                            v === 0 && showPrestacionesPreview && preview !== undefined && preview !== 0;
-                          const display = v !== 0 ? v : showingPreview ? preview! : 0;
-                          return (
-                            <td
-                              key={i}
-                              className={`px-1.5 ${d.lineRow} text-right tabular-nums ${showingPreview ? "italic text-muted-foreground/50" : "text-foreground/80"}`}
-                              style={lineBorder}
-                            >
-                              {display !== 0 ? fmtSigned(display) : "–"}
-                            </td>
-                          );
-                        })}
+                        {lineCells.map(({ value, isPreview }, i) => (
+                          <td
+                            key={i}
+                            className={`px-1.5 ${d.lineRow} text-right tabular-nums ${isPreview ? "italic text-muted-foreground/50" : "text-foreground/80"}`}
+                            style={lineBorder}
+                          >
+                            {value !== 0 ? fmtSigned(value) : "–"}
+                          </td>
+                        ))}
                         <td
                           className={`px-2 ${d.lineRow} text-right tabular-nums text-foreground/80 ${isLastLine ? "rounded-br-none" : ""}`}
                           style={{ ...lineBorder, borderRight: `1px solid ${borderColor}` }}
@@ -395,7 +419,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                   })}
                 {!isLastGroup && (
                   <tr aria-hidden style={{ height: 6 }}>
-                    <td className="sticky left-0 z-10 bg-background p-0" colSpan={totalColumns} />
+                    <td className="sticky left-0 z-10 bg-card p-0" colSpan={totalColumns} />
                   </tr>
                 )}
               </React.Fragment>
@@ -403,7 +427,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
           })}
         {isOpen && (
           <tr aria-hidden className="border-b border-border" style={{ height: 6 }}>
-            <td className="sticky left-0 z-10 bg-background p-0" colSpan={totalColumns} />
+            <td className="sticky left-0 z-10 bg-card p-0" colSpan={totalColumns} />
           </tr>
         )}
       </React.Fragment>
@@ -635,44 +659,68 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
       {!data ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-border">
+        <div className="overflow-x-auto rounded-none border border-border bg-card">
           <table
             className={`w-full ${isMonthly ? "min-w-[1000px]" : "min-w-[2200px]"} ${d.table}`}
             style={{ borderCollapse: "separate", borderSpacing: 0 }}
           >
-            <thead>
+            {/* Encabezado: texto en el tono principal (no gris tenue), fondo
+                OPACO, y el borde inferior va en cada <th> — con
+                border-collapse: separate, un border en el <tr> no se pinta.
+                La esquina Empleado (z-20) queda por encima de la primera
+                columna del cuerpo (z-10). */}
+            <thead className="text-foreground">
               {isMonthly ? (
-                <tr className="border-b border-border bg-muted/40 text-muted-foreground">
-                  <th className={`sticky left-0 z-10 bg-muted/40 px-2 ${d.head} text-left font-medium`}>{tt("col_empleado")}</th>
+                <tr>
+                  <th
+                    className={`sticky left-0 z-20 border-b border-border ${HEAD_BG} px-2 ${d.head} text-left text-xs font-semibold`}
+                  >
+                    {tt("col_empleado")}
+                  </th>
                   {MONTHS.map((m, i) => (
-                    <th key={i} className={`border-l border-border px-1.5 ${d.head} text-center font-medium`}>
+                    <th
+                      key={i}
+                      className={`border-b border-l border-border ${HEAD_BG} px-1.5 ${d.head} text-center text-xs font-semibold`}
+                    >
                       {m}
                     </th>
                   ))}
-                  <th className={`px-2 ${d.head} text-right font-medium`}>
+                  <th
+                    className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right text-xs font-semibold`}
+                  >
                     {tt("total_year")} {year}
                   </th>
                 </tr>
               ) : (
                 <>
-                  <tr className="border-b border-border bg-muted/40 text-muted-foreground">
-                    <th rowSpan={2} className={`sticky left-0 z-10 bg-muted/40 px-2 ${d.head} text-left align-bottom font-medium`}>
+                  <tr>
+                    <th
+                      rowSpan={2}
+                      className={`sticky left-0 z-20 border-b border-border ${HEAD_BG} px-2 ${d.head} text-left align-bottom text-xs font-semibold`}
+                    >
                       {tt("col_empleado")}
                     </th>
                     {MONTHS.map((m, i) => (
-                      <th key={i} colSpan={2} className={`border-l border-border px-1.5 ${d.head} text-center font-medium`}>
+                      <th
+                        key={i}
+                        colSpan={2}
+                        className={`border-b border-l border-border ${HEAD_BG} px-1.5 ${d.head} text-center text-xs font-semibold`}
+                      >
                         {m}
                       </th>
                     ))}
-                    <th rowSpan={2} className={`px-2 ${d.head} text-right align-bottom font-medium`}>
+                    <th
+                      rowSpan={2}
+                      className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right align-bottom text-xs font-semibold`}
+                    >
                       {tt("total_year")} {year}
                     </th>
                   </tr>
-                  <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                  <tr>
                     {cols.map((i) => (
                       <th
                         key={i}
-                        className={`px-1.5 ${d.head} text-center font-normal ${i % 2 === 0 ? "border-l border-border" : ""}`}
+                        className={`border-b border-border ${HEAD_BG} px-1.5 ${d.head} text-center text-xs font-medium ${i % 2 === 0 ? "border-l" : ""}`}
                       >
                         {i % 2 === 0 ? "1Q" : "2Q"}
                       </th>
@@ -682,8 +730,8 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               )}
             </thead>
             <tbody>
-              <tr className="border-b-2 border-border bg-foreground/90 text-background">
-                <td className={`sticky left-0 z-10 bg-foreground/90 px-2 ${d.empRow} font-semibold uppercase tracking-wide`}>
+              <tr className={`border-b-2 border-border ${TOTAL_DARK_BG} text-background`}>
+                <td className={`sticky left-0 z-10 ${TOTAL_DARK_BG} px-2 ${d.empRow} font-semibold uppercase tracking-wide`}>
                   {tt("total_planilla")}
                 </td>
                 {displayPeriods(data.periodTotals).map((v, i) => (
@@ -698,10 +746,10 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             {inactiveRows.length > 0 && (
               <tbody>
                 <tr
-                  className="cursor-pointer border-b border-border bg-muted/30 hover:bg-muted/50"
+                  className={`cursor-pointer border-b border-border ${FOOT_BG}`}
                   onClick={() => setShowInactive((v) => !v)}
                 >
-                  <td colSpan={totalColumns} className={`sticky left-0 z-10 bg-muted/30 px-2 ${d.empRow}`}>
+                  <td colSpan={totalColumns} className={`sticky left-0 z-10 ${FOOT_BG} px-2 ${d.empRow}`}>
                     <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wide text-muted-foreground">
                       <ChevronDown className={`size-3 shrink-0 transition-transform ${effectiveShowInactive ? "" : "-rotate-90"}`} />
                       {tt("no_longer_work_full")} ({inactiveRows.length})
@@ -712,8 +760,8 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               </tbody>
             )}
             <tfoot>
-              <tr className="border-t-2 border-border bg-muted/30 font-semibold text-foreground">
-                <td className={`sticky left-0 z-10 bg-muted/30 px-2 ${d.empRow}`}>{tt("total_general")}</td>
+              <tr className={`border-t-2 border-border ${FOOT_BG} font-semibold text-foreground`}>
+                <td className={`sticky left-0 z-10 ${FOOT_BG} px-2 ${d.empRow}`}>{tt("total_general")}</td>
                 {displayPeriods(data.periodTotals).map((v, i) => (
                   <td key={i} className={`px-1.5 ${d.empRow} text-right tabular-nums`}>
                     {formatCents(v)}

@@ -282,7 +282,7 @@ export function RegistroView({
   // nunca un query aparte, para que nunca discrepen.
   const totalCents = (visibleRows ?? []).reduce((sum, r) => sum + r.total.totalCents, 0);
   const cashCents = (visibleRows ?? []).reduce(
-    (sum, r) => sum + ((r.total.entry?.paymentMethod ?? "efectivo") === "efectivo" ? r.total.totalCents : 0),
+    (sum, r) => sum + ((r.total.entry?.paymentMethod ?? "transferencia") === "efectivo" ? r.total.totalCents : 0),
     0
   );
   const decimoCents = (visibleRows ?? []).reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
@@ -407,7 +407,7 @@ export function RegistroView({
             <tr className="border-b border-border text-xs text-muted-foreground">
               {/* Columna "Empleado" congelada al hacer scroll horizontal,
                   igual que en la Auditoría (sticky left-0 + fondo propio). */}
-              <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
+              <th className="sticky left-0 z-20 bg-card px-3 py-2 text-left font-medium">{tt("col_empleado")}</th>
               {fieldColumns.map((c) => (
                 <th
                   key={c.key}
@@ -530,9 +530,9 @@ export function RegistroView({
                   {visibleColumns.paymentMethod && (
                     <td className="px-2 py-1">
                       <Select
-                        value={total.entry?.paymentMethod ?? "efectivo"}
+                        value={total.entry?.paymentMethod ?? "transferencia"}
                         onValueChange={(v) => {
-                          if ((v as PaymentMethod) === (total.entry?.paymentMethod ?? "efectivo")) return;
+                          if ((v as PaymentMethod) === (total.entry?.paymentMethod ?? "transferencia")) return;
                           savePaymentMethod(key, p, v as PaymentMethod);
                         }}
                       >
@@ -583,7 +583,7 @@ export function RegistroView({
           {visibleRows && visibleRows.length > 0 && (
             <tfoot>
               <tr className="border-t border-ink-900/8 bg-walnut-tint text-sm font-medium">
-                <td className="px-3 py-2 text-foreground" colSpan={visibleCount}>
+                <td className="sticky left-0 z-10 bg-walnut-tint px-3 py-2 text-foreground" colSpan={visibleCount}>
                   {tt("total_quincena")}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-foreground">
@@ -610,13 +610,13 @@ export function RegistroView({
         <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <colgroup>
-              <col style={{ width: "22%" }} />
+              <col style={{ width: "24%" }} />
               <col style={{ width: "10.5%" }} />
-              <col style={{ width: "11.5%" }} />
+              <col style={{ width: "8.5%" }} />
               <col style={{ width: "9%" }} />
               <col style={{ width: "9%" }} />
               <col style={{ width: "9%" }} />
-              <col style={{ width: "11.5%" }} />
+              <col style={{ width: "12.5%" }} />
               <col style={{ width: "7.5%" }} />
               <col style={{ width: "9.5%" }} />
             </colgroup>
@@ -666,9 +666,11 @@ export function RegistroView({
                 return (
                   <tr
                     key={`${key}-simple-${p.year}-${p.month}-${p.half}`}
-                    className="border-b border-ink-900/6 transition-colors last:border-0 hover:bg-[var(--row-hover)]"
+                    className="group/row border-b border-ink-900/6 transition-colors last:border-0 hover:bg-[var(--row-hover)]"
                   >
-                    <td className="sticky left-0 z-10 bg-card py-[13px] pl-[18px] pr-3 font-semibold text-ink-900">
+                    {/* Sticky: fondo opaco + el MISMO color de hover que la
+                        fila, para que el resalte se vea parejo. */}
+                    <td className="sticky left-0 z-10 bg-card py-[13px] pl-[18px] pr-3 font-semibold text-ink-900 transition-colors group-hover/row:bg-[var(--row-hover)]">
                       <div className="flex items-center gap-2.5">
                         <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
                         <span className="text-[13px]">{employee.name}</span>
@@ -685,7 +687,11 @@ export function RegistroView({
                         {isAdmin ? tt("categoria_administrativo_short") : tt("categoria_taller")}
                       </span>
                     </td>
-                    <td className="px-3 py-[13px] text-[12.5px] text-ink-900/65">{employee.position || "—"}</td>
+                    <td className="px-3 py-[13px] text-[12.5px] text-ink-900/65">
+                      <span className="block max-w-[96px] truncate" title={employee.position || undefined}>
+                        {employee.position || "—"}
+                      </span>
+                    </td>
                     <td className="px-3 py-[13px] text-right text-[12.5px] text-ink-900" title={tt("base_readonly_hint")}>
                       {formatCents(e?.basePayCents ?? 0)}
                     </td>
@@ -729,9 +735,9 @@ export function RegistroView({
                     </td>
                     <td className="px-3 py-[13px]">
                       <Select
-                        value={e?.paymentMethod ?? "efectivo"}
+                        value={e?.paymentMethod ?? "transferencia"}
                         onValueChange={(v) => {
-                          if ((v as PaymentMethod) === (e?.paymentMethod ?? "efectivo")) return;
+                          if ((v as PaymentMethod) === (e?.paymentMethod ?? "transferencia")) return;
                           savePaymentMethod(key, p, v as PaymentMethod);
                         }}
                       >

@@ -91,7 +91,7 @@ function seededEntry(
     decimoPaidCents: 0,
     vacationPaidCents: 0,
     primaAntiguedadPaidCents: 0,
-    paymentMethod: "efectivo",
+    paymentMethod: "transferencia",
     paid: false,
     paidAt: null,
     notes: null,
@@ -250,7 +250,7 @@ export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry
     decimo_paid_cents: input.decimoPaidCents ?? cur?.decimoPaidCents ?? 0,
     vacation_paid_cents: input.vacationPaidCents ?? cur?.vacationPaidCents ?? 0,
     prima_antiguedad_paid_cents: input.primaAntiguedadPaidCents ?? cur?.primaAntiguedadPaidCents ?? 0,
-    payment_method: input.paymentMethod ?? cur?.paymentMethod ?? "efectivo",
+    payment_method: input.paymentMethod ?? cur?.paymentMethod ?? "transferencia",
     paid: input.paid ?? cur?.paid ?? false,
     notes: input.notes === undefined ? (cur?.notes ?? null) : input.notes,
   };
