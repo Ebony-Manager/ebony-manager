@@ -8,6 +8,7 @@ import {
   computePrimaAntiguedadAccrual,
   computeVacationAccrual,
   computePeriodTotalFromEntry,
+  periodFromDateString,
 } from "./payroll-accruals";
 import type { PayrollEmployee, PayrollEntry } from "@/types/planilla";
 
@@ -322,5 +323,17 @@ describe("buildEmployeeContext", () => {
     expect(ctx.lastVacationPayout(atFirstPayout)).toBeNull();
     expect(ctx.lastVacationPayout(afterFirstPayout)).toEqual({ year: 2026, month: 3, half: 2 });
     expect(ctx.lastVacationPayout(atSecondPayout)).toEqual({ year: 2026, month: 3, half: 2 });
+  });
+});
+
+describe("periodFromDateString", () => {
+  it("lee la fecha tal cual, sin correrse por la zona horaria", () => {
+    expect(periodFromDateString("2026-01-01")).toEqual({ year: 2026, month: 1, half: 1 });
+    expect(periodFromDateString("2026-01-15")).toEqual({ year: 2026, month: 1, half: 1 });
+    expect(periodFromDateString("2026-01-16")).toEqual({ year: 2026, month: 1, half: 2 });
+    expect(periodFromDateString("2026-12-31")).toEqual({ year: 2026, month: 12, half: 2 });
+  });
+  it("fecha inválida -> null", () => {
+    expect(periodFromDateString("no es fecha")).toBeNull();
   });
 });

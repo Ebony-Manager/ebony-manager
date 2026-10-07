@@ -249,6 +249,11 @@ export function periodApproxDate(p: Period): Date {
  *  que cae, para compararlo contra `asOf` igual que cualquier otra
  *  ancla basada en período. Día 1-15 -> mitad 1, 16-fin -> mitad 2. */
 export function periodFromDateString(dateStr: string): Period | null {
+  // "YYYY-MM-DD" se lee tal cual, sin pasar por `new Date`: ese constructor
+  // lo interpreta como medianoche UTC, y en un servidor al oeste de UTC
+  // (ej. EST) el 1° de enero cae en el 31 de diciembre del año anterior.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (m) return { year: Number(m[1]), month: Number(m[2]), half: Number(m[3]) <= 15 ? 1 : 2 };
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return null;
   return { year: d.getFullYear(), month: d.getMonth() + 1, half: d.getDate() <= 15 ? 1 : 2 };

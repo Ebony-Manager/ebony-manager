@@ -80,9 +80,47 @@ export function payrollCategoryTextStyle(key: PayrollCategoryKey): React.CSSProp
  */
 export type PayrollPalette = "full" | "sober";
 
+/** Proporciones del tinte de "a todo color" — SUTILES, y SIEMPRE
+ *  mezcladas contra `var(--card)` (blanco opaco) y no contra
+ *  `transparent`: las celdas congeladas (sticky) tienen que ser opacas o
+ *  los números que pasan por debajo se ven a través. */
+const TINT = { header: 14, cell: 4, group: 10, line: 3, border: 38 } as const;
+
+/** Color de texto de una categoría cuando va SOBRE su propio tinte
+ *  (encabezados, filas de grupo, cifras de color). Los tokens son tonos
+ *  suaves a propósito; mezclados 70% con negro conservan el matiz y pasan
+ *  AA (>= 4.7:1 incluso sobre el tinte del encabezado). */
+export function payrollCategoryInk(key: PayrollCategoryKey): string {
+  return `color-mix(in oklch, ${PAYROLL_CATEGORY[key].color} 70%, black)`;
+}
+
+/** Fondo de las columnas "extremas" (Empleado, Total, Pagado, Método):
+ *  un gris neutro apenas perceptible, OPACO (sirve también a la columna
+ *  congelada). Igual en "a todo color" y en "sobria". */
+export function payrollExtremeColumnClass(): string {
+  return "bg-[var(--payroll-col-soft)]";
+}
+
+export const PAYROLL_HEAD_BG_CLASS = "bg-[var(--payroll-head)]";
+/** Pie de totales ("Total quincena") — y, en "sobria", también el
+ *  encabezado de las columnas, para que arriba y abajo hagan juego. */
+export const PAYROLL_FOOT_BG_CLASS = "bg-[var(--payroll-foot)]";
+
+/** Encabezado de columnas: gris un paso más oscuro en "a todo color"; el
+ *  mismo gris del pie en "sobria". */
+export function payrollHeadBgClass(palette: PayrollPalette): string {
+  return palette === "full" ? PAYROLL_HEAD_BG_CLASS : PAYROLL_FOOT_BG_CLASS;
+}
+
+/** Realce de fila de Planilla (hover y edición): velo gris neutro
+ *  translúcido pintado como `background-image` encima del color de
+ *  fondo de CADA celda, así se ve parejo sobre blanco, sobre tintes de
+ *  categoría y sobre el nogal, y no necesita un color opaco por celda. */
+export const PAYROLL_ROW_VEIL_CLASS =
+  "group-hover/row:[background-image:linear-gradient(var(--payroll-row-veil),var(--payroll-row-veil))] group-focus-within/row:[background-image:linear-gradient(var(--payroll-row-veil-focus),var(--payroll-row-veil-focus))]";
+
 /** Encabezado de una columna de Registro teñida por categoría. En
- *  "sober" queda neutro (solo el ancho mínimo) — mismas proporciones
- *  (14%) que ya usaba Registro en "full". */
+ *  "sober" queda neutro (solo el ancho mínimo). */
 export function payrollFieldHeaderStyle(
   category: PayrollCategoryKey | undefined,
   minWidth: number,
@@ -90,11 +128,14 @@ export function payrollFieldHeaderStyle(
 ): React.CSSProperties {
   if (!category || palette === "sober") return { minWidth };
   const color = PAYROLL_CATEGORY[category].color;
-  return { minWidth, backgroundColor: `color-mix(in oklch, ${color} 14%, transparent)`, color };
+  return {
+    minWidth,
+    backgroundColor: `color-mix(in oklch, ${color} ${TINT.header}%, var(--card))`,
+    color: payrollCategoryInk(category),
+  };
 }
 
-/** Celda de esa misma columna — mismo criterio, proporción más tenue
- *  (4%) que ya usaba Registro en "full". */
+/** Celda de esa misma columna — mismo criterio, proporción más tenue. */
 export function payrollFieldCellStyle(
   category: PayrollCategoryKey | undefined,
   minWidth: number,
@@ -102,12 +143,11 @@ export function payrollFieldCellStyle(
 ): React.CSSProperties {
   if (!category || palette === "sober") return { minWidth };
   const color = PAYROLL_CATEGORY[category].color;
-  return { minWidth, backgroundColor: `color-mix(in oklch, ${color} 4%, transparent)` };
+  return { minWidth, backgroundColor: `color-mix(in oklch, ${color} ${TINT.cell}%, var(--card))` };
 }
 
 /** Los 4 tonos de una fila de GRUPO de Auditoría (encabezado del grupo,
- *  línea de detalle, borde, color de texto/ícono) — mismas proporciones
- *  (10%/3%/38%) que ya usaba Auditoría en "full". En "sober" quedan
+ *  línea de detalle, borde, color de texto/ícono). En "sober" quedan
  *  neutros; el color de categoría se conserva aparte (un punto junto a
  *  la etiqueta), igual criterio que Contratistas. */
 export interface PayrollGroupRowStyle {
@@ -131,10 +171,10 @@ export function payrollCategoryRowStyle(
     };
   }
   return {
-    color,
-    headerBg: `color-mix(in oklch, ${color} 10%, var(--card))`,
-    lineBg: `color-mix(in oklch, ${color} 3%, var(--card))`,
-    borderColor: `color-mix(in oklch, ${color} 38%, transparent)`,
+    color: payrollCategoryInk(category),
+    headerBg: `color-mix(in oklch, ${color} ${TINT.group}%, var(--card))`,
+    lineBg: `color-mix(in oklch, ${color} ${TINT.line}%, var(--card))`,
+    borderColor: `color-mix(in oklch, ${color} ${TINT.border}%, var(--card))`,
   };
 }
 

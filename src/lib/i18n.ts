@@ -147,6 +147,17 @@ export const strings = {
     col_categoria: { es: "Categoría", en: "Category" },
     col_funcion: { es: "Función", en: "Role" },
     col_base: { es: "Base", en: "Base" },
+    col_salario_base: { es: "Salario base", en: "Base salary" },
+    emp_search_ph: { es: "Buscar empleado…", en: "Find employee…" },
+    emp_search_clear: { es: "Limpiar búsqueda", en: "Clear search" },
+    emp_search_empty: { es: "Ningún empleado coincide con esa búsqueda.", en: "No employee matches that search." },
+    emp_search_total: { es: "Total de la búsqueda", en: "Search total" },
+    emp_number_title: { es: "N.º de empleado", en: "Employee no." },
+    period_year_label: { es: "Año", en: "Year" },
+    period_pick_label: { es: "Ir a la quincena", en: "Go to period" },
+    col_bonificaciones: { es: "Bonificaciones", en: "Bonuses" },
+    col_descuentos_simple: { es: "Descuentos", en: "Deductions" },
+    col_prestaciones_simple: { es: "Prestaciones", en: "Benefits" },
     col_extra_hours: { es: "Horas Extra", en: "Overtime Hours" },
     col_extra_days: { es: "Días Extra", en: "Extra Days" },
     col_bonos: { es: "Bonos", en: "Bonuses" },
@@ -552,10 +563,10 @@ export const strings = {
       en: "Switch between full-color cells/rows and the sober view",
     },
 
-    // Vista por defecto de Registro (Opción C): Empleado/Categoría/Función/
-    // Base/Décimo/Vacación/Método/Pagado/Total — editable en lo que
-    // importa quincena a quincena. Para Horas Extra, Bonos, Días Libres y
-    // demás columnas granulares hay que pasar a Expandida.
+    // Vista Simple de Registro: Empleado / Función / Salario base /
+    // Bonificaciones / Descuentos / Prestaciones / Total / Pagado /
+    // Método — solo lectura salvo Método y Pagado. Para capturar Horas
+    // Extra, Bonos, Días Libres, Décimo y demás hay que pasar a Expandida.
     registro_view_simple: { es: "Simple", en: "Simple" },
     registro_view_expanded: { es: "Expandida", en: "Expanded" },
     registro_view_toggle_hint: {

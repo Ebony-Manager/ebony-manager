@@ -44,9 +44,13 @@ export const QUANTITY_FIELD_META: Partial<
 
 type Entry = { es: string; en: string };
 
-/** Toda columna menos Empleado/Total es opcional. Décimo/Vacación/Prima
- *  usan la categoría "decimo" a propósito (el color de Prestaciones);
- *  Método/Pagado no llevan categoría. Todas visibles por defecto. */
+/** Toda columna menos Empleado/Total es opcional. Secciones de color:
+ *  Bonificaciones (verde) = horas extra, días extra, bonos, días libres
+ *  (viáticos no tiene columna de captura en Registro); Descuentos (vino) =
+ *  horas / días descontados y otros; Prestaciones (familia dorada) =
+ *  Décimo, Vacación y Prima, cada una con su propio tono vecino.
+ *  Método/Pagado no llevan categoría (van en la columna extrema nogal).
+ *  Todas visibles por defecto. */
 export const COLUMN_DEFS: { key: ColumnKey; label: Entry; category?: PayrollCategoryKey }[] = [
   { key: "basePayCents", label: strings.planilla.col_base, category: "salario" },
   { key: "extraHoursCents", label: strings.planilla.col_extra_hours, category: "bonos" },
@@ -57,8 +61,8 @@ export const COLUMN_DEFS: { key: ColumnKey; label: Entry; category?: PayrollCate
   { key: "diasDescontadosCents", label: strings.planilla.col_dias_desc, category: "descuentos" },
   { key: "otherDeductionCents", label: strings.planilla.col_otros_desc, category: "descuentos" },
   { key: "decimoPaidCents", label: strings.planilla.col_decimo, category: "decimo" },
-  { key: "vacationPaidCents", label: strings.planilla.col_vacacion, category: "decimo" },
-  { key: "primaAntiguedadPaidCents", label: strings.planilla.col_prima, category: "decimo" },
+  { key: "vacationPaidCents", label: strings.planilla.col_vacacion, category: "vacacion" },
+  { key: "primaAntiguedadPaidCents", label: strings.planilla.col_prima, category: "prima" },
   { key: "paymentMethod", label: strings.planilla.col_metodo },
   { key: "paid", label: strings.planilla.col_pagado },
 ];

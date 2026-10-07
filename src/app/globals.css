@@ -105,6 +105,17 @@
   --radius: 0px;
 }
 
+/* Cruz fila + columna de Auditoría: la clase la pone/quita auditoria-view.tsx
+   sobre todas las celdas de la columna bajo el mouse. Va como velo
+   (background-image) encima del color de cada celda; donde se cruza con la
+   fila resaltada (hover) se ve el velo más fuerte, que es la "intersección". */
+.payroll-col-hot {
+  background-image: linear-gradient(var(--payroll-col-veil), var(--payroll-col-veil)) !important;
+}
+tr:hover > .payroll-col-hot {
+  background-image: linear-gradient(var(--payroll-row-veil-focus), var(--payroll-row-veil-focus)) !important;
+}
+
 @theme inline {
   --color-ink-900: var(--ink-900);
   --color-ink-700: var(--ink-700);
@@ -220,23 +231,43 @@
   /* Azul para Salarios / Base — como en Atlas (allá era --chart-1). Azul
      apagado (L 55%, C 0.12, hue 250) para que se lea claramente como
      "azul" al lado de la madera y el dorado, sin ser neón. */
-  --payroll-salario: oklch(55% 0.12 250);
-  --payroll-bonos: var(--ebony-success); /* verde bosque — bonos y extras */
-  --payroll-decimo: var(--ebony-gold); /* dorado de marca — prestaciones */
-  --payroll-vacacion: var(--ebony-success);
-  --payroll-prima: var(--ebony-medium);
-  --payroll-descuentos: var(--ebony-destructive); /* rojo — descuentos */
-  /* Segundo rojo, distinto: "Descuento a Préstamos" debe leerse como
-     pariente de Descuentos pero no idéntico (pedido de Atlas). Vino
-     apagado — más oscuro y menos saturado que --ebony-destructive. */
-  --payroll-descuento-prestamos: oklch(42% 0.13 12);
-  --payroll-prestamos: var(--ebony-medium);
+  /* Tonos SUTILES: los tintes de tabla mezclan el token al 3-14% sobre
+     blanco, así que el matiz importa más que la fuerza. El texto de
+     categoría sobre esos tintes NO usa el token crudo sino
+     `payrollCategoryInk()` (token 70% + negro), que pasa AA (>= 4.7:1). */
+  --payroll-salario: oklch(62% 0.085 250); /* azul suave */
+  --payroll-bonos: oklch(60% 0.08 150); /* verde salvia-bosque, tenue */
+  /* Prestaciones: familia amarilla, tres tonos vecinos. */
+  --payroll-decimo: oklch(76% 0.11 95);
+  --payroll-vacacion: oklch(74% 0.1 104);
+  --payroll-prima: oklch(75% 0.115 82);
+  --payroll-descuentos: oklch(46% 0.17 20); /* vino */
+  --payroll-descuento-prestamos: oklch(34% 0.12 12); /* vino oscuro */
+  --payroll-prestamos: oklch(35% 0.01 80); /* gris casi negro */
   --payroll-total: var(--ebony-dark);
   --payroll-total-due: var(--ebony-success); /* acento "Total a Pagar" */
   --payroll-next-pay: var(--ebony-gold-light); /* acento "Próximo pago" / info */
   --payroll-paid: var(--ebony-light); /* stat "Pagado" (Atlas: --chart-1) */
   --payroll-pending: var(--ebony-gold); /* stat "Pendiente" / warning (Atlas: --chart-3) */
   --payroll-avg: var(--ebony-gold-light); /* stat "Prom. mensual" (Atlas: --chart-5) */
+
+  /* Realce de fila (hover / edición) de las tablas de Planilla: un velo
+     gris NEUTRO translúcido (croma 0, sin matiz) que se pinta por ENCIMA
+     del fondo de cada celda — así se ve igual sobre blanco, sobre el tinte
+     de categoría o sobre el nogal de las columnas extremas, sin teñir de
+     beige/rosado como hacía --row-hover (stone, matiz ~80°). */
+  --payroll-row-veil: oklch(0% 0 0 / 0.05);
+  --payroll-row-veil-focus: oklch(0% 0 0 / 0.09);
+  /* Columna resaltada en la cruz de Auditoría (Macro / Quincenal). */
+  --payroll-col-veil: oklch(0% 0 0 / 0.04);
+
+  /* Grises NEUTROS (croma 0) para el chrome de las tablas de Planilla —
+     nada de crema/nogal: columnas extremas (Empleado, Total, Pagado,
+     Método) apenas grisáceas, encabezados un paso más oscuros, pie de
+     totales en medio. Todos opacos (las columnas congeladas lo exigen). */
+  --payroll-col-soft: oklch(98.2% 0 0);
+  --payroll-foot: oklch(95.8% 0 0);
+  --payroll-head: oklch(93% 0 0);
 
   /* Colores de identidad por empleado — eje independiente del de categorías
      (una categoría dice "qué tipo de dinero"; esto dice "de quién es esta
