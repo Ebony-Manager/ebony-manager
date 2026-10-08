@@ -1,72 +1,70 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Wallet, CalendarClock, Banknote, Award, TrendingDown, HandCoins, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Wallet, CalendarClock, HandCoins, Users } from "lucide-react";
 
-import type { PayrollEmployeeAnnualSummary, UpcomingObligations } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
-import { periodKey, currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
-import { employeeAccentColor } from "@/lib/planilla/payroll-colors";
+import { currentPeriod, formatCents, monthLabel, periodKey } from "@/lib/planilla/payroll-period";
+import { isPeriodOccurred } from "@/lib/planilla/payroll-projection";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { getAnnualSummaryAction, getUpcomingObligationsAction } from "./actions";
+import { usePlanillaOverview } from "./use-planilla-overview";
 import { EmployeeAvatar } from "./employee-avatar";
 import { PayrollKpiCard } from "./payroll-kpi-card";
-import { MonthlyEvolutionChart } from "./monthly-evolution-chart";
-import { ProximasObligacionesCard } from "./proximas-obligaciones-card";
+import { MonthlyPayrollChart } from "./monthly-payroll-chart";
 
-/** Vista ejecutiva — "cómo va tu planilla" sin leer una hoja. Cada
- *  número es un rollup de la misma data que Resumen Anual / Registro.
- *  Portado de Atlas, sin `propertyId`. */
+/**
+ * Dashboard de Planilla — cuatro números, un gráfico y dos listas cortas:
+ *   1. KPIs: planilla del mes, pagado en el año (a hoy), préstamos por
+ *      cobrar y empleados activos.
+ *   2. Planilla por mes (una sola serie).
+ *   3. Quién cuesta más (a hoy) y quién debe más.
+ * Todo viene de UNA llamada al servidor (`usePlanillaOverview`). Décimo,
+ * vacación y prima no se muestran: por ahora no aplican a esta planilla.
+ */
 export function DashboardView({ year, onYearChange }: { year: number; onYearChange: (year: number) => void }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
-  const [rows, setRows] = React.useState<PayrollEmployeeAnnualSummary[] | null>(null);
-  const [obligations, setObligations] = React.useState<UpcomingObligations | null>(null);
+  const { rows, obligations, balances, composition, failed, retry } = usePlanillaOverview(year);
+  const now = React.useMemo(() => currentPeriod(), []);
 
-  React.useEffect(() => {
-    getAnnualSummaryAction(year).then(setRows);
-    getUpcomingObligationsAction().then(setObligations);
-  }, [year]);
+  const stats = React.useMemo(() => {
+    if (!rows) return null;
+    const occurredPaid = (totalsByPeriod: Record<string, number>) => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) {
+        for (const h of [1, 2] as const) {
+          if (isPeriodOccurred(year, m, h, now)) sum += totalsByPeriod[periodKey(m, h)] ?? 0;
+        }
+      }
+      return sum;
+    };
+    const perEmployee = rows
+      .map((r) => ({ row: r, paid: occurredPaid(r.totalsByPeriod) }))
+      .filter((x) => x.paid > 0)
+      .sort((a, b) => b.paid - a.paid);
+    const ytd = perEmployee.reduce((s, x) => s + x.paid, 0);
+    const monthCents = rows.reduce(
+      (s, r) => s + (r.totalsByPeriod[periodKey(now.month, 1)] ?? 0) + (r.totalsByPeriod[periodKey(now.month, 2)] ?? 0),
+      0
+    );
+    const active = rows.filter((r) => r.employee.status === "ACTIVE").length;
+    const debtors = rows
+      .map((r) => ({ employee: r.employee, balance: balances[r.employee.id] ?? 0 }))
+      .filter((x) => x.balance > 0)
+      .sort((a, b) => b.balance - a.balance);
+    // A quién más se le ha prestado en el año (total otorgado, esté o no
+    // pagado ya).
+    const lent = rows
+      .map((r) => ({ employee: r.employee, lent: r.conceptTotals.prestamosCents }))
+      .filter((x) => x.lent > 0)
+      .sort((a, b) => b.lent - a.lent);
+    return { perEmployee, ytd, monthCents, active, debtors, lent };
+  }, [rows, balances, year, now]);
 
-  const loading = !rows || !obligations;
-
-  const active = React.useMemo(() => (rows ?? []).filter((r) => r.employee.status === "ACTIVE"), [rows]);
-  const withData = React.useMemo(() => (rows ?? []).filter((r) => r.monthsWithActivity > 0), [rows]);
-  const totalYTD = React.useMemo(() => (rows ?? []).reduce((s, r) => s + r.totalPaidCents, 0), [rows]);
-  const current = currentPeriod();
-  const currentMonthCents = React.useMemo(
-    () =>
-      (rows ?? []).reduce(
-        (s, r) =>
-          s + (r.totalsByPeriod[periodKey(current.month, 1)] ?? 0) + (r.totalsByPeriod[periodKey(current.month, 2)] ?? 0),
-        0
-      ),
-    [rows, current.month]
-  );
-  const salariosCents = React.useMemo(() => (rows ?? []).reduce((s, r) => s + r.conceptTotals.salarioCents, 0), [rows]);
-  const prestacionesCents = React.useMemo(
-    () =>
-      (rows ?? []).reduce(
-        (s, r) => s + r.conceptTotals.decimoCents + r.conceptTotals.vacacionCents + r.conceptTotals.primaCents,
-        0
-      ),
-    [rows]
-  );
-  const descuentosCents = React.useMemo(
-    () => (rows ?? []).reduce((s, r) => s + r.conceptTotals.descuentosCents, 0),
-    [rows]
-  );
-  const prestamosCents = React.useMemo(
-    () => (rows ?? []).reduce((s, r) => s + r.conceptTotals.prestamosCents, 0),
-    [rows]
-  );
-  const obligacionesPendientesCents = obligations
-    ? obligations.decimoPendingCents + obligations.vacacionPendingCents + obligations.prestamosPendingCents
-    : 0;
-
-  const maxEmployeeCents = Math.max(...withData.map((r) => r.totalPaidCents), 1);
+  const loading = !rows || !obligations || !composition || !stats;
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,80 +84,125 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
         </div>
       </div>
 
-      {loading ? (
+      {failed ? (
+        <div className="flex items-center gap-3 rounded-none border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          {tt("load_failed")}
+          <Button size="sm" variant="outline" onClick={retry}>
+            {tt("retry")}
+          </Button>
+        </div>
+      ) : loading ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            <PayrollKpiCard
-              icon={Wallet}
-              label={tt("kpi_total_ytd")}
-              value={formatCents(totalYTD)}
-              sublabel={`${active.length} ${tt("kpi_active_employees")}`}
-              color="var(--payroll-total-due)"
-            />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <PayrollKpiCard
               icon={CalendarClock}
               label={tt("kpi_month_payroll")}
-              value={formatCents(currentMonthCents)}
-              sublabel={monthLabel(lang, current.month)}
-              color="var(--payroll-avg)"
+              value={formatCents(stats.monthCents)}
+              sublabel={monthLabel(lang, now.month)}
             />
-            <PayrollKpiCard icon={Banknote} label={tt("kpi_salaries_total")} value={formatCents(salariosCents)} category="salario" />
-            <PayrollKpiCard icon={Award} label={tt("kpi_benefits_total")} value={formatCents(prestacionesCents)} category="decimo" />
-            <PayrollKpiCard
-              icon={TrendingDown}
-              label={tt("kpi_deductions_total")}
-              value={formatCents(descuentosCents)}
-              category="descuentos"
-            />
+            <PayrollKpiCard icon={Wallet} label={tt("dash_paid_ytd")} value={formatCents(stats.ytd)} />
             <PayrollKpiCard
               icon={HandCoins}
-              label={tt("kpi_loans_granted")}
-              value={formatCents(prestamosCents)}
-              category="prestamos"
+              label={tt("dash_loans_receivable")}
+              value={formatCents(stats.debtors.reduce((sum, d) => sum + d.balance, 0))}
+              sublabel={
+                stats.debtors.length > 0
+                  ? `${stats.debtors.length} ${tt("kpi_employees_count")} ${tt("con_saldo")}`
+                  : tt("sin_saldos")
+              }
             />
             <PayrollKpiCard
-              icon={AlertCircle}
-              label={tt("kpi_pending_obligations")}
-              value={formatCents(obligacionesPendientesCents)}
-              sublabel={tt("kpi_pending_obligations_sub")}
-              color="var(--destructive)"
+              icon={Users}
+              label={tt("kpi_active_employees")}
+              value={String(stats.active)}
             />
           </div>
 
-          <MonthlyEvolutionChart rows={rows} />
+          <MonthlyPayrollChart composition={composition} year={year} />
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {obligations && <ProximasObligacionesCard obligations={obligations} />}
-
             <div className="rounded-none border border-border bg-card p-4">
-              <p className="mb-3 text-sm font-medium text-foreground">{tt("dist_by_employee")}</p>
-              {withData.length === 0 ? (
+              <p className="mb-3 text-sm font-medium text-foreground">{tt("dash_top_title")}</p>
+              {stats.perEmployee.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tt("no_payroll_this_year")}</p>
               ) : (
-                <div className="flex flex-col gap-2.5">
-                  {[...withData]
-                    .sort((a, b) => b.totalPaidCents - a.totalPaidCents)
-                    .map((r) => (
-                      <div key={r.employee.id} className="flex items-center gap-2">
-                        <EmployeeAvatar name={r.employee.name} employeeId={r.employee.id} sortOrder={r.employee.sortOrder} />
-                        <span className="w-20 shrink-0 truncate text-xs text-foreground">{r.employee.name}</span>
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(r.totalPaidCents / maxEmployeeCents) * 100}%`,
-                              backgroundColor: employeeAccentColor(r.employee.sortOrder),
-                            }}
-                          />
-                        </div>
-                        <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                          {formatCents(r.totalPaidCents)}
-                        </span>
-                      </div>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {stats.perEmployee.slice(0, 10).map(({ row, paid }, i) => (
+                      <tr key={row.employee.id} className="border-b border-border last:border-0">
+                        <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
+                        <td className="py-1.5 pl-2">
+                          <Link href={`/planilla/${row.employee.id}`} className="flex items-center gap-2 hover:underline">
+                            <EmployeeAvatar name={row.employee.name} employeeId={row.employee.id} sortOrder={row.employee.sortOrder} />
+                            <span className="truncate">{row.employee.name}</span>
+                          </Link>
+                        </td>
+                        <td className="w-24 py-1.5 pl-2">
+                          <div className="h-1.5 w-full bg-muted">
+                            <div
+                              className="h-full bg-[var(--walnut)]"
+                              style={{ width: `${(paid / stats.perEmployee[0].paid) * 100}%` }}
+                            />
+                          </div>
+                        </td>
+                        <td className="py-1.5 pl-3 text-right tabular-nums text-foreground">{formatCents(paid)}</td>
+                        <td className="w-12 py-1.5 pl-2 text-right text-xs tabular-nums text-muted-foreground">
+                          {stats.ytd > 0 ? `${((paid / stats.ytd) * 100).toFixed(1)}%` : ""}
+                        </td>
+                      </tr>
                     ))}
-                </div>
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="rounded-none border border-border bg-card p-4">
+              <p className="mb-3 text-sm font-medium text-foreground">{tt("dash_loans_top_title")}</p>
+              {stats.debtors.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tt("dash_loans_none")}</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <tbody>
+                    {stats.debtors.slice(0, 10).map(({ employee, balance }, i) => (
+                      <tr key={employee.id} className="border-b border-border last:border-0">
+                        <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
+                        <td className="py-1.5 pl-2">
+                          <Link href={`/planilla/${employee.id}`} className="flex items-center gap-2 hover:underline">
+                            <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
+                            <span className="truncate">{employee.name}</span>
+                          </Link>
+                        </td>
+                        <td className="py-1.5 pl-3 text-right tabular-nums text-foreground">{formatCents(balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              <p className="mt-5 mb-3 border-t border-border pt-4 text-sm font-medium text-foreground">
+                {tt("dash_loans_year_title")}
+              </p>
+              {stats.lent.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tt("dash_loans_year_none")}</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <tbody>
+                    {stats.lent.slice(0, 5).map(({ employee, lent }, i) => (
+                      <tr key={employee.id} className="border-b border-border last:border-0">
+                        <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
+                        <td className="py-1.5 pl-2">
+                          <Link href={`/planilla/${employee.id}`} className="flex items-center gap-2 hover:underline">
+                            <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
+                            <span className="truncate">{employee.name}</span>
+                          </Link>
+                        </td>
+                        <td className="py-1.5 pl-3 text-right tabular-nums text-foreground">{formatCents(lent)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>

@@ -62,6 +62,9 @@ interface FormState {
   notes: string;
   bankName: string;
   bankAccountType: BankAccountType | typeof NO_ACCOUNT_TYPE;
+  idDocumentType: "cedula" | "pasaporte" | typeof NO_ACCOUNT_TYPE;
+  nationality: string;
+  birthDate: string;
   bankAccountNumber: string;
   bankRoutingCode: string;
 }
@@ -82,6 +85,9 @@ const EMPTY: FormState = {
   notes: "",
   bankName: "",
   bankAccountType: NO_ACCOUNT_TYPE,
+  idDocumentType: NO_ACCOUNT_TYPE,
+  nationality: "",
+  birthDate: "",
   bankAccountNumber: "",
   bankRoutingCode: "",
 };
@@ -108,6 +114,9 @@ function fromEmployee(e: PayrollEmployee, activePositions: PayrollPosition[]): F
     notes: e.notes ?? "",
     bankName: e.bankName ?? "",
     bankAccountType: e.bankAccountType ?? NO_ACCOUNT_TYPE,
+    idDocumentType: e.idDocumentType ?? NO_ACCOUNT_TYPE,
+    nationality: e.nationality ?? "",
+    birthDate: e.birthDate ?? "",
     bankAccountNumber: e.bankAccountNumber ?? "",
     bankRoutingCode: e.bankRoutingCode ?? "",
   };
@@ -197,11 +206,30 @@ export function EmployeeFormDialog({
         bankAccountNumber: form.bankAccountNumber.trim() || null,
         bankRoutingCode: form.bankRoutingCode.trim() || null,
       };
+      // Campos de la ficha ampliada: solo viajan si cambiaron (edición) o
+      // traen valor (alta), así guardar el formulario sigue funcionando
+      // aunque la migración 20261008120000 aún no se haya aplicado.
+      const docType = form.idDocumentType === NO_ACCOUNT_TYPE ? null : form.idDocumentType;
+      const nationality = form.nationality.trim() || null;
+      const birthDate = form.birthDate || null;
+      const profileExtra =
+        mode === "edit" && employee
+          ? {
+              ...(docType !== employee.idDocumentType ? { idDocumentType: docType } : {}),
+              ...(nationality !== employee.nationality ? { nationality } : {}),
+              ...(birthDate !== employee.birthDate ? { birthDate } : {}),
+            }
+          : {
+              ...(docType ? { idDocumentType: docType } : {}),
+              ...(nationality ? { nationality } : {}),
+              ...(birthDate ? { birthDate } : {}),
+            };
       if (mode === "edit" && employee) {
-        await updateEmployeeAction(employee.id, common);
+        await updateEmployeeAction(employee.id, { ...common, ...profileExtra });
       } else {
         await createEmployeeAction({
           ...common,
+          ...profileExtra,
           baseSalaryCents: toCents(form.baseSalary),
           benefitsBaseSalaryCents: form.benefitsBaseSalary.trim() ? toCents(form.benefitsBaseSalary) : null,
         });
@@ -323,12 +351,37 @@ export function EmployeeFormDialog({
               <Field label={tt("f_phone")}>
                 <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
               </Field>
+              <Field label={tt("f_id_document_type")}>
+                <Select
+                  value={form.idDocumentType}
+                  onValueChange={(v) => set("idDocumentType", v as FormState["idDocumentType"])}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_ACCOUNT_TYPE}>{tt("f_optional")}</SelectItem>
+                    <SelectItem value="cedula">{tt("id_type_cedula")}</SelectItem>
+                    <SelectItem value="pasaporte">{tt("id_type_pasaporte")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label={tt("f_id_document")}>
                 <Input
                   value={form.idDocument}
                   onChange={(e) => set("idDocument", e.target.value)}
                   placeholder="8-123-4567"
                 />
+              </Field>
+              <Field label={tt("f_nationality")}>
+                <Input
+                  value={form.nationality}
+                  onChange={(e) => set("nationality", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("f_birth_date")}>
+                <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
               </Field>
               <Field label={tt("f_emg_name")}>
                 <Input

@@ -89,6 +89,10 @@ function makeEmployee(
     bankAccountType: null,
     bankAccountNumber: null,
     bankRoutingCode: null,
+    idDocumentType: null,
+    nationality: null,
+    birthDate: null,
+    photoPath: null,
   };
 }
 

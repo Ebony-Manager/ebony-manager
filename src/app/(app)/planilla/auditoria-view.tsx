@@ -9,11 +9,7 @@ import {
   AlertTriangle,
   AlertOctagon,
   Filter,
-  Layers,
-  Palette,
   SlidersHorizontal,
-  Sparkles,
-  Scale,
   Download,
 } from "lucide-react";
 
@@ -24,6 +20,11 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { currentPeriod, formatCents } from "@/lib/planilla/payroll-period";
@@ -45,6 +46,22 @@ import { t, strings, type Lang } from "@/lib/i18n";
 import { getAuditoriaDataAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { EmployeeSearchInput } from "./employee-search-input";
+import {
+  defaultAuditoriaView,
+  sanitizeAuditoriaView,
+  type Densidad,
+  type NivelDetalle,
+  type StatusFilter,
+} from "./auditoria-view-state";
+import type { CategoriaFilter } from "./registro-columns";
+import {
+  AUDITORIA_VIEW_KEY,
+  clearSavedView,
+  readSavedView,
+  sessionView,
+  writeSavedView,
+} from "@/lib/planilla/saved-view";
+import toast from "react-hot-toast";
 
 const LEGEND_CATEGORIES: PayrollCategoryKey[] = [
   "salario",
@@ -73,26 +90,15 @@ const GROUP_DEFS: { key: string; labelKey: keyof typeof strings.planilla }[] = [
   { key: "descuento_prestamos", labelKey: "grp_descuento_prestamos" },
 ];
 
-function defaultVisibleGroups(): Record<string, boolean> {
-  const r: Record<string, boolean> = {};
-  for (const g of GROUP_DEFS) r[g.key] = true;
-  return r;
-}
+// Memoria de sesión (sobrevive a cambiar de pestaña, no a recargar). Lo
+// que se abre por defecto es "mi vista" guardada, o la original.
+const SESSION_KEY = "auditoria-sesion";
 
-const GROUPS_KEY = "ebony.planilla.auditoria.visibleGroups";
-const PREVIEW_KEY = "ebony.planilla.auditoria.showPrestacionesPreview";
-const BASE_KEY = "ebony.planilla.auditoria.showBaseComparison";
-// Sufijo `-v2`: el default pasó a "a todo color"; la clave vieja guardaba
-// la elección anterior ("sober") y habría tapado el default nuevo.
-const PALETTE_KEY = "ebony.planilla.auditoria.palette-v2";
-
-type Densidad = "comprimida" | "expandida";
 const DENSITY: Record<Densidad, { table: string; head: string; empRow: string; groupRow: string; lineRow: string }> = {
   comprimida: { table: "text-[11px]", head: "py-1", empRow: "py-1", groupRow: "py-0.5", lineRow: "py-0.5" },
   expandida: { table: "text-xs", head: "py-1.5", empRow: "py-1.5", groupRow: "py-1", lineRow: "py-1" },
 };
 
-type NivelDetalle = "macro" | "quincenal" | "concepto" | "micro";
 const DETAIL_LEVELS: { key: NivelDetalle; labelKey: keyof typeof strings.planilla }[] = [
   { key: "macro", labelKey: "nivel_macro" },
   { key: "quincenal", labelKey: "nivel_quincenal" },
@@ -162,66 +168,110 @@ function downloadCsv(data: AuditoriaData, year: number, lang: Lang) {
   URL.revokeObjectURL(url);
 }
 
-export function AuditoriaView({ year, onYearChange }: { year: number; onYearChange: (year: number) => void }) {
+export function AuditoriaView({
+  year,
+  onYearChange,
+  categoria,
+  onCategoriaChange,
+}: {
+  year: number;
+  onYearChange: (year: number) => void;
+  categoria: CategoriaFilter;
+  onCategoriaChange: (categoria: CategoriaFilter) => void;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [data, setData] = React.useState<AuditoriaData | null>(null);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
-  const [vista, setVista] = React.useState<Densidad>("comprimida");
-  const [nivel, setNivel] = React.useState<NivelDetalle>("concepto");
   const [showInactive, setShowInactive] = React.useState(false);
-  const [vistaOpen, setVistaOpen] = React.useState(false);
   const [filtroOpen, setFiltroOpen] = React.useState(false);
   const [employeeFilter, setEmployeeFilter] = React.useState<Set<string>>(new Set());
-  const [statusFilter, setStatusFilter] = React.useState<"todos" | "activo" | "inactivo">("todos");
   // Buscador de empleado: la tabla se queda solo con quien coincida.
   const [query, setQuery] = React.useState("");
-  const [visibleGroups, setVisibleGroups] = React.useState<Record<string, boolean>>(defaultVisibleGroups);
-  const [showPrestacionesPreview, setShowPrestacionesPreview] = React.useState(true);
-  const [showBaseComparison, setShowBaseComparison] = React.useState(true);
-  // "a todo color" por defecto.
-  const [palette, setPalette] = React.useState<PayrollPalette>("full");
+  // Estado "de vista" (lo que guarda "Guardar como mi vista"): arranca en la
+  // vista original y al montar se aplica la memoria de sesión o la guardada.
+  const [vista, setVista] = React.useState<Densidad>(() => defaultAuditoriaView().densidad);
+  const [nivel, setNivel] = React.useState<NivelDetalle>(() => defaultAuditoriaView().nivel);
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>(() => defaultAuditoriaView().statusFilter);
+  const [visibleGroups, setVisibleGroups] = React.useState<Record<string, boolean>>(
+    () => defaultAuditoriaView().visibleGroups
+  );
+  const [showPrestacionesPreview, setShowPrestacionesPreview] = React.useState(
+    () => defaultAuditoriaView().showPrestacionesPreview
+  );
+  const [showBaseComparison, setShowBaseComparison] = React.useState(() => defaultAuditoriaView().showBaseComparison);
+  const [showYearTotal, setShowYearTotal] = React.useState(() => defaultAuditoriaView().showYearTotal);
+  const [palette, setPalette] = React.useState<PayrollPalette>(() => defaultAuditoriaView().palette);
+
+  // El nivel vigente cuando llegan los datos (puede haber cambiado, por la
+  // vista guardada, entre pedir los datos y recibirlos).
+  const nivelRef = React.useRef(nivel);
+  React.useEffect(() => {
+    nivelRef.current = nivel;
+  }, [nivel]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
-    try {
-      const g = window.localStorage.getItem(GROUPS_KEY);
-      if (g) setVisibleGroups({ ...defaultVisibleGroups(), ...(JSON.parse(g) as Record<string, boolean>) });
-      const p = window.localStorage.getItem(PREVIEW_KEY);
-      if (p !== null) setShowPrestacionesPreview(p === "true");
-      const b = window.localStorage.getItem(BASE_KEY);
-      if (b !== null) setShowBaseComparison(b === "true");
-      const pal = window.localStorage.getItem(PALETTE_KEY);
-      if (pal === "full" || pal === "sober") setPalette(pal);
-    } catch {
-      /* ignore */
-    }
+    const init = sessionView.get<ReturnType<typeof defaultAuditoriaView>>(SESSION_KEY) ??
+      readSavedView(AUDITORIA_VIEW_KEY, sanitizeAuditoriaView);
+    if (!init) return;
+    setVista(init.densidad);
+    setNivel(init.nivel);
+    setStatusFilter(init.statusFilter);
+    setVisibleGroups(init.visibleGroups);
+    setShowPrestacionesPreview(init.showPrestacionesPreview);
+    setShowBaseComparison(init.showBaseComparison);
+    setShowYearTotal(init.showYearTotal);
+    setPalette(init.palette);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const currentView = {
+    palette,
+    nivel,
+    densidad: vista,
+    visibleGroups,
+    showPrestacionesPreview,
+    showBaseComparison,
+    showYearTotal,
+    statusFilter,
+    categoria,
+  };
   React.useEffect(() => {
-    try {
-      window.localStorage.setItem(GROUPS_KEY, JSON.stringify(visibleGroups));
-    } catch {
-      /* ignore */
-    }
-  }, [visibleGroups]);
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem(PREVIEW_KEY, String(showPrestacionesPreview));
-      window.localStorage.setItem(BASE_KEY, String(showBaseComparison));
-    } catch {
-      /* ignore */
-    }
-  }, [showPrestacionesPreview, showBaseComparison]);
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem(PALETTE_KEY, palette);
-    } catch {
-      /* ignore */
-    }
-  }, [palette]);
+    sessionView.set(SESSION_KEY, {
+      palette,
+      nivel,
+      densidad: vista,
+      visibleGroups,
+      showPrestacionesPreview,
+      showBaseComparison,
+      showYearTotal,
+      statusFilter,
+      categoria,
+    });
+  }, [palette, nivel, vista, visibleGroups, showPrestacionesPreview, showBaseComparison, showYearTotal, statusFilter, categoria]);
+
+  function saveMyView() {
+    if (writeSavedView(AUDITORIA_VIEW_KEY, currentView)) toast.success(tt("vista_guardada"));
+    else toast.error(tt("vista_no_guardada"));
+  }
+  function resetView() {
+    const d = defaultAuditoriaView();
+    clearSavedView(AUDITORIA_VIEW_KEY);
+    sessionView.clear(SESSION_KEY);
+    setVista(d.densidad);
+    setStatusFilter(d.statusFilter);
+    setVisibleGroups(d.visibleGroups);
+    setShowPrestacionesPreview(d.showPrestacionesPreview);
+    setShowBaseComparison(d.showBaseComparison);
+    setShowYearTotal(d.showYearTotal);
+    setPalette(d.palette);
+    setNivelMode(d.nivel);
+    onCategoriaChange(d.categoria);
+    toast.success(tt("vista_restablecida"));
+  }
 
   const applyLevel = React.useCallback((level: NivelDetalle, d: AuditoriaData) => {
     if (level === "macro" || level === "quincenal") {
@@ -239,7 +289,7 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
   React.useEffect(() => {
     getAuditoriaDataAction(year).then((d) => {
       setData(d);
-      applyLevel(nivel, d);
+      applyLevel(nivelRef.current, d);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
@@ -266,7 +316,8 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
   }
 
   const isMonthly = nivel === "macro";
-  const totalColumns = (isMonthly ? 12 : 24) + 2;
+  const totalColumns = (isMonthly ? 12 : 24) + 1 + (showYearTotal ? 1 : 0);
+  const lastColIdx = (isMonthly ? 12 : 24) - 1;
   const cols = isMonthly ? Array.from({ length: 12 }, (_, i) => i) : Array.from({ length: 24 }, (_, i) => i);
   const d = DENSITY[vista];
 
@@ -352,11 +403,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
               {v !== 0 ? formatCents(v) : "–"}
             </td>
           ))}
-          <td
-            className={`${extreme} px-2 ${d.empRow} text-right font-semibold tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"} ${VEIL}`}
-          >
-            {formatCents(row.totalCents)}
-          </td>
+          {showYearTotal && (
+            <td
+              className={`${extreme} px-2 ${d.empRow} text-right font-semibold tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"} ${VEIL}`}
+            >
+              {formatCents(row.totalCents)}
+            </td>
+          )}
         </tr>
         {showBaseComparison && (
           <tr className="border-b border-border/50 text-[11px]">
@@ -376,9 +429,11 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                 </td>
               );
             })}
-            <td className={`${extreme} px-2 ${d.groupRow} text-right italic tabular-nums text-muted-foreground/70`}>
-              {formatCents(row.basePeriods.reduce((s, v) => s + v, 0))}
-            </td>
+            {showYearTotal && (
+              <td className={`${extreme} px-2 ${d.groupRow} text-right italic tabular-nums text-muted-foreground/70`}>
+                {formatCents(row.basePeriods.reduce((s, v) => s + v, 0))}
+              </td>
+            )}
           </tr>
         )}
         {isOpen && (
@@ -430,21 +485,27 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                       key={i}
                       data-col={i}
                       className={`px-1.5 ${d.groupRow} text-right tabular-nums`}
-                      style={{ ...headerBorder, color: colOccurred(i) ? color : "var(--muted-foreground)" }}
+                      style={{
+                        ...headerBorder,
+                        ...(!showYearTotal && i === lastColIdx ? { borderRight: `1px solid ${borderColor}` } : {}),
+                        color: colOccurred(i) ? color : "var(--muted-foreground)",
+                      }}
                     >
                       {v !== 0 ? fmtSigned(v) : "–"}
                     </td>
                   ))}
-                  <td
-                    className={`px-2 ${d.groupRow} text-right font-semibold tabular-nums ${hasLineItems ? "rounded-tr-none" : "rounded-tr-none rounded-br-none"}`}
-                    style={{
-                      ...headerBorder,
-                      borderRight: `1px solid ${borderColor}`,
-                      color: yearIsFuture ? "var(--muted-foreground)" : color,
-                    }}
-                  >
-                    {fmtSigned(g.totalCents)}
-                  </td>
+                  {showYearTotal && (
+                    <td
+                      className={`px-2 ${d.groupRow} text-right font-semibold tabular-nums ${hasLineItems ? "rounded-tr-none" : "rounded-tr-none rounded-br-none"}`}
+                      style={{
+                        ...headerBorder,
+                        borderRight: `1px solid ${borderColor}`,
+                        color: yearIsFuture ? "var(--muted-foreground)" : color,
+                      }}
+                    >
+                      {fmtSigned(g.totalCents)}
+                    </td>
+                  )}
                 </tr>
                 {groupOpen &&
                   g.lineItems.map((li, liI) => {
@@ -484,17 +545,22 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                             key={i}
                             data-col={i}
                             className={`px-1.5 ${d.lineRow} text-right tabular-nums ${isPreview ? "italic" : ""} ${colTone(i)}`}
-                            style={lineBorder}
+                            style={{
+                              ...lineBorder,
+                              ...(!showYearTotal && i === lastColIdx ? { borderRight: `1px solid ${borderColor}` } : {}),
+                            }}
                           >
                             {value !== 0 ? fmtSigned(value) : "–"}
                           </td>
                         ))}
-                        <td
-                          className={`px-2 ${d.lineRow} text-right tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"} ${isLastLine ? "rounded-br-none" : ""}`}
-                          style={{ ...lineBorder, borderRight: `1px solid ${borderColor}` }}
-                        >
-                          {fmtSigned(li.totalCents)}
-                        </td>
+                        {showYearTotal && (
+                          <td
+                            className={`px-2 ${d.lineRow} text-right tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"} ${isLastLine ? "rounded-br-none" : ""}`}
+                            style={{ ...lineBorder, borderRight: `1px solid ${borderColor}` }}
+                          >
+                            {fmtSigned(li.totalCents)}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -521,9 +587,20 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
     if (employeeFilter.size > 0 && !employeeFilter.has(r.employee.id)) return false;
     if (statusFilter === "activo" && r.employee.status !== "ACTIVE") return false;
     if (statusFilter === "inactivo" && r.employee.status !== "INACTIVE") return false;
+    if (categoria !== "todos" && r.employee.categoria !== categoria) return false;
     if (!matchesEmployeeQuery(r.employee.name, query)) return false;
     return true;
   });
+  // Con cualquier filtro/búsqueda activo, los totales de arriba y de abajo
+  // son los de las filas que se ven (si no, no cuadrarían con la tabla).
+  const filtersActive =
+    employeeFilter.size > 0 || statusFilter !== "todos" || categoria !== "todos" || query.trim() !== "";
+  const shownPeriodTotals = filtersActive
+    ? Array.from({ length: 24 }, (_, i) => filteredRows.reduce((sum, r) => sum + (r.periods[i] ?? 0), 0))
+    : (data?.periodTotals ?? []);
+  const shownGrandTotalCents = filtersActive
+    ? filteredRows.reduce((sum, r) => sum + r.totalCents, 0)
+    : (data?.grandTotalCents ?? 0);
   const activeRows = filteredRows.filter((r) => r.employee.status === "ACTIVE");
   const inactiveRows = filteredRows.filter((r) => r.employee.status === "INACTIVE");
   const effectiveShowInactive = showInactive || statusFilter === "inactivo";
@@ -605,95 +682,92 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             </PopoverContent>
           </Popover>
 
+          {/* Un solo menú "Vista": colores, nivel de detalle, densidad,
+              opciones (comparar con Base, proyección, columna Total del
+              año), secciones visibles y guardar / restablecer "mi vista".
+              Los ítems de marcar/desmarcar no cierran el menú. */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                <Layers className="size-3.5" />
-                {tt("secciones")}
+                <SlidersHorizontal className="size-3.5" />
+                {tt("vista")}
                 {hiddenGroupCount > 0 ? ` (${hiddenGroupCount})` : ""}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="end" className="max-h-[75vh] w-64 overflow-y-auto">
+              <DropdownMenuLabel>{tt("vista_menu_colores")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={palette} onValueChange={(v) => setPalette(v as PayrollPalette)}>
+                <DropdownMenuRadioItem value="full" onSelect={(e) => e.preventDefault()}>
+                  {tt("palette_full")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="sober" onSelect={(e) => e.preventDefault()}>
+                  {tt("palette_sober")}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{tt("vista_menu_nivel")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={nivel} onValueChange={(v) => setNivelMode(v as NivelDetalle)}>
+                {DETAIL_LEVELS.map((l) => (
+                  <DropdownMenuRadioItem key={l.key} value={l.key} onSelect={(e) => e.preventDefault()}>
+                    {tt(l.labelKey)}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{tt("vista_menu_densidad")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={vista} onValueChange={(v) => setVista(v as Densidad)}>
+                <DropdownMenuRadioItem value="comprimida" onSelect={(e) => e.preventDefault()}>
+                  {tt("comprimida")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="expandida" onSelect={(e) => e.preventDefault()}>
+                  {tt("expandida")}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{tt("vista_menu_opciones")}</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={showBaseComparison}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={setShowBaseComparison}
+              >
+                {tt("comparar_base")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showPrestacionesPreview}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={setShowPrestacionesPreview}
+              >
+                {tt("proyeccion_prestaciones")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showYearTotal}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={setShowYearTotal}
+              >
+                {tt("aud_columna_total_anio")}
+              </DropdownMenuCheckboxItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{tt("vista_menu_secciones")}</DropdownMenuLabel>
               {GROUP_DEFS.map((g) => (
                 <DropdownMenuCheckboxItem
                   key={g.key}
                   checked={visibleGroups[g.key] !== false}
+                  onSelect={(e) => e.preventDefault()}
                   onCheckedChange={(checked) => setVisibleGroups((prev) => ({ ...prev, [g.key]: checked }))}
                 >
                   {tt(g.labelKey)}
                 </DropdownMenuCheckboxItem>
               ))}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={saveMyView}>{tt("vista_guardar")}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={resetView}>{tt("vista_restablecer")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Button
-            variant={showPrestacionesPreview ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowPrestacionesPreview((v) => !v)}
-          >
-            <Sparkles className="size-3.5" />
-            {tt("proyeccion_prestaciones")}
-          </Button>
-
-          <Button variant={showBaseComparison ? "default" : "outline"} size="sm" onClick={() => setShowBaseComparison((v) => !v)}>
-            <Scale className="size-3.5" />
-            {tt("comparar_base")}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label={tt("palette_label")}
-            title={tt("palette_toggle_hint")}
-            onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
-          >
-            <Palette className="size-3.5" />
-            {palette === "sober" ? tt("palette_sober") : tt("palette_full")}
-          </Button>
-
-          <Popover open={vistaOpen} onOpenChange={setVistaOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontal className="size-3.5" />
-                {tt("vista")}: {tt(DETAIL_LEVELS.find((l) => l.key === nivel)!.labelKey)}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64" align="start">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-muted-foreground">{tt("densidad")}</div>
-                  <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
-                    {(["comprimida", "expandida"] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setVista(v)}
-                        className={`flex-1 rounded-none px-2 py-1 font-medium transition-colors ${vista === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        {v === "comprimida" ? tt("comprimida") : tt("expandida")}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-muted-foreground">{tt("nivel_detalle")}</div>
-                  <div className="flex flex-col gap-0.5">
-                    {DETAIL_LEVELS.map((l) => (
-                      <button
-                        key={l.key}
-                        type="button"
-                        onClick={() => setNivelMode(l.key)}
-                        className={`rounded-none px-2 py-1.5 text-left font-medium transition-colors ${nivel === l.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-                      >
-                        {tt(l.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
           <Button variant="outline" size="sm" disabled={!data} onClick={() => data && downloadCsv(data, year, lang)}>
             <Download className="size-3.5" />
@@ -772,11 +846,13 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                       {m}
                     </th>
                   ))}
-                  <th
-                    className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right text-xs font-semibold`}
-                  >
-                    {tt("total_year")} {year}
-                  </th>
+                  {showYearTotal && (
+                    <th
+                      className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right text-xs font-semibold`}
+                    >
+                      {tt("total_year")} {year}
+                    </th>
+                  )}
                 </tr>
               ) : (
                 <>
@@ -796,12 +872,14 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
                         {m}
                       </th>
                     ))}
-                    <th
-                      rowSpan={2}
-                      className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right align-bottom text-xs font-semibold`}
-                    >
-                      {tt("total_year")} {year}
-                    </th>
+                    {showYearTotal && (
+                      <th
+                        rowSpan={2}
+                        className={`border-b border-l border-border ${HEAD_BG} px-2 ${d.head} text-right align-bottom text-xs font-semibold`}
+                      >
+                        {tt("total_year")} {year}
+                      </th>
+                    )}
                   </tr>
                   <tr>
                     {cols.map((i) => (
@@ -820,16 +898,18 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             <tbody>
               <tr className={`border-b-2 border-border ${TOTAL_DARK_BG} text-background`}>
                 <td className={`sticky left-0 z-10 ${TOTAL_DARK_BG} px-2 ${d.empRow} font-semibold uppercase tracking-wide`}>
-                  {tt("total_planilla")}
+                  {filtersActive ? `${tt("emp_search_total")} (${filteredRows.length})` : tt("total_planilla")}
                 </td>
-                {displayPeriods(data.periodTotals).map((v, i) => (
+                {displayPeriods(shownPeriodTotals).map((v, i) => (
                   <td key={i} data-col={i} className={`px-1.5 ${d.empRow} text-right tabular-nums ${colOccurred(i) ? "" : "opacity-50"}`}>
                     {formatCents(v)}
                   </td>
                 ))}
-                <td className={`px-2 ${d.empRow} text-right font-semibold tabular-nums ${yearIsFuture ? "opacity-50" : ""}`}>
-                  {formatCents(data.grandTotalCents)}
-                </td>
+                {showYearTotal && (
+                  <td className={`px-2 ${d.empRow} text-right font-semibold tabular-nums ${yearIsFuture ? "opacity-50" : ""}`}>
+                    {formatCents(shownGrandTotalCents)}
+                  </td>
+                )}
               </tr>
             </tbody>
             <tbody>{activeRows.map(renderEmployeeRow)}</tbody>
@@ -851,15 +931,19 @@ export function AuditoriaView({ year, onYearChange }: { year: number; onYearChan
             )}
             <tfoot>
               <tr className={`border-t-2 border-border ${FOOT_BG} font-semibold text-foreground`}>
-                <td className={`sticky left-0 z-10 ${FOOT_BG} px-2 ${d.empRow}`}>{tt("total_general")}</td>
-                {displayPeriods(data.periodTotals).map((v, i) => (
+                <td className={`sticky left-0 z-10 ${FOOT_BG} px-2 ${d.empRow}`}>
+                  {filtersActive ? `${tt("emp_search_total")} (${filteredRows.length})` : tt("total_general")}
+                </td>
+                {displayPeriods(shownPeriodTotals).map((v, i) => (
                   <td key={i} data-col={i} className={`px-1.5 ${d.empRow} text-right font-normal tabular-nums ${colTone(i)}`}>
                     {formatCents(v)}
                   </td>
                 ))}
-                <td className={`px-2 ${d.empRow} text-right tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"}`}>
-                  {formatCents(data.grandTotalCents)}
-                </td>
+                {showYearTotal && (
+                  <td className={`px-2 ${d.empRow} text-right tabular-nums ${yearIsFuture ? "text-muted-foreground" : "text-foreground"}`}>
+                    {formatCents(shownGrandTotalCents)}
+                  </td>
+                )}
               </tr>
             </tfoot>
           </table>

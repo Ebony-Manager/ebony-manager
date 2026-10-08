@@ -9,7 +9,9 @@
  */
 
 import { strings } from "@/lib/i18n";
-import type { PayrollCategoryKey } from "@/lib/planilla/payroll-colors";
+import type { PayrollCategoryKey, PayrollPalette } from "@/lib/planilla/payroll-colors";
+import { pickBoolRecord, pickEnum } from "@/lib/planilla/saved-view";
+import type { EmployeeCategoria } from "@/types/planilla";
 
 export type FieldKey =
   | "basePayCents"
@@ -71,4 +73,52 @@ export function defaultVisibleColumns(): Record<ColumnKey, boolean> {
   return Object.fromEntries(COLUMN_DEFS.map((c) => [c.key, true])) as Record<ColumnKey, boolean>;
 }
 
-export const REGISTRO_COLUMNS_STORAGE_KEY = "ebony:planilla-registro-columns";
+/** Secciones del menú "Vista": esconden / muestran de un golpe un grupo de
+ *  columnas (p. ej. Décimo + Vacación + Prima juntos). Las columnas sueltas
+ *  (Base, Método, Pagado) se manejan una por una. */
+export const COLUMN_SECTIONS: { key: string; label: Entry; columns: ColumnKey[] }[] = [
+  {
+    key: "bonificaciones",
+    label: strings.planilla.col_bonificaciones,
+    columns: ["extraHoursCents", "extraDaysCents", "bonusCents", "diasLibresCents"],
+  },
+  {
+    key: "descuentos",
+    label: strings.planilla.col_descuentos_simple,
+    columns: ["horasDescontadasCents", "diasDescontadosCents", "otherDeductionCents"],
+  },
+  {
+    key: "prestaciones",
+    label: strings.planilla.col_prestaciones_simple,
+    columns: ["decimoPaidCents", "vacationPaidCents", "primaAntiguedadPaidCents"],
+  },
+];
+
+// ── "Mi vista" de Registro ──────────────────────────────────────────────
+
+export type RegistroViewMode = "expanded" | "simple";
+export type CategoriaFilter = EmployeeCategoria | "todos";
+
+/** Lo que guarda "Guardar como mi vista" en Registro. */
+export interface RegistroSavedView {
+  visibleColumns: Record<ColumnKey, boolean>;
+  view: RegistroViewMode;
+  palette: PayrollPalette;
+  categoria: CategoriaFilter;
+}
+
+/** La vista original (la de fábrica): Expandida, a todo color, todas las
+ *  columnas, todos los empleados. */
+export function defaultRegistroView(): RegistroSavedView {
+  return { visibleColumns: defaultVisibleColumns(), view: "expanded", palette: "full", categoria: "todos" };
+}
+
+export function sanitizeRegistroView(o: Record<string, unknown>): RegistroSavedView {
+  const d = defaultRegistroView();
+  return {
+    visibleColumns: pickBoolRecord(o.visibleColumns, d.visibleColumns),
+    view: pickEnum(o.view, ["expanded", "simple"] as const, d.view),
+    palette: pickEnum(o.palette, ["full", "sober"] as const, d.palette),
+    categoria: pickEnum(o.categoria, ["todos", "taller", "administrativo"] as const, d.categoria),
+  };
+}

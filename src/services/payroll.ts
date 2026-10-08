@@ -28,6 +28,8 @@ import {
   computeAnnualSummary,
   computeAuditoriaData,
   computeLedgerBalance,
+  computeLedgerBalanceToDate,
+  computeMonthlyComposition,
   computeUpcomingObligations,
   type EmployeeHistory,
   type LedgerRowFull,
@@ -335,15 +337,20 @@ export interface RegistroRow {
  *  de un input). Batchea todo el período (entries + ledger + sueldos). */
 export async function getRegistroForPeriod(year: number, month: number, half: 1 | 2): Promise<RegistroRow[]> {
   const supabase = await createClient();
-  const employees = (await getPayrollEmployees()).filter((e) => e.status === "ACTIVE");
-  const salaryByEmployee = await getAllSalaryChanges();
-
-  const { data: entryRows, error } = await supabase
-    .from("payroll_entries")
-    .select("*")
-    .eq("period_year", year)
-    .eq("period_month", month)
-    .eq("period_half", half);
+  // Empleados, historial de sueldos y quincenas son independientes: en
+  // paralelo (el ledger sí depende de las quincenas y va después).
+  const [allEmployees, salaryByEmployee, entriesRes] = await Promise.all([
+    getPayrollEmployees(),
+    getAllSalaryChanges(),
+    supabase
+      .from("payroll_entries")
+      .select("*")
+      .eq("period_year", year)
+      .eq("period_month", month)
+      .eq("period_half", half),
+  ]);
+  const employees = allEmployees.filter((e) => e.status === "ACTIVE");
+  const { data: entryRows, error } = entriesRes;
   if (error) throw new Error(error.message);
 
   const entryByEmployee = new Map<string, EntryRow>();
@@ -456,18 +463,38 @@ function withHistoricalBase(entries: PayrollEntry[], changes: SalaryChange[]): P
   }));
 }
 
+/** Supabase devuelve como máximo 1,000 filas por consulta y NO avisa si
+ *  cortó. Con 46 empleados × 24 quincenas ya estamos cerca del tope, así
+ *  que las lecturas de "todas las filas" pasan por acá: piden páginas de
+ *  1,000 (ordenadas por id, para que las páginas no se pisen) hasta
+ *  agotar la tabla. */
+const PAGE_SIZE = 1000;
+async function selectAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) return all;
+  }
+}
+
 /** Trae TODO el historial (entries + ledger + sueldos) de todos los
  *  empleados y lo agrupa por empleado — la base de Resumen Anual,
  *  Auditoría y Dashboard. */
 async function loadAllHistories(): Promise<EmployeeHistory[]> {
   const supabase = await createClient();
-  const employees = await getPayrollEmployees();
-  const salaryByEmp = await getAllSalaryChanges();
-
-  const { data: entryRows, error: e1 } = await supabase.from("payroll_entries").select("*");
-  if (e1) throw new Error(e1.message);
-  const { data: ledgerRows, error: e2 } = await supabase.from("payroll_ledger_entries").select("*");
-  if (e2) throw new Error(e2.message);
+  // Las cuatro lecturas son independientes: en paralelo, en vez de una
+  // tras otra (cada una es un viaje de red completo a Supabase).
+  const [employees, salaryByEmp, entryRows, ledgerRows] = await Promise.all([
+    getPayrollEmployees(),
+    getAllSalaryChanges(),
+    selectAllRows((from, to) => supabase.from("payroll_entries").select("*").order("id").range(from, to)),
+    selectAllRows((from, to) => supabase.from("payroll_ledger_entries").select("*").order("id").range(from, to)),
+  ]);
 
   const entriesByEmp = new Map<string, PayrollEntry[]>();
   for (const r of entryRows ?? []) {
@@ -495,25 +522,22 @@ async function loadAllHistories(): Promise<EmployeeHistory[]> {
 /** Historial de un solo empleado (3 queries). */
 async function loadHistory(employeeId: string): Promise<EmployeeHistory | null> {
   const supabase = await createClient();
-  const employee = await getPayrollEmployee(employeeId);
+  // Empleado, quincenas, ledger y sueldos son independientes: en paralelo.
+  const [employee, entriesRes, ledgerRes, salaryChanges] = await Promise.all([
+    getPayrollEmployee(employeeId),
+    supabase.from("payroll_entries").select("*").eq("employee_id", employeeId),
+    supabase.from("payroll_ledger_entries").select("*").eq("employee_id", employeeId),
+    getSalaryChanges(employeeId),
+  ]);
   if (!employee) return null;
+  if (entriesRes.error) throw new Error(entriesRes.error.message);
+  if (ledgerRes.error) throw new Error(ledgerRes.error.message);
 
-  const { data: entryRows, error: e1 } = await supabase
-    .from("payroll_entries")
-    .select("*")
-    .eq("employee_id", employeeId);
-  if (e1) throw new Error(e1.message);
-  const { data: ledgerRows, error: e2 } = await supabase
-    .from("payroll_ledger_entries")
-    .select("*")
-    .eq("employee_id", employeeId);
-  if (e2) throw new Error(e2.message);
-
-  const changes = toSalaryChanges(await getSalaryChanges(employeeId));
+  const changes = toSalaryChanges(salaryChanges);
   return {
     employee,
-    entries: withHistoricalBase((entryRows ?? []).map(mapEntry), changes),
-    ledger: (ledgerRows ?? []).map(toLedgerRowFull),
+    entries: withHistoricalBase((entriesRes.data ?? []).map(mapEntry), changes),
+    ledger: (ledgerRes.data ?? []).map(toLedgerRowFull),
   };
 }
 
@@ -534,6 +558,27 @@ export async function getAuditoriaData(year: number): Promise<AuditoriaData> {
   const histories = await loadAllHistories();
   const asOf = currentPeriod();
   return computeAuditoriaData(histories, year, periodOrdinal(asOf.year, asOf.month, asOf.half));
+}
+
+/** Todo lo que pinta el Dashboard, calculado con UNA sola carga del
+ *  historial (antes eran 3-4 cargas completas, una por cada dato): resumen
+ *  anual por empleado, obligaciones, saldo de préstamos a la fecha por
+ *  empleado y la composición mes a mes de la planilla. */
+export async function getPlanillaOverview(year: number) {
+  const histories = await loadAllHistories();
+  const asOf = currentPeriod();
+  return {
+    rows: histories.map((h) => computeAnnualSummary(h, year)),
+    obligations: computeUpcomingObligations(
+      histories,
+      asOf,
+      nextDecimoInstallmentDate(new Date()).toISOString().slice(0, 10)
+    ),
+    balances: Object.fromEntries(
+      histories.map((h) => [h.employee.id, computeLedgerBalanceToDate(h.ledger, asOf)])
+    ) as Record<string, number>,
+    composition: computeMonthlyComposition(histories, year),
+  };
 }
 
 /** Las tres obligaciones vivas del negocio (Registro / Dashboard). */

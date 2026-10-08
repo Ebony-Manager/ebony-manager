@@ -19,11 +19,19 @@ import { SalaryRaiseDialog } from "./salary-raise-dialog";
  * al historial; la lista muestra cada tramo con su quincena efectiva y
  * notas.
  */
-export function SalaryHistorySection({ employee }: { employee: PayrollEmployee }) {
+export function SalaryHistorySection({
+  employee,
+  initialChanges,
+}: {
+  employee: PayrollEmployee;
+  /** Historial ya cargado por el servidor al abrir la página: evita una
+   *  llamada más (y su espera) al entrar al perfil. */
+  initialChanges?: PayrollSalaryChange[];
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
-  const [changes, setChanges] = React.useState<PayrollSalaryChange[] | null>(null);
+  const [changes, setChanges] = React.useState<PayrollSalaryChange[] | null>(initialChanges ?? null);
   const [raiseOpen, setRaiseOpen] = React.useState(false);
 
   const load = React.useCallback(() => {
@@ -31,8 +39,9 @@ export function SalaryHistorySection({ employee }: { employee: PayrollEmployee }
   }, [employee.id]);
 
   React.useEffect(() => {
+    if (initialChanges) return;
     load();
-  }, [load]);
+  }, [load, initialChanges]);
 
   // Más reciente arriba.
   const sorted = React.useMemo(

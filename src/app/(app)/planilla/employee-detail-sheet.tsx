@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ListTree } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ExternalLink, ListTree } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -127,6 +128,15 @@ export function EmployeeDetailSheet({
           <SheetDescription>
             {tt("detalle_title")} — {year}
           </SheetDescription>
+          {employee && (
+            <Link
+              href={`/planilla/${employee.id}`}
+              className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
+            >
+              <ExternalLink className="size-3.5" />
+              {tt("open_full_profile")}
+            </Link>
+          )}
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 pb-6">
           {withActivity.length === 0 && (

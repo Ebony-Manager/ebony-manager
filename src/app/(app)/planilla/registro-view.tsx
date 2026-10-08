@@ -5,14 +5,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
-  Columns3,
+  SlidersHorizontal,
+  Download,
+  FileText,
+  Landmark,
   Wallet,
   Banknote,
   Award,
   TrendingDown,
   CalendarClock,
-  Palette,
-  Rows3,
   Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -24,6 +25,11 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { currentPeriod, nextPeriod, formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
@@ -48,9 +54,29 @@ import {
   upsertPayrollQuantityFieldAction,
   duplicatePreviousPeriodAction,
 } from "./actions";
-import { COLUMN_DEFS, QUANTITY_FIELD_META, type ColumnKey, type FieldKey } from "./registro-columns";
+import {
+  COLUMN_DEFS,
+  COLUMN_SECTIONS,
+  defaultRegistroView,
+  QUANTITY_FIELD_META,
+  sanitizeRegistroView,
+  type CategoriaFilter,
+  type ColumnKey,
+  type FieldKey,
+  type RegistroViewMode,
+} from "./registro-columns";
+import {
+  clearSavedView,
+  readSavedView,
+  REGISTRO_VIEW_KEY,
+  sessionView,
+  writeSavedView,
+} from "@/lib/planilla/saved-view";
 import { RegistroKpiCard } from "./registro-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
+import { BankExportDialog } from "./bank-export-dialog";
+import { downloadQuincenaPdf } from "./quincena-pdf";
+import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
@@ -80,31 +106,12 @@ const SIMPLE_COLUMNS: {
   { key: "prestaciones", labelKey: "col_prestaciones_simple", category: "decimo" },
 ];
 
-// Paleta y vista Simple/Expandida — cada una recuerda su propia elección
-// por navegador, igual criterio que Contratistas. Sufijo `-v2`: los
-// defaults cambiaron (Expandida + "a todo color"), y las claves viejas
-// guardaban la elección anterior ("sober"/"simple") que, de leerse,
-// taparía los defaults nuevos.
-const PALETTE_STORAGE_KEY = "ebony:planilla-registro-palette-v2";
-function readStoredPalette(): PayrollPalette | null {
-  try {
-    const v = window.localStorage.getItem(PALETTE_STORAGE_KEY);
-    return v === "full" || v === "sober" ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-type RegistroView = "expanded" | "simple";
-const VIEW_STORAGE_KEY = "ebony:planilla-registro-view-v2";
-function readStoredView(): RegistroView | null {
-  try {
-    const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    return v === "expanded" || v === "simple" ? v : null;
-  } catch {
-    return null;
-  }
-}
+// Memoria de sesión de la paleta y la vista Simple/Expandida: sobrevive a
+// cambiar de pestaña dentro de Planilla pero no a recargar la página (al
+// recargar se abre "mi vista" guardada, o la original). Las columnas y el
+// tipo de empleado viven en planilla-client por la misma razón.
+const SESSION_KEY = "registro-sesion";
+type RegistroSession = { palette: PayrollPalette; view: RegistroViewMode };
 
 /**
  * Registro de quincena — una fila por empleado activo, navegación de
@@ -120,11 +127,15 @@ export function RegistroView({
   employees,
   visibleColumns,
   onVisibleColumnsChange,
+  categoria,
+  onCategoriaChange,
   onViewDetail,
 }: {
   employees: PayrollEmployee[];
   visibleColumns: Record<ColumnKey, boolean>;
   onVisibleColumnsChange: (columns: Record<ColumnKey, boolean>) => void;
+  categoria: CategoriaFilter;
+  onCategoriaChange: (categoria: CategoriaFilter) => void;
   onViewDetail: (employeeId: string) => void;
 }) {
   const { lang } = useLang();
@@ -140,34 +151,91 @@ export function RegistroView({
   const [rows, setRows] = React.useState<{ period: Period; data: Row[] } | null>(null);
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
+  const [bankOpen, setBankOpen] = React.useState(false);
   // Buscador de empleado: la tabla se queda solo con quien coincida.
   const [query, setQuery] = React.useState("");
 
-  // Por defecto: vista Expandida y paleta "a todo color".
-  const [palette, setPalette] = React.useState<PayrollPalette>("full");
-  const [view, setView] = React.useState<RegistroView>("expanded");
+  // Por defecto: la vista original (Expandida, a todo color); al montar se
+  // aplica la memoria de sesión o, si no hay, "mi vista" guardada.
+  const [palette, setPalette] = React.useState<PayrollPalette>(() => defaultRegistroView().palette);
+  const [view, setView] = React.useState<RegistroViewMode>(() => defaultRegistroView().view);
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
-    const storedPalette = readStoredPalette();
-    if (storedPalette) setPalette(storedPalette);
-    const storedView = readStoredView();
-    if (storedView) setView(storedView);
+    const init = sessionView.get<RegistroSession>(SESSION_KEY) ?? readSavedView(REGISTRO_VIEW_KEY, sanitizeRegistroView);
+    if (init) {
+      setPalette(init.palette);
+      setView(init.view);
+    }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
   React.useEffect(() => {
+    sessionView.set(SESSION_KEY, { palette, view } satisfies RegistroSession);
+  }, [palette, view]);
+
+  /** PDF del resumen de la quincena que se está viendo (todos los empleados
+   *  del período, no solo los de la búsqueda). */
+  async function exportPdf() {
+    if (!visibleRows) return;
+    const p = dataPeriod;
+    const quincena = `${p.half === 1 ? tt("quincena_1") : tt("quincena_2")} · ${monthLabel(lang, p.month)} ${p.year}`;
+    const report = buildQuincenaReport(
+      visibleRows.map(({ employee, total }) => ({
+        employee,
+        entry: total.entry,
+        loanPaymentCents: total.ledgerPaymentCents,
+        netCents: total.totalCents,
+      }))
+    );
     try {
-      window.localStorage.setItem(PALETTE_STORAGE_KEY, palette);
-    } catch {
-      /* ignore */
+      await downloadQuincenaPdf(
+        report,
+        {
+          company: tt("pdf_company"),
+          title: `${tt("pdf_title")} — ${quincena}`,
+          generated: `${tt("pdf_generated")} ${new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "long", year: "numeric" })}`,
+          columns: {
+            n: "#",
+            employee: tt("col_empleado"),
+            base: tt("col_salario_base"),
+            bonus: tt("col_bonificaciones"),
+            deductions: tt("col_descuentos_simple"),
+            benefits: tt("col_prestaciones_simple"),
+            loan: tt("pdf_col_loan"),
+            net: tt("pdf_col_net"),
+            method: tt("col_metodo"),
+            paid: tt("col_pagado"),
+          },
+          total: tt("col_total"),
+          byMethodTitle: tt("pdf_by_method"),
+          methodCount: tt("pdf_count"),
+          methodNet: tt("col_total"),
+          methodName: (m) => PAYMENT_METHOD_LABEL[m as PaymentMethod] ?? m,
+          yes: tt("pdf_yes"),
+          page: tt("pdf_page"),
+        },
+        `Planilla-${p.year}-${String(p.month).padStart(2, "0")}-${p.half}Q.pdf`
+      );
+    } catch (err) {
+      console.error("Planilla: no se pudo generar el PDF", err);
+      toast.error(tt("load_failed"));
     }
-  }, [palette]);
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem(VIEW_STORAGE_KEY, view);
-    } catch {
-      /* ignore */
-    }
-  }, [view]);
+  }
+
+  function saveMyView() {
+    const ok = writeSavedView(REGISTRO_VIEW_KEY, { visibleColumns, view, palette, categoria });
+    if (ok) toast.success(tt("vista_guardada"));
+    else toast.error(tt("vista_no_guardada"));
+  }
+  function resetView() {
+    const d = defaultRegistroView();
+    clearSavedView(REGISTRO_VIEW_KEY);
+    sessionView.clear(SESSION_KEY);
+    setPalette(d.palette);
+    setView(d.view);
+    onVisibleColumnsChange(d.visibleColumns);
+    onCategoriaChange(d.categoria);
+    toast.success(tt("vista_restablecida"));
+  }
 
   // Closures sobre `palette` — mismo nombre y firma que antes, así los
   // call-sites de la tabla no cambian.
@@ -439,49 +507,98 @@ export function RegistroView({
         </Button>
         <EmployeeSearchInput value={query} onChange={setQuery} />
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="ml-auto"
-          title={tt("registro_view_toggle_hint")}
-          onClick={() => setView((v) => (v === "expanded" ? "simple" : "expanded"))}
-        >
-          <Rows3 className="size-3.5" />
-          {view === "simple" ? tt("registro_view_simple") : tt("registro_view_expanded")}
-        </Button>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" disabled={view === "simple"}>
-              <Columns3 className="size-3.5" />
-              {tt("columns")}
+            <Button type="button" variant="outline" size="sm" className="ml-auto" disabled={visibleRows === null}>
+              <Download className="size-3.5" />
+              {tt("export_menu")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setBankOpen(true)}>
+              <Landmark className="size-3.5" />
+              {tt("export_bank")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={exportPdf}>
+              <FileText className="size-3.5" />
+              {tt("export_pdf")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Un solo menú "Vista": modo Simple/Expandida, colores, secciones y
+            columnas, y guardar / restablecer "mi vista". Los ítems de
+            marcar/desmarcar no cierran el menú para poder tocar varios. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="sm">
+              <SlidersHorizontal className="size-3.5" />
+              {tt("vista")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-[75vh] w-64 overflow-y-auto">
+            <DropdownMenuLabel>{tt("vista_menu_modo")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={view} onValueChange={(v) => setView(v as RegistroViewMode)}>
+              <DropdownMenuRadioItem value="simple" onSelect={(e) => e.preventDefault()}>
+                {tt("registro_view_simple")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="expanded" onSelect={(e) => e.preventDefault()}>
+                {tt("registro_view_expanded")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{tt("vista_menu_colores")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={palette} onValueChange={(v) => setPalette(v as PayrollPalette)}>
+              <DropdownMenuRadioItem value="full" onSelect={(e) => e.preventDefault()}>
+                {tt("palette_full")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="sober" onSelect={(e) => e.preventDefault()}>
+                {tt("palette_sober")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{tt("vista_menu_secciones")}</DropdownMenuLabel>
+            {view === "simple" && (
+              <p className="px-2 pb-1 text-[11px] leading-snug text-muted-foreground">{tt("vista_menu_simple_hint")}</p>
+            )}
+            {COLUMN_SECTIONS.map((sec) => (
+              <DropdownMenuCheckboxItem
+                key={sec.key}
+                disabled={view === "simple"}
+                checked={sec.columns.every((c) => visibleColumns[c])}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={(checked) =>
+                  onVisibleColumnsChange({
+                    ...visibleColumns,
+                    ...Object.fromEntries(sec.columns.map((c) => [c, checked])),
+                  })
+                }
+              >
+                {t(lang, sec.label)}
+              </DropdownMenuCheckboxItem>
+            ))}
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{tt("vista_menu_columnas")}</DropdownMenuLabel>
             {COLUMN_DEFS.map((col) => (
               <DropdownMenuCheckboxItem
                 key={col.key}
+                disabled={view === "simple"}
                 checked={visibleColumns[col.key]}
+                onSelect={(e) => e.preventDefault()}
                 onCheckedChange={(checked) => onVisibleColumnsChange({ ...visibleColumns, [col.key]: checked })}
               >
                 {t(lang, col.label)}
               </DropdownMenuCheckboxItem>
             ))}
+
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={saveMyView}>{tt("vista_guardar")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={resetView}>{tt("vista_restablecer")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          aria-label={tt("palette_label")}
-          title={tt("palette_toggle_hint")}
-          onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
-        >
-          <Palette className="size-3.5" />
-          {palette === "sober" ? tt("palette_sober") : tt("palette_full")}
-        </Button>
       </div>
 
       {view === "expanded" && (
@@ -860,6 +977,8 @@ export function RegistroView({
           {tt("emp_search_empty")}
         </p>
       )}
+
+      <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={allRows} />
 
       {(pending || visibleRows === null) && (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>

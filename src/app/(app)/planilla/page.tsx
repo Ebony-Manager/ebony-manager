@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/dal";
-import { getPayrollEmployees } from "@/services/payroll-employees";
+import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
 import { getPayrollPositions } from "@/services/payroll-positions";
 import { PlanillaClient } from "./planilla-client";
 
@@ -13,5 +13,7 @@ export default async function PlanillaPage() {
   await requireAdmin();
   const [employees, positions] = await Promise.all([getPayrollEmployees(), getPayrollPositions()]);
 
-  return <PlanillaClient employees={employees} positions={positions} />;
+  const photoUrls = await getEmployeePhotoUrls(employees);
+
+  return <PlanillaClient employees={employees} positions={positions} photoUrls={photoUrls} />;
 }

@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 
-import type { EmployeeCategoria, PayrollEmployee, PayrollPosition } from "@/types/planilla";
+import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { breadcrumbFor } from "@/components/layout/nav-items";
@@ -14,27 +14,21 @@ import { t, strings } from "@/lib/i18n";
 import { RegistroView } from "./registro-view";
 import { EmpleadosView } from "./empleados-view";
 import { DashboardView } from "./dashboard-view";
-import { PanoramaView } from "./panorama-view";
 import { AuditoriaView } from "./auditoria-view";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
+import { EmployeePhotosProvider } from "./employee-photos-context";
 import { EmployeeFormDialog } from "./employee-form-dialog";
-import { type ColumnKey, defaultVisibleColumns, REGISTRO_COLUMNS_STORAGE_KEY } from "./registro-columns";
-
-/** Lee el set guardado de columnas de Registro desde localStorage. */
-function readStoredColumns(): Record<ColumnKey, boolean> | null {
-  try {
-    const raw = window.localStorage.getItem(REGISTRO_COLUMNS_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<Record<ColumnKey, boolean>>;
-    return { ...defaultVisibleColumns(), ...parsed };
-  } catch {
-    return null;
-  }
-}
+import {
+  type CategoriaFilter,
+  defaultVisibleColumns,
+  sanitizeRegistroView,
+} from "./registro-columns";
+import { sanitizeAuditoriaView } from "./auditoria-view-state";
+import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/planilla/saved-view";
 
 /**
  * Chrome del módulo Planilla (Fase 2 completa, mockup Opción C): Dashboard,
- * Panorama, Registro, Auditoría y Empleados, + el sheet de Detalle (abierto
+ * Registro, Auditoría y Empleados, + el sheet de Detalle (abierto
  * desde Registro) y "Agregar empleado". La vieja pestaña "Resumen Anual" se
  * retiró (Taller · Tanda 1): su función la reemplaza el Historial dentro
  * del perfil de cada empleado (`/planilla/[id]`), que también es donde
@@ -46,23 +40,26 @@ function readStoredColumns(): Record<ColumnKey, boolean> | null {
  * retirado) — son texto simple con subrayado sobre el mismo fondo claro
  * de la página, como el resto de la pantalla en el mockup.
  *
- * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro,
- * persistido) viven acá para sobrevivir al cambio de tab.
+ * `year` (Dashboard/Auditoría/Detalle) y `visibleColumns` (Registro) viven
+ * acá para sobrevivir al cambio de tab. Lo que se abre por defecto es
+ * "mi vista" guardada de cada pantalla (ver `lib/planilla/saved-view.ts`);
+ * ya no se autoguarda cada cambio.
  *
- * `categoriaFilter` (Taller/Administrativo/Todos) filtra `employees` ANTES
- * de pasarlo a Registro y Empleados — los únicos dos tabs que reciben la
- * lista completa como prop hoy. Dashboard/Panorama/Auditoría piden sus
- * propios datos ya resumidos vía server actions (no reciben `employees`),
- * así que quedan sin filtrar por ahora a propósito; ese trabajo se suma
- * después junto con el Resumen de Planillas global, que va a necesitar lo
- * mismo.
+ * El filtro de tipo de empleado (Taller/Administrativo/Todos) es POR
+ * PANTALLA: Registro y Auditoría cada una el suyo (porque cada una lo
+ * guarda en su vista); Empleados/Dashboard/Panorama comparten un tercero.
+ * El selector del encabezado muestra y cambia el de la pestaña activa.
+ * Registro filtra `employees` antes de recibirlos; Auditoría filtra sus
+ * filas con el tipo de cada empleado.
  */
 export function PlanillaClient({
   employees,
   positions,
+  photoUrls,
 }: {
   employees: PayrollEmployee[];
   positions: PayrollPosition[];
+  photoUrls: Record<string, string>;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -74,28 +71,35 @@ export function PlanillaClient({
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
-  const [categoriaFilter, setCategoriaFilter] = React.useState<EmployeeCategoria | "todos">("todos");
+  const [registroCategoria, setRegistroCategoria] = React.useState<CategoriaFilter>("todos");
+  const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
+  const [otherCategoria, setOtherCategoria] = React.useState<CategoriaFilter>("todos");
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
-    const stored = readStoredColumns();
-    if (stored) setVisibleColumns(stored);
+    const registro = readSavedView(REGISTRO_VIEW_KEY, sanitizeRegistroView);
+    if (registro) {
+      setVisibleColumns(registro.visibleColumns);
+      setRegistroCategoria(registro.categoria);
+    }
+    const auditoria = readSavedView(AUDITORIA_VIEW_KEY, sanitizeAuditoriaView);
+    if (auditoria) setAuditoriaCategoria(auditoria.categoria);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem(REGISTRO_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumns));
-    } catch {
-      /* ignore */
-    }
-  }, [visibleColumns]);
-
   const detailEmployee = employees.find((e) => e.id === detailEmployeeId) ?? null;
-  const filteredEmployees =
-    categoriaFilter === "todos" ? employees : employees.filter((e) => e.categoria === categoriaFilter);
+  const byCategoria = (list: PayrollEmployee[], c: CategoriaFilter) =>
+    c === "todos" ? list : list.filter((e) => e.categoria === c);
+  const registroEmployees = byCategoria(employees, registroCategoria);
+  const otherEmployees = byCategoria(employees, otherCategoria);
 
-  const CATEGORIA_FILTERS: Array<{ value: EmployeeCategoria | "todos"; label: string }> = [
+  // El selector del encabezado actúa sobre la pestaña activa.
+  const categoriaFilter =
+    tab === "registro" ? registroCategoria : tab === "auditoria" ? auditoriaCategoria : otherCategoria;
+  const setCategoriaFilter =
+    tab === "registro" ? setRegistroCategoria : tab === "auditoria" ? setAuditoriaCategoria : setOtherCategoria;
+
+  const CATEGORIA_FILTERS: Array<{ value: CategoriaFilter; label: string }> = [
     { value: "todos", label: tt("categoria_filter_all") },
     { value: "taller", label: tt("categoria_taller") },
     { value: "administrativo", label: tt("categoria_administrativo") },
@@ -103,13 +107,13 @@ export function PlanillaClient({
 
   const TABS = [
     { value: "dashboard", label: tt("tab_dashboard") },
-    { value: "panorama", label: tt("tab_panorama") },
     { value: "registro", label: tt("tab_registro") },
     { value: "auditoria", label: tt("tab_auditoria") },
     { value: "empleados", label: tt("tab_empleados") },
   ];
 
   return (
+    <EmployeePhotosProvider photoUrls={photoUrls}>
     <div className="flex flex-col gap-5 px-7 pt-6 pb-10">
       {crumbs.length > 0 && (
         <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
@@ -185,22 +189,26 @@ export function PlanillaClient({
         <TabsContent value="dashboard" className="pt-0">
           <DashboardView year={year} onYearChange={setYear} />
         </TabsContent>
-        <TabsContent value="panorama" className="pt-0">
-          <PanoramaView />
-        </TabsContent>
         <TabsContent value="registro" className="pt-0">
           <RegistroView
-            employees={filteredEmployees}
+            employees={registroEmployees}
             visibleColumns={visibleColumns}
             onVisibleColumnsChange={setVisibleColumns}
+            categoria={registroCategoria}
+            onCategoriaChange={setRegistroCategoria}
             onViewDetail={setDetailEmployeeId}
           />
         </TabsContent>
         <TabsContent value="auditoria" className="pt-0">
-          <AuditoriaView year={year} onYearChange={setYear} />
+          <AuditoriaView
+            year={year}
+            onYearChange={setYear}
+            categoria={auditoriaCategoria}
+            onCategoriaChange={setAuditoriaCategoria}
+          />
         </TabsContent>
         <TabsContent value="empleados" className="pt-0">
-          <EmpleadosView employees={filteredEmployees} />
+          <EmpleadosView employees={otherEmployees} />
         </TabsContent>
       </Tabs>
 
@@ -213,5 +221,6 @@ export function PlanillaClient({
 
       <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />
     </div>
+    </EmployeePhotosProvider>
   );
 }

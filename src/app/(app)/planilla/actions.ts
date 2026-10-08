@@ -30,6 +30,14 @@ export async function updateEmployeeAction(id: string, input: employees.UpdatePa
   revalidatePath(PATH);
 }
 
+/** Marca a varios empleados como que ya no laboran (o los reactiva). */
+export async function setEmployeesStatusAction(ids: string[], status: "ACTIVE" | "INACTIVE") {
+  await requireAdmin();
+  const count = await employees.setPayrollEmployeesStatus(ids, status);
+  revalidatePath(PATH);
+  return count;
+}
+
 export async function getRegistroAction(year: number, month: number, half: 1 | 2) {
   await requireAdmin();
   return payroll.getRegistroForPeriod(year, month, half);
@@ -121,6 +129,13 @@ export async function getEmployeeAnnualDetailAction(employeeId: string, year: nu
 export async function getLedgerEntriesAction(employeeId: string) {
   await requireAdmin();
   return payroll.getLedgerEntries(employeeId);
+}
+
+/** Todo lo que necesita el Dashboard en UNA sola llamada (antes eran
+ *  varias, y Next las atiende una detrás de otra). */
+export async function getPlanillaOverviewAction(year: number) {
+  await requireAdmin();
+  return payroll.getPlanillaOverview(year);
 }
 
 export async function getLedgerBalanceAction(employeeId: string) {

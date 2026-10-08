@@ -270,10 +270,14 @@ export type Database = {
           end_date: string | null
           id: string
           id_document: string | null
+          id_document_type: string | null
           liquidation_notes: string | null
           name: string
+          nationality: string | null
           notes: string | null
           phone: string | null
+          photo_path: string | null
+          birth_date: string | null
           position: string | null
           sort_order: number
           start_date: string | null
@@ -295,6 +299,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
+          photo_path?: string | null
+          birth_date?: string | null
           liquidation_notes?: string | null
           name: string
           notes?: string | null
@@ -320,6 +328,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
+          photo_path?: string | null
+          birth_date?: string | null
           liquidation_notes?: string | null
           name?: string
           notes?: string | null

@@ -43,6 +43,12 @@ function mapEmployee(r: Row): PayrollEmployee {
     sortOrder: r.sort_order,
     phone: r.phone,
     idDocument: r.id_document,
+    // Las 4 columnas nuevas pueden no existir todavía si la migración
+    // 20261008120000 no se ha aplicado: `?? null` mantiene la app andando.
+    idDocumentType: r.id_document_type === "cedula" || r.id_document_type === "pasaporte" ? r.id_document_type : null,
+    nationality: r.nationality ?? null,
+    birthDate: r.birth_date ?? null,
+    photoPath: r.photo_path ?? null,
     emergencyContactName: r.emergency_contact_name,
     emergencyContactPhone: r.emergency_contact_phone,
     contractInfo: r.contract_info,
@@ -89,6 +95,9 @@ export interface CreatePayrollEmployeeInput {
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
+  idDocumentType?: "cedula" | "pasaporte" | null;
+  nationality?: string | null;
+  birthDate?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -129,6 +138,11 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       bank_account_type: input.bankAccountType ?? null,
       bank_account_number: input.bankAccountNumber ?? null,
       bank_routing_code: input.bankRoutingCode ?? null,
+      // Columnas nuevas: solo se mandan si vienen con valor, así crear un
+      // empleado sigue funcionando aunque la migración aún no se aplique.
+      ...(input.idDocumentType ? { id_document_type: input.idDocumentType } : {}),
+      ...(input.nationality ? { nationality: input.nationality } : {}),
+      ...(input.birthDate ? { birth_date: input.birthDate } : {}),
       sort_order: nextSort,
     })
     .select("*")
@@ -169,6 +183,10 @@ export interface UpdatePayrollEmployeeInput {
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
+  idDocumentType?: "cedula" | "pasaporte" | null;
+  nationality?: string | null;
+  birthDate?: string | null;
+  photoPath?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -194,6 +212,10 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.idDocument !== undefined) patch.id_document = input.idDocument;
+  if (input.idDocumentType !== undefined) patch.id_document_type = input.idDocumentType;
+  if (input.nationality !== undefined) patch.nationality = input.nationality;
+  if (input.birthDate !== undefined) patch.birth_date = input.birthDate;
+  if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
   if (input.emergencyContactName !== undefined) patch.emergency_contact_name = input.emergencyContactName;
   if (input.emergencyContactPhone !== undefined) patch.emergency_contact_phone = input.emergencyContactPhone;
   if (input.contractInfo !== undefined) patch.contract_info = input.contractInfo;
@@ -209,6 +231,19 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (error) throw new Error(error.message);
 }
 
+/** Cambia el estado (ACTIVE / INACTIVE) de VARIOS empleados de una vez —
+ *  "estos ya no laboran". Solo toca `status`: `end_date` es la fecha de
+ *  liquidación de prestaciones (reinicia acumulados) y no se mezcla con
+ *  esto. Devuelve cuántos cambió. */
+export async function setPayrollEmployeesStatus(ids: string[], status: "ACTIVE" | "INACTIVE"): Promise<number> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return 0;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("payroll_employees").update({ status }).in("id", unique).select("id");
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
+}
+
 /** Borra por completo al empleado. Por el `on delete cascade` de las 4
  *  tablas hijas, esto elimina también sus payroll_entries,
  *  payroll_ledger_entries, payroll_loans y payroll_salary_changes.
@@ -217,4 +252,28 @@ export async function deletePayrollEmployee(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("payroll_employees").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/** URL firmada (1 h) de la foto de cada empleado que tenga una. El bucket
+ *  `employee-photos` es privado; si aún no existe (migración sin aplicar) o
+ *  falla, devuelve {} y la app muestra las iniciales como siempre. */
+export async function getEmployeePhotoUrls(employees: PayrollEmployee[]): Promise<Record<string, string>> {
+  const withPhoto = employees.filter((e) => e.photoPath);
+  if (withPhoto.length === 0) return {};
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.storage
+      .from("employee-photos")
+      .createSignedUrls(withPhoto.map((e) => e.photoPath as string), 3600);
+    if (error || !data) return {};
+    const byPath = new Map(data.map((d) => [d.path, d.signedUrl]));
+    const out: Record<string, string> = {};
+    for (const e of withPhoto) {
+      const url = byPath.get(e.photoPath as string);
+      if (url) out[e.id] = url;
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }

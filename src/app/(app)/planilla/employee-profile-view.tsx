@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { ArrowLeft, LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react";
 
-import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
+import type { ComponentProps } from "react";
+
+import type { PayrollEmployee, PayrollLedgerEntry, PayrollPosition, PayrollSalaryChange } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -26,16 +28,30 @@ import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { SalaryHistorySection } from "./salary-history-section";
-import { EmployeeHistorySection } from "./employee-history-section";
+import { EmployeeStatementSection } from "./employee-statement-section";
+import { EmployeeLoansSection } from "./employee-loans-section";
+import { EmployeePhotoUploader } from "./employee-photo-uploader";
+import { EmployeePhotosProvider } from "./employee-photos-context";
 import { LiquidationDialog } from "./liquidation-dialog";
 import { DeleteEmployeeDialog } from "./delete-employee-dialog";
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
+function DataItem({
+  label,
+  value,
+  hideWhenEmpty = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hideWhenEmpty?: boolean;
+}) {
+  const { lang } = useLang();
+  if (!value && hideWhenEmpty) return null;
   return (
-    <div className="flex items-start justify-between gap-3 py-0.5">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-right text-foreground">{value}</span>
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={value ? "text-foreground" : "text-muted-foreground/70"}>
+        {value || t(lang, strings.planilla.pd_not_set)}
+      </dd>
     </div>
   );
 }
@@ -56,9 +72,20 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export function EmployeeProfileView({
   employee,
   positions,
+  photoUrl: initialPhotoUrl,
+  initial,
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
+  photoUrl: string | null;
+  /** Datos de las secciones ya cargados por el servidor (en paralelo con el
+   *  empleado), para que la página abra con todo en vez de pedirlo por
+   *  separado y en fila después de pintarse. */
+  initial?: {
+    detail: ComponentProps<typeof EmployeeStatementSection>["initialDetail"];
+    ledger: PayrollLedgerEntry[];
+    salaryChanges: PayrollSalaryChange[];
+  };
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -68,6 +95,7 @@ export function EmployeeProfileView({
   const [liqOpen, setLiqOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [togglingStatus, setTogglingStatus] = React.useState(false);
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
 
   async function toggleStatus() {
     setTogglingStatus(true);
@@ -94,7 +122,7 @@ export function EmployeeProfileView({
         : null;
 
   return (
-    <>
+    <EmployeePhotosProvider photoUrls={photoUrl ? { [employee.id]: photoUrl } : {}}>
       <div className="flex flex-col gap-4 p-4 sm:p-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
@@ -120,56 +148,6 @@ export function EmployeeProfileView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                  {tt("details_title")}
-                </DropdownMenuLabel>
-                <div className="px-2 pb-1 text-xs">
-                  <DetailRow label={tt("f_id_document")} value={employee.idDocument} />
-                  <DetailRow
-                    label={tt("f_phone")}
-                    value={
-                      employee.phone ? (
-                        <a href={`tel:${employee.phone}`} className="hover:text-primary">
-                          {employee.phone}
-                        </a>
-                      ) : null
-                    }
-                  />
-                  <DetailRow label={tt("f_emg_name")} value={employee.emergencyContactName} />
-                  <DetailRow
-                    label={tt("f_emg_phone")}
-                    value={
-                      employee.emergencyContactPhone ? (
-                        <a href={`tel:${employee.emergencyContactPhone}`} className="hover:text-primary">
-                          {employee.emergencyContactPhone}
-                        </a>
-                      ) : null
-                    }
-                  />
-                  <DetailRow label={tt("f_contract")} value={employee.contractInfo} />
-                  <DetailRow
-                    label={tt("f_start_date")}
-                    value={employee.startDate ? formatDate(lang, employee.startDate) : null}
-                  />
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                  {tt("bank_section_title")}
-                </DropdownMenuLabel>
-                <div className="px-2 pb-1 text-xs">
-                  {hasBankAccount ? (
-                    <>
-                      <DetailRow label={tt("f_bank_name")} value={employee.bankName} />
-                      <DetailRow label={tt("f_bank_account_type")} value={bankAccountTypeLabel} />
-                      <DetailRow label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} />
-                      <DetailRow label={tt("f_bank_account_number")} value={employee.bankAccountNumber} />
-                      <DetailRow label={tt("f_id_document")} value={employee.idDocument} />
-                    </>
-                  ) : (
-                    <p className="py-1 text-muted-foreground">{tt("no_bank_account")}</p>
-                  )}
-                </div>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => window.setTimeout(() => setEditOpen(true), 0)}>
                   <Pencil className="size-3.5" />
                   {tt("action_edit")}
@@ -202,24 +180,37 @@ export function EmployeeProfileView({
             </DropdownMenu>
           </div>
 
-          {/* Tarjeta de encabezado: nombre + posición a la izquierda,
-              sueldo base a la derecha. */}
-          <Card className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="md" />
-                <div>
-                  <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+          {/* Tarjeta de encabezado: foto + nombre + posición + estado a la
+              izquierda, sueldo mensual a la derecha. */}
+          <Card className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="xl" />
+                  <EmployeePhotoUploader employee={employee} hasPhoto={photoUrl !== null} onPhotoChange={setPhotoUrl} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-foreground">
                     {employee.name}
                     {isInactive && <Badge variant="secondary">{tt("inactive")}</Badge>}
                   </h1>
                   <p className="text-sm text-muted-foreground">{employee.position || tt("no_position")}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline">
+                      {employee.categoria === "administrativo" ? tt("categoria_administrativo") : tt("categoria_taller")}
+                    </Badge>
+                    {employee.startDate && (
+                      <span>
+                        {tt("pd_start_date")}: {formatDate(lang, employee.startDate)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">{tt("base_salary_month")}</p>
-                <p className="text-2xl font-semibold tabular-nums text-foreground">
+                <p className="text-3xl font-semibold tabular-nums text-foreground">
                   {formatCents(employee.baseSalaryCents)}
                 </p>
                 <p className="text-xs text-muted-foreground">{tt("per_month")}</p>
@@ -227,6 +218,61 @@ export function EmployeeProfileView({
             </div>
           </Card>
         </div>
+
+        {/* Datos del empleado — la "ficha" con todo lo que se sabe de la persona. */}
+        <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-foreground">{tt("pd_title")}</h2>
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-3.5" />
+              {tt("pd_edit")}
+            </Button>
+          </div>
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <DataItem
+              label={tt("pd_document")}
+              value={
+                employee.idDocument
+                  ? `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
+                  : null
+              }
+            />
+            <DataItem label={tt("f_nationality")} value={employee.nationality} />
+            <DataItem
+              label={tt("f_birth_date")}
+              value={employee.birthDate ? formatDate(lang, employee.birthDate) : null}
+            />
+            <DataItem label={tt("f_phone")} value={employee.phone} />
+            <DataItem
+              label={tt("pd_contact")}
+              value={
+                employee.emergencyContactName || employee.emergencyContactPhone
+                  ? [employee.emergencyContactName, employee.emergencyContactPhone].filter(Boolean).join(" · ")
+                  : null
+              }
+            />
+            <DataItem label={tt("f_contract")} value={employee.contractInfo} />
+            <DataItem label={tt("pd_position")} value={employee.position} />
+            <DataItem
+              label={tt("pd_start_date")}
+              value={employee.startDate ? formatDate(lang, employee.startDate) : null}
+            />
+            <DataItem
+              label={tt("pd_end_date")}
+              value={employee.endDate ? formatDate(lang, employee.endDate) : null}
+              hideWhenEmpty
+            />
+            <DataItem
+              label={tt("pd_bank")}
+              value={
+                hasBankAccount
+                  ? [employee.bankName, bankAccountTypeLabel, employee.bankAccountNumber].filter(Boolean).join(" · ")
+                  : null
+              }
+            />
+            <DataItem label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} hideWhenEmpty />
+          </dl>
+        </section>
 
         {employee.notes && (
           <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
@@ -241,9 +287,11 @@ export function EmployeeProfileView({
           </div>
         )}
 
-        <SalaryHistorySection employee={employee} />
+        <EmployeeStatementSection employee={employee} initialDetail={initial?.detail} />
 
-        <EmployeeHistorySection employee={employee} />
+        <EmployeeLoansSection employee={employee} initialEntries={initial?.ledger} />
+
+        <SalaryHistorySection employee={employee} initialChanges={initial?.salaryChanges} />
       </div>
 
       <EmployeeFormDialog
@@ -265,6 +313,6 @@ export function EmployeeProfileView({
         onOpenChange={setDeleteOpen}
         onDeleted={() => router.push("/planilla")}
       />
-    </>
+    </EmployeePhotosProvider>
   );
 }

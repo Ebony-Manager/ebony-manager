@@ -135,6 +135,68 @@ export function computeLedgerBalance(ledger: LedgerRowFull[], entryPaidById: Map
   }, 0);
 }
 
+/** Saldo de préstamos A LA FECHA: deuda otorgada menos lo ya descontado,
+ *  contando todo movimiento cuya quincena ya empezó (por su fecha) — igual
+ *  que Auditoría y el estado de cuenta. A diferencia de
+ *  `computeLedgerBalance`, NO depende de que la quincena esté marcada
+ *  "Pagado": sirve para ver cuánto se debe hoy sin que importe si alguien
+ *  ya tildó la casilla. `seguro_social` queda fuera (informativo). */
+export function computeLedgerBalanceToDate(ledger: LedgerRowFull[], now: Period): number {
+  const nowOrd = periodOrdinal(now.year, now.month, now.half);
+  return ledger.reduce((sum, r) => {
+    if (r.category === "seguro_social") return sum;
+    const p = periodFromDateString(r.entryDate);
+    if (!p || periodOrdinal(p.year, p.month, p.half) > nowOrd) return sum;
+    return r.direction === "debt" ? sum + r.amountCents : sum - r.amountCents;
+  }, 0);
+}
+
+/** Un mes de la gráfica "Planilla por mes": de qué está hecha la planilla. */
+export interface MonthComposition {
+  month: number;
+  /** Sueldo base devengado. */
+  salaryCents: number;
+  /** Horas extra, días extra, viáticos, bonos y días libres. */
+  extrasCents: number;
+  /** Horas / días descontados y otros descuentos. */
+  deductionsCents: number;
+  /** Cuotas de préstamos descontadas en planilla. */
+  loanPaymentsCents: number;
+  /** Préstamos / adelantos otorgados ese mes. */
+  loanGivenCents: number;
+  /** Neto pagado (el mismo total que Registro). */
+  netCents: number;
+}
+
+export function computeMonthlyComposition(histories: EmployeeHistory[], year: number): MonthComposition[] {
+  const months: MonthComposition[] = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    salaryCents: 0,
+    extrasCents: 0,
+    deductionsCents: 0,
+    loanPaymentsCents: 0,
+    loanGivenCents: 0,
+    netCents: 0,
+  }));
+  for (const h of histories) {
+    const lookup = buildEmployeeContext(h.entries, toLite(h.ledger)).lookup;
+    for (const { month, half } of PERIODS_IN_YEAR) {
+      const total = lookup({ year, month, half });
+      const m = months[month - 1];
+      m.netCents += total.totalCents;
+      m.loanPaymentsCents += total.ledgerPaymentCents;
+      m.loanGivenCents += total.ledgerDebtCents;
+      const e = total.entry;
+      if (e) {
+        m.salaryCents += e.basePayCents;
+        m.extrasCents += e.extraHoursCents + e.extraDaysCents + e.viaticosCents + e.bonusCents + e.diasLibresCents;
+        m.deductionsCents += e.horasDescontadasCents + e.diasDescontadosCents + e.otherDeductionCents;
+      }
+    }
+  }
+  return months;
+}
+
 /** Próximas obligaciones del negocio: décimo + vacación acumulados y sin
  *  pagar, más saldo de préstamos, sumados sobre los empleados activos.
  *  Portado de `getUpcomingObligations` de Atlas. */

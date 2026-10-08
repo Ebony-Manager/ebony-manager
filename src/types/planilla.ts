@@ -46,8 +46,14 @@ export interface PayrollEmployee {
    *  ajustes sobre ESA liquidación, aparte de `notes`. */
   liquidationNotes: string | null;
   sortOrder: number;
-  /** Cédula o pasaporte, lo que la persona cargue — un solo campo. */
+  /** Número de cédula o pasaporte (el tipo va en `idDocumentType`). */
   idDocument: string | null;
+  idDocumentType: "cedula" | "pasaporte" | null;
+  nationality: string | null;
+  /** Fecha de nacimiento, `YYYY-MM-DD`. */
+  birthDate: string | null;
+  /** Ruta de la foto en el bucket privado `employee-photos`; null = sin foto. */
+  photoPath: string | null;
   phone: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
