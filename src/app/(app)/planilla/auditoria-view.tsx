@@ -694,7 +694,11 @@ export function AuditoriaView({
                 {hiddenGroupCount > 0 ? ` (${hiddenGroupCount})` : ""}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-[75vh] w-64 overflow-y-auto">
+            <DropdownMenuContent
+              align="end"
+              collisionPadding={12}
+              className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-y-auto"
+            >
               <DropdownMenuLabel>{tt("vista_menu_colores")}</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={palette} onValueChange={(v) => setPalette(v as PayrollPalette)}>
                 <DropdownMenuRadioItem value="full" onSelect={(e) => e.preventDefault()}>

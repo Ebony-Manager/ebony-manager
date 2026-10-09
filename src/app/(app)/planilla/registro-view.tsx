@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Copy,
   SlidersHorizontal,
+  MoreHorizontal,
   Download,
   FileText,
   Landmark,
@@ -275,8 +276,13 @@ export function RegistroView({
   const dataPeriod = rows?.period ?? period;
   // Numeración estable (se calcula sobre la lista COMPLETA, antes de
   // buscar) y filas que se pintan tras la búsqueda.
-  const allRows = visibleRows ?? [];
-  const employeeNumber = numberEmployees(allRows.map((r) => r.employee.id));
+  const fullRows = visibleRows ?? [];
+  // El número de cada empleado se calcula sobre la lista COMPLETA; el filtro
+  // Todos / Taller / Administrativo (que llega en `employees`) y la búsqueda
+  // solo esconden filas, no renumeran.
+  const employeeNumber = numberEmployees(fullRows.map((r) => r.employee.id));
+  const allowedIds = new Set(employees.map((e) => e.id));
+  const allRows = fullRows.filter((r) => allowedIds.has(r.employee.id));
   const shownRows = allRows.filter((r) => matchesEmployeeQuery(r.employee.name, query));
   const searching = query.trim() !== "";
   const shownTotalCents = shownRows.reduce((sum, r) => sum + r.total.totalCents, 0);
@@ -385,13 +391,13 @@ export function RegistroView({
 
   // Fila de KPIs — derivada de las mismas `rows` que pinta la tabla,
   // nunca un query aparte, para que nunca discrepen.
-  const totalCents = (visibleRows ?? []).reduce((sum, r) => sum + r.total.totalCents, 0);
-  const cashCents = (visibleRows ?? []).reduce(
+  const totalCents = allRows.reduce((sum, r) => sum + r.total.totalCents, 0);
+  const cashCents = allRows.reduce(
     (sum, r) => sum + ((r.total.entry?.paymentMethod ?? "transferencia") === "efectivo" ? r.total.totalCents : 0),
     0
   );
-  const decimoCents = (visibleRows ?? []).reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
-  const descuentosCents = (visibleRows ?? []).reduce(
+  const decimoCents = allRows.reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
+  const descuentosCents = allRows.reduce(
     (sum, r) =>
       sum +
       (r.total.entry?.horasDescontadasCents ?? 0) +
@@ -419,7 +425,7 @@ export function RegistroView({
           icon={Wallet}
           label={tt("kpi_total_due")}
           value={formatCents(totalCents)}
-          sublabel={`${(visibleRows ?? []).length} ${tt("kpi_employees_count")}`}
+          sublabel={`${allRows.length} ${tt("kpi_employees_count")}`}
         />
         <RegistroKpiCard
           icon={Banknote}
@@ -501,11 +507,6 @@ export function RegistroView({
             <ChevronRight className="size-4" />
           </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={handleDuplicate} disabled={duplicating}>
-          <Copy className="size-3.5" />
-          {tt("duplicate_prev")}
-        </Button>
-        <EmployeeSearchInput value={query} onChange={setQuery} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -536,7 +537,11 @@ export function RegistroView({
               {tt("vista")}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-h-[75vh] w-64 overflow-y-auto">
+          <DropdownMenuContent
+            align="end"
+            collisionPadding={12}
+            className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-y-auto"
+          >
             <DropdownMenuLabel>{tt("vista_menu_modo")}</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={view} onValueChange={(v) => setView(v as RegistroViewMode)}>
               <DropdownMenuRadioItem value="simple" onSelect={(e) => e.preventDefault()}>
@@ -599,7 +604,25 @@ export function RegistroView({
             <DropdownMenuItem onSelect={resetView}>{tt("vista_restablecer")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Acciones poco frecuentes, apartadas a un lado para que no estorben. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={tt("more_actions")} title={tt("more_actions")}>
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={duplicating} onSelect={() => void handleDuplicate()}>
+              <Copy className="size-3.5" />
+              {tt("duplicate_prev")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Buscador de empleado: solo, en su propia fila, sobre la tabla. */}
+      <EmployeeSearchInput value={query} onChange={setQuery} className="w-full max-w-md" />
 
       {view === "expanded" && (
       <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
@@ -613,14 +636,14 @@ export function RegistroView({
               {fieldColumns.map((c) => (
                 <th
                   key={c.key}
-                  className="px-3 py-2 text-right font-medium"
+                  className="whitespace-nowrap px-3 py-2 text-right font-medium"
                   style={fieldHeaderStyle(c.category, fieldMinWidth(c))}
                 >
                   {t(lang, c.label)}
                 </th>
               ))}
               {visibleColumns.paymentMethod && (
-                <th className="px-3 py-2 text-left font-medium">{tt("col_metodo")}</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">{tt("col_metodo")}</th>
               )}
               {visibleColumns.paid && (
                 <th className="px-3 py-2 text-center font-medium">{tt("col_pagado")}</th>
@@ -652,7 +675,7 @@ export function RegistroView({
                       neutro pintado ENCIMA del fondo de cada celda
                       (`VEIL`), así se ve parejo en toda la fila — incluida
                       esta celda — sin atraso ni cambio de matiz. */}
-                  <td className={`sticky left-0 z-10 ${extreme} px-3 py-1.5 font-medium text-foreground transition-colors ${VEIL}`}>
+                  <td className={`sticky left-0 z-10 ${extreme} whitespace-nowrap px-3 py-1.5 font-medium text-foreground transition-colors ${VEIL}`}>
                     <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-focus-within/row:scale-y-100" />
                     <div className="flex items-center gap-2">
                       <span
@@ -840,13 +863,13 @@ export function RegistroView({
                 {SIMPLE_COLUMNS.map((c) => (
                   <th
                     key={c.key}
-                    className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase"
+                    className="whitespace-nowrap px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase"
                     style={{ ...fieldHeaderStyle(c.category, 0), minWidth: undefined }}
                   >
                     {tt(c.labelKey)}
                   </th>
                 ))}
-                <th className="px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase">
+                <th className="whitespace-nowrap px-3 py-[11px] text-right text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase">
                   {tt("col_total")}
                 </th>
                 <th className="px-3 py-[11px] text-center text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase">
@@ -876,7 +899,7 @@ export function RegistroView({
                   >
                     {/* Sticky: fondo opaco propio; el realce de fila es el
                         mismo velo neutro que en el resto de celdas. */}
-                    <td className={`sticky left-0 z-10 ${extreme} py-[13px] pl-[18px] pr-3 font-semibold text-ink-900 transition-colors ${VEIL}`}>
+                    <td className={`sticky left-0 z-10 ${extreme} whitespace-nowrap py-[13px] pl-[18px] pr-3 font-semibold text-ink-900 transition-colors ${VEIL}`}>
                       <div className="flex items-center gap-2.5">
                         <span
                           className="w-5 shrink-0 text-right text-[11px] font-normal tabular-nums text-muted-foreground"
@@ -978,7 +1001,7 @@ export function RegistroView({
         </p>
       )}
 
-      <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={allRows} />
+      <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={fullRows} />
 
       {(pending || visibleRows === null) && (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>

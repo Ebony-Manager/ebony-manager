@@ -216,7 +216,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
                             <Link
                               href={`/contratistas/${c.contractor.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="font-medium text-foreground hover:underline"
+                              className="whitespace-nowrap font-medium text-foreground hover:underline"
                             >
                               {c.contractor.name}
                             </Link>

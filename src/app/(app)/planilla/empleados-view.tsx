@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Search, Phone, IdCard, Check, UserX, UserCheck, X, LayoutGrid, Table2 } from "lucide-react";
+import { Search, Phone, IdCard, Check, UserX, UserCheck, X, LayoutGrid, Table2, ChevronDown } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,8 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [view, setView] = React.useState<"cards" | "table">("cards");
+  // Los que ya no laboran van aparte y escondidos por defecto; se abren con un clic.
+  const [showFormer, setShowFormer] = React.useState(false);
   const [selectMode, setSelectMode] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [confirm, setConfirm] = React.useState<"INACTIVE" | "ACTIVE" | null>(null);
@@ -176,6 +178,21 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {/* Se oculta en la vista Tabla pero CONSERVA su lugar, para que el
+              selector Tarjetas | Tabla no se corra de sitio al cambiar. */}
+          <Button
+            type="button"
+            variant={selectMode ? "secondary" : "outline"}
+            size="sm"
+            className={view === "cards" ? "" : "invisible"}
+            disabled={view !== "cards"}
+            aria-hidden={view !== "cards"}
+            tabIndex={view === "cards" ? 0 : -1}
+            onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+          >
+            {selectMode ? <X className="size-3.5" /> : <Check className="size-3.5" />}
+            {selectMode ? tt("sel_cancel") : tt("sel_start")}
+          </Button>
           <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
             {(
               [
@@ -197,17 +214,6 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
               </button>
             ))}
           </div>
-          {view === "cards" && (
-            <Button
-              type="button"
-              variant={selectMode ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
-            >
-              {selectMode ? <X className="size-3.5" /> : <Check className="size-3.5" />}
-              {selectMode ? tt("sel_cancel") : tt("sel_start")}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -262,15 +268,31 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
           </div>
 
           {inactive.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-medium text-muted-foreground">
+            <div className="flex flex-col gap-3 border-t-2 border-border pt-4">
+              {/* Los que ya no laboran: sección aparte, separada por una línea y
+                  plegable. Si hay una búsqueda activa se abre sola, para no
+                  esconder una coincidencia. */}
+              <button
+                type="button"
+                onClick={() => setShowFormer((v) => !v)}
+                aria-expanded={showFormer || query.trim() !== ""}
+                className="flex w-fit items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                <ChevronDown
+                  className={`size-4 transition-transform ${showFormer || query.trim() !== "" ? "" : "-rotate-90"}`}
+                />
                 {tt("no_longer_work")} ({inactive.length})
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {inactive.map((e) => (
-                  <EmployeeCard key={e.id} employee={e} selectMode={selectMode} selected={selected.has(e.id)} onToggle={toggle} />
-                ))}
-              </div>
+                <span className="text-xs font-normal">
+                  · {showFormer || query.trim() !== "" ? tt("former_hide") : tt("former_show")}
+                </span>
+              </button>
+              {(showFormer || query.trim() !== "") && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {inactive.map((e) => (
+                    <EmployeeCard key={e.id} employee={e} selectMode={selectMode} selected={selected.has(e.id)} onToggle={toggle} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
