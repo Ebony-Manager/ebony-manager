@@ -14,13 +14,19 @@ import { EmployeeProfileView } from "../employee-profile-view";
 // porque los datos cambian por acción del usuario y no deben cachearse.
 export const dynamic = "force-dynamic";
 
+const FROM_TABS = ["dashboard", "registro", "auditoria", "empleados"] as const;
+
 export default async function EmployeeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   await requireAdmin();
   const { id } = await params;
+  const { from } = await searchParams;
+  const backTo = FROM_TABS.find((t) => t === from) ?? "empleados";
   const year = currentPeriod().year;
 
   // Todo lo que pinta el perfil se pide EN PARALELO desde el servidor (un
@@ -42,6 +48,7 @@ export default async function EmployeeDetailPage({
       employee={employee}
       positions={positions}
       photoUrl={photoUrls[employee.id] ?? null}
+      from={backTo}
       initial={{ detail: { year, rows: detail }, ledger, salaryChanges }}
     />
   );

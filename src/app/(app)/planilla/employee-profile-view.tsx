@@ -74,6 +74,7 @@ export function EmployeeProfileView({
   positions,
   photoUrl: initialPhotoUrl,
   initial,
+  from = "empleados",
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
@@ -81,6 +82,8 @@ export function EmployeeProfileView({
   /** Datos de las secciones ya cargados por el servidor (en paralelo con el
    *  empleado), para que la página abra con todo en vez de pedirlo por
    *  separado y en fila después de pintarse. */
+  /** Pestaña de Planilla desde la que se llegó (a ella regresa "Volver"). */
+  from?: "dashboard" | "registro" | "auditoria" | "empleados";
   initial?: {
     detail: ComponentProps<typeof EmployeeStatementSection>["initialDetail"];
     ledger: PayrollLedgerEntry[];
@@ -127,7 +130,7 @@ export function EmployeeProfileView({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-              <Link href="/planilla">
+              <Link href={`/planilla?tab=${from}`}>
                 <ArrowLeft className="size-3.5" />
                 {tt("back_to_employees")}
               </Link>
@@ -311,7 +314,7 @@ export function EmployeeProfileView({
         employee={employee}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onDeleted={() => router.push("/planilla")}
+        onDeleted={() => router.push(`/planilla?tab=${from}`)}
       />
     </EmployeePhotosProvider>
   );

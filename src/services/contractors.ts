@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { selectAllRows } from "@/lib/supabase/select-all";
+import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
 import type { Database } from "@/types/database";
 import type {
   Contractor,
@@ -141,25 +143,30 @@ function mapProject(r: ProjectRow): Project {
  *  en memoria. */
 export async function getContractorsWithBalance(): Promise<ContractorWithBalance[]> {
   const supabase = await createClient();
-  const [contractorsRes, ledgerRes] = await Promise.all([
+  // Los movimientos van PAGINADOS: un select simple corta en 1,000 filas y
+  // los saldos salían mal en silencio al crecer el historial.
+  const [contractorsRes, ledgerRows] = await Promise.all([
     supabase
       .from("contractors")
       .select("*")
       .order("status", { ascending: true })
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
-    supabase
-      .from("contractor_ledger_entries")
-      .select("contractor_id, direction, amount_cents, ebony_absorbs_material"),
+    selectAllRows((from, to) =>
+      supabase
+        .from("contractor_ledger_entries")
+        .select("id, contractor_id, direction, amount_cents, ebony_absorbs_material")
+        .order("id")
+        .range(from, to)
+    ),
   ]);
   if (contractorsRes.error) throw new Error(contractorsRes.error.message);
-  if (ledgerRes.error) throw new Error(ledgerRes.error.message);
 
   const byContractor = new Map<
     string,
     { direction: ContractorLedgerDirection; amountCents: number; ebonyAbsorbsMaterial: boolean }[]
   >();
-  for (const l of ledgerRes.data ?? []) {
+  for (const l of ledgerRows) {
     const list = byContractor.get(l.contractor_id) ?? [];
     list.push({
       direction: l.direction === "a_favor" ? "a_favor" : "reduce",
@@ -173,6 +180,51 @@ export async function getContractorsWithBalance(): Promise<ContractorWithBalance
     ...mapContractor(r),
     balanceCents: contractorBalanceCents(byContractor.get(r.id) ?? []),
   }));
+}
+
+/** Datos crudos del dashboard de Contratistas: contratistas, TODOS sus
+ *  movimientos (paginados, ver select-all.ts) y los nombres de proyecto. El
+ *  cálculo (`computeContractorsDashboard`) se hace en el cliente, así cambiar
+ *  de año es instantáneo y no vuelve a pedir nada al servidor. */
+export async function getContractorsDashboardInput(): Promise<{
+  contractors: DashboardContractor[];
+  entries: DashboardEntry[];
+  projectNames: [string, string][];
+}> {
+  const supabase = await createClient();
+  const [contractorsRes, rows, projectsRes] = await Promise.all([
+    supabase.from("contractors").select("id, name, contractor_type, status").order("name"),
+    selectAllRows((from, to) =>
+      supabase
+        .from("contractor_ledger_entries")
+        .select("contractor_id, entry_date, category, direction, amount_cents, project_id, client_text, mt2, ebony_absorbs_material")
+        .order("id")
+        .range(from, to)
+    ),
+    supabase.from("projects").select("id, name"),
+  ]);
+  if (contractorsRes.error) throw new Error(contractorsRes.error.message);
+  if (projectsRes.error) throw new Error(projectsRes.error.message);
+  return {
+    contractors: (contractorsRes.data ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
+      status: c.status,
+    })),
+    entries: rows.map((r) => ({
+      contractorId: r.contractor_id,
+      entryDate: r.entry_date,
+      category: r.category as DashboardEntry["category"],
+      direction: r.direction === "a_favor" ? "a_favor" : "reduce",
+      amountCents: r.amount_cents,
+      projectId: r.project_id,
+      clientText: r.client_text,
+      mt2: r.mt2 === null ? null : Number(r.mt2),
+      ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+    })),
+    projectNames: (projectsRes.data ?? []).map((p) => [p.id, p.name] as [string, string]),
+  };
 }
 
 export async function getContractor(id: string): Promise<Contractor | null> {

@@ -28,3 +28,6 @@ _legacy/vite.config.js.timestamp*
 
 # Material de referencia del diseño de marca (no es parte de la app)
 _diseño-ebony-fuente/
+
+# Cargas de datos de planilla/contratistas/empleados: traen cédulas, cuentas y respaldos — nunca al repositorio.
+_import-*/

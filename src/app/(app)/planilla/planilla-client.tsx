@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
@@ -67,7 +67,23 @@ export function PlanillaClient({
   const crumbs = breadcrumbFor(pathname, lang);
 
   const [addOpen, setAddOpen] = React.useState(false);
-  const [tab, setTab] = React.useState("registro");
+  // La pestaña vive en la URL (`?tab=empleados`): así, al entrar al perfil de
+  // un empleado y volver (con el botón "Volver" o el de atrás del navegador),
+  // se regresa a la MISMA pestaña en vez de caer siempre en Registro.
+  const searchParams = useSearchParams();
+  const TAB_VALUES = ["dashboard", "registro", "auditoria", "empleados"];
+  const [tab, setTabState] = React.useState(() => {
+    const fromUrl = searchParams?.get("tab");
+    return fromUrl && TAB_VALUES.includes(fromUrl) ? fromUrl : "registro";
+  });
+  const setTab = React.useCallback((value: string) => {
+    setTabState(value);
+    try {
+      window.history.replaceState(null, "", `?tab=${value}`);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);

@@ -130,7 +130,7 @@ export function EmployeeDetailSheet({
           </SheetDescription>
           {employee && (
             <Link
-              href={`/planilla/${employee.id}`}
+              href={`/planilla/${employee.id}?from=registro`}
               className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
             >
               <ExternalLink className="size-3.5" />

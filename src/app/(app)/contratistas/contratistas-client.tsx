@@ -14,10 +14,11 @@ import { ContractorDirectory } from "./contractor-directory";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProjectsView } from "./projects-view";
 import { LaborRatesView } from "./labor-rates-view";
+import { ContractorsDashboardView, type ContractorsDashboardInput } from "./contractors-dashboard-view";
 
 /**
- * Chrome del módulo Contratistas (C2): pestañas "Contratistas"
- * (directorio), "Proyectos" y "Tarifas" (catálogo de mano de obra). El
+ * Chrome del módulo Contratistas (C2): pestañas "Dashboard" (resumen de
+ * todos), "Contratistas" (directorio), "Proyectos" y "Tarifas" (catálogo de mano de obra). El
  * estado de cuenta completo vive en la ficha de cada contratista
  * (`/contratistas/[id]`).
  */
@@ -25,20 +26,23 @@ export function ContratistasClient({
   contractors,
   projects,
   laborRates,
+  dashboard,
 }: {
   contractors: ContractorWithBalance[];
   projects: Project[];
   laborRates: LaborRate[];
+  dashboard: ContractorsDashboardInput;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
   const pathname = usePathname();
   const crumbs = breadcrumbFor(pathname, lang);
 
-  const [tab, setTab] = React.useState("directory");
+  const [tab, setTab] = React.useState("dashboard");
   const [addOpen, setAddOpen] = React.useState(false);
 
   const TABS = [
+    { value: "dashboard", label: tt("tab_dashboard") },
     { value: "directory", label: tt("tab_directory") },
     { value: "projects", label: tt("tab_projects") },
     { value: "rates", label: tt("tab_rates") },
@@ -96,6 +100,9 @@ export function ContratistasClient({
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
+        <TabsContent value="dashboard" className="pt-0">
+          <ContractorsDashboardView input={dashboard} />
+        </TabsContent>
         <TabsContent value="directory" className="pt-0">
           <ContractorDirectory contractors={contractors} />
         </TabsContent>

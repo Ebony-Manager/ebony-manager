@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { selectAllRows } from "@/lib/supabase/select-all";
 import type { Database } from "@/types/database";
 import type {
   AuditoriaData,
@@ -461,25 +462,6 @@ function withHistoricalBase(entries: PayrollEntry[], changes: SalaryChange[]): P
     ...e,
     basePayCents: quincenaBaseCentsAt(changes, e.periodYear, e.periodMonth, e.periodHalf),
   }));
-}
-
-/** Supabase devuelve como máximo 1,000 filas por consulta y NO avisa si
- *  cortó. Con 46 empleados × 24 quincenas ya estamos cerca del tope, así
- *  que las lecturas de "todas las filas" pasan por acá: piden páginas de
- *  1,000 (ordenadas por id, para que las páginas no se pisen) hasta
- *  agotar la tabla. */
-const PAGE_SIZE = 1000;
-async function selectAllRows<T>(
-  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
-): Promise<T[]> {
-  const all: T[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await page(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(error.message);
-    const rows = data ?? [];
-    all.push(...rows);
-    if (rows.length < PAGE_SIZE) return all;
-  }
 }
 
 /** Trae TODO el historial (entries + ledger + sueldos) de todos los

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Search, Phone, IdCard, Check, UserX, UserCheck, X } from "lucide-react";
+import { Search, Phone, IdCard, Check, UserX, UserCheck, X, LayoutGrid, Table2 } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { t, strings } from "@/lib/i18n";
 import { EmployeeAvatar } from "./employee-avatar";
 import { setEmployeesStatusAction } from "./actions";
 import { FormDialog } from "./form-dialog";
+import { EmployeeRosterTable } from "./employee-roster-table";
 import { matchesEmployeeQuery } from "@/lib/planilla/employee-search";
 
 /** Tarjeta de un empleado. Vive FUERA de `EmpleadosView`: definida adentro,
@@ -77,7 +78,7 @@ function EmployeeCard({
       {body}
     </button>
   ) : (
-    <Link href={`/planilla/${employee.id}`} className={className}>
+    <Link href={`/planilla/${employee.id}?from=empleados`} className={className}>
       {body}
     </Link>
   );
@@ -97,6 +98,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
 
   const router = useRouter();
   const [query, setQuery] = React.useState("");
+  const [view, setView] = React.useState<"cards" | "table">("cards");
   const [selectMode, setSelectMode] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [confirm, setConfirm] = React.useState<"INACTIVE" | "ACTIVE" | null>(null);
@@ -173,16 +175,40 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
             className="pl-8"
           />
         </div>
-        <Button
-          type="button"
-          variant={selectMode ? "secondary" : "outline"}
-          size="sm"
-          className="ml-auto"
-          onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
-        >
-          {selectMode ? <X className="size-3.5" /> : <Check className="size-3.5" />}
-          {selectMode ? tt("sel_cancel") : tt("sel_start")}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
+            {(
+              [
+                { key: "cards", icon: LayoutGrid, label: tt("roster_view_cards") },
+                { key: "table", icon: Table2, label: tt("roster_view_table") },
+              ] as const
+            ).map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setView(key);
+                  if (key === "table") exitSelect();
+                }}
+                className={`flex items-center gap-1.5 rounded-none px-2.5 py-1 font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+          {view === "cards" && (
+            <Button
+              type="button"
+              variant={selectMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+            >
+              {selectMode ? <X className="size-3.5" /> : <Check className="size-3.5" />}
+              {selectMode ? tt("sel_cancel") : tt("sel_start")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Barra de acciones: aparece al entrar en modo selección. */}
@@ -220,7 +246,9 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {view === "table" ? (
+        <EmployeeRosterTable employees={filtered} />
+      ) : filtered.length === 0 ? (
         <div className="rounded-none border border-dashed border-border px-6 py-10 text-center">
           <p className="text-sm font-medium text-foreground">{tt("no_results")}</p>
           <p className="mt-1 text-xs text-muted-foreground">{tt("no_results_desc")}</p>
