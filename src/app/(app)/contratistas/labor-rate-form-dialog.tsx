@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { ContractorType, LaborRate, LaborRatePhase, LaborRateUnit } from "@/types/contractors";
@@ -44,7 +43,6 @@ export function LaborRateFormDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const [contractorType, setContractorType] = React.useState<ContractorType>("ebanista");
   const [fase, setFase] = React.useState<LaborRatePhase>("armado");
@@ -94,7 +92,6 @@ export function LaborRateFormDialog({
       }
       toast.success(tt("rate_saved"));
       onOpenChange(false);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

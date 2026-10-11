@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -27,7 +26,6 @@ type TypeFilter = "all" | ContractorType;
 export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const [filter, setFilter] = React.useState<TypeFilter>("all");
   const [showInactive, setShowInactive] = React.useState(false);
@@ -48,7 +46,6 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
     try {
       await updateLaborRateAction(rate.id, { activo: !rate.activo });
       toast.success(rate.activo ? tt("rate_deactivated") : tt("rate_activated"));
-      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {

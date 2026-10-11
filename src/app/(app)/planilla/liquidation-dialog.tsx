@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { PayrollEmployee } from "@/types/planilla";
@@ -24,16 +23,13 @@ export function LiquidationDialog({
   employee,
   open,
   onOpenChange,
-  onSaved,
 }: {
   employee: PayrollEmployee;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
   const isEditing = employee.endDate !== null;
 
   const [endDate, setEndDate] = React.useState("");
@@ -64,8 +60,6 @@ export function LiquidationDialog({
       });
       toast.success(tt(isEditing ? "liq_edit" : "liq_mark"));
       onOpenChange(false);
-      onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

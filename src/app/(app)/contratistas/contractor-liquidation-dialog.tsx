@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { AlertTriangle } from "lucide-react";
 
@@ -44,7 +43,6 @@ export function ContractorLiquidationDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const isEditing = contractor.status === "INACTIVE";
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -80,7 +78,6 @@ export function ContractorLiquidationDialog({
       toast.success(tt("liq_done"));
       onOpenChange(false);
       onSaved?.();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

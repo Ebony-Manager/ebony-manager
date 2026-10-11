@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import { Input } from "@/components/ui/input";
@@ -44,7 +43,6 @@ export function SalaryRaiseDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
 
   const periods = React.useMemo(() => periodRange(), []);
   const pLabel = (p: Period) => periodLabel(lang, p, tt("quincena_1"), tt("quincena_2"));
@@ -89,7 +87,6 @@ export function SalaryRaiseDialog({
       toast.success(tt("raise_saved"));
       onOpenChange(false);
       onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

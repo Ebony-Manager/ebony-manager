@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { LoanPaymentMethod } from "@/types/planilla";
@@ -48,7 +47,6 @@ export function LoanDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
 
   const periods = React.useMemo(() => upcomingPeriods(), []);
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -115,7 +113,6 @@ export function LoanDialog({
       toast.success(isAdelanto ? tt("loan_submit_adelanto") : tt("loan_submit_prestamo"));
       onOpenChange(false);
       onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

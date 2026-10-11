@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { LedgerCategory, LedgerDirection } from "@/types/planilla";
@@ -42,7 +41,6 @@ export function LedgerEntryDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
 
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [category, setCategory] = React.useState<LedgerCategory>("herramienta");
@@ -88,7 +86,6 @@ export function LedgerEntryDialog({
       toast.success(tt("action_add"));
       onOpenChange(false);
       onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

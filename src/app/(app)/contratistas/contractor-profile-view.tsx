@@ -338,7 +338,6 @@ export function ContractorProfileView({
     try {
       await deleteLedgerEntryAction(id);
       load();
-      router.refresh();
     } finally {
       setDeletingId(null);
     }
@@ -349,7 +348,6 @@ export function ContractorProfileView({
     try {
       await updateContractorAction(contractor.id, { status: "ACTIVE", endDate: null });
       toast.success(tt("reactivate_done"));
-      router.refresh();
     } finally {
       setReactivating(false);
     }

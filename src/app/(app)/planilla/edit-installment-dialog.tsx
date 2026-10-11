@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { Period } from "@/lib/planilla/payroll-period";
@@ -41,7 +40,6 @@ export function EditInstallmentDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
 
   const [amount, setAmount] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -66,7 +64,6 @@ export function EditInstallmentDialog({
       toast.success(tt("loan_edit_saved"));
       onOpenChange(false);
       onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Settings } from "lucide-react";
 
@@ -141,7 +140,6 @@ export function EmployeeFormDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { lang } = useLang();
-  const router = useRouter();
   const [form, setForm] = React.useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -236,7 +234,6 @@ export function EmployeeFormDialog({
       }
       toast.success(t(lang, mode === "edit" ? strings.planilla.action_save : strings.planilla.action_add));
       onOpenChange(false);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

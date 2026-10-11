@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Search, Phone, IdCard, Check, UserX, UserCheck, X, LayoutGrid, Table2, ChevronDown } from "lucide-react";
 
@@ -96,7 +95,6 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
-  const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [view, setView] = React.useState<"cards" | "table">("cards");
   // Los que ya no laboran van aparte y escondidos por defecto; se abren con un clic.
@@ -148,7 +146,6 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
       toast.success(`${n} ${tt(confirm === "INACTIVE" ? "sel_done_inactive" : "sel_done_active")}`);
       setConfirm(null);
       exitSelect();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

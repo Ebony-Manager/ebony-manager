@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Camera, Trash2 } from "lucide-react";
 
@@ -49,7 +48,6 @@ export function EmployeePhotoUploader({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
 
@@ -69,7 +67,6 @@ export function EmployeePhotoUploader({
       const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
       onPhotoChange(data?.signedUrl ?? null);
       toast.success(tt("photo_saved"));
-      router.refresh();
     } catch (err) {
       console.error("Planilla: no se pudo guardar la foto", err);
       toast.error(tt("photo_error"));
@@ -85,7 +82,6 @@ export function EmployeePhotoUploader({
       if (employee.photoPath) await createClient().storage.from(BUCKET).remove([employee.photoPath]);
       onPhotoChange(null);
       toast.success(tt("photo_removed"));
-      router.refresh();
     } catch (err) {
       console.error("Planilla: no se pudo quitar la foto", err);
       toast.error(tt("photo_error"));

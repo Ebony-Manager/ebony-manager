@@ -107,7 +107,6 @@ export function EmployeeProfileView({
         status: employee.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
       });
       toast.success(tt(employee.status === "ACTIVE" ? "mark_inactive" : "reactivate"));
-      router.refresh();
     } finally {
       setTogglingStatus(false);
     }
@@ -308,7 +307,6 @@ export function EmployeeProfileView({
         employee={employee}
         open={liqOpen}
         onOpenChange={setLiqOpen}
-        onSaved={() => router.refresh()}
       />
       <DeleteEmployeeDialog
         employee={employee}

@@ -44,6 +44,7 @@ import {
 import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
 import {
   earliestSalary,
+  monthlySalaryAt,
   quincenaBaseCentsAt,
   type SalaryChange,
 } from "@/lib/planilla/salary-history";
@@ -328,6 +329,9 @@ export async function getPeriodTotal(
 export interface RegistroRow {
   employee: PayrollEmployee;
   total: PayrollPeriodTotal;
+  /** Sueldo mensual vigente en esa quincena (según el historial): el cliente lo
+   *  usa para calcular al instante el monto de horas/días extra y descontados. */
+  monthlySalaryCents: number;
 }
 
 /** Fuente de datos de la rejilla de Registro: una fila por empleado
@@ -370,7 +374,11 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
       : hasSalaryFor(changes, year, month, half)
         ? seededEntry(employee.id, year, month, half, baseCents)
         : null;
-    return { employee, total: computePeriodTotalFromEntry(entry, ledger) };
+    return {
+      employee,
+      total: computePeriodTotalFromEntry(entry, ledger),
+      monthlySalaryCents: monthlySalaryAt(changes, year, month, half),
+    };
   });
 }
 

@@ -21,6 +21,7 @@ import toast from "react-hot-toast";
 
 import type { PayrollEmployee, PayrollEntry, PaymentMethod } from "@/types/planilla";
 import { computePeriodTotalFromEntry } from "@/lib/planilla/payroll-accruals";
+import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -53,7 +54,6 @@ import { t, strings } from "@/lib/i18n";
 import {
   getRegistroAction,
   upsertPayrollEntryAction,
-  upsertPayrollQuantityFieldAction,
   duplicatePreviousPeriodAction,
 } from "./actions";
 import {
@@ -341,24 +341,34 @@ export function RegistroView({
   }
 
   /** Las cuatro columnas de cantidad (Horas/Días Extra, Horas/Días
-   *  Descontados) — el servidor deriva el monto de la tarifa actual del
-   *  empleado y guarda ambos (ver actions.ts). */
+   *  Descontados). El monto se calcula acá con la misma tarifa que usa el
+   *  servidor (sueldo vigente de esa quincena) para que se vea al instante, y
+   *  se guarda en segundo plano con la cantidad y el monto ya calculados. */
   async function saveQuantityField(
     employeeId: string,
     p: Period,
     field: "extraHours" | "extraDays" | "horasDescontadas" | "diasDescontados",
     value: string
   ) {
-    const quantity = parseFloat(value || "0");
-    await upsertPayrollQuantityFieldAction({
-      employeeId,
-      periodYear: p.year,
-      periodMonth: p.month,
-      periodHalf: p.half,
-      field,
-      quantity: Number.isFinite(quantity) ? quantity : 0,
-    });
-    load();
+    const parsed = parseFloat(value || "0");
+    const quantity = Number.isFinite(parsed) ? parsed : 0;
+    const monthly = rows?.data.find((r) => r.employee.id === employeeId)?.monthlySalaryCents ?? 0;
+    const isHourly = field === "extraHours" || field === "horasDescontadas";
+    const rate = isHourly
+      ? hourlyRateCents({ baseSalaryCents: monthly })
+      : dailyRateCents({ baseSalaryCents: monthly });
+    const cents = quantityToCents(quantity, rate);
+    const patch = {
+      extraHours: { extraHours: quantity, extraHoursCents: cents },
+      extraDays: { extraDays: quantity, extraDaysCents: cents },
+      horasDescontadas: { horasDescontadas: quantity, horasDescontadasCents: cents },
+      diasDescontados: { diasDescontados: quantity, diasDescontadosCents: cents },
+    }[field];
+    const optimistic = patchEntryNow(employeeId, patch);
+    await persist(
+      { employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, ...patch },
+      optimistic
+    );
   }
 
   async function savePaymentMethod(employeeId: string, p: Period, paymentMethod: PaymentMethod) {

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import type { ContractorType } from "@/types/contractors";
@@ -55,7 +54,6 @@ export function ContractorFormDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const [form, setForm] = React.useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = React.useState(false);
@@ -91,7 +89,6 @@ export function ContractorFormDialog({
       });
       toast.success(tt("action_add"));
       onOpenChange(false);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

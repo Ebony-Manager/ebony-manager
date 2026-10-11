@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Check, X, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -38,7 +37,6 @@ export function ManagePositionsDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const router = useRouter();
 
   const [list, setList] = React.useState<PayrollPosition[] | null>(null);
   const [newName, setNewName] = React.useState("");
@@ -54,9 +52,8 @@ export function ManagePositionsDialog({
     onPositionsChanged?.(fresh);
     // También sincroniza la prop que baja del servidor (payroll/page.tsx)
     // para todo lo demás que lea el catálogo, aparte de este diálogo.
-    router.refresh();
     return fresh;
-  }, [onPositionsChanged, router]);
+  }, [onPositionsChanged]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- carga al abrir; el diálogo se reusa entre aperturas. */
   React.useEffect(() => {

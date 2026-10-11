@@ -7,8 +7,6 @@ import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
 import * as positions from "@/services/payroll-positions";
-import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
-import { monthlySalaryAt } from "@/lib/planilla/salary-history";
 import type { LedgerCategory, LedgerDirection, LoanPaymentMethod } from "@/types/planilla";
 
 // La Planilla es solo-admin: cada action verifica `requireAdmin()` al
@@ -52,49 +50,6 @@ export async function getRegistroAction(year: number, month: number, half: 1 | 2
 export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) {
   await requireAdmin();
   return payroll.upsertEntry(input);
-}
-
-/** Las cuatro columnas que se entran como cantidad (horas/días) — el
- *  monto en centavos se deriva acá, una vez, de la tarifa del sueldo
- *  VIGENTE en esa quincena (según el historial), y se guarda junto con
- *  la cantidad. No se recalcula en ningún otro lado: un aumento futuro
- *  no reflota una quincena ya registrada (regla de "congelar al
- *  entrar"). */
-export async function upsertPayrollQuantityFieldAction(input: {
-  employeeId: string;
-  periodYear: number;
-  periodMonth: number;
-  periodHalf: 1 | 2;
-  field: "extraHours" | "extraDays" | "horasDescontadas" | "diasDescontados";
-  quantity: number;
-}) {
-  await requireAdmin();
-  const changes = salary.toSalaryChanges(await salary.getSalaryChanges(input.employeeId));
-  const monthly = monthlySalaryAt(changes, input.periodYear, input.periodMonth, input.periodHalf);
-
-  const isHourly = input.field === "extraHours" || input.field === "horasDescontadas";
-  const rate = isHourly
-    ? hourlyRateCents({ baseSalaryCents: monthly })
-    : dailyRateCents({ baseSalaryCents: monthly });
-  const cents = quantityToCents(input.quantity, rate);
-
-  const base = {
-    employeeId: input.employeeId,
-    periodYear: input.periodYear,
-    periodMonth: input.periodMonth,
-    periodHalf: input.periodHalf,
-  };
-  const q = input.quantity;
-  const arg =
-    input.field === "extraHours"
-      ? { ...base, extraHours: q, extraHoursCents: cents }
-      : input.field === "extraDays"
-        ? { ...base, extraDays: q, extraDaysCents: cents }
-        : input.field === "horasDescontadas"
-          ? { ...base, horasDescontadas: q, horasDescontadasCents: cents }
-          : { ...base, diasDescontados: q, diasDescontadosCents: cents };
-
-  return payroll.upsertEntry(arg);
 }
 
 export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {

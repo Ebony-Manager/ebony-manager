@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { AlertTriangle } from "lucide-react";
 
@@ -40,7 +39,6 @@ export function DeleteContractorDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const [confirmText, setConfirmText] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -66,7 +64,6 @@ export function DeleteContractorDialog({
       toast.success(tt("del_done"));
       onOpenChange(false);
       onDeleted();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
       setSubmitting(false);

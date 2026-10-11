@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -115,7 +114,6 @@ export function LedgerEntryDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-  const router = useRouter();
 
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -348,7 +346,6 @@ export function LedgerEntryDialog({
       toast.success(tt("mov_saved"));
       onOpenChange(false);
       onSaved();
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {
