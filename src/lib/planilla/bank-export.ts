@@ -37,7 +37,9 @@ export interface AchRow {
   addenda: string;
 }
 
-export type AchProblem = "no_id" | "no_route" | "no_account" | "no_account_type";
+/** Lo que BLOQUEA a un empleado. La ruta del banco NO bloquea: es la misma
+ *  para todos y se pone una sola vez (o se deja vacía hasta tenerla). */
+export type AchProblem = "no_id" | "no_account" | "no_account_type";
 
 export interface AchEmployeeInput {
   employeeId: string;
@@ -80,7 +82,13 @@ export function buildAddenda(text: string): string {
   return `REF*TXT**${clean || ACH_DEFAULT_ADDENDA_TEXT}\\`;
 }
 
-export function buildAchPayload(items: readonly AchEmployeeInput[], addendaText: string): AchPayload {
+export function buildAchPayload(
+  items: readonly AchEmployeeInput[],
+  addendaText: string,
+  /** Ruta del banco para quien no tenga una propia (normalmente la misma para
+   *  todos). Vacía = la columna RUTA BANCO sale vacía. */
+  defaultRoute = ""
+): AchPayload {
   const addenda = buildAddenda(addendaText);
   const payload: AchPayload = { rows: [], incomplete: [], skipped: [], totalCents: 0 };
 
@@ -94,11 +102,10 @@ export function buildAchPayload(items: readonly AchEmployeeInput[], addendaText:
       continue;
     }
     const id = (e.idDocument ?? "").trim();
-    const route = (e.bankRoutingCode ?? "").replace(/\s+/g, "");
+    const route = (e.bankRoutingCode ?? "").replace(/\s+/g, "") || defaultRoute.replace(/\s+/g, "");
     const account = (e.bankAccountNumber ?? "").replace(/\s+/g, "");
     const problems: AchProblem[] = [];
     if (!id) problems.push("no_id");
-    if (!route) problems.push("no_route");
     if (!account) problems.push("no_account");
     if (!e.bankAccountType) problems.push("no_account_type");
     if (problems.length > 0) {

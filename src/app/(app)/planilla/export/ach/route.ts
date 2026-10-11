@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     return new Response("Parámetros inválidos (year, month, half).", { status: 400 });
   }
   const text = sp.get("text") || ACH_DEFAULT_ADDENDA_TEXT;
+  const defaultRoute = sp.get("route") ?? "";
 
   const rows = await getRegistroForPeriod(year, month, half);
   const payload = buildAchPayload(
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
       paymentMethod: total.entry?.paymentMethod ?? "transferencia",
       netCents: total.totalCents,
     })),
-    text
+    text,
+    defaultRoute
   );
 
   const buffer = buildAchWorkbook(payload.rows);

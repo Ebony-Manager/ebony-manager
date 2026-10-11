@@ -46,8 +46,20 @@ describe("buildAchPayload", () => {
       "x"
     );
     expect(p.rows).toEqual([]);
-    expect(p.incomplete[0].problems).toEqual(["no_id", "no_route", "no_account", "no_account_type"]);
+    expect(p.incomplete[0].problems).toEqual(["no_id", "no_account", "no_account_type"]);
     expect(p.totalCents).toBe(0);
+  });
+
+  it("la ruta del banco NO deja fuera a nadie: sin ruta la columna sale vacía", () => {
+    const p = buildAchPayload([{ ...base, bankRoutingCode: null }], "x");
+    expect(p.incomplete).toEqual([]);
+    expect(p.rows).toHaveLength(1);
+    expect(p.rows[0].route).toBe("");
+  });
+
+  it("la ruta por defecto se aplica a quien no tenga una propia; la propia gana", () => {
+    const p = buildAchPayload([{ ...base, bankRoutingCode: null }, { ...base, employeeId: "e2", bankRoutingCode: "99" }], "x", " 71 ");
+    expect(p.rows.map((r) => r.route)).toEqual(["71", "99"]);
   });
 
   it("corriente usa su propio código", () => {

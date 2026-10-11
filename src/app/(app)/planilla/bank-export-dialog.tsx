@@ -20,7 +20,6 @@ type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 
 const PROBLEM_KEY: Record<AchProblem, keyof typeof strings.planilla> = {
   no_id: "ach_missing_id",
-  no_route: "ach_missing_route",
   no_account: "ach_missing_account",
   no_account_type: "ach_missing_type",
 };
@@ -46,6 +45,26 @@ export function BankExportDialog({
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const quincena = `${period.half === 1 ? "1Q" : "2Q"} ${monthLabel(lang, period.month)} ${period.year}`;
   const [text, setText] = React.useState("");
+  // Ruta del banco: la misma para todos. Se recuerda en este navegador; si
+  // se deja vacía, la columna RUTA BANCO sale vacía y nadie queda fuera.
+  const [route, setRoute] = React.useState("");
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    try {
+      setRoute(window.localStorage.getItem("ebony:ach-route") ?? "");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  const onRoute = (v: string) => {
+    setRoute(v);
+    try {
+      window.localStorage.setItem("ebony:ach-route", v);
+    } catch {
+      /* ignore */
+    }
+  };
   const addendaText = text.trim() || `${tt("ach_default_text")} ${quincena}`;
 
   const payload = React.useMemo(
@@ -61,12 +80,13 @@ export function BankExportDialog({
           paymentMethod: total.entry?.paymentMethod ?? "transferencia",
           netCents: total.totalCents,
         })),
-        addendaText
+        addendaText,
+        route
       ),
-    [rows, addendaText]
+    [rows, addendaText, route]
   );
 
-  const url = `/planilla/export/ach?year=${period.year}&month=${period.month}&half=${period.half}&text=${encodeURIComponent(addendaText)}`;
+  const url = `/planilla/export/ach?year=${period.year}&month=${period.month}&half=${period.half}&text=${encodeURIComponent(addendaText)}&route=${encodeURIComponent(route.trim())}`;
   const notTransfer = payload.skipped.filter((s) => s.reason === "not_transfer").length;
   const zero = payload.skipped.filter((s) => s.reason === "zero").length;
 
@@ -132,6 +152,14 @@ export function BankExportDialog({
             maxLength={60}
           />
           <p className="text-[11px] text-muted-foreground">{tt("ach_addenda_hint")}</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="ach-route">
+            {tt("ach_route")}
+          </label>
+          <Input id="ach-route" value={route} onChange={(e) => onRoute(e.target.value)} placeholder={tt("ach_route_ph")} maxLength={20} />
+          <p className="text-[11px] text-muted-foreground">{tt("ach_route_hint")}</p>
         </div>
 
         <p className="text-[11px] text-muted-foreground">{tt("ach_codes_note")}</p>

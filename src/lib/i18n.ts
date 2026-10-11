@@ -244,7 +244,6 @@ export const strings = {
       en: "Complete them in their profile (Employee details) and export again.",
     },
     ach_missing_id: { es: "cédula", en: "ID" },
-    ach_missing_route: { es: "ruta del banco", en: "bank route" },
     ach_missing_account: { es: "n.º de cuenta", en: "account no." },
     ach_missing_type: { es: "tipo de cuenta", en: "account type" },
     ach_skipped: { es: "Fuera del archivo", en: "Not in file" },
@@ -256,6 +255,12 @@ export const strings = {
     ach_codes_note: {
       es: "Tipo de cuenta: 03 = corriente, 04 = ahorros. Confirma estos códigos con una fila real de tu banco la primera vez.",
       en: "Account type: 03 = checking, 04 = savings. Confirm these codes against a real bank row the first time.",
+    },
+    ach_route: { es: "Ruta del banco (la misma para todos)", en: "Bank route (same for everyone)" },
+    ach_route_ph: { es: "Opcional por ahora", en: "Optional for now" },
+    ach_route_hint: {
+      es: "Si la dejas vacía, la columna RUTA BANCO sale vacía y nadie queda fuera del archivo. Cuando el banco te la dé, escríbela aquí una vez; se recuerda.",
+      en: "If left empty, the BANK ROUTE column is blank and nobody is left out. Enter it once when the bank gives it to you; it is remembered.",
     },
     ach_download: { es: "Descargar archivo .xls", en: "Download .xls file" },
     export_menu: { es: "Exportar", en: "Export" },
