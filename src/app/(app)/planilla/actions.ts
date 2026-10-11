@@ -43,11 +43,15 @@ export async function getRegistroAction(year: number, month: number, half: 1 | 2
   return payroll.getRegistroForPeriod(year, month, half);
 }
 
+// OJO: las acciones de quincena (esta, la de cantidades y duplicar) NO llaman
+// a `revalidatePath`. Hacerlo obliga a Next a volver a renderizar TODA la
+// página /planilla en el servidor (autenticación, empleados, posiciones…)
+// después de cada clic y a esperar ese resultado antes de responder: era la
+// causa de que cambiar el método de pago o marcar "Pagado" tardara. Registro
+// pide sus propios datos por `getRegistroAction`, así que no lo necesita.
 export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) {
   await requireAdmin();
-  const entry = await payroll.upsertEntry(input);
-  revalidatePath(PATH);
-  return entry;
+  return payroll.upsertEntry(input);
 }
 
 /** Las cuatro columnas que se entran como cantidad (horas/días) — el
@@ -90,15 +94,12 @@ export async function upsertPayrollQuantityFieldAction(input: {
           ? { ...base, horasDescontadas: q, horasDescontadasCents: cents }
           : { ...base, diasDescontados: q, diasDescontadosCents: cents };
 
-  const entry = await payroll.upsertEntry(arg);
-  revalidatePath(PATH);
-  return entry;
+  return payroll.upsertEntry(arg);
 }
 
 export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
   await requireAdmin();
   const copied = await payroll.duplicatePreviousPeriod(year, month, half);
-  revalidatePath(PATH);
   return { copied };
 }
 

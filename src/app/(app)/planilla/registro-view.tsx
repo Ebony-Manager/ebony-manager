@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { PayrollEmployee, PaymentMethod } from "@/types/planilla";
+import type { PayrollEmployee, PayrollEntry, PaymentMethod } from "@/types/planilla";
+import { computePeriodTotalFromEntry } from "@/lib/planilla/payroll-accruals";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -300,16 +301,43 @@ export function RegistroView({
     });
   }
 
+  /** Aplica un cambio a la fila EN PANTALLA al instante (y recalcula su total
+   *  con la misma fórmula del servidor), sin esperar la red. Devuelve false si
+   *  esa fila no tiene quincena en pantalla; ahí se cae al recargado normal. */
+  function patchEntryNow(employeeId: string, patch: Partial<PayrollEntry>): boolean {
+    const current = rows?.data.find((r) => r.employee.id === employeeId);
+    if (!current?.total.entry) return false;
+    const entry = { ...current.total.entry, ...patch };
+    const total = computePeriodTotalFromEntry(entry, {
+      debt: current.total.ledgerDebtCents,
+      payment: current.total.ledgerPaymentCents,
+    });
+    setRows((prev) =>
+      prev ? { ...prev, data: prev.data.map((r) => (r.employee.id === employeeId ? { ...r, total } : r)) } : prev
+    );
+    return true;
+  }
+
+  /** Guarda en segundo plano: si falla, avisa y vuelve a leer lo guardado de
+   *  verdad (así la pantalla nunca se queda mostrando algo que no se guardó). */
+  async function persist(input: Parameters<typeof upsertPayrollEntryAction>[0], optimistic: boolean) {
+    try {
+      await upsertPayrollEntryAction(input);
+      if (!optimistic) load();
+    } catch (err) {
+      console.error("Planilla: no se pudo guardar el cambio", err);
+      toast.error(tt("save_failed"));
+      load();
+    }
+  }
+
   async function saveField(employeeId: string, p: Period, field: FieldKey, value: string) {
     const cents = Math.round(parseFloat(value || "0") * 100);
-    await upsertPayrollEntryAction({
-      employeeId,
-      periodYear: p.year,
-      periodMonth: p.month,
-      periodHalf: p.half,
-      [field]: cents,
-    });
-    load();
+    const optimistic = patchEntryNow(employeeId, { [field]: cents } as Partial<PayrollEntry>);
+    await persist(
+      { employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, [field]: cents },
+      optimistic
+    );
   }
 
   /** Las cuatro columnas de cantidad (Horas/Días Extra, Horas/Días
@@ -334,25 +362,16 @@ export function RegistroView({
   }
 
   async function savePaymentMethod(employeeId: string, p: Period, paymentMethod: PaymentMethod) {
-    await upsertPayrollEntryAction({
-      employeeId,
-      periodYear: p.year,
-      periodMonth: p.month,
-      periodHalf: p.half,
-      paymentMethod,
-    });
-    load();
+    const optimistic = patchEntryNow(employeeId, { paymentMethod });
+    await persist(
+      { employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, paymentMethod },
+      optimistic
+    );
   }
 
   async function togglePaid(employeeId: string, p: Period, paid: boolean) {
-    await upsertPayrollEntryAction({
-      employeeId,
-      periodYear: p.year,
-      periodMonth: p.month,
-      periodHalf: p.half,
-      paid,
-    });
-    load();
+    const optimistic = patchEntryNow(employeeId, { paid, paidAt: paid ? new Date().toISOString() : null });
+    await persist({ employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, paid }, optimistic);
   }
 
   async function handleDuplicate() {

@@ -219,16 +219,14 @@ export interface UpsertEntryInput {
  *  guardar con `paid`. */
 export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry> {
   const supabase = await createClient();
-  const existing = await getEntryRow(
-    supabase,
-    input.employeeId,
-    input.periodYear,
-    input.periodMonth,
-    input.periodHalf
-  );
+  // La fila actual y el historial de sueldos son independientes: en paralelo.
+  const [existing, salaryRows] = await Promise.all([
+    getEntryRow(supabase, input.employeeId, input.periodYear, input.periodMonth, input.periodHalf),
+    getSalaryChanges(input.employeeId),
+  ]);
   const cur = existing ? mapEntry(existing) : null;
 
-  const salaryChanges = toSalaryChanges(await getSalaryChanges(input.employeeId));
+  const salaryChanges = toSalaryChanges(salaryRows);
   const basePayCents = quincenaBaseCentsAt(
     salaryChanges,
     input.periodYear,

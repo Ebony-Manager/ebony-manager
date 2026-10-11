@@ -290,6 +290,7 @@ export const strings = {
     more_actions: { es: "Más acciones", en: "More actions" },
     former_show: { es: "mostrar", en: "show" },
     former_hide: { es: "esconder", en: "hide" },
+    save_failed: { es: "No se pudo guardar el cambio. Se restauró lo guardado.", en: "Could not save the change. Saved data was restored." },
     ls_total_given: { es: "Total otorgado", en: "Total lent" },
     ls_total_paid: { es: "Total descontado", en: "Total repaid" },
     ls_balance_today: { es: "Saldo a hoy", en: "Balance today" },
