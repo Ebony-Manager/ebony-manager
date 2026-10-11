@@ -116,8 +116,12 @@ export function payrollHeadBgClass(palette: PayrollPalette): string {
  *  translúcido pintado como `background-image` encima del color de
  *  fondo de CADA celda, así se ve parejo sobre blanco, sobre tintes de
  *  categoría y sobre el nogal, y no necesita un color opaco por celda. */
+// El realce fuerte ("estoy editando esta fila") solo aparece mientras el cursor
+// está DENTRO de una casilla de número. Con `focus-within` se quedaba pegado
+// después de hacer clic en "Pagado" o en el método de pago (la casilla/botón
+// conserva el foco) y la fila seguía sombreada junto con la del mouse.
 export const PAYROLL_ROW_VEIL_CLASS =
-  "group-hover/row:[background-image:linear-gradient(var(--payroll-row-veil),var(--payroll-row-veil))] group-focus-within/row:[background-image:linear-gradient(var(--payroll-row-veil-focus),var(--payroll-row-veil-focus))]";
+  "group-hover/row:[background-image:linear-gradient(var(--payroll-row-veil),var(--payroll-row-veil))] group-has-[input[type=number]:focus]/row:[background-image:linear-gradient(var(--payroll-row-veil-focus),var(--payroll-row-veil-focus))]";
 
 /** Encabezado de una columna de Registro teñida por categoría. En
  *  "sober" queda neutro (solo el ancho mínimo). */

@@ -695,7 +695,7 @@ export function RegistroView({
                       (`VEIL`), así se ve parejo en toda la fila — incluida
                       esta celda — sin atraso ni cambio de matiz. */}
                   <td className={`sticky left-0 z-10 ${extreme} whitespace-nowrap px-3 py-1.5 font-medium text-foreground transition-colors ${VEIL}`}>
-                    <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-focus-within/row:scale-y-100" />
+                    <span className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform group-has-[input[type=number]:focus]/row:scale-y-100" />
                     <div className="flex items-center gap-2">
                       <span
                         className="w-5 shrink-0 text-right text-[11px] font-normal tabular-nums text-muted-foreground"
