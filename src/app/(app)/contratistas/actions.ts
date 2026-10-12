@@ -119,3 +119,27 @@ export async function updateLaborRateAction(id: string, input: contractors.Updat
   revalidatePath(PATH);
   return rate;
 }
+
+// ── Ayudantes del contratista ──────────────────────────────────────────
+// Sin `revalidatePath`: el diálogo de ayudantes lleva su propia lista en
+// pantalla y nada más en la página depende de estos datos.
+
+export async function getContractorHelpersAction(contractorId: string) {
+  await requireAdmin();
+  return contractors.getContractorHelpers(contractorId);
+}
+
+export async function createContractorHelperAction(contractorId: string, input: contractors.ContractorHelperInput) {
+  await requireAdmin();
+  return contractors.createContractorHelper(contractorId, input);
+}
+
+export async function updateContractorHelperAction(id: string, input: contractors.ContractorHelperInput) {
+  await requireAdmin();
+  return contractors.updateContractorHelper(id, input);
+}
+
+export async function deleteContractorHelperAction(id: string) {
+  await requireAdmin();
+  await contractors.deleteContractorHelper(id);
+}

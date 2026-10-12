@@ -110,6 +110,59 @@ export type Database = {
           },
         ]
       }
+      contractor_helpers: {
+        Row: {
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_name: string | null
+          contractor_id: string
+          created_at: string
+          id: string
+          id_document: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          contractor_id: string
+          created_at?: string
+          id?: string
+          id_document?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          id_document?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_helpers_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractor_ledger_entry_items: {
         Row: {
           cantidad: number

@@ -19,6 +19,7 @@ import {
   Settings,
   Trash2,
   UserCheck,
+  Users,
   Wallet,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -90,6 +91,7 @@ import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { ContractorAvatar } from "./contractor-avatar";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
+import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
@@ -188,6 +190,7 @@ export function ContractorProfileView({
   const [hoveredId, setHoveredId] = React.useState<string | null>(null);
 
   const [liqOpen, setLiqOpen] = React.useState(false);
+  const [helpersOpen, setHelpersOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
 
@@ -438,6 +441,10 @@ export function ContractorProfileView({
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => window.setTimeout(() => setHelpersOpen(true), 0)}>
+                <Users className="size-3.5" />
+                {tt("helpers_menu")}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => window.setTimeout(() => setLiqOpen(true), 0)}>
                 <LogOut className="size-3.5" />
                 {isInactive ? tt("liq_edit") : tt("liq_mark")}
@@ -913,6 +920,7 @@ export function ContractorProfileView({
         onSaved={load}
         onProjectsChanged={reloadProjects}
       />
+      <ContractorHelpersDialog contractor={contractor} open={helpersOpen} onOpenChange={setHelpersOpen} />
       <ContractorLiquidationDialog
         contractor={contractor}
         balanceCents={balanceCents}

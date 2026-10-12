@@ -9,6 +9,7 @@ import type {
   ContractorLedgerCategory,
   ContractorLedgerDirection,
   ContractorLedgerEntry,
+  ContractorHelper,
   ContractorLedgerEntryItem,
   ContractorStatus,
   ContractorType,
@@ -37,6 +38,7 @@ type ContractorRow = Database["public"]["Tables"]["contractors"]["Row"];
 type LedgerRow = Database["public"]["Tables"]["contractor_ledger_entries"]["Row"];
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type LaborRateRow = Database["public"]["Tables"]["labor_rates"]["Row"];
+type HelperRow = Database["public"]["Tables"]["contractor_helpers"]["Row"];
 type LedgerEntryItemRow = Database["public"]["Tables"]["contractor_ledger_entry_items"]["Row"];
 
 /** `numeric` de Postgres vuelve como string por PostgREST — se
@@ -617,4 +619,78 @@ export async function updateLaborRate(id: string, input: UpdateLaborRateInput): 
   const { data, error } = await supabase.from("labor_rates").update(patch).eq("id", id).select("*").single();
   if (error) throw new Error(error.message);
   return mapLaborRate(data);
+}
+
+// ── Ayudantes del contratista ──────────────────────────────────────────
+
+function mapHelper(r: HelperRow): ContractorHelper {
+  return {
+    id: r.id,
+    contractorId: r.contractor_id,
+    name: r.name,
+    idDocument: r.id_document,
+    phone: r.phone,
+    bankName: r.bank_name,
+    bankAccountType: r.bank_account_type === "ahorro" || r.bank_account_type === "corriente" ? r.bank_account_type : null,
+    bankAccountNumber: r.bank_account_number,
+    notes: r.notes,
+  };
+}
+
+export async function getContractorHelpers(contractorId: string): Promise<ContractorHelper[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_helpers")
+    .select("*")
+    .eq("contractor_id", contractorId)
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapHelper);
+}
+
+export type ContractorHelperInput = Omit<ContractorHelper, "id" | "contractorId">;
+
+function helperColumns(input: ContractorHelperInput) {
+  return {
+    name: input.name,
+    id_document: input.idDocument,
+    phone: input.phone,
+    bank_name: input.bankName,
+    bank_account_type: input.bankAccountType,
+    bank_account_number: input.bankAccountNumber,
+    notes: input.notes,
+  };
+}
+
+export async function createContractorHelper(
+  contractorId: string,
+  input: ContractorHelperInput
+): Promise<ContractorHelper> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_helpers")
+    .insert({ contractor_id: contractorId, ...helperColumns(input) })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapHelper(data);
+}
+
+export async function updateContractorHelper(id: string, input: ContractorHelperInput): Promise<ContractorHelper> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_helpers")
+    .update(helperColumns(input))
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapHelper(data);
+}
+
+export async function deleteContractorHelper(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("contractor_helpers").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

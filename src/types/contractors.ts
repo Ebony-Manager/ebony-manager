@@ -48,6 +48,19 @@ export interface Contractor {
   sortOrder: number;
 }
 
+/** Ayudante de un contratista, con su cuenta bancaria para pagarle. */
+export interface ContractorHelper {
+  id: string;
+  contractorId: string;
+  name: string;
+  idDocument: string | null;
+  phone: string | null;
+  bankName: string | null;
+  bankAccountType: "ahorro" | "corriente" | null;
+  bankAccountNumber: string | null;
+  notes: string | null;
+}
+
 /** Contratista + su saldo actual calculado (para el directorio). */
 export interface ContractorWithBalance extends Contractor {
   balanceCents: number;
