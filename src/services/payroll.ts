@@ -7,6 +7,8 @@ import type {
   AuditoriaData,
   LedgerCategory,
   LedgerDirection,
+  IndriveRide,
+  LoanCategory,
   LoanPaymentMethod,
   PayrollEmployee,
   PayrollEmployeeAnnualSummary,
@@ -39,6 +41,7 @@ import {
   computeLoanSchedule,
   defaultLoanStartPeriod,
   reflowLoanSchedule,
+  type ReflowMode,
   type PendingInstallment,
 } from "@/lib/planilla/payroll-loans";
 import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
@@ -674,11 +677,15 @@ export async function deleteLedgerEntry(id: string): Promise<void> {
 // Préstamos / adelantos (calendario de cuotas auto-aplicado)
 // ============================================================================
 
+function toLoanCategory(c: string): LoanCategory {
+  return c === "adelanto" || c === "herramienta" || c === "dano" ? c : "prestamo";
+}
+
 function mapLoan(r: LoanRow): PayrollLoan {
   return {
     id: r.id,
     employeeId: r.employee_id,
-    category: r.category === "adelanto" ? "adelanto" : "prestamo",
+    category: toLoanCategory(r.category),
     principalCents: r.principal_cents,
     paymentMethod: (r.payment_method as LoanPaymentMethod) ?? "cuota_fija",
     numInstallments: r.num_installments,
@@ -706,12 +713,14 @@ function periodApproxDate(p: Period): Date {
  */
 export async function createLoan(input: {
   employeeId: string;
-  category: "prestamo" | "adelanto";
+  category: LoanCategory;
   principalCents: number;
   paymentMethod?: LoanPaymentMethod;
   requestDate: string;
   numInstallments: number;
   startPeriod?: Period;
+  /** Solo con paymentMethod "cuota_variable": monto de cada cuota. */
+  installmentAmountsCents?: number[];
   notes?: string | null;
 }): Promise<PayrollLoanWithSchedule> {
   const supabase = await createClient();
@@ -719,7 +728,13 @@ export async function createLoan(input: {
   const numInstallments = input.category === "adelanto" ? 1 : input.numInstallments;
   const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
   if (!startPeriod) throw new Error("Fecha de solicitud inválida");
-  const schedule = computeLoanSchedule(input.principalCents, numInstallments, startPeriod, paymentMethod);
+  const schedule = computeLoanSchedule(
+    input.principalCents,
+    numInstallments,
+    startPeriod,
+    paymentMethod,
+    input.installmentAmountsCents
+  );
 
   const { data: loanRow, error } = await supabase
     .from("payroll_loans")
@@ -881,6 +896,7 @@ export async function reflowLoanInstallment(input: {
   employeeId: string;
   ledgerEntryId: string;
   newAmountCents: number;
+  mode?: ReflowMode;
 }): Promise<void> {
   const supabase = await createClient();
 
@@ -916,7 +932,7 @@ export async function reflowLoanInstallment(input: {
     });
   }
 
-  const reflowed = reflowLoanSchedule(pending, input.ledgerEntryId, input.newAmountCents);
+  const reflowed = reflowLoanSchedule(pending, input.ledgerEntryId, input.newAmountCents, input.mode ?? "extend");
   const reflowedById = new Map(
     reflowed.filter((r): r is typeof r & { ledgerEntryId: string } => r.ledgerEntryId !== null).map((r) => [r.ledgerEntryId, r])
   );
@@ -951,7 +967,7 @@ export async function reflowLoanInstallment(input: {
       .eq("id", input.loanId)
       .single();
     if (eLoan) throw new Error(eLoan.message);
-    const category = loanRow.category === "adelanto" ? "adelanto" : "prestamo";
+    const category = toLoanCategory(loanRow.category);
 
     for (const n of newOnes) {
       const entry = await upsertEntry({
@@ -972,4 +988,235 @@ export async function reflowLoanInstallment(input: {
       });
     }
   }
+}
+
+/** Borra un préstamo/adelanto/herramienta/daño COMPLETO: sus cuotas (pagadas
+ *  o no), el monto otorgado y el préstamo mismo. Para un registro que nunca
+ *  debió existir; para cortar uno vigente está `cancelLoan`. */
+export async function deleteLoan(loanId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_ledger_entries").delete().eq("loan_id", loanId);
+  if (error) throw new Error(error.message);
+  const { error: e2 } = await supabase.from("payroll_loans").delete().eq("id", loanId);
+  if (e2) throw new Error(e2.message);
+}
+
+/** Edita un préstamo cambiando monto, cuotas, esquema o quincena de inicio:
+ *  se arma el nuevo calendario y se retira el anterior. Solo si ninguna
+ *  cuota se ha pagado todavía (si no, habría que reescribir historia). */
+export async function replaceLoan(
+  loanId: string,
+  input: Parameters<typeof createLoan>[0]
+): Promise<PayrollLoanWithSchedule> {
+  const existing = (await getLoansForEmployee(input.employeeId)).find((l) => l.id === loanId);
+  if (!existing) throw new Error("Préstamo no encontrado");
+  if (existing.installments.some((i) => i.paid)) {
+    throw new Error("Este préstamo ya tiene cuotas pagadas y no se puede reescribir.");
+  }
+  const created = await createLoan(input);
+  await deleteLoan(loanId);
+  return created;
+}
+
+/** Solo las notas — sirve aunque el préstamo ya tenga cuotas pagadas. */
+export async function updateLoanNotes(loanId: string, notes: string | null): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_loans").update({ notes }).eq("id", loanId);
+  if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// InDrive (transporte del empleado)
+// ============================================================================
+
+type RideRow = Database["public"]["Tables"]["payroll_indrive_rides"]["Row"];
+
+
+/** Quincena de una fecha "YYYY-MM-DD" (sin pasar por zonas horarias). */
+function periodOfDateString(d: string): Period {
+  const [y, m, day] = d.split("-").map(Number);
+  return { year: y, month: m, half: day <= 15 ? 1 : 2 };
+}
+
+export async function getIndriveRides(employeeId: string): Promise<IndriveRide[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("payroll_indrive_rides")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .order("ride_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows: RideRow[] = data ?? [];
+
+  const paymentIds = rows.map((r) => r.payment_ledger_id).filter((x): x is string => !!x);
+  const lockedByPayment = new Map<string, boolean>();
+  if (paymentIds.length > 0) {
+    const { data: led, error: e2 } = await supabase
+      .from("payroll_ledger_entries")
+      .select("id, payroll_entry_id")
+      .in("id", paymentIds);
+    if (e2) throw new Error(e2.message);
+    const entryIds = [...new Set((led ?? []).map((l) => l.payroll_entry_id).filter((x): x is string => !!x))];
+    const paidByEntry = new Map<string, boolean>();
+    if (entryIds.length > 0) {
+      const { data: ents, error: e3 } = await supabase.from("payroll_entries").select("id, paid").in("id", entryIds);
+      if (e3) throw new Error(e3.message);
+      for (const e of ents ?? []) paidByEntry.set(e.id, e.paid);
+    }
+    for (const l of led ?? []) lockedByPayment.set(l.id, l.payroll_entry_id ? paidByEntry.get(l.payroll_entry_id) === true : false);
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    employeeId: r.employee_id,
+    rideDate: r.ride_date,
+    amountCents: r.amount_cents,
+    charge: r.charge,
+    notes: r.notes,
+    period: periodOfDateString(r.ride_date),
+    locked: r.charge && r.payment_ledger_id ? lockedByPayment.get(r.payment_ledger_id) === true : false,
+  }));
+}
+
+/** Crea las dos filas de ledger de un viaje cobrado: la deuda (informativa,
+ *  con la fecha del viaje) y el descuento en la quincena del viaje. */
+async function createIndriveCharge(ride: {
+  employeeId: string;
+  rideDate: string;
+  amountCents: number;
+  notes: string | null;
+}): Promise<{ debtId: string; paymentId: string }> {
+  const p = periodOfDateString(ride.rideDate);
+  const entry = await upsertEntry({ employeeId: ride.employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half });
+  const note = ride.notes ? `InDrive · ${ride.notes}` : "InDrive";
+  const debt = await createLedgerEntry({
+    employeeId: ride.employeeId,
+    category: "indrive",
+    direction: "debt",
+    amountCents: ride.amountCents,
+    entryDate: ride.rideDate,
+    notes: note,
+  });
+  const payment = await createLedgerEntry({
+    employeeId: ride.employeeId,
+    category: "indrive",
+    direction: "payment",
+    amountCents: ride.amountCents,
+    entryDate: ride.rideDate,
+    payrollEntryId: entry.id,
+    notes: note,
+  });
+  return { debtId: debt.id, paymentId: payment.id };
+}
+
+async function deleteIndriveCharge(ids: (string | null)[]): Promise<void> {
+  const real = ids.filter((x): x is string => !!x);
+  if (real.length === 0) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_ledger_entries").delete().in("id", real);
+  if (error) throw new Error(error.message);
+}
+
+async function assertRideEditable(r: RideRow): Promise<void> {
+  if (!r.charge || !r.payment_ledger_id) return;
+  const rides = await getIndriveRides(r.employee_id);
+  if (rides.find((x) => x.id === r.id)?.locked) {
+    throw new Error("La quincena de este viaje ya se pagó: el cobro no se puede cambiar.");
+  }
+}
+
+async function getRideRow(id: string): Promise<RideRow> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("payroll_indrive_rides").select("*").eq("id", id).single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function createIndriveRide(input: {
+  employeeId: string;
+  rideDate: string;
+  amountCents: number;
+  charge: boolean;
+  notes: string | null;
+}): Promise<void> {
+  if (!(input.amountCents > 0)) throw new Error("El monto debe ser mayor que cero");
+  const supabase = await createClient();
+  const ids = input.charge ? await createIndriveCharge(input) : null;
+  const { error } = await supabase.from("payroll_indrive_rides").insert({
+    employee_id: input.employeeId,
+    ride_date: input.rideDate,
+    amount_cents: input.amountCents,
+    charge: input.charge,
+    notes: input.notes,
+    debt_ledger_id: ids?.debtId ?? null,
+    payment_ledger_id: ids?.paymentId ?? null,
+  });
+  if (error) {
+    if (ids) await deleteIndriveCharge([ids.debtId, ids.paymentId]);
+    throw new Error(error.message);
+  }
+}
+
+export async function setIndriveRideCharge(id: string, charge: boolean): Promise<void> {
+  const r = await getRideRow(id);
+  if (r.charge === charge) return;
+  await assertRideEditable(r);
+  const supabase = await createClient();
+  if (charge) {
+    const ids = await createIndriveCharge({
+      employeeId: r.employee_id,
+      rideDate: r.ride_date,
+      amountCents: r.amount_cents,
+      notes: r.notes,
+    });
+    const { error } = await supabase
+      .from("payroll_indrive_rides")
+      .update({ charge: true, debt_ledger_id: ids.debtId, payment_ledger_id: ids.paymentId })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  } else {
+    await deleteIndriveCharge([r.debt_ledger_id, r.payment_ledger_id]);
+    const { error } = await supabase
+      .from("payroll_indrive_rides")
+      .update({ charge: false, debt_ledger_id: null, payment_ledger_id: null })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+}
+
+export async function updateIndriveRide(
+  id: string,
+  input: { rideDate: string; amountCents: number; notes: string | null }
+): Promise<void> {
+  if (!(input.amountCents > 0)) throw new Error("El monto debe ser mayor que cero");
+  const r = await getRideRow(id);
+  await assertRideEditable(r);
+  const supabase = await createClient();
+  let ids: { debtId: string | null; paymentId: string | null } = { debtId: r.debt_ledger_id, paymentId: r.payment_ledger_id };
+  if (r.charge) {
+    // El cobro depende de fecha/monto: se rehace con los valores nuevos.
+    await deleteIndriveCharge([r.debt_ledger_id, r.payment_ledger_id]);
+    ids = await createIndriveCharge({ employeeId: r.employee_id, ...input });
+  }
+  const { error } = await supabase
+    .from("payroll_indrive_rides")
+    .update({
+      ride_date: input.rideDate,
+      amount_cents: input.amountCents,
+      notes: input.notes,
+      debt_ledger_id: ids.debtId,
+      payment_ledger_id: ids.paymentId,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteIndriveRide(id: string): Promise<void> {
+  const r = await getRideRow(id);
+  await assertRideEditable(r);
+  await deleteIndriveCharge([r.debt_ledger_id, r.payment_ledger_id]);
+  const supabase = await createClient();
+  const { error } = await supabase.from("payroll_indrive_rides").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

@@ -495,6 +495,53 @@ export type Database = {
           },
         ]
       }
+      payroll_indrive_rides: {
+        Row: {
+          amount_cents: number
+          charge: boolean
+          created_at: string
+          debt_ledger_id: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          payment_ledger_id: string | null
+          ride_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          charge?: boolean
+          created_at?: string
+          debt_ledger_id?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          payment_ledger_id?: string | null
+          ride_date: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          charge?: boolean
+          created_at?: string
+          debt_ledger_id?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          payment_ledger_id?: string | null
+          ride_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_indrive_rides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_ledger_entries: {
         Row: {
           amount_cents: number

@@ -307,6 +307,7 @@ const LEDGER_GROUPS: { key: string; labelKey: string; descLabelKey: string; cate
   { key: "adelanto", labelKey: "li_adelantos", descLabelKey: "li_desc_adelantos", category: "adelanto" },
   { key: "herramienta", labelKey: "li_herramientas", descLabelKey: "li_desc_herramientas", category: "herramienta" },
   { key: "dano", labelKey: "li_danos", descLabelKey: "li_desc_danos", category: "dano" },
+  { key: "indrive", labelKey: "li_indrive", descLabelKey: "li_desc_indrive", category: "indrive" },
 ];
 
 /** Una fila de Auditoría (6 grupos de concepto a granularidad de 24

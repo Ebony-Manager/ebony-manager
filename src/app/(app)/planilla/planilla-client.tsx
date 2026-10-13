@@ -86,6 +86,8 @@ export function PlanillaClient({
   }, []);
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
+  // Sube cada vez que la ventana del empleado cambia algo que afecta a Registro.
+  const [registroReload, setRegistroReload] = React.useState(0);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
   const [registroCategoria, setRegistroCategoria] = React.useState<CategoriaFilter>("todos");
   const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
@@ -213,6 +215,7 @@ export function PlanillaClient({
             categoria={registroCategoria}
             onCategoriaChange={setRegistroCategoria}
             onViewDetail={setDetailEmployeeId}
+            reloadSignal={registroReload}
           />
         </TabsContent>
         <TabsContent value="auditoria" className="pt-0">
@@ -233,6 +236,7 @@ export function PlanillaClient({
         year={year}
         open={detailEmployeeId !== null}
         onOpenChange={(open) => !open && setDetailEmployeeId(null)}
+        onChanged={() => setRegistroReload((n) => n + 1)}
       />
 
       <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />

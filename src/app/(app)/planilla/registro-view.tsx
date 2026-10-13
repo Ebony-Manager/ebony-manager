@@ -132,6 +132,7 @@ export function RegistroView({
   categoria,
   onCategoriaChange,
   onViewDetail,
+  reloadSignal = 0,
 }: {
   employees: PayrollEmployee[];
   visibleColumns: Record<ColumnKey, boolean>;
@@ -139,6 +140,8 @@ export function RegistroView({
   categoria: CategoriaFilter;
   onCategoriaChange: (categoria: CategoriaFilter) => void;
   onViewDetail: (employeeId: string) => void;
+  /** Sube cuando algo cambió fuera de esta tabla (ej. un préstamo desde la ventana del empleado): se vuelve a leer la quincena. */
+  reloadSignal?: number;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -265,6 +268,16 @@ export function RegistroView({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.year, period.month, period.half]);
+
+  const firstSignal = React.useRef(true);
+  React.useEffect(() => {
+    if (firstSignal.current) {
+      firstSignal.current = false;
+      return;
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadSignal]);
 
   const samePeriod = (a: Period, b: Period) =>
     a.year === b.year && a.month === b.month && a.half === b.half;

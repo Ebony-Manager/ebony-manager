@@ -7,7 +7,7 @@ import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
 import * as positions from "@/services/payroll-positions";
-import type { LedgerCategory, LedgerDirection, LoanPaymentMethod } from "@/types/planilla";
+import type { LedgerCategory, LedgerDirection, LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 
 // La Planilla es solo-admin: cada action verifica `requireAdmin()` al
 // entrar (además de la RLS admin-only de las 4 tablas). Un `vendedor`
@@ -99,6 +99,10 @@ export async function getLedgerBalanceAction(employeeId: string) {
   return payroll.getLedgerBalance(employeeId);
 }
 
+// OJO: los movimientos, préstamos e InDrive tampoco llaman a `revalidatePath`
+// (misma razón que arriba: obligaba a Next a re-renderizar toda la página tras
+// cada clic). La ventana del empleado lleva su propia lista en pantalla y
+// avisa a Registro para que se vuelva a leer.
 export async function createLedgerEntryAction(input: {
   employeeId: string;
   category: LedgerCategory;
@@ -109,44 +113,58 @@ export async function createLedgerEntryAction(input: {
   notes?: string | null;
 }) {
   await requireAdmin();
-  const entry = await payroll.createLedgerEntry(input);
-  revalidatePath(PATH);
-  return entry;
+  return payroll.createLedgerEntry(input);
 }
 
 export async function deleteLedgerEntryAction(id: string) {
   await requireAdmin();
   await payroll.deleteLedgerEntry(id);
-  revalidatePath(PATH);
 }
 
-// ── Préstamos / adelantos ─────────────────────────────────────────────
+// ── Préstamos / adelantos / herramientas / daños ──────────────────────
 
 export async function getLoansAction(employeeId: string) {
   await requireAdmin();
   return payroll.getLoansForEmployee(employeeId);
 }
 
-export async function createLoanAction(input: {
+type LoanInput = {
   employeeId: string;
-  category: "prestamo" | "adelanto";
+  category: LoanCategory;
   principalCents: number;
   paymentMethod?: LoanPaymentMethod;
   requestDate: string;
   numInstallments: number;
   startPeriod?: { year: number; month: number; half: 1 | 2 };
+  installmentAmountsCents?: number[];
   notes?: string | null;
-}) {
+};
+
+export async function createLoanAction(input: LoanInput) {
   await requireAdmin();
-  const loan = await payroll.createLoan(input);
-  revalidatePath(PATH);
-  return loan;
+  return payroll.createLoan(input);
+}
+
+/** Edita un préstamo (monto, cuotas, esquema, inicio) — solo si no tiene
+ *  cuotas pagadas. */
+export async function replaceLoanAction(loanId: string, input: LoanInput) {
+  await requireAdmin();
+  return payroll.replaceLoan(loanId, input);
+}
+
+export async function updateLoanNotesAction(loanId: string, notes: string | null) {
+  await requireAdmin();
+  await payroll.updateLoanNotes(loanId, notes);
 }
 
 export async function cancelLoanAction(loanId: string) {
   await requireAdmin();
   await payroll.cancelLoan(loanId);
-  revalidatePath(PATH);
+}
+
+export async function deleteLoanAction(loanId: string) {
+  await requireAdmin();
+  await payroll.deleteLoan(loanId);
 }
 
 /** Edita una cuota pendiente (no pagada) de un préstamo — el resto del
@@ -156,10 +174,46 @@ export async function reflowLoanInstallmentAction(input: {
   employeeId: string;
   ledgerEntryId: string;
   newAmountCents: number;
+  mode?: "extend" | "spread";
 }) {
   await requireAdmin();
   await payroll.reflowLoanInstallment(input);
-  revalidatePath(PATH);
+}
+
+// ── InDrive ────────────────────────────────────────────────────────────
+
+export async function getIndriveRidesAction(employeeId: string) {
+  await requireAdmin();
+  return payroll.getIndriveRides(employeeId);
+}
+
+export async function createIndriveRideAction(input: {
+  employeeId: string;
+  rideDate: string;
+  amountCents: number;
+  charge: boolean;
+  notes: string | null;
+}) {
+  await requireAdmin();
+  await payroll.createIndriveRide(input);
+}
+
+export async function setIndriveRideChargeAction(id: string, charge: boolean) {
+  await requireAdmin();
+  await payroll.setIndriveRideCharge(id, charge);
+}
+
+export async function updateIndriveRideAction(
+  id: string,
+  input: { rideDate: string; amountCents: number; notes: string | null }
+) {
+  await requireAdmin();
+  await payroll.updateIndriveRide(id, input);
+}
+
+export async function deleteIndriveRideAction(id: string) {
+  await requireAdmin();
+  await payroll.deleteIndriveRide(id);
 }
 
 // ── Sueldo / aumentos ─────────────────────────────────────────────────

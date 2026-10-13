@@ -22,6 +22,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createEmployeeAction, updateEmployeeAction } from "./actions";
 import { ManagePositionsDialog } from "./manage-positions-dialog";
+import { SalaryRaiseDialog } from "./salary-raise-dialog";
+import { formatCents } from "@/lib/planilla/payroll-period";
 
 const NO_ACCOUNT_TYPE = "__none__";
 // Sentinel del Select de "Posición" cuando el valor no es (o ya no es) una
@@ -144,6 +146,13 @@ export function EmployeeFormDialog({
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [managePositionsOpen, setManagePositionsOpen] = React.useState(false);
+  const [raiseOpen, setRaiseOpen] = React.useState(false);
+  // Sueldo mostrado en modo edición: parte del que trae el empleado y se
+  // actualiza al toque cuando se registra uno desde acá.
+  const [salaryShown, setSalaryShown] = React.useState<{ monthly: number; benefits: number | null }>({
+    monthly: 0,
+    benefits: null,
+  });
 
   // Copia local del catálogo, sembrada de la prop (que viene del server)
   // pero actualizable al toque desde ManagePositionsDialog — así el Select
@@ -170,6 +179,7 @@ export function EmployeeFormDialog({
   React.useEffect(() => {
     if (!open) return;
     setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : EMPTY);
+    setSalaryShown({ monthly: employee?.baseSalaryCents ?? 0, benefits: employee?.benefitsBaseSalaryCents ?? null });
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario arriba: catálogo solo importa al abrir.
   }, [open, mode, employee]);
@@ -340,7 +350,26 @@ export function EmployeeFormDialog({
                   </Field>
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground sm:col-span-2">{tt("salary_edit_note")}</p>
+                <div className="flex items-center justify-between gap-3 rounded-none border border-border px-3 py-2 sm:col-span-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{tt("current_salary")}</p>
+                    {salaryShown.monthly > 0 ? (
+                      <p className="text-sm font-medium text-foreground">
+                        {formatCents(salaryShown.monthly)} {tt("per_month")}
+                        {salaryShown.benefits != null && salaryShown.benefits !== salaryShown.monthly && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            · {tt("f_benefits_salary")}: {formatCents(salaryShown.benefits)}
+                          </span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{tt("salary_not_set")}</p>
+                    )}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
+                    {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -465,6 +494,23 @@ export function EmployeeFormDialog({
           </form>
         </DialogContent>
       </Dialog>
+
+      {mode === "edit" && employee && (
+        <SalaryRaiseDialog
+          employeeId={employee.id}
+          defaultFrom={
+            salaryShown.monthly === 0 && employee.startDate
+              ? (() => {
+                  const [y, m, d] = employee.startDate.split("-").map(Number);
+                  return { year: y, month: m, half: d <= 15 ? (1 as const) : (2 as const) };
+                })()
+              : undefined
+          }
+          open={raiseOpen}
+          onOpenChange={setRaiseOpen}
+          onSaved={(saved) => setSalaryShown({ monthly: saved.monthlySalaryCents, benefits: saved.benefitsBaseSalaryCents })}
+        />
+      )}
 
       <ManagePositionsDialog
         open={managePositionsOpen}

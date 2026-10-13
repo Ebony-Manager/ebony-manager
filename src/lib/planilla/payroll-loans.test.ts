@@ -154,3 +154,45 @@ describe("reflowLoanSchedule", () => {
     expect(() => reflowLoanSchedule([], "a", 5_000)).toThrow();
   });
 });
+
+describe("cuota variable", () => {
+  const start = { year: 2026, month: 10, half: 1 as const };
+  it("usa los montos dados, una cuota por quincena", () => {
+    const s = computeLoanSchedule(30000, 3, start, "cuota_variable", [10000, 5000, 15000]);
+    expect(s.map((i) => i.amountCents)).toEqual([10000, 5000, 15000]);
+    expect(s.map((i) => `${i.period.month}-${i.period.half}`)).toEqual(["10-1", "10-2", "11-1"]);
+  });
+  it("rechaza montos que no suman el principal", () => {
+    expect(() => computeLoanSchedule(30000, 2, start, "cuota_variable", [10000, 5000])).toThrow();
+  });
+  it("rechaza cuotas en cero", () => {
+    expect(() => computeLoanSchedule(10000, 2, start, "cuota_variable", [10000, 0])).toThrow();
+  });
+});
+
+describe("reflowLoanSchedule · repartir", () => {
+  const mk = (id: string, month: number, half: 1 | 2, amountCents: number) => ({
+    ledgerEntryId: id,
+    period: { year: 2026, month, half },
+    amountCents,
+  });
+  const pending = [mk("a", 10, 1, 10000), mk("b", 10, 2, 10000), mk("c", 11, 1, 10000), mk("d", 11, 2, 10000)];
+
+  it("bajar una cuota reparte el faltante entre las que siguen", () => {
+    const r = reflowLoanSchedule(pending, "a", 5000, "spread");
+    expect(r.map((i) => i.amountCents)).toEqual([5000, 11666, 11666, 11668]);
+    expect(r.reduce((s, i) => s + i.amountCents, 0)).toBe(40000);
+  });
+  it("modo agregar al final deja las demás igual y alarga", () => {
+    const r = reflowLoanSchedule(pending, "a", 5000, "extend");
+    expect(r.map((i) => i.amountCents)).toEqual([5000, 10000, 10000, 10000, 5000]);
+  });
+  it("subir una cuota reparte el exceso quitándolo a las que siguen", () => {
+    const r = reflowLoanSchedule(pending, "a", 16000, "spread");
+    expect(r.map((i) => i.amountCents)).toEqual([16000, 8000, 8000, 8000]);
+  });
+  it("sin cuotas posteriores cae al comportamiento de agregar", () => {
+    const r = reflowLoanSchedule([mk("a", 10, 1, 10000)], "a", 4000, "spread");
+    expect(r.map((i) => i.amountCents)).toEqual([4000, 6000]);
+  });
+});

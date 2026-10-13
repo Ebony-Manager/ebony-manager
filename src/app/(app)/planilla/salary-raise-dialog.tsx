@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { currentPeriod, nextPeriod, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
+import { currentPeriod, nextPeriod, periodOrdinal, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
 import { periodLabel } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -19,32 +19,45 @@ function keyOf(p: Period): string {
 
 /** Rango de quincenas para elegir "desde cuándo": ~6 meses atrás y ~15
  *  adelante. Un aumento casi siempre arranca cerca de hoy. */
-function periodRange(): Period[] {
+function periodRange(from?: Period): Period[] {
   let p: Period = currentPeriod();
   for (let i = 0; i < 12; i++) p = previousPeriod(p.year, p.month, p.half);
+  // Un primer sueldo suele arrancar en el ingreso del empleado, que puede ser
+  // mucho antes: el rango arranca ahí si hace falta.
+  if (from && periodOrdinal(from.year, from.month, from.half) < periodOrdinal(p.year, p.month, p.half)) p = from;
   const out: Period[] = [p];
-  for (let i = 0; i < 42; i++) {
+  const end = nextPeriodN(currentPeriod(), 42);
+  while (periodOrdinal(p.year, p.month, p.half) < periodOrdinal(end.year, end.month, end.half)) {
     p = nextPeriod(p);
     out.push(p);
   }
   return out;
 }
 
+function nextPeriodN(p: Period, n: number): Period {
+  let out = p;
+  for (let i = 0; i < n; i++) out = nextPeriod(out);
+  return out;
+}
+
 export function SalaryRaiseDialog({
   employeeId,
+  defaultFrom,
   open,
   onOpenChange,
   onSaved,
 }: {
   employeeId: string;
+  /** Quincena sugerida para "desde cuándo" (ej. el ingreso, en un primer sueldo). */
+  defaultFrom?: Period;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: { monthlySalaryCents: number; benefitsBaseSalaryCents: number | null }) => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
-  const periods = React.useMemo(() => periodRange(), []);
+  const periods = React.useMemo(() => periodRange(defaultFrom), [defaultFrom]);
   const pLabel = (p: Period) => periodLabel(lang, p, tt("quincena_1"), tt("quincena_2"));
 
   const [monthly, setMonthly] = React.useState("");
@@ -59,9 +72,10 @@ export function SalaryRaiseDialog({
     if (!open) return;
     setMonthly("");
     setBenefits("");
-    setPeriodKey(keyOf(currentPeriod()));
+    setPeriodKey(keyOf(defaultFrom ?? currentPeriod()));
     setNotes("");
     setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -75,10 +89,11 @@ export function SalaryRaiseDialog({
     setSubmitting(true);
     setError(null);
     try {
+      const benefitsCents = benefits.trim() ? Math.round(parseFloat(benefits) * 100) : null;
       await registerSalaryChangeAction({
         employeeId,
         monthlySalaryCents: monthlyCents,
-        benefitsBaseSalaryCents: benefits.trim() ? Math.round(parseFloat(benefits) * 100) : null,
+        benefitsBaseSalaryCents: benefitsCents,
         effectiveYear: p.year,
         effectiveMonth: p.month,
         effectiveHalf: p.half,
@@ -86,7 +101,7 @@ export function SalaryRaiseDialog({
       });
       toast.success(tt("raise_saved"));
       onOpenChange(false);
-      onSaved();
+      onSaved({ monthlySalaryCents: monthlyCents, benefitsBaseSalaryCents: benefitsCents });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

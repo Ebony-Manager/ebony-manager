@@ -154,7 +154,9 @@ export type LedgerCategory =
   | "seguro_social"
   /** Renovación de Carnet — igual, específica de ciertos empleados. */
   | "carnet"
-  | "otro";
+  | "otro"
+  /** Viajes de InDrive (transporte) — se registran en su propio tab. */
+  | "indrive";
 
 export type LedgerDirection = "debt" | "payment";
 
@@ -176,12 +178,16 @@ export interface PayrollLedgerEntry {
 /** Esquema de reparto de las cuotas de un préstamo. Hoy solo existe
  *  'cuota_fija'; queda como union de strings (no boolean) para que un
  *  esquema futuro (ej. % del salario) sea aditivo. */
-export type LoanPaymentMethod = "cuota_fija";
+export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
+
+/** Lo que se financia a cuotas: dinero (préstamo/adelanto) o una compra
+ *  (herramienta) / un cobro (daño). */
+export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano";
 
 export interface PayrollLoan {
   id: string;
   employeeId: string;
-  category: "prestamo" | "adelanto";
+  category: LoanCategory;
   principalCents: number;
   paymentMethod: LoanPaymentMethod;
   numInstallments: number;
@@ -315,4 +321,19 @@ export interface UpcomingObligations {
   vacacionPendingCents: number;
   prestamosPendingCents: number;
   employeesWithLoanBalance: number;
+}
+
+/** Un viaje de InDrive (transporte) del empleado. */
+export interface IndriveRide {
+  id: string;
+  employeeId: string;
+  rideDate: string;
+  amountCents: number;
+  /** ¿Se le cobra al empleado? Siempre queda en el historial. */
+  charge: boolean;
+  notes: string | null;
+  /** Quincena del viaje (la que contiene su fecha). */
+  period: { year: number; month: number; half: 1 | 2 };
+  /** Cobrado y la quincena ya se pagó: ya no se puede cambiar el cobro. */
+  locked: boolean;
 }

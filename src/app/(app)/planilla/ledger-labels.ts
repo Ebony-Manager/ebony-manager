@@ -10,6 +10,7 @@ export const LEDGER_CATEGORY_LABEL_KEY: Record<LedgerCategory, string> = {
   seguro_social: "ledger_cat_seguro_social",
   carnet: "ledger_cat_carnet",
   otro: "ledger_cat_otro",
+  indrive: "ledger_cat_indrive",
 };
 
 /** Categorías que ofrece el diálogo genérico "Agregar movimiento" —

@@ -1,6 +1,6 @@
 import type { Period } from "@/lib/planilla/payroll-period";
 import { nextPeriod, periodOrdinal } from "@/lib/planilla/payroll-period";
-import type { LoanPaymentMethod } from "@/types/planilla";
+import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 
 export type { LoanPaymentMethod };
 
@@ -26,9 +26,30 @@ export function computeLoanSchedule(
   principalCents: number,
   numInstallments: number,
   startPeriod: Period,
-  paymentMethod: LoanPaymentMethod = "cuota_fija"
+  paymentMethod: LoanPaymentMethod = "cuota_fija",
+  /** Solo para "cuota_variable": el monto de cada cuota, en orden. Deben
+   *  sumar exactamente el principal. */
+  amountsCents?: number[]
 ): LoanScheduleInstallment[] {
   if (numInstallments < 1) throw new Error("numInstallments debe ser al menos 1");
+  if (paymentMethod === "cuota_variable") {
+    if (!amountsCents || amountsCents.length !== numInstallments) {
+      throw new Error("Cuota variable: falta el monto de alguna cuota");
+    }
+    if (amountsCents.some((a) => !Number.isInteger(a) || a <= 0)) {
+      throw new Error("Cuota variable: cada cuota debe ser mayor que cero");
+    }
+    const total = amountsCents.reduce((s, a) => s + a, 0);
+    if (total !== principalCents) {
+      throw new Error("Cuota variable: las cuotas deben sumar exactamente el monto del préstamo");
+    }
+    let p = startPeriod;
+    return amountsCents.map((amountCents) => {
+      const item = { period: p, amountCents };
+      p = nextPeriod(p);
+      return item;
+    });
+  }
   if (paymentMethod !== "cuota_fija") {
     throw new Error(`Esquema de pago no soportado: ${paymentMethod}`);
   }
@@ -57,7 +78,7 @@ export function computeLoanSchedule(
  * clavar parte de una quincena cuyo monto quizás ya está cerca del
  * pago. Ambos son overrides editables en el diálogo, nunca forzados.
  */
-export function defaultLoanStartPeriod(category: "prestamo" | "adelanto", requestDate: string): Period | null {
+export function defaultLoanStartPeriod(category: LoanCategory, requestDate: string): Period | null {
   const d = new Date(requestDate);
   if (Number.isNaN(d.getTime())) return null;
   const requestPeriod: Period = { year: d.getFullYear(), month: d.getMonth() + 1, half: d.getDate() <= 15 ? 1 : 2 };
@@ -117,6 +138,10 @@ function periodOrd(p: Period): number {
  * — no deberían existir pendientes de todos modos si el tiempo avanza en
  * orden, pero por si acaso quedan intactas.
  *
+ * Con `mode = "spread"` la diferencia se reparte en partes iguales entre las
+ * cuotas que siguen en vez de alargar o acortar el calendario (si no hay
+ * cuotas que sigan, se comporta como "extend").
+ *
  *   - Cuota editada BAJA (o se salta a $0): las cuotas que siguen quedan
  *     EXACTAMENTE igual — se agrega una quincena más al final del
  *     calendario por la diferencia. Nunca se "inflan" las que siguen.
@@ -130,10 +155,13 @@ function periodOrd(p: Period): number {
  * Una cuota que termina en $0 desaparece del resultado — "saltarla" es
  * simplemente que ya no esté en el calendario.
  */
+export type ReflowMode = "extend" | "spread";
+
 export function reflowLoanSchedule(
   pending: PendingInstallment[],
   editLedgerEntryId: string,
-  newAmountCents: number
+  newAmountCents: number,
+  mode: ReflowMode = "extend"
 ): ReflowedInstallment[] {
   if (pending.length === 0) throw new Error("No hay cuotas pendientes para reacomodar");
   const sorted = [...pending].sort((a, b) => periodOrd(a.period) - periodOrd(b.period));
@@ -152,7 +180,15 @@ export function reflowLoanSchedule(
   const delta = clampedAmount - oldAmount;
 
   let tail: ReflowedInstallment[];
-  if (delta < 0) {
+  if (mode === "spread" && delta !== 0 && after.length > 0) {
+    // Repartir: lo que falta (o sobra) se reparte en partes iguales entre las
+    // cuotas que siguen, sin agregar ni quitar quincenas. El resto de la
+    // división va a la última cuota.
+    const remaining = availableToShift - delta;
+    const base = Math.floor(remaining / after.length);
+    const rest = remaining - base * after.length;
+    tail = after.map((i, idx) => ({ ...i, amountCents: idx === after.length - 1 ? base + rest : base }));
+  } else if (delta < 0) {
     const shortfall = -delta;
     const lastPeriod = after.length > 0 ? after[after.length - 1].period : sorted[editIndex].period;
     tail = [...after, { ledgerEntryId: null, period: nextPeriod(lastPeriod), amountCents: shortfall }];
