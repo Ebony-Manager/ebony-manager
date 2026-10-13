@@ -3,6 +3,12 @@
 //   supabase gen types typescript --project-id jdfkfbopecqvvyxherku > src/types/database.ts
 // or via the Supabase MCP `generate_typescript_types` tool.
 // Do not edit by hand.
+//
+// EXCEPCIÓN TEMPORAL: las seis tablas `quote_*` del Cotizador se
+// escribieron a mano a partir de
+// supabase/migrations/20261013130000_fase1_cotizador.sql, porque la
+// migración se aplica desde el SQL Editor. Al regenerar este archivo
+// después de aplicarla, este aviso desaparece solo.
 
 export type Json =
   | string
@@ -867,6 +873,402 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      quote_catalog_items: {
+        Row: {
+          active: boolean
+          category: string
+          code: string
+          created_at: string
+          finish: string | null
+          id: string
+          name: string
+          price: number
+          shape: string
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          code: string
+          created_at?: string
+          finish?: string | null
+          id?: string
+          name: string
+          price: number
+          shape?: string
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          code?: string
+          created_at?: string
+          finish?: string | null
+          id?: string
+          name?: string
+          price?: number
+          shape?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quote_cost_inputs: {
+        Row: {
+          key: string
+          kind: string
+          label: string
+          sort_order: number
+          unit: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          key: string
+          kind: string
+          label: string
+          sort_order?: number
+          unit: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          key?: string
+          kind?: string
+          label?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      quote_item_recipes: {
+        Row: {
+          base_m2: number
+          edge_key: string
+          edge_ml: number
+          fixed: number
+          fixed_label: string | null
+          hardware_base: string
+          hardware_pct: number
+          item_id: string
+          labor: number
+          paint: Json
+          sheet_key: string
+          updated_at: string
+          usable_m2: number
+        }
+        Insert: {
+          base_m2?: number
+          edge_key: string
+          edge_ml?: number
+          fixed?: number
+          fixed_label?: string | null
+          hardware_base?: string
+          hardware_pct?: number
+          item_id: string
+          labor?: number
+          paint?: Json
+          sheet_key: string
+          updated_at?: string
+          usable_m2?: number
+        }
+        Update: {
+          base_m2?: number
+          edge_key?: string
+          edge_ml?: number
+          fixed?: number
+          fixed_label?: string | null
+          hardware_base?: string
+          hardware_pct?: number
+          item_id?: string
+          labor?: number
+          paint?: Json
+          sheet_key?: string
+          updated_at?: string
+          usable_m2?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_item_recipes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "quote_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_item_recipes_sheet_key_fkey"
+            columns: ["sheet_key"]
+            isOneToOne: false
+            referencedRelation: "quote_cost_inputs"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "quote_item_recipes_edge_key_fkey"
+            columns: ["edge_key"]
+            isOneToOne: false
+            referencedRelation: "quote_cost_inputs"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      quote_lines: {
+        Row: {
+          category: string
+          created_at: string
+          finish: string | null
+          height: number
+          host_line_id: string | null
+          id: string
+          item_id: string | null
+          mode: string
+          name: string
+          pieces: number
+          pos_x: number | null
+          pos_y: number | null
+          price_overridden: boolean
+          qty: number
+          section_id: string
+          shape: string
+          sort_order: number
+          unit: string
+          unit_price: number
+          updated_at: string
+          wall: string | null
+          width: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          finish?: string | null
+          height?: number
+          host_line_id?: string | null
+          id?: string
+          item_id?: string | null
+          mode?: string
+          name?: string
+          pieces?: number
+          pos_x?: number | null
+          pos_y?: number | null
+          price_overridden?: boolean
+          qty?: number
+          section_id: string
+          shape?: string
+          sort_order?: number
+          unit: string
+          unit_price?: number
+          updated_at?: string
+          wall?: string | null
+          width?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          finish?: string | null
+          height?: number
+          host_line_id?: string | null
+          id?: string
+          item_id?: string | null
+          mode?: string
+          name?: string
+          pieces?: number
+          pos_x?: number | null
+          pos_y?: number | null
+          price_overridden?: boolean
+          qty?: number
+          section_id?: string
+          shape?: string
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+          wall?: string | null
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "quote_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "quote_catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_host_line_id_fkey"
+            columns: ["host_line_id"]
+            isOneToOne: false
+            referencedRelation: "quote_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_sections: {
+        Row: {
+          ccf_pct: number
+          commission_pct: number
+          corner_at: number | null
+          created_at: string
+          description: string
+          design_3d: number
+          extra_labor: number
+          freight: number
+          id: string
+          kind: string
+          location: string
+          name: string
+          quote_id: string
+          sort_order: number
+          sub_margin_pct: number
+          updated_at: string
+          util_pct: number
+          wall_shape: string
+          waste_pct: number
+          waste_sheet_price: number
+          waste_sheets: number
+        }
+        Insert: {
+          ccf_pct?: number
+          commission_pct?: number
+          corner_at?: number | null
+          created_at?: string
+          description?: string
+          design_3d?: number
+          extra_labor?: number
+          freight?: number
+          id?: string
+          kind?: string
+          location?: string
+          name?: string
+          quote_id: string
+          sort_order?: number
+          sub_margin_pct?: number
+          updated_at?: string
+          util_pct?: number
+          wall_shape?: string
+          waste_pct?: number
+          waste_sheet_price?: number
+          waste_sheets?: number
+        }
+        Update: {
+          ccf_pct?: number
+          commission_pct?: number
+          corner_at?: number | null
+          created_at?: string
+          description?: string
+          design_3d?: number
+          extra_labor?: number
+          freight?: number
+          id?: string
+          kind?: string
+          location?: string
+          name?: string
+          quote_id?: string
+          sort_order?: number
+          sub_margin_pct?: number
+          updated_at?: string
+          util_pct?: number
+          wall_shape?: string
+          waste_pct?: number
+          waste_sheet_price?: number
+          waste_sheets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_sections_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          client_name: string
+          created_at: string
+          created_by: string | null
+          delivery_days: number
+          designer_name: string
+          discount_type: string
+          discount_value: number
+          id: string
+          itbms_pct: number
+          lang: string
+          notes: string
+          number: string
+          pdf_detail: string
+          project_id: string | null
+          project_name: string
+          quote_date: string
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_days?: number
+          designer_name?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          itbms_pct?: number
+          lang?: string
+          notes?: string
+          number?: string
+          pdf_detail?: string
+          project_id?: string | null
+          project_name?: string
+          quote_date?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_days?: number
+          designer_name?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          itbms_pct?: number
+          lang?: string
+          notes?: string
+          number?: string
+          pdf_detail?: string
+          project_id?: string | null
+          project_name?: string
+          quote_date?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
