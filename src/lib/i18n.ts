@@ -1047,6 +1047,8 @@ export const strings = {
 
     // Directorio — contratistas inactivos.
     no_longer_work: { es: "Ya no laboran", en: "No longer active" },
+    former_show: { es: "Mostrar", en: "Show" },
+    former_hide: { es: "Ocultar", en: "Hide" },
     inactive_badge: { es: "Inactivo", en: "Inactive" },
 
     // Proyectos (ficha simple).

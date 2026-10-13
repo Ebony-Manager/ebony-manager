@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { IdCard, Phone, Search } from "lucide-react";
+import { ChevronDown, IdCard, Phone, Search } from "lucide-react";
 
 import type { ContractorWithBalance } from "@/types/contractors";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const [query, setQuery] = React.useState("");
+  const [showFormer, setShowFormer] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -40,6 +41,8 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
 
   const active = filtered.filter((c) => c.status === "ACTIVE");
   const inactive = filtered.filter((c) => c.status === "INACTIVE");
+  const formerOpen = showFormer || query.trim() !== "";
+  const setFormerOpen = (fn: (v: boolean) => boolean) => setShowFormer((v) => fn(v));
 
   function Card({ contractor }: { contractor: ContractorWithBalance }) {
     const tone = balanceTone(contractor.balanceCents);
@@ -121,15 +124,27 @@ export function ContractorDirectory({ contractors }: { contractors: ContractorWi
           </div>
 
           {inactive.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-medium text-muted-foreground">
+            <div className="flex flex-col gap-3 border-t-2 border-border pt-4">
+              {/* Los que ya no laboran: sección aparte, separada por una línea y
+                  plegable. Si hay una búsqueda activa se abre sola, para no
+                  esconder una coincidencia. */}
+              <button
+                type="button"
+                onClick={() => setFormerOpen((v) => !v)}
+                aria-expanded={formerOpen}
+                className="flex w-fit items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                <ChevronDown className={`size-4 transition-transform ${formerOpen ? "" : "-rotate-90"}`} />
                 {tt("no_longer_work")} ({inactive.length})
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {inactive.map((c) => (
-                  <Card key={c.id} contractor={c} />
-                ))}
-              </div>
+                <span className="text-xs font-normal">· {formerOpen ? tt("former_hide") : tt("former_show")}</span>
+              </button>
+              {formerOpen && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {inactive.map((c) => (
+                    <Card key={c.id} contractor={c} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
