@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import type { IndriveRide } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { formatCents, periodOrdinal } from "@/lib/planilla/payroll-period";
 import { formatDate, monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
@@ -34,10 +35,13 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
   const [note, setNote] = React.useState("");
   const [charge, setCharge] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [missingTable, setMissingTable] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
-      setRides(await getIndriveRidesAction(employeeId));
+      const res = await getIndriveRidesAction(employeeId);
+      setMissingTable(res.missingTable);
+      setRides(res.rides);
     } catch (err) {
       console.error("Planilla: no se pudieron cargar los viajes", err);
       toast.error(tt("load_failed"));
@@ -55,7 +59,7 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
 
   function fail(err: unknown) {
     console.error("Planilla: InDrive", err);
-    toast.error(err instanceof Error ? err.message : tt("load_failed"));
+    toast.error(typeof err === "string" ? err : tt("load_failed"));
     void load();
   }
 
@@ -82,13 +86,14 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
     setAmount("");
     setNote("");
     try {
-      await createIndriveRideAction({
+      const res = await createIndriveRideAction({
         employeeId,
         rideDate: date,
         amountCents,
         charge,
         notes: temp.notes,
       });
+      if (!res.ok) return fail(res.migrationPending ? tt("migration_pending") : res.error);
       await load();
       onChanged();
     } catch (err) {
@@ -99,7 +104,10 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
   async function setRideCharge(ids: string[], next: boolean) {
     setRides((prev) => (prev ?? []).map((r) => (ids.includes(r.id) ? { ...r, charge: next } : r)));
     try {
-      for (const id of ids) await setIndriveRideChargeAction(id, next);
+      for (const id of ids) {
+        const res = await setIndriveRideChargeAction(id, next);
+        if (!res.ok) return fail(res.error);
+      }
       await load();
       onChanged();
     } catch (err) {
@@ -143,6 +151,11 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">{tt("indrive_desc")}</p>
+      {missingTable && (
+        <p className="rounded-none border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-foreground">
+          {tt("migration_pending")}
+        </p>
+      )}
 
       <div className="grid grid-cols-3 gap-2">
         {[
@@ -165,17 +178,7 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
           </label>
           <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
             {tt("indrive_f_amount")}
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="h-8 text-right tabular-nums"
-              autoFocus
-            />
+            <MoneyInput value={amount} onValueChange={setAmount} className="h-8" autoFocus />
           </label>
           <label className="col-span-2 flex flex-col gap-1 text-[11px] text-muted-foreground sm:col-span-1">
             {tt("indrive_f_notes")}

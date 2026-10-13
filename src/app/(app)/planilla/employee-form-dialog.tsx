@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -329,22 +330,12 @@ export function EmployeeFormDialog({
               {mode === "add" ? (
                 <>
                   <Field label={tt("f_base_salary")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={form.baseSalary}
-                      onChange={(e) => set("baseSalary", e.target.value)}
-                      placeholder="0.00"
-                    />
+                    <MoneyInput value={form.baseSalary} onValueChange={(v) => set("baseSalary", v)} />
                   </Field>
                   <Field label={tt("f_benefits_salary")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
+                    <MoneyInput
                       value={form.benefitsBaseSalary}
-                      onChange={(e) => set("benefitsBaseSalary", e.target.value)}
+                      onValueChange={(v) => set("benefitsBaseSalary", v)}
                       placeholder={tt("f_benefits_hint")}
                     />
                   </Field>

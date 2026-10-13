@@ -15,6 +15,7 @@ import { RegistroView } from "./registro-view";
 import { EmpleadosView } from "./empleados-view";
 import { DashboardView } from "./dashboard-view";
 import { AuditoriaView } from "./auditoria-view";
+import { LoansOverviewView } from "./loans-overview-view";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import { EmployeeFormDialog } from "./employee-form-dialog";
@@ -71,7 +72,7 @@ export function PlanillaClient({
   // un empleado y volver (con el botón "Volver" o el de atrás del navegador),
   // se regresa a la MISMA pestaña en vez de caer siempre en Registro.
   const searchParams = useSearchParams();
-  const TAB_VALUES = ["dashboard", "registro", "auditoria", "empleados"];
+  const TAB_VALUES = ["dashboard", "registro", "auditoria", "prestamos", "empleados"];
   const [tab, setTabState] = React.useState(() => {
     const fromUrl = searchParams?.get("tab");
     return fromUrl && TAB_VALUES.includes(fromUrl) ? fromUrl : "registro";
@@ -86,6 +87,8 @@ export function PlanillaClient({
   }, []);
   const [year, setYear] = React.useState(() => currentPeriod().year);
   const [detailEmployeeId, setDetailEmployeeId] = React.useState<string | null>(null);
+  // Pestaña con la que se abre la ventana del empleado.
+  const [detailTab, setDetailTab] = React.useState("resumen");
   // Sube cada vez que la ventana del empleado cambia algo que afecta a Registro.
   const [registroReload, setRegistroReload] = React.useState(0);
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
@@ -127,6 +130,7 @@ export function PlanillaClient({
     { value: "dashboard", label: tt("tab_dashboard") },
     { value: "registro", label: tt("tab_registro") },
     { value: "auditoria", label: tt("tab_auditoria") },
+    { value: "prestamos", label: tt("tab_loans_overview") },
     { value: "empleados", label: tt("tab_empleados") },
   ];
 
@@ -214,7 +218,10 @@ export function PlanillaClient({
             onVisibleColumnsChange={setVisibleColumns}
             categoria={registroCategoria}
             onCategoriaChange={setRegistroCategoria}
-            onViewDetail={setDetailEmployeeId}
+            onViewDetail={(id) => {
+              setDetailTab("resumen");
+              setDetailEmployeeId(id);
+            }}
             reloadSignal={registroReload}
           />
         </TabsContent>
@@ -226,6 +233,16 @@ export function PlanillaClient({
             onCategoriaChange={setAuditoriaCategoria}
           />
         </TabsContent>
+        <TabsContent value="prestamos" className="pt-0">
+          <LoansOverviewView
+            employees={otherEmployees}
+            reloadSignal={registroReload}
+            onOpenEmployee={(id, initialTab) => {
+              setDetailTab(initialTab);
+              setDetailEmployeeId(id);
+            }}
+          />
+        </TabsContent>
         <TabsContent value="empleados" className="pt-0">
           <EmpleadosView employees={otherEmployees} />
         </TabsContent>
@@ -234,6 +251,7 @@ export function PlanillaClient({
       <EmployeeDetailSheet
         employee={detailEmployee}
         year={year}
+        initialTab={detailTab}
         open={detailEmployeeId !== null}
         onOpenChange={(open) => !open && setDetailEmployeeId(null)}
         onChanged={() => setRegistroReload((n) => n + 1)}

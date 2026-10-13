@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import type { LoanCategory, LoanPaymentMethod, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -17,7 +18,7 @@ import {
   type Period,
 } from "@/lib/planilla/payroll-period";
 import { computeLoanSchedule, defaultLoanStartPeriod, loanPayoffPeriod } from "@/lib/planilla/payroll-loans";
-import { periodLabel } from "@/lib/planilla/format";
+import { periodLabel, shortPeriodLabel } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createLoanAction, replaceLoanAction } from "./actions";
@@ -230,8 +231,11 @@ export function LoanDialog({
         installmentAmountsCents: isVariable ? variableCents : undefined,
         notes: notes.trim() || null,
       };
-      if (editing) await replaceLoanAction(editing.id, input);
-      else await createLoanAction(input);
+      const result = editing ? await replaceLoanAction(editing.id, input) : await createLoanAction(input);
+      if (!result.ok) {
+        setError(result.migrationPending ? tt("migration_pending") : result.error);
+        return;
+      }
       toast.success(editing ? tt("loan_updated") : tt(SUBMIT_KEY[category]));
       onOpenChange(false);
       onSaved();
@@ -283,15 +287,7 @@ export function LoanDialog({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={tt("loan_f_amount")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            autoFocus
-          />
+          <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
         </Field>
         <Field label={tt("loan_f_request_date")}>
           <Input type="date" value={requestDate} onChange={(e) => setRequestDate(e.target.value)} />
@@ -372,23 +368,21 @@ export function LoanDialog({
               for (let k = 0; k < i; k++) p = nextPeriod(p);
               return (
                 <label key={i} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span className="whitespace-nowrap">{pLabel(p)}</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    className="h-8 w-28 text-right tabular-nums"
+                  <span className="whitespace-nowrap">{shortPeriodLabel(lang, p)}</span>
+                  <div className="w-28">
+                  <MoneyInput
+                    className="h-8"
                     value={amounts[i] ?? ""}
-                    onChange={(e) => {
+                    onValueChange={(v) => {
                       setTouched(true);
                       setAmounts((prev) => {
                         const next = Array.from({ length: n }, (_, k) => prev[k] ?? "0.00");
-                        next[i] = e.target.value;
+                        next[i] = v;
                         return next;
                       });
                     }}
                   />
+                  </div>
                 </label>
               );
             })}

@@ -140,16 +140,40 @@ type LoanInput = {
   notes?: string | null;
 };
 
-export async function createLoanAction(input: LoanInput) {
+/** Resultado "esperable" de un guardado: en producción Next oculta el mensaje
+ *  de un error lanzado desde una acción, así que los fallos previsibles
+ *  (migración pendiente, cuotas que no suman, préstamo con cuotas pagadas…)
+ *  se devuelven como dato para poder mostrarlos tal cual. */
+export type SaveResult = { ok: true } | { ok: false; error: string; migrationPending?: boolean };
+
+function toSaveError(err: unknown): SaveResult {
+  const message = err instanceof Error ? err.message : "Error";
+  const migrationPending = message.includes("payroll_loans_category_check") || message.includes("payroll_indrive_rides");
+  return { ok: false, error: message, migrationPending };
+}
+
+export async function createLoanAction(input: LoanInput): Promise<SaveResult> {
   await requireAdmin();
-  return payroll.createLoan(input);
+  try {
+    await payroll.createLoan(input);
+    return { ok: true };
+  } catch (err) {
+    console.error("createLoanAction", err);
+    return toSaveError(err);
+  }
 }
 
 /** Edita un préstamo (monto, cuotas, esquema, inicio) — solo si no tiene
  *  cuotas pagadas. */
-export async function replaceLoanAction(loanId: string, input: LoanInput) {
+export async function replaceLoanAction(loanId: string, input: LoanInput): Promise<SaveResult> {
   await requireAdmin();
-  return payroll.replaceLoan(loanId, input);
+  try {
+    await payroll.replaceLoan(loanId, input);
+    return { ok: true };
+  } catch (err) {
+    console.error("replaceLoanAction", err);
+    return toSaveError(err);
+  }
 }
 
 export async function updateLoanNotesAction(loanId: string, notes: string | null) {
@@ -180,11 +204,24 @@ export async function reflowLoanInstallmentAction(input: {
   await payroll.reflowLoanInstallment(input);
 }
 
+export async function getLoansOverviewAction() {
+  await requireAdmin();
+  return payroll.getLoansOverview();
+}
+
 // ── InDrive ────────────────────────────────────────────────────────────
 
 export async function getIndriveRidesAction(employeeId: string) {
   await requireAdmin();
-  return payroll.getIndriveRides(employeeId);
+  try {
+    return { rides: await payroll.getIndriveRides(employeeId), missingTable: false };
+  } catch (err) {
+    // La tabla nueva todavía no existe: falta correr la migración en Supabase.
+    if (err instanceof Error && err.message.includes("payroll_indrive_rides")) {
+      return { rides: [], missingTable: true };
+    }
+    throw err;
+  }
 }
 
 export async function createIndriveRideAction(input: {
@@ -193,14 +230,26 @@ export async function createIndriveRideAction(input: {
   amountCents: number;
   charge: boolean;
   notes: string | null;
-}) {
+}): Promise<SaveResult> {
   await requireAdmin();
-  await payroll.createIndriveRide(input);
+  try {
+    await payroll.createIndriveRide(input);
+    return { ok: true };
+  } catch (err) {
+    console.error("createIndriveRideAction", err);
+    return toSaveError(err);
+  }
 }
 
-export async function setIndriveRideChargeAction(id: string, charge: boolean) {
+export async function setIndriveRideChargeAction(id: string, charge: boolean): Promise<SaveResult> {
   await requireAdmin();
-  await payroll.setIndriveRideCharge(id, charge);
+  try {
+    await payroll.setIndriveRideCharge(id, charge);
+    return { ok: true };
+  } catch (err) {
+    console.error("setIndriveRideChargeAction", err);
+    return toSaveError(err);
+  }
 }
 
 export async function updateIndriveRideAction(

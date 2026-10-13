@@ -764,6 +764,7 @@ export function RegistroView({
                                 step="0.01"
                                 defaultValue={quantity ? quantity.toString() : ""}
                                 placeholder="0"
+                                onFocus={(e) => e.currentTarget.select()}
                                 onBlur={(e) => {
                                   const raw = e.target.value.trim();
                                   const next = raw === "" ? 0 : parseFloat(raw);
@@ -790,6 +791,7 @@ export function RegistroView({
                           step="0.01"
                           defaultValue={value ? (value / 100).toFixed(2) : ""}
                           placeholder="0.00"
+                          onFocus={(e) => e.currentTarget.select()}
                           onBlur={(e) => {
                             const raw = e.target.value.trim();
                             const nextCents = raw === "" ? 0 : Math.round(parseFloat(raw) * 100);

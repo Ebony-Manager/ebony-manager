@@ -8,6 +8,7 @@ import type {
   LedgerCategory,
   LedgerDirection,
   IndriveRide,
+  LoanOverviewRow,
   LoanCategory,
   LoanPaymentMethod,
   PayrollEmployee,
@@ -1219,4 +1220,66 @@ export async function deleteIndriveRide(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("payroll_indrive_rides").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// Vista general de préstamos (todos los empleados)
+// ============================================================================
+
+/** Todos los préstamos/adelantos/herramientas/daños de la empresa con su
+ *  avance: cuántas cuotas van pagadas, cuánto falta y cuándo termina. */
+export async function getLoansOverview(): Promise<LoanOverviewRow[]> {
+  const supabase = await createClient();
+  const [loans, ledger, entries] = await Promise.all([
+    selectAllRows((from, to) => supabase.from("payroll_loans").select("*").order("id").range(from, to)),
+    selectAllRows((from, to) =>
+      supabase
+        .from("payroll_ledger_entries")
+        .select("id, loan_id, amount_cents, payroll_entry_id")
+        .eq("direction", "payment")
+        .not("loan_id", "is", null)
+        .order("id")
+        .range(from, to)
+    ),
+    selectAllRows((from, to) =>
+      supabase.from("payroll_entries").select("id, period_year, period_month, period_half, paid").order("id").range(from, to)
+    ),
+  ]);
+
+  const entryById = new Map(entries.map((e) => [e.id, e]));
+  const installmentsByLoan = new Map<string, { period: Period; amountCents: number; paid: boolean }[]>();
+  for (const r of ledger) {
+    if (!r.loan_id || !r.payroll_entry_id) continue;
+    const e = entryById.get(r.payroll_entry_id);
+    if (!e) continue;
+    const list = installmentsByLoan.get(r.loan_id) ?? [];
+    list.push({
+      period: { year: e.period_year, month: e.period_month, half: e.period_half === 2 ? 2 : 1 },
+      amountCents: r.amount_cents,
+      paid: e.paid,
+    });
+    installmentsByLoan.set(r.loan_id, list);
+  }
+
+  return loans.map((l) => {
+    const inst = (installmentsByLoan.get(l.id) ?? []).sort(
+      (a, b) => periodOrdinal(a.period.year, a.period.month, a.period.half) - periodOrdinal(b.period.year, b.period.month, b.period.half)
+    );
+    const pending = inst.filter((i) => !i.paid);
+    return {
+      loanId: l.id,
+      employeeId: l.employee_id,
+      category: toLoanCategory(l.category),
+      status: l.status === "cancelled" ? "cancelled" : "active",
+      paymentMethod: (l.payment_method as LoanPaymentMethod) ?? "cuota_fija",
+      requestDate: l.request_date,
+      principalCents: l.principal_cents,
+      installmentCount: inst.length,
+      paidCount: inst.length - pending.length,
+      paidCents: inst.filter((i) => i.paid).reduce((s, i) => s + i.amountCents, 0),
+      pendingCents: pending.reduce((s, i) => s + i.amountCents, 0),
+      next: pending[0] ? { period: pending[0].period, amountCents: pending[0].amountCents } : null,
+      last: inst.length > 0 ? inst[inst.length - 1].period : null,
+    };
+  });
 }

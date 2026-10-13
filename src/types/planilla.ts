@@ -337,3 +337,24 @@ export interface IndriveRide {
   /** Cobrado y la quincena ya se pagó: ya no se puede cambiar el cobro. */
   locked: boolean;
 }
+
+/** Una fila de la vista general de préstamos: un préstamo/adelanto/herramienta/
+ *  daño de un empleado con su avance de pago. */
+export interface LoanOverviewRow {
+  loanId: string;
+  employeeId: string;
+  category: LoanCategory;
+  status: "active" | "cancelled";
+  paymentMethod: LoanPaymentMethod;
+  requestDate: string;
+  principalCents: number;
+  /** Cuotas programadas hoy (las canceladas ya no cuentan). */
+  installmentCount: number;
+  paidCount: number;
+  paidCents: number;
+  pendingCents: number;
+  /** Próxima cuota sin pagar, si queda alguna. */
+  next: { period: { year: number; month: number; half: 1 | 2 }; amountCents: number } | null;
+  /** Última quincena del calendario, si hay cuotas. */
+  last: { year: number; month: number; half: 1 | 2 } | null;
+}

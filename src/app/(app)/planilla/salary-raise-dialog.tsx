@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { currentPeriod, nextPeriod, periodOrdinal, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
@@ -122,25 +122,10 @@ export function SalaryRaiseDialog({
     >
       <div className="grid grid-cols-2 gap-3">
         <Field label={tt("raise_f_monthly")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={monthly}
-            onChange={(e) => setMonthly(e.target.value)}
-            placeholder="0.00"
-            autoFocus
-          />
+          <MoneyInput value={monthly} onValueChange={setMonthly} autoFocus />
         </Field>
         <Field label={tt("raise_f_benefits")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={benefits}
-            onChange={(e) => setBenefits(e.target.value)}
-            placeholder={tt("f_benefits_hint")}
-          />
+          <MoneyInput value={benefits} onValueChange={setBenefits} placeholder={tt("f_benefits_hint")} />
         </Field>
       </div>
 

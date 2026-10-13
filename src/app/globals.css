@@ -401,3 +401,14 @@ tr:hover > .payroll-col-hot {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-700);
 }
+
+/* Campos numéricos sin las flechitas de subir/bajar: se escribe el número. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import type { LedgerCategory, LedgerDirection } from "@/types/planilla";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { monthShort } from "@/lib/planilla/format";
@@ -133,14 +134,7 @@ export function LedgerEntryDialog({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={tt("mov_f_amount")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-          />
+          <MoneyInput value={amount} onValueChange={setAmount} />
         </Field>
         <Field label={tt("mov_f_date")}>
           <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />

@@ -45,3 +45,8 @@ export function periodLabel(lang: Lang, p: { year: number; month: number; half: 
 export function fmtSigned(cents: number, formatCents: (c: number) => string): string {
   return cents < 0 ? `(${formatCents(Math.abs(cents))})` : formatCents(cents);
 }
+
+/** Quincena abreviada: "Nov 2026 · 2Q". */
+export function shortPeriodLabel(lang: Lang, p: { year: number; month: number; half: 1 | 2 }): string {
+  return `${monthShort(lang, p.month)} ${p.year} · ${p.half}Q`;
+}

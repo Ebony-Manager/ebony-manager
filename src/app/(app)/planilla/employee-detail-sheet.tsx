@@ -38,12 +38,15 @@ interface SummaryLine {
 export function EmployeeDetailSheet({
   employee,
   year,
+  initialTab = "resumen",
   open,
   onOpenChange,
   onChanged,
 }: {
   employee: PayrollEmployee | null;
   year: number;
+  /** Pestaña con la que se abre (ej. "prestamos" desde la vista de préstamos). */
+  initialTab?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Avisa que algo del ledger/préstamos cambió, para que Registro se vuelva a leer. */
@@ -54,6 +57,7 @@ export function EmployeeDetailSheet({
   const employeeId = employee?.id ?? null;
   const [rows, setRows] = React.useState<DetailRow[] | null>(null);
   const [breakdownOpen, setBreakdownOpen] = React.useState(false);
+  const [rowsFailed, setRowsFailed] = React.useState(false);
   const [tab, setTab] = React.useState("resumen");
   const [summaryView, setSummaryView] = React.useState<SummaryView>("quincena");
   const [showAll, setShowAll] = React.useState(false);
@@ -62,7 +66,15 @@ export function EmployeeDetailSheet({
 
   const loadRows = React.useCallback(() => {
     if (!employeeId || !open) return;
-    getEmployeeAnnualDetailAction(employeeId, year).then(setRows);
+    getEmployeeAnnualDetailAction(employeeId, year)
+      .then((r) => {
+        setRows(r);
+        setRowsFailed(false);
+      })
+      .catch((err) => {
+        console.error("Planilla: no se pudo cargar el resumen del empleado", err);
+        setRowsFailed(true);
+      });
   }, [employeeId, year, open]);
 
   React.useEffect(() => {
@@ -90,10 +102,12 @@ export function EmployeeDetailSheet({
   /* eslint-disable react-hooks/set-state-in-effect -- limpia filas del empleado anterior al cambiar de target. */
   React.useEffect(() => {
     setRows(null);
+    setRowsFailed(false);
     setLoans(null);
     setLedger(null);
-    setTab("resumen");
+    setTab(initialTab);
     setShowAll(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- la pestaña inicial solo importa al abrir.
   }, [employeeId, open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -249,6 +263,20 @@ export function EmployeeDetailSheet({
             </TabsList>
 
             <TabsContent value="resumen" className="mt-0">
+              {rows === null && (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  {rowsFailed ? (
+                    <>
+                      <p>{tt("load_failed")}</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={loadRows}>
+                        {tt("retry")}
+                      </Button>
+                    </>
+                  ) : (
+                    tt("loading")
+                  )}
+                </div>
+              )}
               {withActivity.length === 0 && rows && (
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   {tt("no_pagos_en")} {year}.
