@@ -112,3 +112,22 @@ Auth provider settings are not SQL and must be set in the dashboard:
 - **Auth → URL Configuration**:
   - Site URL: `https://ebony-manager.vercel.app`
   - Redirect URLs: `https://ebony-manager.vercel.app/**`, `http://localhost:3001/**`
+
+### 20261013130000_fase1_cotizador.sql
+
+Fase 1 — Cotizador. **Pendiente de aplicar** (se corre en el SQL Editor).
+
+- `public.quote_cost_inputs` — insumos (láminas, canteo, pintura) y valores
+  fijos de la empresa (utilidad, margen de subcontratos, credit card fee,
+  ITBMS).
+- `public.quote_catalog_items` — catálogo con el precio "para cotizar".
+- `public.quote_item_recipes` — receta de costo de cada renglón (la "HOJA DE
+  CALCULO oficial" del Excel). **Solo admin.**
+- `public.quotes` → `public.quote_sections` → `public.quote_lines`.
+- Dinero en `numeric`, no centavos: los precios unitarios del Excel traen más
+  de dos decimales y redondearlos cambia los totales.
+- RLS: cotizaciones para cualquier usuario de la app (admin o vendedor);
+  catálogo e insumos los leen todos y solo los escribe el admin.
+- Trae el seed del catálogo (63 renglones, 30 recetas, 24 insumos/valores).
+- Tras aplicarla, regenerar `src/types/database.ts` (las tablas `quote_*` están
+  escritas a mano mientras tanto).

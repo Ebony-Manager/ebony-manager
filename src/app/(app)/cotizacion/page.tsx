@@ -1,14 +1,13 @@
-"use client";
+import { requireProfile } from "@/lib/auth/dal";
+import { getQuoteSummaries } from "@/services/cotizador";
+import { QuotesList } from "./quotes-list";
 
-import { FileText } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
-import { useLang } from "@/context/language-context";
-import { t, strings } from "@/lib/i18n";
+// Lista de cotizaciones. `force-dynamic` porque cambia por acción del
+// usuario y no debe cachearse entre requests.
+export const dynamic = "force-dynamic";
 
-// Cotización is being rebuilt from scratch on this base — the old
-// implementation (table, PDF export, plan uploader, Sheets read/write) is
-// archived at _legacy/src/pages/Cotizacion.jsx as reference, not ported.
-export default function CotizacionPage() {
-  const { lang } = useLang();
-  return <ComingSoon icon={FileText} name={t(lang, strings.nav.cotizacion)} />;
+export default async function CotizacionPage() {
+  const profile = await requireProfile();
+  const quotes = await getQuoteSummaries();
+  return <QuotesList initialQuotes={quotes} isAdmin={profile.role === "admin"} />;
 }
