@@ -25,7 +25,22 @@ export const ACH_ACCOUNT_TYPE_CODE: Record<AchAccountType, string> = {
 /** Texto por defecto de la ADENDA (la plantilla trae "Paga Plamilla"). */
 export const ACH_DEFAULT_ADDENDA_TEXT = "Pago de Planilla";
 
+/** Qué se está pagando en una fila: la quincena o cada prestación por
+ *  separado (cada una sale como su propia transferencia). */
+export type AchConcept = "quincena" | "decimo" | "vacacion" | "prima";
+
+export const ACH_CONCEPT_ORDER: AchConcept[] = ["quincena", "decimo", "vacacion", "prima"];
+
+/** Texto de la ADENDA de cada prestación (la de la quincena la escribe el usuario). */
+export const ACH_BENEFIT_ADDENDA_TEXT: Record<Exclude<AchConcept, "quincena">, string> = {
+  decimo: "Pago de Decimo",
+  vacacion: "Pago de Vacaciones",
+  prima: "Pago de Prima de Antiguedad",
+};
+
 export interface AchRow {
+  employeeId: string;
+  concept: AchConcept;
   id: string;
   name: string;
   route: string;
@@ -49,8 +64,14 @@ export interface AchEmployeeInput {
   bankAccountNumber: string | null;
   bankAccountType: AchAccountType | null;
   paymentMethod: string;
-  /** Neto a pagar de la quincena, en centavos. */
+  /** Neto a pagar de la quincena, en centavos. INCLUYE lo que se paga de
+   *  prestaciones esa quincena: el archivo lo separa en transferencias distintas. */
   netCents: number;
+  /** Prestaciones pagadas en esta quincena (ya incluidas en `netCents`). */
+  benefits?: { decimoCents: number; vacationCents: number; primaCents: number };
+  /** Si las prestaciones las paga otra empresa (la persona las recibe de ella):
+   *  se descuentan de este archivo, que solo lleva lo que paga Ebony. */
+  benefitsPaidExternally?: boolean;
 }
 
 export interface AchPayload {
@@ -59,6 +80,8 @@ export interface AchPayload {
   /** Empleados que SE PAGAN por transferencia pero les falta algún dato:
    *  no entran al archivo hasta completarlos. */
   incomplete: { employeeId: string; name: string; netCents: number; problems: AchProblem[] }[];
+  /** Cuánto se paga por cada concepto (para llevar el control de cada cosa). */
+  totalsByConcept: Record<AchConcept, { count: number; cents: number }>;
   /** Empleados que no entran por no ser transferencia o tener neto 0. */
   skipped: { employeeId: string; name: string; reason: "not_transfer" | "zero" }[];
   totalCents: number;
@@ -87,17 +110,43 @@ export function buildAchPayload(
   addendaText: string,
   /** Ruta del banco para quien no tenga una propia (normalmente la misma para
    *  todos). Vacía = la columna RUTA BANCO sale vacía. */
-  defaultRoute = ""
+  defaultRoute = "",
+  /** Textos de la ADENDA de cada prestación (por defecto "Pago de Decimo"…). */
+  benefitAddendaText: Partial<Record<Exclude<AchConcept, "quincena">, string>> = {}
 ): AchPayload {
-  const addenda = buildAddenda(addendaText);
-  const payload: AchPayload = { rows: [], incomplete: [], skipped: [], totalCents: 0 };
+  const payload: AchPayload = {
+    rows: [],
+    incomplete: [],
+    skipped: [],
+    totalCents: 0,
+    totalsByConcept: {
+      quincena: { count: 0, cents: 0 },
+      decimo: { count: 0, cents: 0 },
+      vacacion: { count: 0, cents: 0 },
+      prima: { count: 0, cents: 0 },
+    },
+  };
 
   for (const e of items) {
     if (e.paymentMethod !== "transferencia") {
       payload.skipped.push({ employeeId: e.employeeId, name: e.name, reason: "not_transfer" });
       continue;
     }
-    if (e.netCents <= 0) {
+    const b = e.benefits ?? { decimoCents: 0, vacationCents: 0, primaCents: 0 };
+    const benefitsTotal = b.decimoCents + b.vacationCents + b.primaCents;
+    // Cada concepto, por separado. La quincena es lo que queda al quitar las
+    // prestaciones; las prestaciones que paga otra empresa no entran al archivo.
+    const lines: { concept: AchConcept; cents: number }[] = [
+      { concept: "quincena" as const, cents: e.netCents - benefitsTotal },
+      ...(e.benefitsPaidExternally
+        ? []
+        : [
+            { concept: "decimo" as const, cents: b.decimoCents },
+            { concept: "vacacion" as const, cents: b.vacationCents },
+            { concept: "prima" as const, cents: b.primaCents },
+          ]),
+    ].filter((l) => l.cents > 0);
+    if (lines.length === 0) {
       payload.skipped.push({ employeeId: e.employeeId, name: e.name, reason: "zero" });
       continue;
     }
@@ -109,20 +158,35 @@ export function buildAchPayload(
     if (!account) problems.push("no_account");
     if (!e.bankAccountType) problems.push("no_account_type");
     if (problems.length > 0) {
-      payload.incomplete.push({ employeeId: e.employeeId, name: e.name, netCents: e.netCents, problems });
+      payload.incomplete.push({
+        employeeId: e.employeeId,
+        name: e.name,
+        netCents: lines.reduce((s, l) => s + l.cents, 0),
+        problems,
+      });
       continue;
     }
-    payload.rows.push({
-      id,
-      name: sanitizeAchText(e.name),
-      route,
-      account,
-      accountType: ACH_ACCOUNT_TYPE_CODE[e.bankAccountType as AchAccountType],
-      amount: Math.round(e.netCents) / 100,
-      transType: "C",
-      addenda,
-    });
-    payload.totalCents += Math.round(e.netCents);
+    for (const line of lines) {
+      const text =
+        line.concept === "quincena"
+          ? addendaText
+          : (benefitAddendaText[line.concept] ?? ACH_BENEFIT_ADDENDA_TEXT[line.concept]);
+      payload.rows.push({
+        employeeId: e.employeeId,
+        concept: line.concept,
+        id,
+        name: sanitizeAchText(e.name),
+        route,
+        account,
+        accountType: ACH_ACCOUNT_TYPE_CODE[e.bankAccountType as AchAccountType],
+        amount: Math.round(line.cents) / 100,
+        transType: "C",
+        addenda: buildAddenda(text),
+      });
+      payload.totalCents += Math.round(line.cents);
+      payload.totalsByConcept[line.concept].count += 1;
+      payload.totalsByConcept[line.concept].cents += Math.round(line.cents);
+    }
   }
   return payload;
 }

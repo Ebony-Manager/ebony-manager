@@ -18,6 +18,8 @@ describe("buildAchPayload", () => {
     const p = buildAchPayload([base], "Pago de Planilla");
     expect(p.rows).toEqual([
       {
+        employeeId: "e1",
+        concept: "quincena",
         id: "8-123-4567",
         name: "JOSE SALCEDO",
         route: "71",
@@ -73,6 +75,44 @@ describe("buildAchPayload", () => {
     );
     expect(p.rows.map((r) => r.amount)).toEqual([0.1, 0.2]);
     expect(p.totalCents).toBe(30);
+  });
+});
+
+describe("prestaciones en transferencias separadas", () => {
+  const withBenefits: AchEmployeeInput = {
+    ...base,
+    netCents: 100_000, // 600 de quincena + 300 de décimo + 100 de prima
+    benefits: { decimoCents: 30_000, vacationCents: 0, primaCents: 10_000 },
+  };
+
+  it("el décimo y la prima salen como filas aparte, con su propio monto y adenda", () => {
+    const p = buildAchPayload([withBenefits], "Pago de Planilla 1Q Abril", "", {
+      decimo: "Pago de Decimo 1Q Abril",
+      prima: "Pago de Prima 1Q Abril",
+    });
+    expect(p.rows.map((r) => [r.concept, r.amount, r.addenda])).toEqual([
+      ["quincena", 600, "REF*TXT**Pago de Planilla 1Q Abril\\"],
+      ["decimo", 300, "REF*TXT**Pago de Decimo 1Q Abril\\"],
+      ["prima", 100, "REF*TXT**Pago de Prima 1Q Abril\\"],
+    ]);
+    expect(p.totalCents).toBe(100_000);
+    expect(p.totalsByConcept.decimo).toEqual({ count: 1, cents: 30_000 });
+    expect(p.totalsByConcept.quincena.cents).toBe(60_000);
+  });
+
+  it("si solo hay prestación (quincena en 0) sale solo esa transferencia", () => {
+    const p = buildAchPayload([{ ...withBenefits, netCents: 30_000, benefits: { decimoCents: 30_000, vacationCents: 0, primaCents: 0 } }], "x");
+    expect(p.rows.map((r) => r.concept)).toEqual(["decimo"]);
+  });
+
+  it("las prestaciones que paga otra empresa no entran al archivo", () => {
+    const p = buildAchPayload([{ ...withBenefits, benefitsPaidExternally: true }], "x");
+    expect(p.rows.map((r) => [r.concept, r.amount])).toEqual([["quincena", 600]]);
+    expect(p.totalCents).toBe(60_000);
+  });
+
+  it("sin prestaciones todo sigue igual: una sola transferencia", () => {
+    expect(buildAchPayload([base], "x").rows).toHaveLength(1);
   });
 });
 

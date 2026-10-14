@@ -145,6 +145,14 @@ export function EmployeeBenefitsSection({
         </label>
       </div>
 
+      {enabled && employee.benefitsExternalCompany && (
+        <p className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          {tt("benefits_external_note")}{" "}
+          <span className="font-medium text-foreground">{employee.benefitsExternalCompany}</span>{" "}
+          {tt("benefits_external_note2")}
+        </p>
+      )}
+
       {!enabled ? (
         <p className="py-2 text-sm text-muted-foreground">{tt("benefits_off")}</p>
       ) : rows === null ? (

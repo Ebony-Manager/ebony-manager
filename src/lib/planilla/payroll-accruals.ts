@@ -280,7 +280,8 @@ export interface PrimaAccrualOptions {
  *
  * El salario de referencia es el PAGADO: el promedio mensual de lo realmente
  * ganado (base + extras − horas/días descontados) en las quincenas con
- * entry dentro de esa ventana. Si no hay ninguna, cae al salario base.
+ * entry dentro de esa ventana, tomada hasta el último mes completo (así solo
+ * cambia una vez al mes). Si no hay ninguna, cae al salario base.
  * Piso a meses enteros.
  */
 export function computePrimaAntiguedadAccrualCore(
@@ -320,9 +321,13 @@ export function computePrimaAntiguedadAccrualCore(
   if (asOfApproxDate.getDate() < anchor.getDate()) months -= 1;
   months = Math.max(0, months);
 
+  // El promedio pagado se toma hasta el último MES COMPLETO (hasta la 2da
+  // quincena): así la prima avanza una vez al mes, junto con los meses
+  // cumplidos, y no sube y baja con cada quincena que trae un descuento.
   let monthlyCents = employee.baseSalaryCents;
   if (opts.compensation) {
-    const { sumCents, count } = opts.compensation(anchorOrdExclusive, asOfOrd);
+    const windowEndOrd = asOf.half === 2 ? asOfOrd : asOfOrd - 1;
+    const { sumCents, count } = opts.compensation(anchorOrdExclusive, windowEndOrd);
     if (count > 0) monthlyCents = Math.round((sumCents / count) * 2);
   }
   return Math.round(monthlyCents * 0.0192 * months);

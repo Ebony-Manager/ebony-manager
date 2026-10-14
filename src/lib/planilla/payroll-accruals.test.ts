@@ -78,6 +78,7 @@ function makeEmployee(
     baseSalaryCents,
     benefitsBaseSalaryCents,
     benefitsEnabled: true,
+    benefitsExternalCompany: null,
     notes: null,
     liquidationNotes: null,
     sortOrder: 0,

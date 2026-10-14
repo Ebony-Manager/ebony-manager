@@ -8,7 +8,7 @@ const fmt = (iso: string) => iso.split("-").reverse().join("/");
 const emp = (over: Partial<PayrollEmployee>): PayrollEmployee =>
   ({
     id: "1", name: "Jose Salcedo", position: "Ebanista", startDate: "2023-07-11", endDate: null, status: "ACTIVE", categoria: "taller",
-    baseSalaryCents: 0, benefitsBaseSalaryCents: null, benefitsEnabled: true, notes: null, liquidationNotes: null, sortOrder: 0,
+    baseSalaryCents: 0, benefitsBaseSalaryCents: null, benefitsEnabled: true, benefitsExternalCompany: null, notes: null, liquidationNotes: null, sortOrder: 0,
     idDocument: "BA974846", idDocumentType: "pasaporte", nationality: "Colombiano", birthDate: null, photoPath: null,
     phone: "6824-9383", emergencyContactName: "Daniela", emergencyContactPhone: "6644-1584", contractInfo: null,
     bankName: "Banco General", bankAccountType: "ahorro", bankAccountNumber: "04-21-96", bankRoutingCode: null, ...over,

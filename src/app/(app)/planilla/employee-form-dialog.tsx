@@ -70,6 +70,7 @@ interface FormState {
   bankAccountNumber: string;
   bankRoutingCode: string;
   benefitsEnabled: boolean;
+  benefitsExternalCompany: string;
 }
 
 const EMPTY: FormState = {
@@ -94,6 +95,7 @@ const EMPTY: FormState = {
   bankAccountNumber: "",
   bankRoutingCode: "",
   benefitsEnabled: true,
+  benefitsExternalCompany: "",
 };
 
 /** `activePositions` es el catálogo VIGENTE (ya filtrado a activas por el
@@ -124,6 +126,7 @@ function fromEmployee(e: PayrollEmployee, activePositions: PayrollPosition[]): F
     bankAccountNumber: e.bankAccountNumber ?? "",
     bankRoutingCode: e.bankRoutingCode ?? "",
     benefitsEnabled: e.benefitsEnabled,
+    benefitsExternalCompany: e.benefitsExternalCompany ?? "",
   };
 }
 
@@ -228,12 +231,16 @@ export function EmployeeFormDialog({
         mode === "edit" && employee
           ? {
               ...(form.benefitsEnabled !== employee.benefitsEnabled ? { benefitsEnabled: form.benefitsEnabled } : {}),
+              ...((form.benefitsExternalCompany.trim() || null) !== employee.benefitsExternalCompany
+                ? { benefitsExternalCompany: form.benefitsExternalCompany.trim() || null }
+                : {}),
               ...(docType !== employee.idDocumentType ? { idDocumentType: docType } : {}),
               ...(nationality !== employee.nationality ? { nationality } : {}),
               ...(birthDate !== employee.birthDate ? { birthDate } : {}),
             }
           : {
               ...(!form.benefitsEnabled ? { benefitsEnabled: false } : {}),
+              ...(form.benefitsExternalCompany.trim() ? { benefitsExternalCompany: form.benefitsExternalCompany.trim() } : {}),
               ...(docType ? { idDocumentType: docType } : {}),
               ...(nationality ? { nationality } : {}),
               ...(birthDate ? { birthDate } : {}),
@@ -381,6 +388,16 @@ export function EmployeeFormDialog({
                 <span className="block text-xs text-muted-foreground">{tt("f_benefits_enabled_hint")}</span>
               </span>
             </label>
+            {form.benefitsEnabled && (
+              <Field label={tt("f_benefits_external")} className="sm:col-span-2">
+                <Input
+                  value={form.benefitsExternalCompany}
+                  onChange={(e) => set("benefitsExternalCompany", e.target.value)}
+                  placeholder={tt("f_benefits_external_ph")}
+                />
+                <p className="text-xs text-muted-foreground">{tt("f_benefits_external_hint")}</p>
+              </Field>
+            )}
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
               <Field label={tt("f_phone")}>

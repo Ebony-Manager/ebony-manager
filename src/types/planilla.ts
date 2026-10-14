@@ -43,6 +43,8 @@ export interface PayrollEmployee {
   benefitsBaseSalaryCents: number | null;
   /** ¿Lleva décimo / vacación / prima de antigüedad? Si no, no se acumulan ni se muestran. */
   benefitsEnabled: boolean;
+  /** Empresa que paga sus prestaciones en lugar de Ebony (null = las paga Ebony). */
+  benefitsExternalCompany: string | null;
   notes: string | null;
   /** Se setea junto con `endDate` al liquidar — aclaraciones/disputas/
    *  ajustes sobre ESA liquidación, aparte de `notes`. */

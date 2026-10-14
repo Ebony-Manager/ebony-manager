@@ -40,6 +40,7 @@ function mapEmployee(r: Row): PayrollEmployee {
     benefitsBaseSalaryCents: r.benefits_base_salary_cents,
     // Columna nueva (migración 20261014120000): `?? true` mantiene la app andando sin ella.
     benefitsEnabled: r.benefits_enabled ?? true,
+    benefitsExternalCompany: r.benefits_external_company ?? null,
     notes: r.notes,
     liquidationNotes: r.liquidation_notes,
     sortOrder: r.sort_order,
@@ -95,6 +96,7 @@ export interface CreatePayrollEmployeeInput {
   baseSalaryCents?: number;
   benefitsBaseSalaryCents?: number | null;
   benefitsEnabled?: boolean;
+  benefitsExternalCompany?: string | null;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
@@ -147,6 +149,7 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       ...(input.nationality ? { nationality: input.nationality } : {}),
       ...(input.birthDate ? { birth_date: input.birthDate } : {}),
       ...(input.benefitsEnabled === false ? { benefits_enabled: false } : {}),
+      ...(input.benefitsExternalCompany ? { benefits_external_company: input.benefitsExternalCompany } : {}),
       sort_order: nextSort,
     })
     .select("*")
@@ -185,6 +188,7 @@ export interface UpdatePayrollEmployeeInput {
   status?: "ACTIVE" | "INACTIVE";
   liquidationNotes?: string | null;
   benefitsEnabled?: boolean;
+  benefitsExternalCompany?: string | null;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
@@ -215,6 +219,7 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.status !== undefined) patch.status = input.status;
   if (input.liquidationNotes !== undefined) patch.liquidation_notes = input.liquidationNotes;
   if (input.benefitsEnabled !== undefined) patch.benefits_enabled = input.benefitsEnabled;
+  if (input.benefitsExternalCompany !== undefined) patch.benefits_external_company = input.benefitsExternalCompany;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.idDocument !== undefined) patch.id_document = input.idDocument;

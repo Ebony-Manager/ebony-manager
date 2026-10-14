@@ -322,6 +322,7 @@ export type Database = {
           base_salary_cents: number
           benefits_base_salary_cents: number | null
           benefits_enabled: boolean
+          benefits_external_company: string | null
           categoria: string
           contract_info: string | null
           created_at: string
@@ -352,6 +353,7 @@ export type Database = {
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
           benefits_enabled?: boolean
+          benefits_external_company?: string | null
           categoria?: string
           contract_info?: string | null
           created_at?: string
@@ -382,6 +384,7 @@ export type Database = {
           base_salary_cents?: number
           benefits_base_salary_cents?: number | null
           benefits_enabled?: boolean
+          benefits_external_company?: string | null
           categoria?: string
           contract_info?: string | null
           created_at?: string

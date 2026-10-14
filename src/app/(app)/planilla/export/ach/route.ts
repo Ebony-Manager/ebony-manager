@@ -45,9 +45,20 @@ export async function GET(request: NextRequest) {
       bankAccountType: employee.bankAccountType as AchAccountType | null,
       paymentMethod: total.entry?.paymentMethod ?? "transferencia",
       netCents: total.totalCents,
+      benefits: {
+        decimoCents: total.entry?.decimoPaidCents ?? 0,
+        vacationCents: total.entry?.vacationPaidCents ?? 0,
+        primaCents: total.entry?.primaAntiguedadPaidCents ?? 0,
+      },
+      benefitsPaidExternally: Boolean(employee.benefitsExternalCompany),
     })),
     text,
-    defaultRoute
+    defaultRoute,
+    {
+      decimo: sp.get("decimo") || undefined,
+      vacacion: sp.get("vacacion") || undefined,
+      prima: sp.get("prima") || undefined,
+    }
   );
 
   const buffer = buildAchWorkbook(payload.rows);
