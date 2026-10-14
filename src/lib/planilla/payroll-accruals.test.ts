@@ -77,6 +77,7 @@ function makeEmployee(
     categoria: "taller",
     baseSalaryCents,
     benefitsBaseSalaryCents,
+    benefitsEnabled: true,
     notes: null,
     liquidationNotes: null,
     sortOrder: 0,
@@ -339,5 +340,66 @@ describe("periodFromDateString", () => {
   });
   it("fecha inválida -> null", () => {
     expect(periodFromDateString("no es fecha")).toBeNull();
+  });
+});
+
+// ── Prima sobre lo PAGADO, reinicio al pagar, "no lleva prestaciones" ───
+
+describe("prima de antigüedad sobre el salario pagado", () => {
+  // Ingreso 2026-01-01, base 800/mes. Quincenas completas pagan 400; las de
+  // marzo pagan 300 por horas descontadas -> el promedio mensual pagado baja.
+  const employee = makeEmployee(80_000, null, "2026-01-01");
+  const entries: PayrollEntry[] = [];
+  for (const month of [1, 2, 3, 4]) {
+    for (const half of [1, 2] as const) {
+      entries.push(
+        entry({ year: 2026, month, half, basePayCents: 40_000, horasDescontadasCents: month === 3 ? 10_000 : 0 })
+      );
+    }
+  }
+  const ctx = buildEmployeeContext(entries, []);
+  const opts = (asOf: Period) => ({ lastPayout: ctx.lastPrimaPayout(asOf), compensation: ctx.compensation });
+
+  it("usa el promedio realmente pagado, no el salario base", () => {
+    const asOf: Period = { year: 2026, month: 5, half: 1 };
+    const onBase = computePrimaAntiguedadAccrual(employee, asOf);
+    const onPaid = computePrimaAntiguedadAccrual(employee, asOf, opts(asOf));
+    // 8 quincenas: 6 x 400 + 2 x 300 = 3000 -> promedio mensual 750.
+    expect(onBase).toBe(Math.round(80_000 * 0.0192 * 4));
+    expect(onPaid).toBe(Math.round(75_000 * 0.0192 * 4));
+    expect(onPaid).toBeLessThan(onBase);
+  });
+
+  it("un pago de prima reinicia el acumulado", () => {
+    const paid = [...entries, entry({ year: 2026, month: 5, half: 1, basePayCents: 40_000, primaAntiguedadPaidCents: 5_000 })];
+    const c = buildEmployeeContext(paid, []);
+    const before = computePrimaAntiguedadAccrual(employee, { year: 2026, month: 5, half: 1 }, {
+      lastPayout: c.lastPrimaPayout({ year: 2026, month: 5, half: 1 }),
+      compensation: c.compensation,
+    });
+    const afterPay: Period = { year: 2026, month: 6, half: 1 };
+    const after = computePrimaAntiguedadAccrual(employee, afterPay, {
+      lastPayout: c.lastPrimaPayout(afterPay),
+      compensation: c.compensation,
+    });
+    const later: Period = { year: 2026, month: 9, half: 1 };
+    const muchLater = computePrimaAntiguedadAccrual(employee, later, {
+      lastPayout: c.lastPrimaPayout(later),
+      compensation: c.compensation,
+    });
+    expect(before).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before); // volvió a empezar
+    expect(muchLater).toBeGreaterThan(after); // y vuelve a crecer mes a mes
+  });
+});
+
+describe("computeAnnualDetail — empleado que no lleva prestaciones", () => {
+  it("deja décimo, vacación y prima en 0", () => {
+    const employee = { ...makeEmployee(80_000, null, "2025-01-01"), benefitsEnabled: false };
+    const ctx = buildEmployeeContext([entry({ year: 2026, month: 1, half: 1, basePayCents: 40_000 })], []);
+    const rows = computeAnnualDetail(employee, ctx, 2026);
+    expect(rows.every((r) => r.decimoAccrualCents === 0 && r.vacationAccrualCents === 0 && r.primaAntiguedadAccrualCents === 0)).toBe(true);
+    const on = computeAnnualDetail({ ...employee, benefitsEnabled: true }, ctx, 2026);
+    expect(on.some((r) => r.primaAntiguedadAccrualCents > 0)).toBe(true);
   });
 });

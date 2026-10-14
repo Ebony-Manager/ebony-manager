@@ -69,6 +69,7 @@ interface FormState {
   birthDate: string;
   bankAccountNumber: string;
   bankRoutingCode: string;
+  benefitsEnabled: boolean;
 }
 
 const EMPTY: FormState = {
@@ -92,6 +93,7 @@ const EMPTY: FormState = {
   birthDate: "",
   bankAccountNumber: "",
   bankRoutingCode: "",
+  benefitsEnabled: true,
 };
 
 /** `activePositions` es el catálogo VIGENTE (ya filtrado a activas por el
@@ -121,6 +123,7 @@ function fromEmployee(e: PayrollEmployee, activePositions: PayrollPosition[]): F
     birthDate: e.birthDate ?? "",
     bankAccountNumber: e.bankAccountNumber ?? "",
     bankRoutingCode: e.bankRoutingCode ?? "",
+    benefitsEnabled: e.benefitsEnabled,
   };
 }
 
@@ -224,11 +227,13 @@ export function EmployeeFormDialog({
       const profileExtra =
         mode === "edit" && employee
           ? {
+              ...(form.benefitsEnabled !== employee.benefitsEnabled ? { benefitsEnabled: form.benefitsEnabled } : {}),
               ...(docType !== employee.idDocumentType ? { idDocumentType: docType } : {}),
               ...(nationality !== employee.nationality ? { nationality } : {}),
               ...(birthDate !== employee.birthDate ? { birthDate } : {}),
             }
           : {
+              ...(!form.benefitsEnabled ? { benefitsEnabled: false } : {}),
               ...(docType ? { idDocumentType: docType } : {}),
               ...(nationality ? { nationality } : {}),
               ...(birthDate ? { birthDate } : {}),
@@ -363,6 +368,19 @@ export function EmployeeFormDialog({
                 </div>
               )}
             </div>
+
+            <label className="flex cursor-pointer items-start gap-2 rounded-none border border-border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={form.benefitsEnabled}
+                onChange={(e) => set("benefitsEnabled", e.target.checked)}
+              />
+              <span>
+                <span className="font-medium text-foreground">{tt("f_benefits_enabled")}</span>
+                <span className="block text-xs text-muted-foreground">{tt("f_benefits_enabled_hint")}</span>
+              </span>
+            </label>
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
               <Field label={tt("f_phone")}>

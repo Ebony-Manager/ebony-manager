@@ -41,6 +41,8 @@ export interface PayrollEmployee {
    *  — el caso "Acumulado a 500". Cuando está seteada, cada prestación
    *  se computa dos veces (real y sobre esta) y se muestran ambas. */
   benefitsBaseSalaryCents: number | null;
+  /** ¿Lleva décimo / vacación / prima de antigüedad? Si no, no se acumulan ni se muestran. */
+  benefitsEnabled: boolean;
   notes: string | null;
   /** Se setea junto con `endDate` al liquidar — aclaraciones/disputas/
    *  ajustes sobre ESA liquidación, aparte de `notes`. */

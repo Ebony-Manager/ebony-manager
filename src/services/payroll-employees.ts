@@ -38,6 +38,8 @@ function mapEmployee(r: Row): PayrollEmployee {
     categoria: r.categoria === "administrativo" ? "administrativo" : "taller",
     baseSalaryCents: r.base_salary_cents,
     benefitsBaseSalaryCents: r.benefits_base_salary_cents,
+    // Columna nueva (migración 20261014120000): `?? true` mantiene la app andando sin ella.
+    benefitsEnabled: r.benefits_enabled ?? true,
     notes: r.notes,
     liquidationNotes: r.liquidation_notes,
     sortOrder: r.sort_order,
@@ -92,6 +94,7 @@ export interface CreatePayrollEmployeeInput {
    *  formulario: los cambios son aumentos registrados aparte. */
   baseSalaryCents?: number;
   benefitsBaseSalaryCents?: number | null;
+  benefitsEnabled?: boolean;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
@@ -143,6 +146,7 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       ...(input.idDocumentType ? { id_document_type: input.idDocumentType } : {}),
       ...(input.nationality ? { nationality: input.nationality } : {}),
       ...(input.birthDate ? { birth_date: input.birthDate } : {}),
+      ...(input.benefitsEnabled === false ? { benefits_enabled: false } : {}),
       sort_order: nextSort,
     })
     .select("*")
@@ -180,6 +184,7 @@ export interface UpdatePayrollEmployeeInput {
   endDate?: string | null;
   status?: "ACTIVE" | "INACTIVE";
   liquidationNotes?: string | null;
+  benefitsEnabled?: boolean;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
@@ -209,6 +214,7 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.status !== undefined) patch.status = input.status;
   if (input.liquidationNotes !== undefined) patch.liquidation_notes = input.liquidationNotes;
+  if (input.benefitsEnabled !== undefined) patch.benefits_enabled = input.benefitsEnabled;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.idDocument !== undefined) patch.id_document = input.idDocument;

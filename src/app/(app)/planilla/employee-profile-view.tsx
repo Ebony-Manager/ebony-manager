@@ -28,6 +28,7 @@ import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { SalaryHistorySection } from "./salary-history-section";
+import { EmployeeBenefitsSection } from "./employee-benefits-section";
 import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
 import { EmployeePhotoUploader } from "./employee-photo-uploader";
@@ -288,6 +289,8 @@ export function EmployeeProfileView({
             <span className="whitespace-pre-wrap">{employee.liquidationNotes}</span>
           </div>
         )}
+
+        <EmployeeBenefitsSection employee={employee} initialDetail={initial?.detail} />
 
         <EmployeeStatementSection employee={employee} initialDetail={initial?.detail} />
 

@@ -544,7 +544,7 @@ export function AuditoriaView({
                           <td
                             key={i}
                             data-col={i}
-                            className={`px-1.5 ${d.lineRow} text-right tabular-nums ${isPreview ? "italic" : ""} ${colTone(i)}`}
+                            className={`px-1.5 ${d.lineRow} text-right tabular-nums ${isPreview ? "italic text-muted-foreground/60" : colTone(i)}`}
                             style={{
                               ...lineBorder,
                               ...(!showYearTotal && i === lastColIdx ? { borderRight: `1px solid ${borderColor}` } : {}),
