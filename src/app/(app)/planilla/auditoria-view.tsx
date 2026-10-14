@@ -489,7 +489,7 @@ export function AuditoriaView({
                         ...headerBorder,
                         ...(!showYearTotal && i === lastColIdx ? { borderRight: `1px solid ${borderColor}` } : {}),
                         color: colOccurred(i) ? color : "var(--muted-foreground)",
-                        ...(g.key === "prestaciones" && v !== 0 ? { fontWeight: 700 } : {}),
+                        ...(g.key === "prestaciones" && v !== 0 ? { color: "var(--foreground)" } : {}),
                       }}
                     >
                       {v !== 0 ? fmtSigned(v) : "–"}
@@ -548,10 +548,10 @@ export function AuditoriaView({
                             className={`px-1.5 ${d.lineRow} text-right tabular-nums ${
                               isPreview
                                 ? colOccurred(i)
-                                  ? "italic text-muted-foreground/70"
-                                  : "italic text-sky-700/55 dark:text-sky-300/55"
+                                  ? "italic text-sky-700/55 dark:text-sky-300/60"
+                                  : "italic text-muted-foreground/60"
                                 : g.key === "prestaciones" && value !== 0
-                                  ? "font-bold text-foreground"
+                                  ? "text-black dark:text-white"
                                   : colTone(i)
                             }`}
                             style={{

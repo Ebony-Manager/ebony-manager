@@ -368,10 +368,29 @@ export function EmployeeFormDialog({
                     ) : (
                       <p className="text-sm text-muted-foreground">{tt("salary_not_set")}</p>
                     )}
+                    {form.benefitsExternalCompany.trim() && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}:{" "}
+                        <span className="font-medium text-foreground">
+                          {salaryShown.benefits != null ? `${formatCents(salaryShown.benefits)} ${tt("per_month")}` : tt("external_salary_missing")}
+                        </span>
+                      </p>
+                    )}
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
-                    {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
-                  </Button>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
+                      {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
+                    </Button>
+                    {form.benefitsExternalCompany.trim() && (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        onClick={() => setRaiseOpen(true)}
+                      >
+                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -524,6 +543,9 @@ export function EmployeeFormDialog({
       {mode === "edit" && employee && (
         <SalaryRaiseDialog
           employeeId={employee.id}
+          externalCompany={form.benefitsExternalCompany.trim() || employee.benefitsExternalCompany}
+          currentMonthlyCents={salaryShown.monthly}
+          currentBenefitsCents={salaryShown.benefits}
           defaultFrom={
             salaryShown.monthly === 0 && employee.startDate
               ? (() => {

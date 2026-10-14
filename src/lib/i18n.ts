@@ -50,6 +50,49 @@ export const strings = {
     settings: { es: "Configuración", en: "Settings" },
   },
 
+  // Dashboard global de Administración (Planilla + Contratistas juntos).
+  adminDash: {
+    title: { es: "Dashboard de Administración", en: "Administration dashboard" },
+    subtitle: {
+      es: "Lo que se paga cada mes entre Planilla (Taller y Administrativos) y Contratistas",
+      en: "What is paid each month across Payroll (Workshop and Admin) and Contractors",
+    },
+    loading: { es: "Cargando…", en: "Loading…" },
+    load_failed: { es: "No se pudo cargar la información.", en: "Could not load the data." },
+    retry: { es: "Reintentar", en: "Retry" },
+    ad_series_taller: { es: "Taller", en: "Workshop" },
+    ad_series_admin: { es: "Administrativos", en: "Administrative" },
+    ad_series_contractors: { es: "Contratistas", en: "Contractors" },
+    chart_title: { es: "Pagado por mes", en: "Paid per month" },
+    chart_hint: {
+      es: "Planilla: total pagado de cada quincena (salario, extras, prestaciones y descuentos). Contratistas: abonos registrados en su estado de cuenta (la pintura va dentro de contratistas). Clic en una barra para ver ese mes.",
+      en: "Payroll: total paid each pay period (salary, extras, benefits and deductions). Contractors: payments recorded in their statement (painting is included in contractors). Click a bar to see that month.",
+    },
+    tip_empty: { es: "Sin pagos este mes.", en: "No payments this month." },
+    tip_total: { es: "Total pagado", en: "Total paid" },
+    tip_projection: { es: "Mes que todavía no llega: lo ya programado.", en: "Month not reached yet: what is already scheduled." },
+    kpi_total: { es: "Total pagado", en: "Total paid" },
+    vs_prev: { es: "vs mes anterior", en: "vs previous month" },
+    kpi_projects: { es: "Proyectos trabajados", en: "Projects worked" },
+    kpi_projects_hint: { es: "con contratistas, en el mes", en: "with contractors, in the month" },
+    kpi_people_paid: { es: "Personas pagadas", en: "People paid" },
+    employees_word: { es: "empleados", en: "employees" },
+    contractors_word: { es: "contratistas", en: "contractors" },
+    kpi_ytd: { es: "Acumulado", en: "Year to date" },
+    kpi_ytd_hint: { es: "hasta el mes actual", en: "up to the current month" },
+    kpi_loans: { es: "Préstamos por cobrar", en: "Loans receivable" },
+    kpi_loans_hint: { es: "a empleados, a hoy", en: "from employees, to date" },
+    split_title: { es: "Reparto del mes", en: "Month split" },
+    projects_title: { es: "Proyectos trabajados", en: "Projects worked" },
+    projects_none: { es: "Sin proyectos con movimientos este mes.", en: "No projects with activity this month." },
+    movements_word: { es: "mov.", en: "entries" },
+    rank_title: { es: "Quién cobra más", en: "Who is paid the most" },
+    rank_employees: { es: "Empleados", en: "Employees" },
+    rank_contractors: { es: "Contratistas", en: "Contractors" },
+    rank_empty: { es: "Sin pagos en este período.", en: "No payments in this period." },
+    scope_year: { es: "Año", en: "Year" },
+  },
+
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
   // texto visible pasa por acá para salir ES/EN.
   planilla: {
@@ -782,6 +825,8 @@ export const strings = {
       es: "Se llena sola con el sueldo vigente de esta quincena (Sueldo / Aumentos en el perfil).",
       en: "Auto-filled from the salary in effect this period (Salary / Raises in the profile).",
     },
+    raise_f_external: { es: "Sueldo por", en: "Salary from" },
+    external_salary_missing: { es: "sin registrar — usa el botón para ponerlo", en: "not set — use the button to enter it" },
     f_benefits_external: { es: "Sus prestaciones las paga otra empresa", en: "Benefits are paid by another company" },
     f_benefits_external_ph: { es: "Ej. Confecciones Marggie S.A. (vacío = las paga Ebony)", en: "E.g. Confecciones Marggie S.A. (empty = Ebony pays)" },
     f_benefits_external_hint: {

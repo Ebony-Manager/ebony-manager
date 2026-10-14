@@ -43,6 +43,9 @@ function nextPeriodN(p: Period, n: number): Period {
 export function SalaryRaiseDialog({
   employeeId,
   defaultFrom,
+  externalCompany,
+  currentMonthlyCents,
+  currentBenefitsCents,
   open,
   onOpenChange,
   onSaved,
@@ -50,6 +53,11 @@ export function SalaryRaiseDialog({
   employeeId: string;
   /** Quincena sugerida para "desde cuándo" (ej. el ingreso, en un primer sueldo). */
   defaultFrom?: Period;
+  /** Si sus prestaciones las paga otra empresa: el segundo campo es lo que le paga esa empresa. */
+  externalCompany?: string | null;
+  /** Lo vigente hoy, para no tener que volver a escribirlo al cambiar solo una parte. */
+  currentMonthlyCents?: number;
+  currentBenefitsCents?: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (saved: { monthlySalaryCents: number; benefitsBaseSalaryCents: number | null }) => void;
@@ -70,8 +78,8 @@ export function SalaryRaiseDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setMonthly("");
-    setBenefits("");
+    setMonthly(currentMonthlyCents ? (currentMonthlyCents / 100).toFixed(2) : "");
+    setBenefits(currentBenefitsCents != null ? (currentBenefitsCents / 100).toFixed(2) : "");
     setPeriodKey(keyOf(defaultFrom ?? currentPeriod()));
     setNotes("");
     setError(null);
@@ -124,7 +132,7 @@ export function SalaryRaiseDialog({
         <Field label={tt("raise_f_monthly")}>
           <MoneyInput value={monthly} onValueChange={setMonthly} autoFocus />
         </Field>
-        <Field label={tt("raise_f_benefits")}>
+        <Field label={externalCompany ? `${tt("raise_f_external")} ${externalCompany}` : tt("raise_f_benefits")}>
           <MoneyInput value={benefits} onValueChange={setBenefits} placeholder={tt("f_benefits_hint")} />
         </Field>
       </div>

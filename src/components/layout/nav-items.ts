@@ -1,4 +1,4 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 
 export interface NavItem {
@@ -22,12 +22,12 @@ export const RAIL_ITEMS: NavItem[] = [
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
 ];
 
-// Planilla y Contratistas viven en el panel de "Administración", siempre
-// visible para un admin. El gate de verdad sigue siendo requireAdmin() en
-// cada página + RLS. El orden acá importa para sidebar.tsx (desestructura
-// [planillaItem, contratistasItem] para intercalar el placeholder
-// "Dashboard" entre los dos, como en el mockup).
+// El panel de "Administración" (siempre visible para un admin) tiene, en este
+// orden: Dashboard (global: Planilla + Contratistas juntos), Planilla y
+// Contratistas. El gate de verdad sigue siendo requireAdmin() en cada página +
+// RLS. El primero es también a donde lleva el ícono del rail.
 export const ADMIN_PANEL_ITEMS: NavItem[] = [
+  { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas },
   { href: "/planilla", icon: Users, label: strings.nav.taller },
   { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas },
 ];

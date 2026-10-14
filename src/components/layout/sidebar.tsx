@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Layers, Settings, X } from "lucide-react";
+import { Briefcase, Settings, X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
@@ -14,7 +14,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const { role } = useAuth();
   const pathname = usePathname();
   const isAdmin = role === "admin";
-  const [planillaItem, contratistasItem] = ADMIN_PANEL_ITEMS;
+  const [firstAdminItem] = ADMIN_PANEL_ITEMS;
   const isAdminRoute = ADMIN_PANEL_ITEMS.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
 
   return (
@@ -70,7 +70,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 Planilla/Contratistas. */}
             {isAdmin && (
               <Link
-                href={planillaItem.href}
+                href={firstAdminItem.href}
                 onClick={onClose}
                 title={t(lang, strings.nav.administracion)}
                 aria-label={t(lang, strings.nav.administracion)}
@@ -106,13 +106,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
-              {(() => {
-                const isActive =
-                  pathname === planillaItem.href || pathname.startsWith(`${planillaItem.href}/`);
-                const Icon = planillaItem.icon;
+              {ADMIN_PANEL_ITEMS.map(({ href, icon: Icon, label }) => {
+                const isActive = pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link
-                    href={planillaItem.href}
+                    key={href}
+                    href={href}
                     onClick={onClose}
                     className={`
                       flex items-center gap-[11px] rounded-[9px] text-[13.5px]
@@ -125,47 +124,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     `}
                   >
                     <Icon size={18} className="shrink-0" strokeWidth={1.7} />
-                    <span>{t(lang, planillaItem.label)}</span>
+                    <span>{t(lang, label)}</span>
                   </Link>
                 );
-              })()}
-
-              {/* "Dashboard" acá es el Resumen de Planillas global (Taller +
-                  Contratistas juntos) — todavía sin construir. El mockup lo
-                  pinta como un ítem normal (no apagado) con etiqueta
-                  "NUEVO" en vez de "Pronto"; sigue sin ser un <Link> real
-                  porque no hay página a la que mandarlo todavía. */}
-              <div className="flex items-center gap-[11px] rounded-[9px] px-3 py-[9px] text-[13.5px] font-medium text-ink-900/55">
-                <Layers size={18} className="shrink-0" strokeWidth={1.7} />
-                <span>{t(lang, strings.nav.resumenPlanillas)}</span>
-                <span className="ml-auto rounded-[5px] bg-walnut-tint px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.04em] text-walnut">
-                  {t(lang, strings.nav.nuevo)}
-                </span>
-              </div>
-
-              {(() => {
-                const isActive =
-                  pathname === contratistasItem.href || pathname.startsWith(`${contratistasItem.href}/`);
-                const Icon = contratistasItem.icon;
-                return (
-                  <Link
-                    href={contratistasItem.href}
-                    onClick={onClose}
-                    className={`
-                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
-                      transition-colors duration-100
-                      ${
-                        isActive
-                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
-                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
-                      }
-                    `}
-                  >
-                    <Icon size={18} className="shrink-0" strokeWidth={1.7} />
-                    <span>{t(lang, contratistasItem.label)}</span>
-                  </Link>
-                );
-              })()}
+              })}
             </nav>
           </aside>
         )}
