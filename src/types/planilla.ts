@@ -160,7 +160,9 @@ export type LedgerCategory =
   | "carnet"
   | "otro"
   /** Viajes de InDrive (transporte) — se registran en su propio tab. */
-  | "indrive";
+  | "indrive"
+  /** Intereses cobrados en un préstamo (deuda propia, enlazada al préstamo). */
+  | "interes";
 
 export type LedgerDirection = "debt" | "payment";
 
@@ -188,11 +190,20 @@ export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
  *  (herramienta) / un cobro (daño). */
 export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano";
 
+/** Cómo se calculó el interés de un préstamo. */
+export type LoanInterestMode = "monthly_pct" | "total_pct" | "fixed";
+
 export interface PayrollLoan {
   id: string;
   employeeId: string;
   category: LoanCategory;
+  /** Lo que se entregó. Las cuotas suman principal + intereses. */
   principalCents: number;
+  /** Intereses cobrados (0 = sin intereses). */
+  interestCents: number;
+  interestMode: LoanInterestMode | null;
+  /** % usado para calcularlo (null con monto fijo o sin interés). */
+  interestRatePct: number | null;
   paymentMethod: LoanPaymentMethod;
   numInstallments: number;
   requestDate: string;
@@ -352,6 +363,8 @@ export interface LoanOverviewRow {
   paymentMethod: LoanPaymentMethod;
   requestDate: string;
   principalCents: number;
+  /** Intereses de este préstamo (ya incluidos en lo pagado/pendiente). */
+  interestCents: number;
   /** Cuotas programadas hoy (las canceladas ya no cuentan). */
   installmentCount: number;
   paidCount: number;

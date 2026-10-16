@@ -16,14 +16,21 @@ export function MoneyInput({
   onValueChange,
   className,
   placeholder = "0.00",
+  symbol = "$",
   ...props
 }: Omit<React.ComponentProps<"input">, "value" | "onChange" | "type"> & {
   value: string;
   onValueChange: (value: string) => void;
+  /** "$" va adelante; "%" va al final (para porcentajes). */
+  symbol?: "$" | "%";
 }) {
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+      <span
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm text-muted-foreground ${symbol === "$" ? "left-2.5" : "right-2.5"}`}
+      >
+        {symbol}
+      </span>
       <Input
         {...props}
         type="text"
@@ -41,7 +48,7 @@ export function MoneyInput({
           const [int, ...rest] = cleaned.split(".");
           onValueChange(rest.length > 0 ? `${int}.${rest.join("")}` : int);
         }}
-        className={cn("pl-6 text-right tabular-nums", className)}
+        className={cn(symbol === "$" ? "pl-6" : "pr-6", "text-right tabular-nums", className)}
       />
     </div>
   );

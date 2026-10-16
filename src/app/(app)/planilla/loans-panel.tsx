@@ -117,6 +117,18 @@ function LoanCard({
               <span className="ml-2 font-normal text-muted-foreground">({tt("loan_paid_off")})</span>
             )}
           </p>
+          {loan.interestCents > 0 && (
+            <p className="mt-0.5 text-muted-foreground">
+              {tt("loan_interest_card")}: {formatCents(loan.interestCents)}
+              {loan.interestRatePct !== null && loan.interestMode !== "fixed" && (
+                <>
+                  {" "}
+                  ({loan.interestRatePct}%{loan.interestMode === "monthly_pct" ? ` ${tt("loan_interest_per_month")}` : ""})
+                </>
+              )}{" "}
+              · {tt("loan_interest_to_pay")} {formatCents(loan.principalCents + loan.interestCents)}
+            </p>
+          )}
           <p className="mt-0.5 text-muted-foreground">
             {tt("loan_requested")} {formatDate(lang, loan.requestDate)}
             {loan.paymentMethod === "cuota_variable" && <> · {tt("loan_scheme_variable").split(" (")[0]}</>}

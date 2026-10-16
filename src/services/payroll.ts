@@ -39,9 +39,11 @@ import {
   type LedgerRowFull,
 } from "@/lib/planilla/payroll-reports";
 import {
+  computeLoanInterestCents,
   computeLoanSchedule,
   defaultLoanStartPeriod,
   reflowLoanSchedule,
+  type LoanInterestInput,
   type ReflowMode,
   type PendingInstallment,
 } from "@/lib/planilla/payroll-loans";
@@ -688,6 +690,13 @@ function mapLoan(r: LoanRow): PayrollLoan {
     employeeId: r.employee_id,
     category: toLoanCategory(r.category),
     principalCents: r.principal_cents,
+    // Columnas de la migración 20261016120000: `?? 0` mantiene la app andando sin ella.
+    interestCents: r.interest_cents ?? 0,
+    interestMode:
+      r.interest_mode === "monthly_pct" || r.interest_mode === "total_pct" || r.interest_mode === "fixed"
+        ? r.interest_mode
+        : null,
+    interestRatePct: r.interest_rate_pct === null || r.interest_rate_pct === undefined ? null : Number(r.interest_rate_pct),
     paymentMethod: (r.payment_method as LoanPaymentMethod) ?? "cuota_fija",
     numInstallments: r.num_installments,
     requestDate: r.request_date,
@@ -720,8 +729,10 @@ export async function createLoan(input: {
   requestDate: string;
   numInstallments: number;
   startPeriod?: Period;
-  /** Solo con paymentMethod "cuota_variable": monto de cada cuota. */
+  /** Solo con paymentMethod "cuota_variable": monto de cada cuota (suman principal + intereses). */
   installmentAmountsCents?: number[];
+  /** Intereses a cobrar (opcional). El monto se calcula acá, no se confía en el cliente. */
+  interest?: LoanInterestInput | null;
   notes?: string | null;
 }): Promise<PayrollLoanWithSchedule> {
   const supabase = await createClient();
@@ -729,8 +740,10 @@ export async function createLoan(input: {
   const numInstallments = input.category === "adelanto" ? 1 : input.numInstallments;
   const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
   if (!startPeriod) throw new Error("Fecha de solicitud inválida");
+  const interestCents = computeLoanInterestCents(input.principalCents, numInstallments, input.interest);
+  // Las cuotas pagan lo entregado MÁS los intereses.
   const schedule = computeLoanSchedule(
-    input.principalCents,
+    input.principalCents + interestCents,
     numInstallments,
     startPeriod,
     paymentMethod,
@@ -751,6 +764,15 @@ export async function createLoan(input: {
       start_period_half: startPeriod.half,
       status: "active",
       notes: input.notes ?? null,
+      // Solo viajan si hay intereses, así crear un préstamo sin intereses
+      // sigue funcionando aunque la migración 20261016120000 aún no se aplique.
+      ...(interestCents > 0 && input.interest
+        ? {
+            interest_cents: interestCents,
+            interest_mode: input.interest.mode,
+            interest_rate_pct: input.interest.mode === "fixed" ? null : (input.interest.ratePct ?? null),
+          }
+        : {}),
     })
     .select("*")
     .single();
@@ -767,6 +789,20 @@ export async function createLoan(input: {
     loanId,
     notes: input.notes ?? null,
   });
+
+  // Los intereses, como una deuda propia enlazada al préstamo: así el saldo del
+  // empleado cuadra con las cuotas y se pueden sumar aparte como ganancia.
+  if (interestCents > 0) {
+    await createLedgerEntry({
+      employeeId: input.employeeId,
+      category: "interes",
+      direction: "debt",
+      amountCents: interestCents,
+      entryDate: input.requestDate,
+      loanId,
+      notes: "Intereses",
+    });
+  }
 
   const installments: PayrollLoanInstallment[] = [];
   for (let i = 0; i < schedule.length; i++) {
@@ -852,7 +888,7 @@ export async function cancelLoan(loanId: string): Promise<void> {
   const supabase = await createClient();
   const { data: ledgerRows, error } = await supabase
     .from("payroll_ledger_entries")
-    .select("id, payroll_entry_id")
+    .select("id, payroll_entry_id, direction, category, amount_cents")
     .eq("loan_id", loanId);
   if (error) throw new Error(error.message);
 
@@ -873,6 +909,33 @@ export async function cancelLoan(loanId: string): Promise<void> {
   if (toDelete.length > 0) {
     const { error: e3 } = await supabase.from("payroll_ledger_entries").delete().in("id", toDelete);
     if (e3) throw new Error(e3.message);
+  }
+
+  // Intereses: solo cuenta lo que se alcanzó a cobrar. Se reparte en proporción
+  // a lo pagado (las cuotas pagadas cubren principal e intereses a la par); lo
+  // que quede sin cobrar se perdona, igual que las cuotas que se cancelan.
+  const interestRow = (ledgerRows ?? []).find((r) => r.category === "interes" && r.direction === "debt");
+  if (interestRow) {
+    const paidCents = (ledgerRows ?? [])
+      .filter((r) => r.direction === "payment" && r.payroll_entry_id && paidById.get(r.payroll_entry_id) === true)
+      .reduce((sum, r) => sum + r.amount_cents, 0);
+    const { data: loanRow, error: eLoan } = await supabase
+      .from("payroll_loans")
+      .select("principal_cents, interest_cents")
+      .eq("id", loanId)
+      .single();
+    if (eLoan) throw new Error(eLoan.message);
+    const total = loanRow.principal_cents + (loanRow.interest_cents ?? 0);
+    const collected = total > 0 ? Math.round((loanRow.interest_cents ?? 0) * Math.min(paidCents / total, 1)) : 0;
+    if (collected <= 0) {
+      const { error: eDel } = await supabase.from("payroll_ledger_entries").delete().eq("id", interestRow.id);
+      if (eDel) throw new Error(eDel.message);
+    } else if (collected !== interestRow.amount_cents) {
+      const { error: eUpd } = await supabase.from("payroll_ledger_entries").update({ amount_cents: collected }).eq("id", interestRow.id);
+      if (eUpd) throw new Error(eUpd.message);
+    }
+    const { error: eInt } = await supabase.from("payroll_loans").update({ interest_cents: collected }).eq("id", loanId);
+    if (eInt) throw new Error(eInt.message);
   }
 
   const { error: e4 } = await supabase.from("payroll_loans").update({ status: "cancelled" }).eq("id", loanId);
@@ -1274,6 +1337,7 @@ export async function getLoansOverview(): Promise<LoanOverviewRow[]> {
       paymentMethod: (l.payment_method as LoanPaymentMethod) ?? "cuota_fija",
       requestDate: l.request_date,
       principalCents: l.principal_cents,
+      interestCents: l.interest_cents ?? 0,
       installmentCount: inst.length,
       paidCount: inst.length - pending.length,
       paidCents: inst.filter((i) => i.paid).reduce((s, i) => s + i.amountCents, 0),

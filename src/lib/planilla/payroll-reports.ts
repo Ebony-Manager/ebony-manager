@@ -302,12 +302,15 @@ function ledgerAmountsByQuincena(
   return periods;
 }
 
-const LEDGER_GROUPS: { key: string; labelKey: string; descLabelKey: string; category: string }[] = [
+const LEDGER_GROUPS: { key: string; labelKey: string; descLabelKey: string; category: string; debtOnly?: boolean }[] = [
   { key: "prestamo", labelKey: "li_prestamos", descLabelKey: "li_desc_prestamos", category: "prestamo" },
   { key: "adelanto", labelKey: "li_adelantos", descLabelKey: "li_desc_adelantos", category: "adelanto" },
   { key: "herramienta", labelKey: "li_herramientas", descLabelKey: "li_desc_herramientas", category: "herramienta" },
   { key: "dano", labelKey: "li_danos", descLabelKey: "li_desc_danos", category: "dano" },
   { key: "indrive", labelKey: "li_indrive", descLabelKey: "li_desc_indrive", category: "indrive" },
+  // Los intereses de un préstamo se cobran dentro de sus cuotas (categoría del
+  // préstamo): solo tienen línea de "otorgado", no de descuento propio.
+  { key: "interes", labelKey: "li_interes", descLabelKey: "li_desc_interes", category: "interes", debtOnly: true },
 ];
 
 /** Una fila de Auditoría (6 grupos de concepto a granularidad de 24
@@ -373,7 +376,7 @@ export function computeAuditoriaRow(
   const descuentoPrestamos = makeGroup(
     "descuento_prestamos",
     "grp_descuento_prestamos",
-    LEDGER_GROUPS.map((g) =>
+    LEDGER_GROUPS.filter((g) => !g.debtOnly).map((g) =>
       makeLineItem(
         `descuento_${g.key}`,
         g.descLabelKey,

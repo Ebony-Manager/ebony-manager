@@ -624,6 +624,9 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          interest_cents: number
+          interest_mode: string | null
+          interest_rate_pct: number | null
           notes: string | null
           num_installments: number
           payment_method: string
@@ -640,6 +643,9 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          interest_cents?: number
+          interest_mode?: string | null
+          interest_rate_pct?: number | null
           notes?: string | null
           num_installments?: number
           payment_method?: string
@@ -656,6 +662,9 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          interest_cents?: number
+          interest_mode?: string | null
+          interest_rate_pct?: number | null
           notes?: string | null
           num_installments?: number
           payment_method?: string

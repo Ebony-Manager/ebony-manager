@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, HandCoins, Hourglass, ListChecks } from "lucide-react";
+import { CheckCircle2, HandCoins, Hourglass, ListChecks, Percent } from "lucide-react";
 
 import type { LoanCategory, LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,14 @@ export function LoansOverviewView({
   const kpiPending = active.reduce((s, r) => s + r.pendingCents, 0);
   const kpiCollected = active.reduce((s, r) => s + r.paidCents, 0);
 
+  // Intereses: lo pactado en préstamos no cancelados y la parte ya cobrada
+  // (proporcional a lo pagado de cada préstamo) — ganancia de la empresa.
+  const interestAgreed = scoped.filter((r) => r.status !== "cancelled").reduce((s, r) => s + r.interestCents, 0);
+  const interestCollected = scoped.reduce((s, r) => {
+    const total = r.principalCents + r.interestCents;
+    return s + (r.interestCents > 0 && total > 0 ? Math.round(r.interestCents * Math.min(r.paidCents / total, 1)) : 0);
+  }, 0);
+
   const shown = scoped
     .filter((r) => (history ? true : !isDone(r)))
     .filter((r) => (filter === "all" ? true : filter === "money" ? MONEY.includes(r.category) : !MONEY.includes(r.category)))
@@ -87,11 +95,17 @@ export function LoansOverviewView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <PayrollKpiCard icon={HandCoins} label={tt("lo_kpi_lent")} value={formatCents(kpiLent)} />
         <PayrollKpiCard icon={CheckCircle2} label={tt("lo_kpi_collected")} value={formatCents(kpiCollected)} />
         <PayrollKpiCard icon={Hourglass} label={tt("lo_kpi_pending")} value={formatCents(kpiPending)} />
         <PayrollKpiCard icon={ListChecks} label={tt("lo_kpi_count")} value={String(active.length)} />
+        <PayrollKpiCard
+          icon={Percent}
+          label={tt("lo_kpi_interest")}
+          value={formatCents(interestCollected)}
+          sublabel={`${tt("lo_kpi_interest_of")} ${formatCents(interestAgreed)}`}
+        />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -163,7 +177,12 @@ export function LoansOverviewView({
                       {label}
                       <span className="ml-1 text-xs text-muted-foreground">· {formatDate(lang, r.requestDate)}</span>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatCents(r.principalCents)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatCents(r.principalCents)}
+                      {r.interestCents > 0 && (
+                        <span className="block text-[11px] text-muted-foreground">+ {formatCents(r.interestCents)} {tt("lo_interest_short")}</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">

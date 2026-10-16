@@ -137,6 +137,7 @@ type LoanInput = {
   numInstallments: number;
   startPeriod?: { year: number; month: number; half: 1 | 2 };
   installmentAmountsCents?: number[];
+  interest?: { mode: "monthly_pct" | "total_pct" | "fixed"; ratePct?: number | null; fixedCents?: number | null } | null;
   notes?: string | null;
 };
 
@@ -148,7 +149,11 @@ export type SaveResult = { ok: true } | { ok: false; error: string; migrationPen
 
 function toSaveError(err: unknown): SaveResult {
   const message = err instanceof Error ? err.message : "Error";
-  const migrationPending = message.includes("payroll_loans_category_check") || message.includes("payroll_indrive_rides");
+  const migrationPending =
+    message.includes("payroll_loans_category_check") ||
+    message.includes("payroll_ledger_entries_category_check") ||
+    message.includes("payroll_indrive_rides") ||
+    message.includes("interest_");
   return { ok: false, error: message, migrationPending };
 }
 

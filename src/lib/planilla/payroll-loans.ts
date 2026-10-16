@@ -1,8 +1,37 @@
 import type { Period } from "@/lib/planilla/payroll-period";
 import { nextPeriod, periodOrdinal } from "@/lib/planilla/payroll-period";
-import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
+import type { LoanCategory, LoanInterestMode, LoanPaymentMethod } from "@/types/planilla";
 
 export type { LoanPaymentMethod };
+
+export interface LoanInterestInput {
+  mode: LoanInterestMode;
+  /** Para "monthly_pct" y "total_pct": el porcentaje (ej. 5 = 5%). */
+  ratePct?: number | null;
+  /** Para "fixed": el monto en centavos. */
+  fixedCents?: number | null;
+}
+
+/**
+ * Intereses de un préstamo (interés simple), en centavos:
+ *  - "monthly_pct": % mensual sobre el monto × los meses del préstamo (cada
+ *    quincena cuenta medio mes: 6 cuotas = 3 meses);
+ *  - "total_pct": un % fijo sobre el monto, sin importar el plazo;
+ *  - "fixed": un monto en dólares.
+ * Sin entrada, o con valores vacíos / negativos, es 0.
+ */
+export function computeLoanInterestCents(
+  principalCents: number,
+  numInstallments: number,
+  input: LoanInterestInput | null | undefined
+): number {
+  if (!input || !(principalCents > 0)) return 0;
+  if (input.mode === "fixed") return Math.max(0, Math.round(input.fixedCents ?? 0));
+  const rate = input.ratePct ?? 0;
+  if (!(rate > 0)) return 0;
+  const months = input.mode === "monthly_pct" ? Math.max(1, numInstallments) / 2 : 1;
+  return Math.round(principalCents * (rate / 100) * months);
+}
 
 export interface LoanScheduleInstallment {
   period: Period;

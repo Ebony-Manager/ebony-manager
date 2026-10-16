@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeLoanInterestCents,
   computeLoanSchedule,
   defaultLoanStartPeriod,
   loanPayoffPeriod,
@@ -194,5 +195,28 @@ describe("reflowLoanSchedule · repartir", () => {
   it("sin cuotas posteriores cae al comportamiento de agregar", () => {
     const r = reflowLoanSchedule([mk("a", 10, 1, 10000)], "a", 4000, "spread");
     expect(r.map((i) => i.amountCents)).toEqual([4000, 6000]);
+  });
+});
+
+describe("computeLoanInterestCents", () => {
+  it("% mensual: cada quincena cuenta medio mes (4 cuotas = 2 meses)", () => {
+    expect(computeLoanInterestCents(50_000, 4, { mode: "monthly_pct", ratePct: 5 })).toBe(5_000);
+  });
+  it("% total: no depende del plazo", () => {
+    expect(computeLoanInterestCents(50_000, 4, { mode: "total_pct", ratePct: 8 })).toBe(4_000);
+    expect(computeLoanInterestCents(50_000, 12, { mode: "total_pct", ratePct: 8 })).toBe(4_000);
+  });
+  it("monto fijo", () => {
+    expect(computeLoanInterestCents(50_000, 4, { mode: "fixed", fixedCents: 4_000 })).toBe(4_000);
+  });
+  it("sin interés o con valores vacíos es 0", () => {
+    expect(computeLoanInterestCents(50_000, 4, null)).toBe(0);
+    expect(computeLoanInterestCents(50_000, 4, { mode: "monthly_pct", ratePct: 0 })).toBe(0);
+    expect(computeLoanInterestCents(0, 4, { mode: "fixed", fixedCents: 100 })).toBe(100 * 0);
+  });
+  it("las cuotas suman principal + intereses", () => {
+    const interest = computeLoanInterestCents(50_000, 3, { mode: "monthly_pct", ratePct: 5 });
+    const schedule = computeLoanSchedule(50_000 + interest, 3, { year: 2026, month: 10, half: 1 });
+    expect(schedule.reduce((s, i) => s + i.amountCents, 0)).toBe(50_000 + interest);
   });
 });
