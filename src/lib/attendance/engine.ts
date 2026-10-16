@@ -76,17 +76,16 @@ export function analyzeDay(date: string, punches: RawPunch[], schedule: Schedule
 
   const first = times[0];
   const last = times[times.length - 1];
-  if (times.length === 1 || last - first < MIN_SHIFT) {
-    // Una sola marcación (o dos casi iguales): el tipo que dice el archivo no es de fiar,
-    // se decide por la hora — de mañana es la entrada, de tarde es la salida.
-    if (first < NOON) {
-      result.arrival = first;
-      if (times.length > 1) flags.push("unclear");
-      flags.push("missing_out");
-    } else {
-      result.departure = first;
-      flags.push("missing_in", "unclear");
-    }
+  if (first >= NOON) {
+    // Todas las marcaciones son de tarde: no sabemos cuándo llegó (marcó al irse), no se descuenta tardanza.
+    result.departure = last;
+    flags.push("missing_in");
+    if (times.length === 1 || last - first < MIN_SHIFT) flags.push("unclear");
+  } else if (times.length === 1 || last - first < MIN_SHIFT) {
+    // Una sola marcación de mañana (o dos casi iguales, ej. 08:13 y 08:13): la entrada; falta la salida.
+    result.arrival = first;
+    if (times.length > 1) flags.push("unclear");
+    flags.push("missing_out");
   } else {
     result.arrival = first;
     result.departure = last;

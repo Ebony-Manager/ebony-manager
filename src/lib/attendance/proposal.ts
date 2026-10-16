@@ -1,0 +1,127 @@
+/**
+ * Propuesta de horas de una quincena: junta las marcaciones (reloj + Jotform) de
+ * cada empleado, aplica las reglas de `engine.ts` y las horas extra autorizadas
+ * por la jefa de taller, y devuelve lo que se le sugeriría escribir en Registro.
+ * Solo propone: quien llama decide qué aplicar.
+ */
+import { analyzePeriod, datesBetween, minutesToHours, nightSurchargeCents } from "./engine";
+import { matchEmployees, type MatchableEmployee } from "./parse";
+import type { DayFlag, RawPunch, Schedule } from "./types";
+
+export interface ProposalEmployee extends MatchableEmployee {
+  status: "ACTIVE" | "INACTIVE";
+  categoria: "taller" | "administrativo";
+  startDate: string | null;
+  endDate: string | null;
+  monthlySalaryCents: number;
+}
+
+/** Horas extra autorizadas por la jefa de taller (formulario firmado): minutos desde las 00:00. */
+export interface OvertimeAuthorization {
+  employeeId: string;
+  date: string;
+  fromMinutes: number;
+  toMinutes: number;
+}
+
+export interface EmployeeProposal {
+  employeeId: string;
+  name: string;
+  /** Hay marcaciones en alguno de los dos archivos. */
+  hasPunches: boolean;
+  lateMinutes: number;
+  absentWeekdays: number;
+  absentSaturdays: number;
+  earlyLeaveMinutes: number;
+  overtimeMinutes: number;
+  nightMinutes: number;
+  review: { date: string; flags: DayFlag[] }[];
+  /** Lo que se sugiere escribir en Registro. */
+  suggested: {
+    /** Horas decimales (3.38 = 3 h 23 min): llegadas tarde + sábados sin marcar. */
+    horasDescontadas: number;
+    /** Días laborables (lunes a viernes) sin ninguna marcación. */
+    diasDescontados: number;
+    /** Horas extra autorizadas. */
+    extraHours: number;
+    /** Recargo nocturno en centavos (solo quien lo tiene). */
+    nightSurchargeCents: number;
+  };
+}
+
+/** Quien tiene recargo nocturno automático (minúsculas, sin acentos). Hoy solo José Salcedo. */
+export const NIGHT_SURCHARGE_NAMES = ["jose salcedo"];
+
+/** Un sábado sin ninguna marcación se descuenta como estas horas (8:00 a 1:30 pm). */
+export const SATURDAY_HOURS = 5.5;
+
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+/** Primer y último día de una quincena (`YYYY-MM-DD`). */
+export function periodDateRange(year: number, month: number, half: 1 | 2): { from: string; to: string } {
+  const mm = String(month).padStart(2, "0");
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return half === 1 ? { from: `${year}-${mm}-01`, to: `${year}-${mm}-15` } : { from: `${year}-${mm}-16`, to: `${year}-${mm}-${String(lastDay).padStart(2, "0")}` };
+}
+
+export function buildProposal(input: {
+  from: string;
+  to: string;
+  punches: readonly RawPunch[];
+  employees: readonly ProposalEmployee[];
+  overtime?: readonly OvertimeAuthorization[];
+  schedule?: Schedule;
+}): { proposals: EmployeeProposal[]; unmatched: string[] } {
+  const { from, to, employees } = input;
+  const inRange = input.punches.filter((p) => p.date >= from && p.date <= to);
+  const { matched, unmatched } = matchEmployees(inRange.map((p) => p.name), employees);
+
+  const byEmployee = new Map<string, RawPunch[]>();
+  for (const p of inRange) {
+    const e = matched.get(p.name);
+    if (!e) continue;
+    byEmployee.set(e.id, [...(byEmployee.get(e.id) ?? []), p]);
+  }
+  const overtimeBy = new Map<string, number>();
+  for (const o of input.overtime ?? []) {
+    if (o.date < from || o.date > to) continue;
+    overtimeBy.set(o.employeeId, (overtimeBy.get(o.employeeId) ?? 0) + Math.max(0, o.toMinutes - o.fromMinutes));
+  }
+
+  const proposals: EmployeeProposal[] = [];
+  for (const e of employees) {
+    const punches = byEmployee.get(e.id) ?? [];
+    const overtimeMinutes = overtimeBy.get(e.id) ?? 0;
+    // Quien no marca en ningún archivo (administrativas, o gente que solo sale a proyectos
+    // sin Jotform) no se toca: sin datos no se inventan descuentos.
+    if (punches.length === 0 && overtimeMinutes === 0) continue;
+    const a = analyzePeriod(from, to, punches, input.schedule, {
+      startDate: e.startDate,
+      endDate: e.status === "INACTIVE" ? e.endDate : null,
+    });
+    const hasNight = NIGHT_SURCHARGE_NAMES.includes(fold(e.name));
+    const lateHours = minutesToHours(a.lateMinutes) + a.absentSaturdays * SATURDAY_HOURS;
+    proposals.push({
+      employeeId: e.id,
+      name: e.name,
+      hasPunches: punches.length > 0,
+      lateMinutes: a.lateMinutes,
+      absentWeekdays: a.absentWeekdays,
+      absentSaturdays: a.absentSaturdays,
+      earlyLeaveMinutes: a.earlyLeaveMinutes,
+      overtimeMinutes,
+      nightMinutes: hasNight ? a.nightMinutes : 0,
+      review: a.review,
+      suggested: {
+        horasDescontadas: Math.round(lateHours * 100) / 100,
+        diasDescontados: punches.length > 0 ? a.absentWeekdays : 0,
+        extraHours: minutesToHours(overtimeMinutes),
+        nightSurchargeCents: hasNight ? nightSurchargeCents(a.nightMinutes, e.monthlySalaryCents) : 0,
+      },
+    });
+  }
+  return { proposals, unmatched };
+}
+
+/** Todas las fechas de una quincena (útil para armar la lista de formularios de horas extra). */
+export const periodDates = (from: string, to: string) => datesBetween(from, to);

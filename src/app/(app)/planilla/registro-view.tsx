@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Copy,
   SlidersHorizontal,
+  FileUp,
   MoreHorizontal,
   Download,
   FileText,
@@ -77,6 +78,7 @@ import {
 import { RegistroKpiCard } from "./registro-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
 import { BankExportDialog } from "./bank-export-dialog";
+import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { downloadQuincenaPdf } from "./quincena-pdf";
 import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
@@ -157,6 +159,7 @@ export function RegistroView({
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
   const [bankOpen, setBankOpen] = React.useState(false);
+  const [attendanceOpen, setAttendanceOpen] = React.useState(false);
   // Buscador de empleado: la tabla se queda solo con quien coincida.
   const [query, setQuery] = React.useState("");
 
@@ -659,6 +662,10 @@ export function RegistroView({
               <Copy className="size-3.5" />
               {tt("duplicate_prev")}
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setAttendanceOpen(true)}>
+              <FileUp className="size-3.5" />
+              {tt("att_menu")}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -1046,6 +1053,13 @@ export function RegistroView({
       )}
 
       <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={fullRows} />
+      <AttendanceImportDialog
+        open={attendanceOpen}
+        onOpenChange={setAttendanceOpen}
+        period={dataPeriod}
+        rows={fullRows}
+        onApplied={load}
+      />
 
       {(pending || visibleRows === null) && (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>

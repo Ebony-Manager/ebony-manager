@@ -43,6 +43,14 @@ describe("analyzeDay", () => {
     expect(d.lateMinutes).toBe(0);
   });
 
+  it("si todas las marcaciones son de tarde no se sabe cuándo llegó: no hay tardanza", () => {
+    const d = analyzeDay("2026-09-24", [punch("2026-09-24", "17:05"), punch("2026-09-24", "17:05"), punch("2026-09-24", "20:02")]);
+    expect(d.lateMinutes).toBe(0);
+    expect(d.arrival).toBeNull();
+    expect(d.departure).toBe(t("20:02"));
+    expect(d.flags).toContain("missing_in");
+  });
+
   it("dos marcaciones casi iguales (08:13 y 08:13) no son un turno", () => {
     const d = analyzeDay("2026-10-03", [punch("2026-10-03", "08:13"), punch("2026-10-03", "08:13")]);
     expect(d.flags).toContain("missing_out");
@@ -145,5 +153,71 @@ describe("matchEmployees", () => {
     expect(r.matched.get("Nabil Soriano")?.id).toBe("2");
     expect(r.matched.get("Mario Loaiza")?.id).toBe("3");
     expect(r.unmatched).toEqual(["Jose Padilla"]);
+  });
+});
+
+import { buildProposal, periodDateRange, type ProposalEmployee } from "./proposal";
+
+describe("buildProposal", () => {
+  const emp = (id: string, name: string, extra: Partial<ProposalEmployee> = {}): ProposalEmployee => ({
+    id,
+    name,
+    status: "ACTIVE",
+    categoria: "taller",
+    startDate: "2020-01-01",
+    endDate: null,
+    monthlySalaryCents: 95_000,
+    ...extra,
+  });
+  const p = (name: string, date: string, time: string, source: "reloj" | "jotform" = "reloj"): RawPunch => ({
+    name,
+    date,
+    minutes: t(time),
+    kind: "unknown",
+    source,
+  });
+
+  it("rangos de quincena", () => {
+    expect(periodDateRange(2026, 10, 1)).toEqual({ from: "2026-10-01", to: "2026-10-15" });
+    expect(periodDateRange(2026, 2, 2)).toEqual({ from: "2026-02-16", to: "2026-02-28" });
+  });
+
+  it("propone horas tarde, días sin marcar y extras autorizadas; ignora lo fuera de la quincena", () => {
+    const { proposals } = buildProposal({
+      from: "2026-10-05",
+      to: "2026-10-07",
+      employees: [emp("1", "Nabil Soriano")],
+      punches: [
+        p("Nabil Soriano", "2026-10-05", "07:50"),
+        p("Nabil Soriano", "2026-10-05", "18:14"),
+        p("Nabil Soriano", "2026-10-06", "07:30"),
+        p("Nabil Soriano", "2026-10-06", "17:47"),
+        p("Nabil Soriano", "2026-10-01", "09:00"),
+      ],
+      overtime: [{ employeeId: "1", date: "2026-10-05", fromMinutes: t("17:00"), toMinutes: t("18:14") }],
+    });
+    expect(proposals).toHaveLength(1);
+    expect(proposals[0].lateMinutes).toBe(20);
+    expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0.33, diasDescontados: 1, extraHours: 1.23, nightSurchargeCents: 0 });
+  });
+
+  it("sin marcaciones ni extras no se propone nada", () => {
+    const { proposals } = buildProposal({ from: "2026-10-05", to: "2026-10-07", employees: [emp("1", "Karina Cardona")], punches: [] });
+    expect(proposals).toEqual([]);
+  });
+
+  it("recargo nocturno solo para quien lo tiene", () => {
+    const punches = [p("Jose Salcedo", "2026-10-05", "08:00"), p("Jose Salcedo", "2026-10-05", "20:06")];
+    const { proposals } = buildProposal({
+      from: "2026-10-05",
+      to: "2026-10-05",
+      employees: [emp("1", "Jose Salcedo"), emp("2", "Otro Empleado")],
+      punches: [...punches, p("Otro Empleado", "2026-10-05", "08:00"), p("Otro Empleado", "2026-10-05", "20:06")],
+    });
+    const jose = proposals.find((x) => x.employeeId === "1")!;
+    const otro = proposals.find((x) => x.employeeId === "2")!;
+    expect(jose.nightMinutes).toBe(126);
+    expect(jose.suggested.nightSurchargeCents).toBeGreaterThan(0);
+    expect(otro.suggested.nightSurchargeCents).toBe(0);
   });
 });
