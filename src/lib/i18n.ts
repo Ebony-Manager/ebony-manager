@@ -905,6 +905,12 @@ export const strings = {
     },
     att_copy_review: { es: "Copiar lista de días a revisar", en: "Copy list of days to review" },
     att_copied: { es: "Lista copiada", en: "List copied" },
+    att_clear: { es: "Limpiar horas de esta quincena", en: "Clear this period's hours" },
+    att_clear_confirm: {
+      es: "Esto deja en 0 las horas y días descontados y las horas extra de TODOS los empleados de esta quincena (y el recargo nocturno de José Salcedo). No toca sueldos, préstamos ni prestaciones. ¿Continuar?",
+      en: "This sets docked hours/days and overtime to 0 for ALL employees in this period (and the night surcharge). It does not touch salaries, loans or benefits. Continue?",
+    },
+    att_cleared: { es: "Filas limpiadas", en: "Rows cleared" },
     att_apply: { es: "Aplicar a Registro", en: "Apply to Register" },
     att_applied: { es: "Empleados actualizados", en: "Employees updated" },
     att_apply_error: { es: "No se pudo aplicar todo; revisa Registro.", en: "Could not apply everything; check Register." },

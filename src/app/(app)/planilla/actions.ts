@@ -52,6 +52,12 @@ export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) 
   return payroll.upsertEntry(input);
 }
 
+/** Borra las horas/días descontados y las horas extra de la quincena (rehacer una importación). */
+export async function clearPeriodHoursAction(year: number, month: number, half: 1 | 2) {
+  await requireAdmin();
+  return { cleared: await payroll.clearPeriodHours(year, month, half) };
+}
+
 export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
   await requireAdmin();
   const copied = await payroll.duplicatePreviousPeriod(year, month, half);

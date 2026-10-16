@@ -17,7 +17,7 @@ import { formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-per
 import { formatDate } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { upsertPayrollEntryAction } from "./actions";
+import { clearPeriodHoursAction, upsertPayrollEntryAction } from "./actions";
 
 type RegistroRow = Awaited<ReturnType<typeof getRegistroAction>>[number];
 
@@ -192,6 +192,21 @@ export function AttendanceImportDialog({
       toast.success(tt("att_copied"));
     } catch {
       toast.error(tt("att_file_error"));
+    }
+  }
+
+  async function clearHours() {
+    if (!window.confirm(`${tt("att_clear_confirm")}\n\n${quincenaLabel}`)) return;
+    setApplying(true);
+    try {
+      const { cleared } = await clearPeriodHoursAction(period.year, period.month, period.half);
+      toast.success(`${tt("att_cleared")}: ${cleared}`);
+      onApplied();
+    } catch (err) {
+      console.error("Asistencia: no se pudo limpiar", err);
+      toast.error(tt("att_apply_error"));
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -446,10 +461,16 @@ export function AttendanceImportDialog({
         )}
 
         <DialogFooter className="items-center sm:justify-between">
-          <Button type="button" variant="ghost" size="sm" disabled={proposals.every((p) => p.review.length === 0)} onClick={() => void copyReview()}>
-            <ClipboardCopy className="size-3.5" />
-            {tt("att_copy_review")}
-          </Button>
+          <div className="flex flex-wrap gap-1">
+            <Button type="button" variant="ghost" size="sm" disabled={proposals.every((p) => p.review.length === 0)} onClick={() => void copyReview()}>
+              <ClipboardCopy className="size-3.5" />
+              {tt("att_copy_review")}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={applying} onClick={() => void clearHours()}>
+              <Trash2 className="size-3.5" />
+              {tt("att_clear")}
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={applying}>
               {tt("action_cancel")}
