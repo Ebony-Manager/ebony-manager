@@ -69,6 +69,13 @@ describe("analyzePeriod", () => {
     expect(r.absentWeekdays).toBe(1); // el lunes 5 no tiene nada
     expect(r.review.map((x) => x.date)).toEqual(["2026-10-05"]);
   });
+  it("antes del ingreso o después de la salida no hay ausencias", () => {
+    const r = analyzePeriod("2026-10-05", "2026-10-09", [punch("2026-10-08", "07:35")], undefined, {
+      startDate: "2026-10-08",
+    });
+    expect(r.days.map((d) => d.date)).toEqual(["2026-10-08", "2026-10-09"]);
+    expect(r.absentWeekdays).toBe(1); // solo el 9 (no marcó); el 5, 6 y 7 son antes de entrar
+  });
   it("conversiones", () => {
     expect(minutesToHours(17)).toBe(0.28);
     expect(weekdayOf("2026-10-03")).toBe(6);
@@ -125,12 +132,18 @@ describe("matchEmployees", () => {
     { id: "2", name: "Nabil Massiel Soriano" },
     { id: "3", name: "Mario Loaiza" },
     { id: "4", name: "Jhon Pena" },
+    { id: "5", name: "Sebastian Canto" },
   ];
+  it("los alias confirmados por Ebony unen los dos archivos", () => {
+    const r = matchEmployees(["Jhon Jader", "Alexis Canto"], emps);
+    expect(r.matched.get("Jhon Jader")?.id).toBe("4");
+    expect(r.matched.get("Alexis Canto")?.id).toBe("5");
+  });
   it("usa alias, nombre igual y nombre contenido; lo dudoso queda sin resolver", () => {
-    const r = matchEmployees(["Hector Berrio", "Nabil Soriano", "Mario Loaiza", "Alexis Canto"], emps);
+    const r = matchEmployees(["Hector Berrio", "Nabil Soriano", "Mario Loaiza", "Jose Padilla"], emps);
     expect(r.matched.get("Hector Berrio")?.id).toBe("1");
     expect(r.matched.get("Nabil Soriano")?.id).toBe("2");
     expect(r.matched.get("Mario Loaiza")?.id).toBe("3");
-    expect(r.unmatched).toEqual(["Alexis Canto"]);
+    expect(r.unmatched).toEqual(["Jose Padilla"]);
   });
 });

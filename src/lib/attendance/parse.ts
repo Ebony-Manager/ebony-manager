@@ -105,6 +105,11 @@ export const NAME_ALIASES: Record<string, string> = {
   "javier garrido": "Einar Javier Garrido",
   "luis rodriguez": "Luis Alejandro Rodriguez",
   "javier alonzo": "Javier Alonzo Dominguez",
+  // Confirmados por Ebony: el mismo empleado aparece con otro nombre según el archivo.
+  "alonso dominguez": "J. Marceline Alonzo D.",
+  "jhon jader": "Jhon Pena",
+  "alexis canto": "Sebastian Canto",
+  "jhosep soto": "Joseph Guevara",
 };
 
 /**

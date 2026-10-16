@@ -106,7 +106,9 @@ export function analyzePeriod(
   from: string,
   to: string,
   punches: RawPunch[],
-  schedule: Schedule = DEFAULT_SCHEDULE
+  schedule: Schedule = DEFAULT_SCHEDULE,
+  /** Días en que la persona trabaja en la empresa (ingreso / salida): fuera de ahí no hay ausencias. */
+  employment: { startDate?: string | null; endDate?: string | null } = {}
 ): EmployeeAttendance {
   const byDate = new Map<string, RawPunch[]>();
   for (const p of punches) {
@@ -114,7 +116,9 @@ export function analyzePeriod(
     list.push(p);
     byDate.set(p.date, list);
   }
-  const days = datesBetween(from, to).map((d) => analyzeDay(d, byDate.get(d) ?? [], schedule));
+  const days = datesBetween(from, to)
+    .filter((d) => !(employment.startDate && d < employment.startDate) && !(employment.endDate && d > employment.endDate))
+    .map((d) => analyzeDay(d, byDate.get(d) ?? [], schedule));
   const review = days.filter((d) => d.flags.some((f) => f !== "early_leave" && f !== "sunday_punch")).map((d) => ({ date: d.date, flags: d.flags }));
   return {
     days,
