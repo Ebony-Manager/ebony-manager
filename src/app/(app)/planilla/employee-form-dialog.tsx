@@ -117,7 +117,9 @@ const EMPTY: FormState = {
   address: "",
   bankAccountNumber: "",
   bankRoutingCode: "",
-  benefitsEnabled: true,
+  // Casi nadie lleva prestaciones en la planilla: un empleado nuevo arranca
+  // sin ellas y se marcan a mano si le tocan.
+  benefitsEnabled: false,
   benefitsExternalCompany: "",
 };
 
