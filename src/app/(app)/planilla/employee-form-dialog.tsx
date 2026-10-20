@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { CountrySelect } from "@/components/shared/country-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -445,11 +446,7 @@ export function EmployeeFormDialog({
                 />
               </Field>
               <Field label={tt("f_nationality")}>
-                <Input
-                  value={form.nationality}
-                  onChange={(e) => set("nationality", e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
+                <CountrySelect value={form.nationality || null} onChange={(code) => set("nationality", code ?? "")} />
               </Field>
               <Field label={tt("f_birth_date")}>
                 <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />

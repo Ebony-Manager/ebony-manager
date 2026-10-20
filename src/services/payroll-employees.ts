@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { signedPhotoUrls } from "./photos";
 import type { Database } from "@/types/database";
 import type { BankAccountType, EmployeeCategoria, PayrollEmployee } from "@/types/planilla";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
@@ -265,26 +266,7 @@ export async function deletePayrollEmployee(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** URL firmada (1 h) de la foto de cada empleado que tenga una. El bucket
- *  `employee-photos` es privado; si aún no existe (migración sin aplicar) o
- *  falla, devuelve {} y la app muestra las iniciales como siempre. */
+/** URL firmada (1 h) de la foto de cada empleado que tenga una (ver signedPhotoUrls). */
 export async function getEmployeePhotoUrls(employees: PayrollEmployee[]): Promise<Record<string, string>> {
-  const withPhoto = employees.filter((e) => e.photoPath);
-  if (withPhoto.length === 0) return {};
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
-      .from("employee-photos")
-      .createSignedUrls(withPhoto.map((e) => e.photoPath as string), 3600);
-    if (error || !data) return {};
-    const byPath = new Map(data.map((d) => [d.path, d.signedUrl]));
-    const out: Record<string, string> = {};
-    for (const e of withPhoto) {
-      const url = byPath.get(e.photoPath as string);
-      if (url) out[e.id] = url;
-    }
-    return out;
-  } catch {
-    return {};
-  }
+  return signedPhotoUrls("employee-photos", employees);
 }

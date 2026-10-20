@@ -26,10 +26,13 @@ import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 export function StaffClient({
   members,
   photoUrls,
+  contractorPhotoUrls,
   showKindFilter,
 }: {
   members: TeamMember[];
+  /** Fotos de empleados (las lee EmployeeAvatar vía EmployeePhotosProvider). */
   photoUrls: Record<string, string>;
+  contractorPhotoUrls: Record<string, string>;
   /** Solo si el usuario ve empleados Y contratistas. */
   showKindFilter: boolean;
 }) {
@@ -107,7 +110,7 @@ export function StaffClient({
           <EmptyBox>{tt("no_results")}</EmptyBox>
         ) : (
           <>
-            {active.length > 0 && <TeamList members={active} />}
+            {active.length > 0 && <TeamList members={active} contractorPhotoUrls={contractorPhotoUrls} />}
 
             {inactive.length > 0 && (
               <div className="flex flex-col gap-3">
@@ -119,7 +122,7 @@ export function StaffClient({
                   {showInactive ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                   {tt("inactive_section")} ({inactive.length})
                 </button>
-                {showInactive && <TeamList members={inactive} muted />}
+                {showInactive && <TeamList members={inactive} contractorPhotoUrls={contractorPhotoUrls} muted />}
               </div>
             )}
           </>
@@ -139,7 +142,15 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 
 const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_20px]";
 
-function TeamList({ members, muted = false }: { members: TeamMember[]; muted?: boolean }) {
+function TeamList({
+  members,
+  contractorPhotoUrls,
+  muted = false,
+}: {
+  members: TeamMember[];
+  contractorPhotoUrls: Record<string, string>;
+  muted?: boolean;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
 
@@ -167,7 +178,7 @@ function TeamList({ members, muted = false }: { members: TeamMember[]; muted?: b
                 {m.kind === "employee" ? (
                   <EmployeeAvatar name={m.name} employeeId={m.id} sortOrder={m.sortOrder} size="md" />
                 ) : (
-                  <ContractorAvatar name={m.name} size="md" />
+                  <ContractorAvatar name={m.name} photoUrl={contractorPhotoUrls[m.id] ?? null} size="md" />
                 )}
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-foreground">{m.name}</div>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireModule } from "@/lib/auth/dal";
-import { getContractor, getContractorLedger, getLaborRates, getProjects } from "@/services/contractors";
+import { getContractor, getContractorLedger, getLaborRates, getProjects, getContractorPhotoUrls } from "@/services/contractors";
 import { ContractorProfileView } from "../contractor-profile-view";
 
 // La ficha del contratista pide el módulo `contratistas`, igual que el
@@ -21,15 +21,17 @@ export default async function ContractorDetailPage({
   const contractor = await getContractor(id);
   if (!contractor) notFound();
 
-  const [entries, projects, laborRates] = await Promise.all([
+  const [entries, projects, laborRates, photoUrls] = await Promise.all([
     getContractorLedger(id),
     getProjects(),
     getLaborRates(),
+    getContractorPhotoUrls([contractor]),
   ]);
 
   return (
     <ContractorProfileView
       contractor={contractor}
+      photoUrl={photoUrls[contractor.id] ?? null}
       initialEntries={entries}
       initialProjects={projects}
       laborRates={laborRates}

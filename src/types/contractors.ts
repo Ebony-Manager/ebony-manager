@@ -38,9 +38,23 @@ export interface Contractor {
   id: string;
   name: string;
   contractorType: ContractorType;
+  /** Número de cédula o pasaporte (el tipo va en `idDocumentType`). */
   idDocument: string | null;
+  idDocumentType: "cedula" | "pasaporte" | null;
+  /** Código de país ISO 3166-1 de dos letras (ver src/lib/countries.ts). */
+  nationality: string | null;
+  /** Fecha de nacimiento, `YYYY-MM-DD`. */
+  birthDate: string | null;
+  /** Ruta de la foto en el bucket privado `contractor-photos`; null = sin foto. */
+  photoPath: string | null;
   phone: string | null;
-  contactInfo: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  contractInfo: string | null;
+  bankName: string | null;
+  bankAccountType: "ahorro" | "corriente" | null;
+  bankAccountNumber: string | null;
+  bankRoutingCode: string | null;
   startDate: string | null;
   status: ContractorStatus;
   endDate: string | null;

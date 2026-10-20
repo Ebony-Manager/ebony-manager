@@ -14,6 +14,8 @@ export interface RosterLabels {
   corriente: string;
   active: string;
   inactive: string;
+  /** Nombre del país de la nacionalidad (se guarda el código, ej. "PA"). */
+  country: (code: string) => string;
 }
 
 export interface RosterRow {
@@ -57,7 +59,7 @@ export function buildRoster(
       type: e.categoria === "administrativo" ? labels.administrativo : labels.taller,
       startDate: e.startDate ? fmtDate(e.startDate) : dash,
       document: e.idDocument ? [docKind, e.idDocument].filter(Boolean).join(" ") : dash,
-      nationality: e.nationality || dash,
+      nationality: e.nationality ? labels.country(e.nationality) : dash,
       birthDate: e.birthDate ? fmtDate(e.birthDate) : dash,
       phone: e.phone || dash,
       bank: bank || dash,

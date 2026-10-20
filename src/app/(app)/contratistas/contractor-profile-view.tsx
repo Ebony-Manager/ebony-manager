@@ -89,18 +89,23 @@ import {
 } from "./actions";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { ContractorAvatar } from "./contractor-avatar";
+import { ContractorFormDialog } from "./contractor-form-dialog";
+import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { countryName } from "@/lib/countries";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
+/** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
+function DataItem({ label, value, hideWhenEmpty = false }: { label: string; value: React.ReactNode; hideWhenEmpty?: boolean }) {
+  const { lang } = useLang();
+  if (!value && hideWhenEmpty) return null;
   return (
-    <div className="flex items-start justify-between gap-3 py-0.5">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-right text-foreground">{value}</span>
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={value ? "text-foreground" : "text-muted-foreground/70"}>{value || t(lang, strings.planilla.pd_not_set)}</dd>
     </div>
   );
 }
@@ -169,11 +174,13 @@ function readStoredKpisOpen(): boolean | null {
  */
 export function ContractorProfileView({
   contractor,
+  photoUrl: initialPhotoUrl,
   initialEntries,
   initialProjects,
   laborRates,
 }: {
   contractor: Contractor;
+  photoUrl: string | null;
   initialEntries: ContractorLedgerEntry[];
   initialProjects: Project[];
   laborRates: LaborRate[];
@@ -193,6 +200,9 @@ export function ContractorProfileView({
   const [helpersOpen, setHelpersOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
+  const [photoPath, setPhotoPath] = React.useState<string | null>(contractor.photoPath);
 
   // Vista de período — "Mes" por defecto. El ancla arranca en el mes del
   // último movimiento (o el mes actual si no hay ninguno).
@@ -370,17 +380,13 @@ export function ContractorProfileView({
   const isInactive = contractor.status === "INACTIVE";
   const totalColSpan = 10;
 
-  // Datos personales, ahora discretos dentro del menú del engranaje.
-  const startOrEnd = isInactive
-    ? contractor.endDate
-      ? { label: tt("end_date_label"), value: formatDate(lang, contractor.endDate) }
-      : null
-    : contractor.startDate
-      ? { label: tt("f_start_date"), value: formatDate(lang, contractor.startDate) }
-      : null;
-  const hasDetails = Boolean(
-    contractor.idDocument || contractor.phone || contractor.contactInfo || startOrEnd
-  );
+  const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const bankTypeLabel =
+    contractor.bankAccountType === "ahorro" ? tp("bank_type_ahorro") : contractor.bankAccountType === "corriente" ? tp("bank_type_corriente") : "";
+  const bank = [contractor.bankName, bankTypeLabel, contractor.bankAccountNumber].filter(Boolean).join(" · ");
+  const docType =
+    contractor.idDocumentType === "pasaporte" ? tp("id_type_pasaporte") : contractor.idDocumentType === "cedula" ? tp("id_type_cedula") : "";
+  const emergency = [contractor.emergencyContactName, contractor.emergencyContactPhone].filter(Boolean).join(" · ");
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
@@ -409,31 +415,6 @@ export function ContractorProfileView({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              {hasDetails && (
-                <>
-                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                    {tt("details_title")}
-                  </DropdownMenuLabel>
-                  <div className="px-2 pb-1 text-xs">
-                    <DetailRow label={tt("f_id_document")} value={contractor.idDocument} />
-                    <DetailRow
-                      label={tt("f_phone")}
-                      value={
-                        contractor.phone ? (
-                          <a href={`tel:${contractor.phone}`} className="hover:text-primary">
-                            {contractor.phone}
-                          </a>
-                        ) : null
-                      }
-                    />
-                    <DetailRow label={tt("f_contact")} value={contractor.contactInfo} />
-                    {startOrEnd && (
-                      <DetailRow label={startOrEnd.label} value={startOrEnd.value} />
-                    )}
-                  </div>
-                  <DropdownMenuSeparator />
-                </>
-              )}
               <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                 {tt("status_label")}:{" "}
                 <span className="font-medium text-foreground">
@@ -473,7 +454,19 @@ export function ContractorProfileView({
         <Card className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <ContractorAvatar name={contractor.name} size="md" />
+              <ProfilePhotoPicker
+                bucket="contractor-photos"
+                ownerId={contractor.id}
+                currentPath={photoPath}
+                hasPhoto={photoUrl !== null}
+                savePath={(path) => updateContractorAction(contractor.id, { photoPath: path })}
+                onPhotoChange={(url, path) => {
+                  setPhotoUrl(url);
+                  setPhotoPath(path);
+                }}
+              >
+                <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="xl" />
+              </ProfilePhotoPicker>
               <div>
                 <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
                   {contractor.name}
@@ -493,6 +486,38 @@ export function ContractorProfileView({
           </div>
         </Card>
       </div>
+
+      {/* Datos del contratista — la "ficha" con todo lo que se sabe de la persona, como la del empleado. */}
+      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">{tt("details_section_title")}</h2>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-3.5" />
+            {tp("pd_edit")}
+          </Button>
+        </div>
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <DataItem label={tp("pd_document")} value={contractor.idDocument ? [docType, contractor.idDocument].filter(Boolean).join(" ") : null} />
+          <DataItem label={tp("f_nationality")} value={countryName(contractor.nationality, lang)} />
+          <DataItem label={tp("f_birth_date")} value={contractor.birthDate ? formatDate(lang, contractor.birthDate) : null} />
+          <DataItem
+            label={tp("f_phone")}
+            value={
+              contractor.phone ? (
+                <a href={`tel:${contractor.phone}`} className="hover:text-primary">
+                  {contractor.phone}
+                </a>
+              ) : null
+            }
+          />
+          <DataItem label={tp("pd_contact")} value={emergency || null} />
+          <DataItem label={tp("f_contract")} value={contractor.contractInfo} />
+          <DataItem label={tt("f_start_date")} value={contractor.startDate ? formatDate(lang, contractor.startDate) : null} />
+          <DataItem label={tt("end_date_label")} value={contractor.endDate ? formatDate(lang, contractor.endDate) : null} hideWhenEmpty />
+          <DataItem label={tp("pd_bank")} value={bank || null} />
+          <DataItem label={tp("f_bank_routing_code")} value={contractor.bankRoutingCode} hideWhenEmpty />
+        </dl>
+      </section>
 
       {contractor.notes && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
@@ -920,6 +945,7 @@ export function ContractorProfileView({
         onSaved={load}
         onProjectsChanged={reloadProjects}
       />
+      <ContractorFormDialog contractor={contractor} open={editOpen} onOpenChange={setEditOpen} />
       <ContractorHelpersDialog contractor={contractor} open={helpersOpen} onOpenChange={setHelpersOpen} />
       <ContractorLiquidationDialog
         contractor={contractor}

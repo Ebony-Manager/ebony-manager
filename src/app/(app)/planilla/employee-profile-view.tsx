@@ -31,7 +31,8 @@ import { SalaryHistorySection } from "./salary-history-section";
 import { EmployeeBenefitsSection } from "./employee-benefits-section";
 import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
-import { EmployeePhotoUploader } from "./employee-photo-uploader";
+import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { countryName } from "@/lib/countries";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import { LiquidationDialog } from "./liquidation-dialog";
 import { DeleteEmployeeDialog } from "./delete-employee-dialog";
@@ -100,6 +101,7 @@ export function EmployeeProfileView({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [togglingStatus, setTogglingStatus] = React.useState(false);
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
+  const [photoPath, setPhotoPath] = React.useState<string | null>(employee.photoPath);
 
   async function toggleStatus() {
     setTogglingStatus(true);
@@ -188,10 +190,19 @@ export function EmployeeProfileView({
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex flex-col items-center gap-2">
+                <ProfilePhotoPicker
+                  bucket="employee-photos"
+                  ownerId={employee.id}
+                  currentPath={photoPath}
+                  hasPhoto={photoUrl !== null}
+                  savePath={(path) => updateEmployeeAction(employee.id, { photoPath: path })}
+                  onPhotoChange={(url, path) => {
+                    setPhotoUrl(url);
+                    setPhotoPath(path);
+                  }}
+                >
                   <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="xl" />
-                  <EmployeePhotoUploader employee={employee} hasPhoto={photoUrl !== null} onPhotoChange={setPhotoUrl} />
-                </div>
+                </ProfilePhotoPicker>
                 <div className="flex flex-col gap-1">
                   <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-foreground">
                     {employee.name}
@@ -240,7 +251,7 @@ export function EmployeeProfileView({
                   : null
               }
             />
-            <DataItem label={tt("f_nationality")} value={employee.nationality} />
+            <DataItem label={tt("f_nationality")} value={countryName(employee.nationality, lang)} />
             <DataItem
               label={tt("f_birth_date")}
               value={employee.birthDate ? formatDate(lang, employee.birthDate) : null}

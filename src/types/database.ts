@@ -240,45 +240,78 @@ export type Database = {
       }
       contractors: {
         Row: {
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_name: string | null
+          bank_routing_code: string | null
+          birth_date: string | null
           contact_info: string | null
+          contract_info: string | null
           contractor_type: string
           created_at: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           end_date: string | null
           id: string
           id_document: string | null
+          id_document_type: string | null
           name: string
+          nationality: string | null
           notes: string | null
           phone: string | null
+          photo_path: string | null
           sort_order: number
           start_date: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          bank_routing_code?: string | null
+          birth_date?: string | null
           contact_info?: string | null
+          contract_info?: string | null
           contractor_type: string
           created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_type?: string | null
           name: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
+          photo_path?: string | null
           sort_order?: number
           start_date?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          bank_routing_code?: string | null
+          birth_date?: string | null
           contact_info?: string | null
+          contract_info?: string | null
           contractor_type?: string
           created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_type?: string | null
           name?: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
+          photo_path?: string | null
           sort_order?: number
           start_date?: string | null
           status?: string

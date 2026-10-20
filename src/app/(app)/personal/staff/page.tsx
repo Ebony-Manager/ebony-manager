@@ -2,7 +2,7 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { contractorToMember, employeeToMember, sortTeam } from "@/lib/personal/team";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getContractors } from "@/services/contractors";
+import { getContractorPhotoUrls, getContractors } from "@/services/contractors";
 import { StaffClient } from "./staff-client";
 
 // Personal → Staff: empleados + contratistas en una sola lista. Alcanza con
@@ -20,8 +20,18 @@ export default async function StaffPage() {
     canEmployees ? getPayrollEmployees() : Promise.resolve([]),
     canContractors ? getContractors() : Promise.resolve([]),
   ]);
-  const photoUrls = canEmployees ? await getEmployeePhotoUrls(employees) : {};
+  const [photoUrls, contractorPhotoUrls] = await Promise.all([
+    canEmployees ? getEmployeePhotoUrls(employees) : Promise.resolve({}),
+    canContractors ? getContractorPhotoUrls(contractors) : Promise.resolve({}),
+  ]);
 
   const members = sortTeam([...employees.map(employeeToMember), ...contractors.map(contractorToMember)]);
-  return <StaffClient members={members} photoUrls={photoUrls} showKindFilter={canEmployees && canContractors} />;
+  return (
+    <StaffClient
+      members={members}
+      photoUrls={photoUrls}
+      contractorPhotoUrls={contractorPhotoUrls}
+      showKindFilter={canEmployees && canContractors}
+    />
+  );
 }

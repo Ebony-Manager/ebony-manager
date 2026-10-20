@@ -256,16 +256,6 @@ export const strings = {
     pd_contact: { es: "Contacto de emergencia", en: "Emergency contact" },
     pd_not_set: { es: "Sin registrar", en: "Not set" },
     pd_edit: { es: "Editar datos", en: "Edit details" },
-    photo_change: { es: "Cambiar foto", en: "Change photo" },
-    photo_add: { es: "Agregar foto", en: "Add photo" },
-    photo_remove: { es: "Quitar foto", en: "Remove photo" },
-    photo_saved: { es: "Foto guardada.", en: "Photo saved." },
-    photo_removed: { es: "Foto eliminada.", en: "Photo removed." },
-    photo_error: {
-      es: "No se pudo guardar la foto. ¿Ya aplicaste la migración de fotos?",
-      en: "Could not save the photo. Has the photo migration been applied?",
-    },
-    photo_uploading: { es: "Subiendo…", en: "Uploading…" },
     dash_paid_ytd: { es: "Pagado en el año (a hoy)", en: "Paid this year (to date)" },
     dash_loans_receivable: { es: "Préstamos por cobrar", en: "Loans receivable" },
     dash_chart_title: { es: "Planilla por mes", en: "Payroll by month" },
@@ -1151,6 +1141,9 @@ export const strings = {
 
     add_contractor: { es: "Agregar contratista", en: "Add contractor" },
     dlg_add_title: { es: "Agregar contratista", en: "Add contractor" },
+    dlg_edit_title: { es: "Editar contratista", en: "Edit contractor" },
+    dlg_edit_desc: { es: "Datos personales, de contacto y bancarios.", en: "Personal, contact and bank details." },
+    details_section_title: { es: "Datos del contratista", en: "Contractor details" },
     dlg_add_desc: {
       es: "Ebanista o pintor. El estado de cuenta empieza en cero.",
       en: "Cabinetmaker or painter. The account starts at zero.",
@@ -1163,8 +1156,6 @@ export const strings = {
     type_pintor: { es: "Pintor", en: "Painter" },
     f_id_document: { es: "Cédula o pasaporte", en: "ID / Passport" },
     f_phone: { es: "Teléfono", en: "Phone" },
-    f_contact: { es: "Contacto", en: "Contact" },
-    f_contact_ph: { es: "Otro número, un familiar, correo…", en: "Another number, a relative, email…" },
     f_start_date: { es: "Fecha de inicio", en: "Start date" },
     f_optional: { es: "Opcional", en: "Optional" },
     f_name_required: { es: "El nombre es obligatorio.", en: "Name is required." },
@@ -1315,7 +1306,6 @@ export const strings = {
     // Menú de ajustes del contratista (engranaje en el encabezado): datos
     // personales + inactivar / liquidar / reactivar / eliminar.
     settings_menu: { es: "Ajustes del contratista", en: "Contractor settings" },
-    details_title: { es: "Detalles", en: "Details" },
 
     // Fila de KPIs colapsable.
     kpis_title: { es: "Indicadores", en: "Key figures" },
@@ -1881,6 +1871,16 @@ export const strings = {
 
   common: {
     loading: { es: "Cargando…", en: "Loading…" },
+    // Foto de perfil (empleados y contratistas): se toca el avatar.
+    photo_add: { es: "Agregar foto", en: "Add photo" },
+    photo_change: { es: "Cambiar foto", en: "Change photo" },
+    photo_remove: { es: "Quitar foto", en: "Remove photo" },
+    photo_saved: { es: "Foto guardada.", en: "Photo saved." },
+    photo_removed: { es: "Foto eliminada.", en: "Photo removed." },
+    photo_error: { es: "No se pudo guardar la foto. Intenta de nuevo.", en: "Couldn't save the photo. Try again." },
+    // Selector de país (nacionalidad).
+    country_none: { es: "Sin especificar", en: "Not specified" },
+    country_search: { es: "Buscar país…", en: "Search country…" },
     comingSoon: { es: "Este módulo estará disponible próximamente.", en: "This module will be available soon." },
   },
 

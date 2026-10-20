@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
 import type { Database } from "@/types/database";
@@ -54,8 +55,18 @@ function mapContractor(r: ContractorRow): Contractor {
     name: r.name,
     contractorType: r.contractor_type === "pintor" ? "pintor" : "ebanista",
     idDocument: r.id_document,
+    idDocumentType: r.id_document_type === "cedula" || r.id_document_type === "pasaporte" ? r.id_document_type : null,
+    nationality: r.nationality,
+    birthDate: r.birth_date,
+    photoPath: r.photo_path,
     phone: r.phone,
-    contactInfo: r.contact_info,
+    emergencyContactName: r.emergency_contact_name,
+    emergencyContactPhone: r.emergency_contact_phone,
+    contractInfo: r.contract_info,
+    bankName: r.bank_name,
+    bankAccountType: r.bank_account_type === "ahorro" || r.bank_account_type === "corriente" ? r.bank_account_type : null,
+    bankAccountNumber: r.bank_account_number,
+    bankRoutingCode: r.bank_routing_code,
     startDate: r.start_date,
     status: r.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
     endDate: r.end_date,
@@ -138,6 +149,11 @@ function mapProject(r: ProjectRow): Project {
     paymentTerms: r.payment_terms,
     totalMt2: num(r.total_mt2),
   };
+}
+
+/** URL firmada (1 h) de la foto de cada contratista que tenga una (ver signedPhotoUrls). */
+export async function getContractorPhotoUrls(contractors: readonly Contractor[]): Promise<Record<string, string>> {
+  return signedPhotoUrls("contractor-photos", contractors);
 }
 
 /** Contratistas sin saldo (para Personal → Staff, que no necesita los movimientos). */
@@ -356,13 +372,52 @@ export async function deleteProject(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export interface CreateContractorInput {
+/** Datos personales de la ficha (los mismos que la del empleado). */
+export interface ContractorPersonalInput {
+  idDocument?: string | null;
+  idDocumentType?: Contractor["idDocumentType"];
+  nationality?: string | null;
+  birthDate?: string | null;
+  phone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  contractInfo?: string | null;
+  bankName?: string | null;
+  bankAccountType?: Contractor["bankAccountType"];
+  bankAccountNumber?: string | null;
+  bankRoutingCode?: string | null;
+  startDate?: string | null;
+}
+
+export interface CreateContractorInput extends ContractorPersonalInput {
   name: string;
   contractorType: ContractorType;
-  idDocument?: string | null;
-  phone?: string | null;
-  contactInfo?: string | null;
-  startDate?: string | null;
+}
+
+/** Columna de la base de cada dato personal (para alta y edición). */
+const PERSONAL_COLUMNS = {
+  idDocument: "id_document",
+  idDocumentType: "id_document_type",
+  nationality: "nationality",
+  birthDate: "birth_date",
+  phone: "phone",
+  emergencyContactName: "emergency_contact_name",
+  emergencyContactPhone: "emergency_contact_phone",
+  contractInfo: "contract_info",
+  bankName: "bank_name",
+  bankAccountType: "bank_account_type",
+  bankAccountNumber: "bank_account_number",
+  bankRoutingCode: "bank_routing_code",
+  startDate: "start_date",
+} as const satisfies Record<keyof ContractorPersonalInput, keyof Database["public"]["Tables"]["contractors"]["Update"]>;
+
+/** Solo las keys presentes (`undefined` = no tocar), ya con nombre de columna. */
+function personalPatch(input: ContractorPersonalInput): Database["public"]["Tables"]["contractors"]["Update"] {
+  const patch: Database["public"]["Tables"]["contractors"]["Update"] = {};
+  for (const key of Object.keys(PERSONAL_COLUMNS) as (keyof ContractorPersonalInput)[]) {
+    if (input[key] !== undefined) patch[PERSONAL_COLUMNS[key]] = input[key] ?? null;
+  }
+  return patch;
 }
 
 export async function createContractor(input: CreateContractorInput): Promise<Contractor> {
@@ -372,10 +427,7 @@ export async function createContractor(input: CreateContractorInput): Promise<Co
     .insert({
       name: input.name,
       contractor_type: input.contractorType,
-      id_document: input.idDocument ?? null,
-      phone: input.phone ?? null,
-      contact_info: input.contactInfo ?? null,
-      start_date: input.startDate ?? null,
+      ...personalPatch(input),
     })
     .select("*")
     .single();
@@ -383,13 +435,11 @@ export async function createContractor(input: CreateContractorInput): Promise<Co
   return mapContractor(data);
 }
 
-export interface UpdateContractorInput {
+export interface UpdateContractorInput extends ContractorPersonalInput {
   name?: string;
   contractorType?: ContractorType;
-  idDocument?: string | null;
-  phone?: string | null;
-  contactInfo?: string | null;
-  startDate?: string | null;
+  /** Nueva foto (ruta en contractor-photos) o null para quitarla. */
+  photoPath?: string | null;
   /** Salida del contratista: INACTIVE + `endDate` + `notes` documentan el
    *  cierre. La historia y el saldo NUNCA se borran por esto. */
   status?: ContractorStatus;
@@ -400,13 +450,10 @@ export interface UpdateContractorInput {
 /** Patch parcial (una key `undefined` se deja como está). El trigger
  *  `contractors_touch_updated_at` mantiene `updated_at`. */
 export async function updateContractor(id: string, input: UpdateContractorInput): Promise<Contractor> {
-  const patch: Database["public"]["Tables"]["contractors"]["Update"] = {};
+  const patch = personalPatch(input);
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.contractorType !== undefined) patch.contractor_type = input.contractorType;
-  if (input.idDocument !== undefined) patch.id_document = input.idDocument;
-  if (input.phone !== undefined) patch.phone = input.phone;
-  if (input.contactInfo !== undefined) patch.contact_info = input.contactInfo;
-  if (input.startDate !== undefined) patch.start_date = input.startDate;
+  if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
   if (input.status !== undefined) patch.status = input.status;
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.notes !== undefined) patch.notes = input.notes;

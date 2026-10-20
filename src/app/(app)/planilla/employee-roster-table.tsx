@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/planilla/format";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { countryName } from "@/lib/countries";
 import { downloadRosterPdf } from "./employee-roster-pdf";
 
 /**
@@ -36,6 +37,7 @@ export function EmployeeRosterTable({ employees }: { employees: PayrollEmployee[
     corriente: tt("bank_type_corriente"),
     active: tt("active_label"),
     inactive: tt("inactive_label"),
+    country: (code) => countryName(code, lang),
   };
   const rows = React.useMemo(
     () => buildRoster(employees, { includeInactive }, (iso) => formatDate(lang, iso), labels),
