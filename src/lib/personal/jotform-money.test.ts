@@ -54,6 +54,10 @@ describe("answersFromWorkflowParams", () => {
     const answers = answersFromWorkflowParams({ nombre: "NABIL MASSIEL", apellido: "SORIANO MANCILLA", correo: "Nabil@Example.com", tipo: "Prestamo", monto: "450.00", montoDescontar: "540" });
     expect(answers && normalizeMoneyRequest(answers)).toEqual(normalizeMoneyRequest(answersFromApi(API)));
   });
+  it("solo el nombre completo: se parte en nombre y apellido", () => {
+    const answers = answersFromWorkflowParams({ nombre: "Nolberto  Figueredo Guateque", correo: "", monto: "100", tipo: "Adelanto" });
+    expect(answers && normalizeMoneyRequest(answers)).toMatchObject({ firstName: "Nolberto", lastName: "Figueredo Guateque" });
+  });
   it("el nombre completo como objeto JSON también sirve", () => {
     const answers = answersFromWorkflowParams({ nombre: '{"first":"Ana","last":"Pérez"}', monto: "50", tipo: "Adelanto" });
     expect(answers && normalizeMoneyRequest(answers)).toMatchObject({ firstName: "Ana", lastName: "Pérez", amountCents: 5000, type: "adelanto" });
