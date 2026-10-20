@@ -1,5 +1,8 @@
 import { requireModule } from "@/lib/auth/dal";
+import { hasModule } from "@/lib/auth/modules";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
+import { getContractors } from "@/services/contractors";
+import { getPendingMoneyRequests } from "@/services/money-requests";
 import { PlanillaClient } from "./planilla-client";
 
 // Planilla requiere el módulo `planilla`. `requireModule()` rebota a quien
@@ -9,10 +12,24 @@ import { PlanillaClient } from "./planilla-client";
 export const dynamic = "force-dynamic";
 
 export default async function PlanillaPage() {
-  await requireModule("planilla");
-  const employees = await getPayrollEmployees();
+  const profile = await requireModule("planilla");
+  const canContractors = hasModule(profile, "contratistas");
+  // Solicitudes de dinero (Préstamos): los contratistas solo si el usuario los ve.
+  const [employees, moneyRequests, contractors] = await Promise.all([
+    getPayrollEmployees(),
+    getPendingMoneyRequests(),
+    canContractors ? getContractors() : Promise.resolve([]),
+  ]);
 
   const photoUrls = await getEmployeePhotoUrls(employees);
 
-  return <PlanillaClient employees={employees} photoUrls={photoUrls} />;
+  return (
+    <PlanillaClient
+      employees={employees}
+      photoUrls={photoUrls}
+      moneyRequests={moneyRequests}
+      contractors={contractors}
+      canContractors={canContractors}
+    />
+  );
 }

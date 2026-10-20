@@ -50,6 +50,7 @@ export const strings = {
     theme_system: { es: "Automático", en: "Automatic" },
     // Botón para abrir el menú lateral en el celular.
     menu: { es: "Menú", en: "Menu" },
+    pending: { es: "por revisar", en: "to review" },
   },
 
   // Personal → Staff: empleados y contratistas en una sola lista.
@@ -345,6 +346,24 @@ export const strings = {
     pdf_count: { es: "Empleados", en: "Employees" },
     pdf_yes: { es: "Sí", en: "Yes" },
     pdf_page: { es: "Página", en: "Page" },
+    mr_title: { es: "Solicitudes de dinero", en: "Money requests" },
+    mr_hint: {
+      es: "Llegaron aprobadas del workflow de JotForm. Revisa a quién corresponde y regístrala: a un empleado, eligiendo cuotas y quincena; a un contratista, en su estado de cuenta.",
+      en: "They arrived approved from the JotForm workflow. Check who it's for and register it: for an employee, choosing installments and pay period; for a contractor, in their account statement.",
+    },
+    mr_received: { es: "Llegó el", en: "Received" },
+    mr_deduct: { es: "A descontar:", en: "To deduct:" },
+    mr_for: { es: "Para:", en: "For:" },
+    mr_pick_person: { es: "¿Quién es?", en: "Who is it?" },
+    mr_register_employee: { es: "Registrar en planilla", en: "Register in payroll" },
+    mr_register_contractor: { es: "Registrar en estado de cuenta", en: "Register in account" },
+    mr_contractor_confirm: { es: "Se anota en su estado de cuenta, descontando", en: "It will be recorded in their account, deducting" },
+    mr_register: { es: "Registrar", en: "Register" },
+    mr_registered: { es: "Solicitud registrada.", en: "Request registered." },
+    mr_loan_note: { es: "Solicitud aprobada por JotForm", en: "Request approved via JotForm" },
+    mr_dismiss: { es: "Descartar", en: "Dismiss" },
+    mr_dismiss_confirm: { es: "¿Descartar esta solicitud?", en: "Dismiss this request?" },
+    mr_dismissed: { es: "Solicitud descartada.", en: "Request dismissed." },
     roster_title: { es: "Lista de empleados", en: "Employee list" },
     roster_include_inactive: { es: "Incluir los que ya no laboran", en: "Include former employees" },
     roster_show_bank: { es: "Datos bancarios", en: "Bank details" },

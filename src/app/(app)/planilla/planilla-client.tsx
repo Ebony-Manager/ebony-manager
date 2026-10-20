@@ -4,6 +4,8 @@ import * as React from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import type { PayrollEmployee } from "@/types/planilla";
+import type { Contractor } from "@/types/contractors";
+import type { MoneyRequest } from "@/types/money-requests";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { breadcrumbFor } from "@/components/layout/nav-items";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
@@ -13,6 +15,9 @@ import { RegistroView } from "./registro-view";
 import { DashboardView } from "./dashboard-view";
 import { AuditoriaView } from "./auditoria-view";
 import { LoansOverviewView } from "./loans-overview-view";
+import { MoneyRequestInbox } from "./money-request-inbox";
+import { PendingBadge } from "@/components/shared/pending-badge";
+import { cn } from "@/lib/utils";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import {
@@ -52,9 +57,16 @@ import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/plan
 export function PlanillaClient({
   employees,
   photoUrls,
+  moneyRequests,
+  contractors,
+  canContractors,
 }: {
   employees: PayrollEmployee[];
   photoUrls: Record<string, string>;
+  /** Solicitudes de dinero de JotForm por registrar (pestaña Préstamos). */
+  moneyRequests: MoneyRequest[];
+  contractors: Contractor[];
+  canContractors: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -152,13 +164,15 @@ export function PlanillaClient({
               key={value}
               type="button"
               onClick={() => setTab(value)}
-              className={
+              className={cn(
+                "flex items-center gap-1.5",
                 isActive
                   ? "pb-[10px] text-[13.5px] font-semibold text-walnut border-b-2 border-walnut"
                   : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
-              }
+              )}
             >
               {label}
+              {value === "prestamos" && <PendingBadge count={moneyRequests.length} title={tt("mr_title")} />}
             </button>
           );
         })}
@@ -218,6 +232,13 @@ export function PlanillaClient({
           />
         </TabsContent>
         <TabsContent value="prestamos" className="pt-0">
+          <MoneyRequestInbox
+            requests={moneyRequests}
+            employees={employees}
+            contractors={contractors}
+            canContractors={canContractors}
+            onChanged={() => setRegistroReload((n) => n + 1)}
+          />
           <LoansOverviewView
             employees={otherEmployees}
             reloadSignal={registroReload}

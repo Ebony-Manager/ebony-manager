@@ -93,6 +93,16 @@ const parseCents = (s: string) => {
  * cada quincena se escribe a mano y debe sumar el total). Al editar se rehace
  * el calendario completo (solo si no hay cuotas pagadas).
  */
+/** Datos con los que puede abrir el alta de un préstamo/adelanto. */
+export interface LoanPrefill {
+  category: LoanCategory;
+  amountCents: number;
+  requestDate: string;
+  /** Recargo como % fijo sobre el monto ("total_pct"); sin esto, sin intereses. */
+  interestTotalPct?: number;
+  notes?: string;
+}
+
 export function LoanDialog({
   employeeId,
   categories,
@@ -101,6 +111,7 @@ export function LoanDialog({
   open,
   onOpenChange,
   onSaved,
+  prefill,
 }: {
   employeeId: string;
   /** Tipos que se pueden elegir en este diálogo. */
@@ -111,6 +122,8 @@ export function LoanDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  /** Solo al crear: abre con estos datos (ej. una solicitud de dinero de JotForm). Memoizarlo en el padre. */
+  prefill?: LoanPrefill;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -163,20 +176,22 @@ export function LoanDialog({
             : String(editing.interestRatePct)
       );
     } else {
-      setCategory(defaultCategory);
-      setAmount("");
-      setRequestDate(today);
+      const category0 = prefill?.category ?? defaultCategory;
+      const date0 = prefill?.requestDate ?? today;
+      setCategory(category0);
+      setAmount(prefill ? toCentsStr(prefill.amountCents) : "");
+      setRequestDate(date0);
       setNumInstallments("1");
       setScheme("cuota_fija");
-      setStartPeriodKey(periodKeyOf(defaultLoanStartPeriod(defaultCategory, today) ?? periods[2]));
+      setStartPeriodKey(periodKeyOf(defaultLoanStartPeriod(category0, date0) ?? periods[2]));
       setAmounts([]);
       setTouched(false);
-      setNotes("");
-      setInterestOn(false);
-      setInterestMode("monthly_pct");
-      setInterestValue("");
+      setNotes(prefill?.notes ?? "");
+      setInterestOn(Boolean(prefill?.interestTotalPct));
+      setInterestMode(prefill?.interestTotalPct ? "total_pct" : "monthly_pct");
+      setInterestValue(prefill?.interestTotalPct ? String(prefill.interestTotalPct) : "");
     }
-  }, [open, editing, defaultCategory, today, periods]);
+  }, [open, editing, defaultCategory, today, periods, prefill]);
 
   // Re-deriva la quincena de inicio al cambiar el tipo o la fecha (solo al crear).
   React.useEffect(() => {

@@ -159,6 +159,14 @@ export async function getContractorPhotoUrls(contractors: readonly Contractor[])
   return signedPhotoUrls("contractor-photos", contractors);
 }
 
+/** Contratistas sin saldo (para emparejar solicitudes de dinero en Planilla). */
+export async function getContractors(): Promise<Contractor[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("contractors").select("*").order("sort_order").order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapContractor);
+}
+
 /** Personal → Staff: contratistas (activos primero) + su saldo actual. Dos
  *  queries (contratistas + resumen de movimientos), el saldo se computa
  *  en memoria. */

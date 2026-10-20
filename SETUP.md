@@ -117,7 +117,15 @@ y la migración `20261020210000_staff_intake_jotform.sql`.
    token es secreto: en la base solo está su hash
    (`private.integration_tokens`, fila `jotform`). Para cambiarlo, generar
    uno nuevo, guardar su SHA-256 (hex) en esa fila y actualizar la URL.
-2. (Recomendado) **JotForm → Settings → API → Create new key** (permiso
+2. **Solicitud Dinero** (id `240054334404848`, dentro de un *workflow* de
+   aprobación): la misma URL del webhook va en la **rama aprobada** del
+   workflow, no en el formulario. Lo que llega cae en **Planilla →
+   Préstamos → Solicitudes de dinero** para registrarlo (empleado: préstamo
+   o adelanto con sus cuotas; contratista: movimiento en su estado de
+   cuenta) o descartarlo. Si el webhook se pusiera en el formulario,
+   llegarían también las no aprobadas. Tabla `public.money_requests`
+   (migración `20261021000000_money_requests.sql`).
+3. (Recomendado) **JotForm → Settings → API → Create new key** (permiso
    *Read Access*) y ponerla en Vercel como `JOTFORM_API_KEY`. Con ella, el
    webhook pide la respuesta a la API de JotForm en vez de confiar en lo
    que llega en el POST. Sin ella también funciona.

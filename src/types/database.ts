@@ -373,6 +373,69 @@ export type Database = {
         }
         Relationships: []
       }
+      money_requests: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          deduct_cents: number | null
+          email: string | null
+          first_name: string | null
+          form_id: string | null
+          id: string
+          last_name: string | null
+          person_id: string | null
+          person_kind: string | null
+          raw: Json
+          request_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          status: string
+          submission_id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          deduct_cents?: number | null
+          email?: string | null
+          first_name?: string | null
+          form_id?: string | null
+          id?: string
+          last_name?: string | null
+          person_id?: string | null
+          person_kind?: string | null
+          raw?: Json
+          request_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          submission_id: string
+          submitted_at?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          deduct_cents?: number | null
+          email?: string | null
+          first_name?: string | null
+          form_id?: string | null
+          id?: string
+          last_name?: string | null
+          person_id?: string | null
+          person_kind?: string | null
+          raw?: Json
+          request_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          submission_id?: string
+          submitted_at?: string | null
+        }
+        Relationships: []
+      }
       payroll_employees: {
         Row: {
           address: string | null
@@ -1449,6 +1512,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ingest_money_request: {
+        Args: { p_token: string; p_data: Json }
+        Returns: string | null
+      }
       ingest_staff_intake: {
         Args: { p_token: string; p_data: Json }
         Returns: string | null

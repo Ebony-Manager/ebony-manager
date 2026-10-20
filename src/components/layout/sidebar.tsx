@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
-import { t } from "@/lib/i18n";
+import { t, strings } from "@/lib/i18n";
+import { PendingBadge } from "@/components/shared/pending-badge";
 import { EbonyMark } from "@/components/brand/ebony-logo";
 import { RAIL_ITEMS, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
@@ -14,7 +15,15 @@ const railButton = "w-11 h-11 flex items-center justify-center rounded-md transi
 const railActive = "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm";
 const railIdle = "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
-export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+/** Cuántos pendientes hay por revisar (indicadores rojos del menú). */
+export interface PendingCounts {
+  /** "Nuevos registros" (JotForm) → Personal. */
+  intakes: number;
+  /** "Solicitudes de dinero" (JotForm) → Planilla. */
+  moneyRequests: number;
+}
+
+export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose: () => void; pending: PendingCounts }) {
   const { lang } = useLang();
   const { role, modules } = useAuth();
   const pathname = usePathname();
@@ -26,6 +35,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const personalPanel = visible(PERSONAL_PANEL);
   const settingsPanel = visible(SETTINGS_PANEL);
   const openPanel = [personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
+  // Qué ítem del panel lleva cada indicador.
+  const pendingFor = (href: string) =>
+    href === "/personal/staff" ? pending.intakes : href === "/planilla" ? pending.moneyRequests : 0;
+  const panelPending = (panel: NavPanel) => panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0);
 
   // Ícono del rail para un panel: un Link normal al primer ítem que el
   // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
@@ -40,9 +53,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         onClick={onClose}
         title={t(lang, panel.title)}
         aria-label={t(lang, panel.title)}
-        className={`${railButton} ${openPanel?.key === panel.key ? railActive : railIdle}`}
+        className={`relative ${railButton} ${openPanel?.key === panel.key ? railActive : railIdle}`}
       >
         <Icon size={23} className="shrink-0" strokeWidth={1.5} />
+        <PendingBadge count={panelPending(panel)} className="absolute -top-1 -right-1" title={t(lang, strings.nav.pending)} />
       </Link>
     );
   }
@@ -127,6 +141,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   >
                     <Icon size={18} className="shrink-0" strokeWidth={1.7} />
                     <span>{t(lang, label)}</span>
+                    <PendingBadge count={pendingFor(href)} className="ml-auto" title={t(lang, strings.nav.pending)} />
                   </Link>
                 );
               })}
