@@ -1,14 +1,17 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/auth/dal";
+import { getProfile } from "@/lib/auth/dal";
+import { homePathFor } from "@/lib/auth/modules";
 import { LoginForm } from "./login-form";
 
 /**
- * Public route. If there's already a verified session, skip the form and
- * go straight to the app. proxy.ts lets /login through without a session.
+ * Public route. If there's already a verified session with access to the
+ * app (a profile), skip the form and go straight to the user's home module.
+ * A session without a profile (removed from Usuarios) gets the form, so it
+ * can switch to another account. proxy.ts lets /login through.
  */
 export default async function LoginPage() {
-  const user = await getUser();
-  if (user) redirect("/cotizacion");
+  const profile = await getProfile();
+  if (profile) redirect(homePathFor(profile));
 
   return <LoginForm />;
 }

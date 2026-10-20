@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { requireProfile } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
+import { hasModule } from "@/lib/auth/modules";
 import { defaultsFromInputs } from "@/lib/cotizador/pricing";
 import { getCatalog, getCostInputs, getQuote } from "@/services/cotizador";
 import { QuoteEditor } from "./quote-editor";
@@ -11,11 +12,11 @@ import { QuoteEditor } from "./quote-editor";
 export const dynamic = "force-dynamic";
 
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
-  const profile = await requireProfile();
+  const profile = await requireModule("cotizacion");
   const { id } = await params;
 
   const [quote, catalog, inputs] = await Promise.all([getQuote(id), getCatalog(), getCostInputs()]);
   if (!quote) notFound();
 
-  return <QuoteEditor initialQuote={quote} catalog={catalog} defaults={defaultsFromInputs(inputs)} isAdmin={profile.role === "admin"} />;
+  return <QuoteEditor initialQuote={quote} catalog={catalog} defaults={defaultsFromInputs(inputs)} canEditCosts={hasModule(profile, "costos")} />;
 }

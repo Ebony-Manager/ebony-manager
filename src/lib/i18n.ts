@@ -48,6 +48,7 @@ export const strings = {
     // Engranaje al pie de la barra nogal (mockup Opción C) — inerte, sin
     // destino todavía (ver sidebar.tsx).
     settings: { es: "Configuración", en: "Settings" },
+    usuarios: { es: "Usuarios", en: "Users" },
   },
 
   // Dashboard global de Administración (Planilla + Contratistas juntos).
@@ -1758,12 +1759,109 @@ export const strings = {
     in_def_delivery_days: { es: "Días de entrega", en: "Delivery days" },
   },
 
+  // Administración → Usuarios: quién entra a la app y a qué módulos.
+  usuarios: {
+    title: { es: "Usuarios", en: "Users" },
+    subtitle: {
+      es: "Quién puede entrar a Ebony Manager y a qué módulos. Cada usuario se agrega por correo y le llega una invitación.",
+      en: "Who can sign in to Ebony Manager and which modules they see. Each user is added by email and receives an invitation.",
+    },
+    invite: { es: "Invitar usuario", en: "Invite user" },
+    col_user: { es: "Usuario", en: "User" },
+    col_role: { es: "Rol", en: "Role" },
+    col_modules: { es: "Módulos", en: "Modules" },
+    col_status: { es: "Estado", en: "Status" },
+    role_admin: { es: "Administrador", en: "Administrator" },
+    role_user: { es: "Usuario", en: "User" },
+    role_admin_hint: { es: "Entra a todo, incluida esta pantalla de Usuarios.", en: "Full access, including this Users screen." },
+    role_user_hint: { es: "Entra solo a los módulos marcados.", en: "Only sees the modules checked below." },
+    all_modules: { es: "Todos", en: "All" },
+    no_modules: { es: "Ninguno", en: "None" },
+    status_active: { es: "Activo", en: "Active" },
+    status_pending: { es: "Invitación pendiente", en: "Invitation pending" },
+    last_sign_in: { es: "Último acceso", en: "Last sign-in" },
+    invited_on: { es: "Invitado", en: "Invited" },
+    you: { es: "Tú", en: "You" },
+    empty: { es: "Todavía no hay usuarios.", en: "No users yet." },
+    edit: { es: "Editar permisos", en: "Edit permissions" },
+    resend: { es: "Reenviar invitación", en: "Resend invitation" },
+    remove: { es: "Quitar acceso", en: "Remove access" },
+    more_actions: { es: "Más acciones", en: "More actions" },
+    dlg_invite_title: { es: "Invitar usuario", en: "Invite user" },
+    dlg_invite_desc: {
+      es: "Le llega un correo con un enlace para entrar. También puede entrar con su cuenta de Google si el correo es de Google.",
+      en: "They get an email with a sign-in link. They can also sign in with Google if the address is a Google account.",
+    },
+    dlg_edit_title: { es: "Permisos de", en: "Permissions for" },
+    field_email: { es: "Correo", en: "Email" },
+    field_role: { es: "Rol", en: "Role" },
+    field_modules: { es: "Módulos", en: "Modules" },
+    field_note: { es: "Nota (opcional)", en: "Note (optional)" },
+    note_placeholder: { es: "Ej. Jefa de taller", en: "e.g. Workshop lead" },
+    sub_of: { es: "Requiere", en: "Requires" },
+    cancel: { es: "Cancelar", en: "Cancel" },
+    save: { es: "Guardar", en: "Save" },
+    send_invite: { es: "Enviar invitación", en: "Send invitation" },
+    saving: { es: "Guardando…", en: "Saving…" },
+    sending: { es: "Enviando…", en: "Sending…" },
+    saved: { es: "Permisos guardados", en: "Permissions saved" },
+    invited: { es: "Invitación enviada", en: "Invitation sent" },
+    invited_no_email: {
+      es: "Usuario agregado, pero no se pudo enviar el correo",
+      en: "User added, but the email could not be sent",
+    },
+    invited_no_email_hint: {
+      es: "Puede entrar con Google, o reenvía la invitación más tarde desde el menú del usuario.",
+      en: "They can sign in with Google, or resend the invitation later from the user menu.",
+    },
+    resent: { es: "Invitación reenviada", en: "Invitation resent" },
+    removed: { es: "Acceso quitado", en: "Access removed" },
+    del_title: { es: "Quitar acceso", en: "Remove access" },
+    del_desc: {
+      es: "Esta persona ya no podrá entrar a Ebony Manager. No se borra nada de lo que registró (cotizaciones, planilla…). Se le puede volver a invitar después.",
+      en: "This person will no longer be able to sign in to Ebony Manager. Nothing they recorded is deleted (quotes, payroll…). They can be invited again later.",
+    },
+    del_confirm: { es: "Quitar acceso", en: "Remove access" },
+    mod_cotizacion: { es: "Cotizador", en: "Quotes" },
+    mod_cotizacion_hint: { es: "Crear y editar cotizaciones.", en: "Create and edit quotes." },
+    mod_costos: { es: "Costos del cotizador", en: "Quote costs" },
+    mod_costos_hint: {
+      es: "Cambiar insumos, catálogo y precios para cotizar.",
+      en: "Change inputs, catalog and quoting prices.",
+    },
+    mod_planilla: { es: "Planilla", en: "Payroll" },
+    mod_planilla_hint: {
+      es: "Empleados, quincenas, préstamos y pagos (incluye salarios).",
+      en: "Employees, pay periods, loans and payments (includes salaries).",
+    },
+    mod_asistencia: { es: "Asistencia", en: "Attendance" },
+    mod_asistencia_hint: {
+      es: "Importar el reloj y el Jotform a las horas de la quincena.",
+      en: "Import the time clock and Jotform into pay-period hours.",
+    },
+    mod_contratistas: { es: "Contratistas", en: "Contractors" },
+    mod_contratistas_hint: {
+      es: "Directorio, proyectos, estados de cuenta y tarifas.",
+      en: "Directory, projects, statements and rates.",
+    },
+    dashboard_note: {
+      es: "El Dashboard de Administración aparece a quien tenga Planilla y Contratistas.",
+      en: "The Administration dashboard shows for users with both Payroll and Contractors.",
+    },
+  },
+
   common: {
     loading: { es: "Cargando…", en: "Loading…" },
     comingSoon: { es: "Este módulo estará disponible próximamente.", en: "This module will be available soon." },
   },
 
   auth: {
+    confirming: { es: "Entrando a Ebony Manager…", en: "Signing you in to Ebony Manager…" },
+    confirm_failed: {
+      es: "El enlace no es válido o ya expiró. Pide que te reenvíen la invitación, o entra con Google.",
+      en: "The link is invalid or has expired. Ask for the invitation to be resent, or sign in with Google.",
+    },
+    back_to_login: { es: "Ir a iniciar sesión", en: "Go to sign in" },
     signIn: { es: "Iniciar sesión con Google", en: "Sign in with Google" },
     signOut: { es: "Cerrar sesión", en: "Sign out" },
     welcome: { es: "Bienvenido a Ebony Manager", en: "Welcome to Ebony Manager" },

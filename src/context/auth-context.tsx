@@ -13,7 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import type { AppRole } from "@/lib/auth/dal";
+import { hasModule, type AppModule, type AppRole } from "@/lib/auth/modules";
 
 // Shape the app UI (Navbar, Login) consumes. Derived from the Supabase
 // user + profile — kept small on purpose so components don't reach into
@@ -27,12 +27,17 @@ export interface EbonyUser {
 interface AuthContextValue {
   user: EbonyUser | null;
   role: AppRole | null;
+  modules: AppModule[];
+  /** Si el usuario puede abrir un módulo (el admin, todos). Solo para mostrar/ocultar: el gate real es del servidor. */
+  can: (module: AppModule) => boolean;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const EMPTY_MODULES: AppModule[] = [];
 
 function toEbonyUser(user: User | null, seed?: EbonyUser | null): EbonyUser | null {
   if (!user) return null;
@@ -55,16 +60,19 @@ export function AuthProvider({
   children,
   initialUser = null,
   initialRole = null,
+  initialModules = EMPTY_MODULES,
 }: {
   children: ReactNode;
   initialUser?: EbonyUser | null;
   initialRole?: AppRole | null;
+  initialModules?: AppModule[];
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [user, setUser] = useState<EbonyUser | null>(initialUser);
   const [role, setRole] = useState<AppRole | null>(initialRole);
+  const [modules, setModules] = useState<AppModule[]>(initialModules);
   const [loading, setLoading] = useState(false);
 
   // Re-sync when the server sends fresh props (e.g. after router.refresh()).
@@ -74,7 +82,8 @@ export function AuthProvider({
     seedRef.current = initialUser;
     setUser(initialUser);
     setRole(initialRole);
-  }, [initialUser, initialRole]);
+    setModules(initialModules);
+  }, [initialUser, initialRole, initialModules]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -84,12 +93,13 @@ export function AuthProvider({
       if (event === "SIGNED_OUT") {
         setUser(null);
         setRole(null);
+        setModules(EMPTY_MODULES);
         router.replace("/login");
         return;
       }
       if (session?.user) {
         setUser(toEbonyUser(session.user, seedRef.current));
-        // Role is authoritative from the server — refresh so the (app)
+        // Role/modules are authoritative from the server — refresh so the (app)
         // layout re-reads the profile and re-seeds it through props.
         if (event === "SIGNED_IN") router.refresh();
       }
@@ -103,7 +113,7 @@ export function AuthProvider({
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/cotizacion`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/`,
         queryParams: { prompt: "select_account" },
       },
     });
@@ -119,13 +129,16 @@ export function AuthProvider({
     await supabase.auth.signOut();
     setUser(null);
     setRole(null);
+    setModules(EMPTY_MODULES);
     router.replace("/login");
     router.refresh();
   }, [supabase, router]);
 
+  const can = useCallback((module: AppModule) => hasModule({ role, modules }, module), [role, modules]);
+
   const value = useMemo(
-    () => ({ user, role, loading, signInWithGoogle, signOut }),
-    [user, role, loading, signInWithGoogle, signOut]
+    () => ({ user, role, modules, can, loading, signInWithGoogle, signOut }),
+    [user, role, modules, can, loading, signInWithGoogle, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

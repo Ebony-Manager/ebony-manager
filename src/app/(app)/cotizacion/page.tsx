@@ -1,4 +1,5 @@
-import { requireProfile } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
+import { hasModule } from "@/lib/auth/modules";
 import { getQuoteSummaries } from "@/services/cotizador";
 import { QuotesList } from "./quotes-list";
 
@@ -7,7 +8,7 @@ import { QuotesList } from "./quotes-list";
 export const dynamic = "force-dynamic";
 
 export default async function CotizacionPage() {
-  const profile = await requireProfile();
+  const profile = await requireModule("cotizacion");
   const quotes = await getQuoteSummaries();
-  return <QuotesList initialQuotes={quotes} isAdmin={profile.role === "admin"} />;
+  return <QuotesList initialQuotes={quotes} canEditCosts={hasModule(profile, "costos")} />;
 }

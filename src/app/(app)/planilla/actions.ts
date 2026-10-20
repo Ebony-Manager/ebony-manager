@@ -2,42 +2,43 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
 import * as positions from "@/services/payroll-positions";
 import type { LedgerCategory, LedgerDirection, LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 
-// La Planilla es solo-admin: cada action verifica `requireAdmin()` al
-// entrar (además de la RLS admin-only de las 4 tablas). Un `vendedor`
-// que llame a un action a mano igual rebota.
+// Planilla es para quien tiene el módulo `planilla` (el admin siempre):
+// cada action verifica `requireModule("planilla")` al entrar (además de la
+// RLS `private.has_module('planilla')` de las tablas). Un usuario sin el
+// módulo que llame a un action a mano igual rebota.
 
 const PATH = "/planilla";
 
 export async function createEmployeeAction(input: employees.CreatePayrollEmployeeInput) {
-  await requireAdmin();
+  await requireModule("planilla");
   const employee = await employees.createPayrollEmployee(input);
   revalidatePath(PATH);
   return employee;
 }
 
 export async function updateEmployeeAction(id: string, input: employees.UpdatePayrollEmployeeInput) {
-  await requireAdmin();
+  await requireModule("planilla");
   await employees.updatePayrollEmployee(id, input);
   revalidatePath(PATH);
 }
 
 /** Marca a varios empleados como que ya no laboran (o los reactiva). */
 export async function setEmployeesStatusAction(ids: string[], status: "ACTIVE" | "INACTIVE") {
-  await requireAdmin();
+  await requireModule("planilla");
   const count = await employees.setPayrollEmployeesStatus(ids, status);
   revalidatePath(PATH);
   return count;
 }
 
 export async function getRegistroAction(year: number, month: number, half: 1 | 2) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getRegistroForPeriod(year, month, half);
 }
 
@@ -48,18 +49,18 @@ export async function getRegistroAction(year: number, month: number, half: 1 | 2
 // causa de que cambiar el método de pago o marcar "Pagado" tardara. Registro
 // pide sus propios datos por `getRegistroAction`, así que no lo necesita.
 export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.upsertEntry(input);
 }
 
 /** Borra las horas/días descontados y las horas extra de la quincena (rehacer una importación). */
 export async function clearPeriodHoursAction(year: number, month: number, half: 1 | 2) {
-  await requireAdmin();
+  await requireModule("planilla", "asistencia");
   return { cleared: await payroll.clearPeriodHours(year, month, half) };
 }
 
 export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
-  await requireAdmin();
+  await requireModule("planilla");
   const copied = await payroll.duplicatePreviousPeriod(year, month, half);
   return { copied };
 }
@@ -67,41 +68,41 @@ export async function duplicatePreviousPeriodAction(year: number, month: number,
 // ── Reportes (solo lectura; igual verifican admin) ─────────────────────
 
 export async function getAnnualSummaryAction(year: number) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getAnnualSummary(year);
 }
 
 export async function getAuditoriaDataAction(year: number) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getAuditoriaData(year);
 }
 
 export async function getUpcomingObligationsAction() {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getUpcomingObligations();
 }
 
 export async function getEmployeeAnnualDetailAction(employeeId: string, year: number, projectFuture = false) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getEmployeeAnnualDetail(employeeId, year, projectFuture);
 }
 
 // ── Ledger genérico ───────────────────────────────────────────────────
 
 export async function getLedgerEntriesAction(employeeId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getLedgerEntries(employeeId);
 }
 
 /** Todo lo que necesita el Dashboard en UNA sola llamada (antes eran
  *  varias, y Next las atiende una detrás de otra). */
 export async function getPlanillaOverviewAction(year: number) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getPlanillaOverview(year);
 }
 
 export async function getLedgerBalanceAction(employeeId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getLedgerBalance(employeeId);
 }
 
@@ -118,19 +119,19 @@ export async function createLedgerEntryAction(input: {
   payrollEntryId?: string | null;
   notes?: string | null;
 }) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.createLedgerEntry(input);
 }
 
 export async function deleteLedgerEntryAction(id: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.deleteLedgerEntry(id);
 }
 
 // ── Préstamos / adelantos / herramientas / daños ──────────────────────
 
 export async function getLoansAction(employeeId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getLoansForEmployee(employeeId);
 }
 
@@ -164,7 +165,7 @@ function toSaveError(err: unknown): SaveResult {
 }
 
 export async function createLoanAction(input: LoanInput): Promise<SaveResult> {
-  await requireAdmin();
+  await requireModule("planilla");
   try {
     await payroll.createLoan(input);
     return { ok: true };
@@ -177,7 +178,7 @@ export async function createLoanAction(input: LoanInput): Promise<SaveResult> {
 /** Edita un préstamo (monto, cuotas, esquema, inicio) — solo si no tiene
  *  cuotas pagadas. */
 export async function replaceLoanAction(loanId: string, input: LoanInput): Promise<SaveResult> {
-  await requireAdmin();
+  await requireModule("planilla");
   try {
     await payroll.replaceLoan(loanId, input);
     return { ok: true };
@@ -188,17 +189,17 @@ export async function replaceLoanAction(loanId: string, input: LoanInput): Promi
 }
 
 export async function updateLoanNotesAction(loanId: string, notes: string | null) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.updateLoanNotes(loanId, notes);
 }
 
 export async function cancelLoanAction(loanId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.cancelLoan(loanId);
 }
 
 export async function deleteLoanAction(loanId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.deleteLoan(loanId);
 }
 
@@ -211,19 +212,19 @@ export async function reflowLoanInstallmentAction(input: {
   newAmountCents: number;
   mode?: "extend" | "spread";
 }) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.reflowLoanInstallment(input);
 }
 
 export async function getLoansOverviewAction() {
-  await requireAdmin();
+  await requireModule("planilla");
   return payroll.getLoansOverview();
 }
 
 // ── InDrive ────────────────────────────────────────────────────────────
 
 export async function getIndriveRidesAction(employeeId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   try {
     return { rides: await payroll.getIndriveRides(employeeId), missingTable: false };
   } catch (err) {
@@ -242,7 +243,7 @@ export async function createIndriveRideAction(input: {
   charge: boolean;
   notes: string | null;
 }): Promise<SaveResult> {
-  await requireAdmin();
+  await requireModule("planilla");
   try {
     await payroll.createIndriveRide(input);
     return { ok: true };
@@ -253,7 +254,7 @@ export async function createIndriveRideAction(input: {
 }
 
 export async function setIndriveRideChargeAction(id: string, charge: boolean): Promise<SaveResult> {
-  await requireAdmin();
+  await requireModule("planilla");
   try {
     await payroll.setIndriveRideCharge(id, charge);
     return { ok: true };
@@ -267,19 +268,19 @@ export async function updateIndriveRideAction(
   id: string,
   input: { rideDate: string; amountCents: number; notes: string | null }
 ) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.updateIndriveRide(id, input);
 }
 
 export async function deleteIndriveRideAction(id: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   await payroll.deleteIndriveRide(id);
 }
 
 // ── Sueldo / aumentos ─────────────────────────────────────────────────
 
 export async function getSalaryChangesAction(employeeId: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   return salary.getSalaryChanges(employeeId);
 }
 
@@ -292,7 +293,7 @@ export async function registerSalaryChangeAction(input: {
   effectiveHalf: 1 | 2;
   notes?: string | null;
 }) {
-  await requireAdmin();
+  await requireModule("planilla");
   const change = await salary.registerSalaryChange(input);
   revalidatePath(PATH);
   return change;
@@ -301,19 +302,19 @@ export async function registerSalaryChangeAction(input: {
 // ── Posiciones (catálogo editable) ─────────────────────────────────────
 
 export async function getPayrollPositionsAction() {
-  await requireAdmin();
+  await requireModule("planilla");
   return positions.getPayrollPositions();
 }
 
 export async function createPayrollPositionAction(name: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   const position = await positions.createPayrollPosition(name);
   revalidatePath(PATH);
   return position;
 }
 
 export async function updatePayrollPositionAction(id: string, input: { name?: string; active?: boolean }) {
-  await requireAdmin();
+  await requireModule("planilla");
   await positions.updatePayrollPosition(id, input);
   revalidatePath(PATH);
 }
@@ -321,7 +322,7 @@ export async function updatePayrollPositionAction(id: string, input: { name?: st
 // ── Borrar empleado (irreversible; la UI confirma antes) ──────────────
 
 export async function deleteEmployeeAction(id: string) {
-  await requireAdmin();
+  await requireModule("planilla");
   await employees.deletePayrollEmployee(id);
   revalidatePath(PATH);
 }

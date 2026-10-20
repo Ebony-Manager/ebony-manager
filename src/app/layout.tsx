@@ -3,7 +3,7 @@ import { Work_Sans, Catamaran } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { getUser, getProfile } from "@/lib/auth/dal";
 import type { EbonyUser } from "@/context/auth-context";
-import type { AppRole } from "@/lib/auth/dal";
+import type { AppModule, AppRole } from "@/lib/auth/dal";
 import "./globals.css";
 
 // Work Sans (titulares/subtítulos/UI/labels) + Catamaran (cuerpo de
@@ -49,11 +49,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       }
     : null;
   const initialRole: AppRole | null = profile?.role ?? null;
+  const initialModules: AppModule[] | undefined = profile?.modules;
 
   return (
     <html lang="es" className={`${workSans.variable} ${catamaran.variable} h-full antialiased`}>
       <body className="min-h-full">
-        <Providers initialUser={initialUser} initialRole={initialRole}>
+        <Providers initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
           {children}
         </Providers>
       </body>

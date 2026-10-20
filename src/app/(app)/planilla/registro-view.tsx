@@ -51,6 +51,7 @@ import {
 import { computeRegistroSimpleTotals } from "@/lib/planilla/payroll-registro-totals";
 import { matchesEmployeeQuery, numberEmployees } from "@/lib/planilla/employee-search";
 import { useLang } from "@/context/language-context";
+import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import {
   getRegistroAction,
@@ -146,6 +147,7 @@ export function RegistroView({
   reloadSignal?: number;
 }) {
   const { lang } = useLang();
+  const { can } = useAuth();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [period, setPeriod] = React.useState(() => currentPeriod());
@@ -662,10 +664,13 @@ export function RegistroView({
               <Copy className="size-3.5" />
               {tt("duplicate_prev")}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setAttendanceOpen(true)}>
-              <FileUp className="size-3.5" />
-              {tt("att_menu")}
-            </DropdownMenuItem>
+            {/* Importar asistencia pide además el permiso `asistencia`. */}
+            {can("asistencia") && (
+              <DropdownMenuItem onSelect={() => setAttendanceOpen(true)}>
+                <FileUp className="size-3.5" />
+                {tt("att_menu")}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -30,20 +30,32 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          invited_at: string | null
+          invited_by: string | null
+          modules: string[]
           note: string | null
           role: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
+          invited_at?: string | null
+          invited_by?: string | null
+          modules?: string[]
           note?: string | null
           role?: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          modules?: string[]
           note?: string | null
           role?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -767,6 +779,8 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_sign_in_at: string | null
+          modules: string[]
           role: string
           updated_at: string
         }
@@ -776,6 +790,8 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          last_sign_in_at?: string | null
+          modules?: string[]
           role?: string
           updated_at?: string
         }
@@ -785,6 +801,8 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_sign_in_at?: string | null
+          modules?: string[]
           role?: string
           updated_at?: string
         }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { getEmployeePhotoUrls, getPayrollEmployee } from "@/services/payroll-employees";
 import { getPayrollPositions } from "@/services/payroll-positions";
@@ -8,9 +8,9 @@ import { getSalaryChanges } from "@/services/payroll-salary";
 import { getEmployeeAnnualDetail, getLedgerEntries } from "@/services/payroll";
 import { EmployeeProfileView } from "../employee-profile-view";
 
-// El perfil del empleado es solo-admin, igual que el resto de Planilla:
-// `requireAdmin()` rebota a un no-admin antes de cargar nada y la RLS
-// admin-only de `payroll_employees` es la última línea. `force-dynamic`
+// El perfil del empleado pide el módulo `planilla`, igual que el resto de
+// Planilla: `requireModule()` rebota a quien no lo tiene antes de cargar
+// nada y la RLS de `payroll_employees` es la última línea. `force-dynamic`
 // porque los datos cambian por acción del usuario y no deben cachearse.
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ from?: string }>;
 }) {
-  await requireAdmin();
+  await requireModule("planilla");
   const { id } = await params;
   const { from } = await searchParams;
   const backTo = FROM_TABS.find((t) => t === from) ?? "empleados";

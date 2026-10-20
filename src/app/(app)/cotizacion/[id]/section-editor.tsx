@@ -70,14 +70,14 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
 export function SectionEditor({
   section,
   catalog,
-  isAdmin,
+  canEditCosts,
   open,
   onToggle,
   onChange,
 }: {
   section: QuoteSection;
   catalog: CatalogItem[];
-  isAdmin: boolean;
+  canEditCosts: boolean;
   open: Record<BlockKey, boolean>;
   onToggle: (key: BlockKey) => void;
   onChange: (next: QuoteSection) => void;
@@ -115,7 +115,7 @@ export function SectionEditor({
       line={l}
       options={optionsFor(l)}
       cornerMode={section.wallShape === "L"}
-      isAdmin={isAdmin}
+      canEditCosts={canEditCosts}
       onChange={(p) => patchLine(l.id, p)}
       onSwap={(item) => setLines(section.lines.map((x) => (x.id === l.id ? swapLineItem(x, item) : x)))}
       onRemove={() => removeLine(l.id)}

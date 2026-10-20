@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<QuoteStatus, string> = {
 };
 
 /** Lista de cotizaciones: buscar, filtrar por estado, abrir, duplicar y borrar. */
-export function QuotesList({ initialQuotes, isAdmin }: { initialQuotes: QuoteSummary[]; isAdmin: boolean }) {
+export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: QuoteSummary[]; canEditCosts: boolean }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
   const router = useRouter();
@@ -84,7 +84,7 @@ export function QuotesList({ initialQuotes, isAdmin }: { initialQuotes: QuoteSum
           <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          {isAdmin && (
+          {canEditCosts && (
             <Link href="/cotizacion/costos" className="text-xs text-ink-900/40 hover:text-ink-900/70">
               {tt("costs_link")}
             </Link>

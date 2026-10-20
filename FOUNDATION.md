@@ -157,6 +157,32 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
 - Las funciones helper/trigger viven en el esquema `private` (no expuesto
   por PostgREST). `get_advisors` (security) queda limpio.
 
+### Usuarios y permisos por módulo
+
+Ver `supabase/migrations/20261020120000_usuarios_permisos.sql` y la
+pantalla **Administración → Usuarios** (`src/app/(app)/usuarios/`, solo admin).
+
+- `allowed_emails` es la lista de usuarios: `role` (`admin` = todo;
+  `vendedor` = "Usuario", solo lo marcado) + `modules`. Un trigger copia
+  ambos a `profiles`, que es lo que leen la RLS y el servidor; quitar un
+  correo borra el perfil y sin perfil no se entra.
+- La lista de módulos vive en un solo lugar: `src/lib/auth/modules.ts`
+  (`APP_MODULES`, sub-permisos `asistencia` ⊂ `planilla` y `costos` ⊂
+  `cotizacion`, `hasModule`, `homePathFor`). En el servidor:
+  `requireModule(...)` en cada página/action (`src/lib/auth/dal.ts`); en
+  Postgres: `private.has_module(m)` en cada policy; en el cliente:
+  `useAuth().can(m)` y `canSeeNavItem` solo para mostrar/ocultar.
+- **Invitación por correo sin service_role:** `sendInvitation`
+  (`src/services/app-users.ts`) llama `signInWithOtp` con la clave pública
+  desde un cliente aparte en flujo implícito; Supabase manda el enlace y,
+  si la persona no tiene cuenta, la crea (el trigger de alta la deja pasar
+  porque ya está en la lista). El enlace vuelve a `/auth/confirm`, que toma
+  la sesión del `#hash` (o de `?token_hash=`) en el navegador. El invitado
+  también puede entrar con Google si su correo es de Google.
+- Agregar un módulo nuevo: sumarlo a `APP_MODULES` (+ etiqueta en
+  `usuarios/module-labels.ts`), al `check` de `allowed_emails.modules` y a
+  las policies de sus tablas con `private.has_module('<modulo>')`.
+
 **Nota reutilizable:** el patrón "route group `(app)` + gate en su layout"
 se mantuvo; lo que cambió es que el gate ahora es server-side
 (`requireProfile()` en un Server Component) en vez de un efecto con

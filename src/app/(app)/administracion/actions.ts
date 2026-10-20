@@ -1,12 +1,12 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import * as payroll from "@/services/payroll";
 import * as contractors from "@/services/contractors";
 
-// Solo-admin, como Planilla y Contratistas: el dashboard junta datos de las dos.
+// El dashboard junta datos de Planilla y Contratistas: pide los dos módulos.
 export async function getAdminDashboardAction(year: number) {
-  await requireAdmin();
+  await requireModule("planilla", "contratistas");
   const [overview, c] = await Promise.all([payroll.getPlanillaOverview(year), contractors.getContractorsDashboardInput()]);
   const prefix = `${year}-`;
   return {

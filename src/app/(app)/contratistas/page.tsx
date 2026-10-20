@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import {
   getContractorsDashboardInput,
   getContractorsWithBalance,
@@ -7,14 +7,14 @@ import {
 } from "@/services/contractors";
 import { ContratistasClient } from "./contratistas-client";
 
-// El módulo de Contratistas es solo-admin. `requireAdmin()` rebota a un
-// no-admin (a /cotizacion) antes de cargar nada; la RLS admin-only de
-// las tablas es la última línea. `force-dynamic` porque los datos
+// Contratistas requiere el módulo `contratistas`. `requireModule()` rebota
+// a quien no lo tiene (a su módulo de inicio) antes de cargar nada; la RLS
+// de las tablas es la última línea. `force-dynamic` porque los datos
 // cambian por acción del usuario y no deben cachearse entre requests.
 export const dynamic = "force-dynamic";
 
 export default async function ContratistasPage() {
-  await requireAdmin();
+  await requireModule("contratistas");
   const [contractors, projects, laborRates, dashboard] = await Promise.all([
     getContractorsWithBalance(),
     getProjects(),

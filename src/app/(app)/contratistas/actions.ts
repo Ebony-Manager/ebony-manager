@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import * as contractors from "@/services/contractors";
 
-// El módulo de Contratistas es solo-admin: cada action verifica
-// `requireAdmin()` al entrar (además de la RLS admin-only de las 3
-// tablas). Un `vendedor` que llame a un action a mano igual rebota.
+// Contratistas es para quien tiene el módulo `contratistas` (el admin
+// siempre): cada action verifica `requireModule("contratistas")` al entrar
+// (además de la RLS de las tablas). Un usuario sin el módulo que llame a un
+// action a mano igual rebota.
 
 const PATH = "/contratistas";
 
@@ -20,21 +21,21 @@ function revalidateContractors() {
 }
 
 export async function createContractorAction(input: contractors.CreateContractorInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const contractor = await contractors.createContractor(input);
   revalidatePath(PATH);
   return contractor;
 }
 
 export async function updateContractorAction(id: string, input: contractors.UpdateContractorInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const contractor = await contractors.updateContractor(id, input);
   revalidateContractors();
   return contractor;
 }
 
 export async function deleteContractorAction(id: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   await contractors.deleteContractor(id);
   revalidateContractors();
 }
@@ -42,37 +43,37 @@ export async function deleteContractorAction(id: string) {
 // ── Proyectos ───────────────────────────────────────────────────────────
 
 export async function getProjectsAction() {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.getProjects();
 }
 
 export async function createProjectAction(input: contractors.CreateProjectInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const project = await contractors.createProject(input);
   revalidateContractors();
   return project;
 }
 
 export async function updateProjectAction(id: string, input: contractors.UpdateProjectInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const project = await contractors.updateProject(id, input);
   revalidateContractors();
   return project;
 }
 
 export async function deleteProjectAction(id: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   await contractors.deleteProject(id);
   revalidateContractors();
 }
 
 export async function getContractorLedgerAction(contractorId: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.getContractorLedger(contractorId);
 }
 
 export async function createLedgerEntryAction(input: contractors.UpsertLedgerEntryInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const entry = await contractors.createLedgerEntry(input);
   revalidateContractors();
   return entry;
@@ -82,39 +83,39 @@ export async function updateLedgerEntryAction(
   id: string,
   input: Omit<contractors.UpsertLedgerEntryInput, "contractorId">
 ) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const entry = await contractors.updateLedgerEntry(id, input);
   revalidateContractors();
   return entry;
 }
 
 export async function deleteLedgerEntryAction(id: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   await contractors.deleteLedgerEntry(id);
   revalidateContractors();
 }
 
 export async function getLedgerEntryItemsAction(ledgerEntryId: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.getLedgerEntryItems(ledgerEntryId);
 }
 
 // ── Tarifas de mano de obra ─────────────────────────────────────────────
 
 export async function getLaborRatesAction() {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.getLaborRates();
 }
 
 export async function createLaborRateAction(input: contractors.CreateLaborRateInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const rate = await contractors.createLaborRate(input);
   revalidatePath(PATH);
   return rate;
 }
 
 export async function updateLaborRateAction(id: string, input: contractors.UpdateLaborRateInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   const rate = await contractors.updateLaborRate(id, input);
   revalidatePath(PATH);
   return rate;
@@ -125,21 +126,21 @@ export async function updateLaborRateAction(id: string, input: contractors.Updat
 // pantalla y nada más en la página depende de estos datos.
 
 export async function getContractorHelpersAction(contractorId: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.getContractorHelpers(contractorId);
 }
 
 export async function createContractorHelperAction(contractorId: string, input: contractors.ContractorHelperInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.createContractorHelper(contractorId, input);
 }
 
 export async function updateContractorHelperAction(id: string, input: contractors.ContractorHelperInput) {
-  await requireAdmin();
+  await requireModule("contratistas");
   return contractors.updateContractorHelper(id, input);
 }
 
 export async function deleteContractorHelperAction(id: string) {
-  await requireAdmin();
+  await requireModule("contratistas");
   await contractors.deleteContractorHelper(id);
 }

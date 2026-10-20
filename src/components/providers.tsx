@@ -4,20 +4,22 @@ import type { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider, type EbonyUser } from "@/context/auth-context";
-import type { AppRole } from "@/lib/auth/dal";
+import type { AppModule, AppRole } from "@/lib/auth/modules";
 
 export function Providers({
   children,
   initialUser = null,
   initialRole = null,
+  initialModules,
 }: {
   children: ReactNode;
   initialUser?: EbonyUser | null;
   initialRole?: AppRole | null;
+  initialModules?: AppModule[];
 }) {
   return (
     <LanguageProvider>
-      <AuthProvider initialUser={initialUser} initialRole={initialRole}>
+      <AuthProvider initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
         {children}
         <Toaster
           position="top-right"
