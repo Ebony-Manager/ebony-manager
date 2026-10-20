@@ -93,7 +93,7 @@ export async function requireModule(...modules: AppModule[]): Promise<Profile> {
   return profile;
 }
 
-/** Como requireModule, pero alcanza con UNO de los módulos (ej. Equipo). */
+/** Como requireModule, pero alcanza con UNO de los módulos (ej. Staff). */
 export async function requireAnyModule(...modules: AppModule[]): Promise<Profile> {
   const profile = await requireProfile();
   if (!hasAnyModule(profile, modules)) redirect(homePathFor(profile));

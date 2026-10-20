@@ -20,7 +20,7 @@ export function EmployeeSearchInput({
   value: string;
   onChange: (value: string) => void;
   className?: string;
-  /** Por defecto "Buscar empleado…"; Equipo busca también contratistas. */
+  /** Por defecto "Buscar empleado…"; Staff busca también contratistas. */
   placeholder?: string;
 }) {
   const { lang } = useLang();

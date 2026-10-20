@@ -18,12 +18,12 @@ import { EmployeeSearchInput } from "../../planilla/employee-search-input";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 
 /**
- * Personal → Equipo: empleados y contratistas en una sola lista, con
+ * Personal → Staff: empleados y contratistas en una sola lista, con
  * buscador y filtro por tipo. Solo lectura — cada fila abre la ficha de esa
  * persona en Planilla o Contratistas, donde se edita. Los que ya no laboran
  * van aparte, plegados, como en los directorios de cada sección.
  */
-export function EquipoClient({
+export function StaffClient({
   members,
   photoUrls,
   showKindFilter,
@@ -34,7 +34,7 @@ export function EquipoClient({
   showKindFilter: boolean;
 }) {
   const { lang } = useLang();
-  const tt = (k: keyof typeof strings.equipo) => t(lang, strings.equipo[k]);
+  const tt = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
   const pathname = usePathname();
   const crumbs = breadcrumbFor(pathname, lang);
 
@@ -141,7 +141,7 @@ const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minm
 
 function TeamList({ members, muted = false }: { members: TeamMember[]; muted?: boolean }) {
   const { lang } = useLang();
-  const tt = (k: keyof typeof strings.equipo) => t(lang, strings.equipo[k]);
+  const tt = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
 
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border bg-card", muted && "opacity-70")}>

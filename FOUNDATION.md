@@ -176,7 +176,7 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
   Dashboard ejecutivo) y el ícono **Personal**; al pie, **Settings** y el
   menú de perfil.
 - **Personal** (`/personal`): Resumen (lo pagado por mes, Planilla +
-  Contratistas), **Equipo** (`/personal/equipo`: empleados y contratistas
+  Contratistas), **Staff** (`/personal/staff`: empleados y contratistas
   en una sola lista, solo lectura, cada fila abre su ficha), Planilla y
   Contratistas. "Dashboard" queda reservado para el ejecutivo de la empresa.
 - **Settings** (`/settings`): Usuarios.

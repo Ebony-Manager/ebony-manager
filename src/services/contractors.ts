@@ -140,7 +140,7 @@ function mapProject(r: ProjectRow): Project {
   };
 }
 
-/** Contratistas sin saldo (para Personal → Equipo, que no necesita los movimientos). */
+/** Contratistas sin saldo (para Personal → Staff, que no necesita los movimientos). */
 export async function getContractors(): Promise<Contractor[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("contractors").select("*").order("sort_order").order("name");

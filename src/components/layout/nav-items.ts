@@ -12,7 +12,7 @@ export interface NavItem {
   anyModules?: AppModule[];
   /** Solo para el rol admin (ej. Usuarios). */
   adminOnly?: boolean;
-  /** Activo solo en su ruta exacta, no en sus sub-rutas (el Resumen en /personal, que no debe marcarse en /personal/equipo). */
+  /** Activo solo en su ruta exacta, no en sus sub-rutas (el Resumen en /personal, que no debe marcarse en /personal/staff). */
   exact?: boolean;
 }
 
@@ -52,7 +52,7 @@ export interface NavPanel {
 }
 
 // Personal — en el rail, debajo de los módulos de trabajo: Resumen (lo
-// pagado por mes, Planilla + Contratistas), Equipo (todos juntos), Planilla
+// pagado por mes, Planilla + Contratistas), Staff (todos juntos), Planilla
 // y Contratistas.
 export const PERSONAL_PANEL: NavPanel = {
   key: "personal",
@@ -60,7 +60,7 @@ export const PERSONAL_PANEL: NavPanel = {
   title: strings.nav.personal,
   items: [
     { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, modules: ["planilla", "contratistas"], exact: true },
-    { href: "/personal/equipo", icon: Contact, label: strings.nav.equipo, anyModules: ["planilla", "contratistas"] },
+    { href: "/personal/staff", icon: Contact, label: strings.nav.staff, anyModules: ["planilla", "contratistas"] },
     { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
     { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
   ],

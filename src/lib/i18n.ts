@@ -23,9 +23,9 @@ export const strings = {
     planilla: { es: "Planilla", en: "Payroll" },
     contratistas: { es: "Contratistas", en: "Contractors" },
     // Panel "Personal": la gente de Ebony y lo que se le paga — Resumen,
-    // Equipo (empleados + contratistas juntos), Planilla y Contratistas.
+    // Staff (empleados + contratistas juntos), Planilla y Contratistas.
     personal: { es: "Personal", en: "People" },
-    equipo: { es: "Equipo", en: "Team" },
+    staff: { es: "Staff", en: "Staff" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     // El filtro Todos/Taller/Administrativo que ya vive DENTRO del módulo
     // es lo que distingue ahora — el nombre del menú no necesita cargarlo.
@@ -52,9 +52,9 @@ export const strings = {
     menu: { es: "Menú", en: "Menu" },
   },
 
-  // Personal → Equipo: empleados y contratistas en una sola lista.
-  equipo: {
-    title: { es: "Equipo", en: "Team" },
+  // Personal → Staff: empleados y contratistas en una sola lista.
+  staff: {
+    title: { es: "Staff", en: "Staff" },
     subtitle: {
       es: "Todas las personas que trabajan con Ebony: empleados de planilla y contratistas. Toca a alguien para abrir su ficha.",
       en: "Everyone who works with Ebony: payroll employees and contractors. Tap someone to open their profile.",
@@ -1874,8 +1874,8 @@ export const strings = {
       en: "Directory, projects, statements and rates.",
     },
     dashboard_note: {
-      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; Equipo, a quien tenga cualquiera de los dos.",
-      en: "The People summary shows for users with both Payroll and Contractors; Team, for users with either.",
+      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; Staff, a quien tenga cualquiera de los dos.",
+      en: "The People summary shows for users with both Payroll and Contractors; Staff, for users with either.",
     },
   },
 

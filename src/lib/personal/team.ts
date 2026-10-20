@@ -3,7 +3,7 @@ import type { Contractor } from "@/types/contractors";
 import { matchesEmployeeQuery } from "@/lib/planilla/employee-search";
 
 /**
- * Equipo: empleados de planilla y contratistas en una sola lista. Es solo
+ * Staff: empleados de planilla y contratistas en una sola lista. Es solo
  * una vista — cada persona se sigue editando en su ficha (Planilla o
  * Contratistas), a la que enlaza `href`. Puro, sin Supabase ni React.
  */
