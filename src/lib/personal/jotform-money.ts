@@ -45,6 +45,25 @@ export function parseRequestType(value: unknown): MoneyRequestType | null {
   return null;
 }
 
+/**
+ * Parámetros sueltos del paso "Webhook" del workflow de JotForm (que no manda
+ * la respuesta entera, solo lo que se le configure): `nombre`, `apellido`,
+ * `correo`, `tipo`, `monto`, `montoDescontar` → el mismo mapa que la API.
+ * Sin ninguno de esos, null.
+ */
+export function answersFromWorkflowParams(params: Record<string, string>): AnswersByName | null {
+  const get = (k: string) => params[k]?.trim() ?? "";
+  if (!get("nombre") && !get("correo") && !get("monto")) return null;
+  const f = MONEY_FORM_FIELDS;
+  return {
+    [f.name]: { first: get("nombre"), last: get("apellido") },
+    [f.email]: get("correo"),
+    [f.type]: get("tipo"),
+    [f.amount]: get("monto"),
+    ...(get("montoDescontar") ? { [f.deduct]: get("montoDescontar") } : {}),
+  };
+}
+
 export function normalizeMoneyRequest(answers: AnswersByName): MoneyRequestFields {
   const f = MONEY_FORM_FIELDS;
   const name = answers[f.name] && typeof answers[f.name] === "object" ? (answers[f.name] as Record<string, unknown>) : {};

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { answersFromApi, answersFromRawRequest } from "./jotform-intake";
-import { normalizeMoneyRequest, parseMoneyCents, parseRequestType } from "./jotform-money";
+import { answersFromWorkflowParams, normalizeMoneyRequest, parseMoneyCents, parseRequestType } from "./jotform-money";
 
 // Respuesta real (anonimizada) del formulario "Solicitud Dinero", formato de la API.
 const API = {
@@ -46,5 +46,15 @@ describe("piezas", () => {
     expect(parseRequestType("Préstamo")).toBe("prestamo");
     expect(parseRequestType("Adelanto")).toBe("adelanto");
     expect(parseRequestType("Otro")).toBeNull();
+  });
+});
+
+describe("answersFromWorkflowParams", () => {
+  it("parámetros sueltos del webhook del workflow → mismos datos", () => {
+    const answers = answersFromWorkflowParams({ nombre: "NABIL MASSIEL", apellido: "SORIANO MANCILLA", correo: "Nabil@Example.com", tipo: "Prestamo", monto: "450.00", montoDescontar: "540" });
+    expect(answers && normalizeMoneyRequest(answers)).toEqual(normalizeMoneyRequest(answersFromApi(API)));
+  });
+  it("sin datos → null", () => {
+    expect(answersFromWorkflowParams({ formID: "1" })).toBeNull();
   });
 });
