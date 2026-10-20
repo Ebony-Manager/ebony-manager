@@ -26,8 +26,6 @@ el servidor — ver FOUNDATION.md §5).
 
 1. En [Google Cloud Console](https://console.cloud.google.com/) → **APIs &
    Services → Credentials**, en el OAuth client de Ebony:
-   - **Authorized JavaScript origins**: `http://localhost:3001` y
-     `https://ebony-manager.vercel.app`.
    - **Authorized redirect URIs**: `https://jdfkfbopecqvvyxherku.supabase.co/auth/v1/callback`.
 2. Copia el **Client ID** y el **Client Secret**.
 3. En el dashboard de Supabase → **Auth → Providers → Google**: habilítalo
@@ -143,9 +141,11 @@ configuración:
    `https://admin.ebonypanama.com`; en Redirect URLs agregar
    `https://admin.ebonypanama.com/**` (dejar la de `vercel.app` mientras
    se hace el cambio).
-4. **Google Cloud Console** → el OAuth client de Ebony → Authorized
-   JavaScript origins: agregar `https://admin.ebonypanama.com`. (El
-   redirect URI sigue siendo el de Supabase, no cambia.) Next no necesita el `vercel.json` de rewrites
+
+En Google Cloud Console no hay que cambiar nada: el login con Google va
+app → Supabase → Google → Supabase → app, y Google solo valida el redirect
+URI de Supabase (`…supabase.co/auth/v1/callback`), que no depende del
+dominio de la app. Next no necesita el `vercel.json` de rewrites
 que tenía la versión Vite (SPA) — se eliminó.
 
 ---
