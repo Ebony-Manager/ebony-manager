@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Settings, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
-import { t, strings } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ADMIN_PANEL_ITEMS, canSeeNavItem } from "./nav-items";
+import { RAIL_ITEMS, ADMIN_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { UserMenu } from "./user-menu";
+
+const railButton = "w-11 h-11 flex items-center justify-center rounded-[11px] transition-colors duration-100";
+const railActive = "bg-white/20 text-white";
+const railIdle = "text-white/80 hover:bg-white/10 hover:text-white";
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
@@ -15,9 +20,32 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   const pathname = usePathname();
   const access = { role, modules };
   const railItems = RAIL_ITEMS.filter((i) => canSeeNavItem(i, access));
-  const panelItems = ADMIN_PANEL_ITEMS.filter((i) => canSeeNavItem(i, access));
-  const [firstAdminItem] = panelItems;
-  const isAdminRoute = panelItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+
+  // Cada panel con solo los ítems que este usuario puede abrir.
+  const visible = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
+  const adminPanel = visible(ADMIN_PANEL);
+  const settingsPanel = visible(SETTINGS_PANEL);
+  const openPanel = [adminPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
+
+  // Ícono del rail para un panel: un Link normal al primer ítem que el
+  // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
+  // la ruta. Sin ítems visibles, no hay ícono.
+  function panelLink(panel: NavPanel) {
+    const [first] = panel.items;
+    if (!first) return null;
+    const Icon = panel.icon;
+    return (
+      <Link
+        href={first.href}
+        onClick={onClose}
+        title={t(lang, panel.title)}
+        aria-label={t(lang, panel.title)}
+        className={`${railButton} ${openPanel?.key === panel.key ? railActive : railIdle}`}
+      >
+        <Icon size={23} className="shrink-0" strokeWidth={1.5} />
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -54,62 +82,36 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   onClick={onClose}
                   title={t(lang, label)}
                   aria-label={t(lang, label)}
-                  className={`
-                    w-11 h-11 flex items-center justify-center rounded-[11px]
-                    transition-colors duration-100
-                    ${isActive ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
-                  `}
+                  className={`${railButton} ${isActive ? railActive : railIdle}`}
                 >
                   <Icon size={23} className="shrink-0" strokeWidth={1.5} />
                 </Link>
               );
             })}
 
-            {/* Administración — un Link normal como los de arriba (no un
-                toggle que abre/cierra nada); el panel crema de al lado
-                aparece solo, según la ruta (ver isAdminRoute), al entrar
-                acá. Solo si el usuario ve al menos un ítem del panel
-                (Planilla, Contratistas, Usuarios…). */}
-            {firstAdminItem && (
-              <Link
-                href={firstAdminItem.href}
-                onClick={onClose}
-                title={t(lang, strings.nav.administracion)}
-                aria-label={t(lang, strings.nav.administracion)}
-                className={`
-                  w-11 h-11 flex items-center justify-center rounded-[11px]
-                  transition-colors duration-100
-                  ${isAdminRoute ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
-                `}
-              >
-                <Briefcase size={23} className="shrink-0" strokeWidth={1.5} />
-              </Link>
-            )}
+            {panelLink(adminPanel)}
           </nav>
 
-          {/* Inerte por ahora — el mockup lo pinta pero no define a dónde
-              lleva (¿ajustes de perfil? ¿de la app?). Avisar antes de
-              cablearlo a algo. */}
-          <div
-            className="mt-auto w-11 h-11 flex items-center justify-center rounded-[11px] text-white/65"
-            title={t(lang, strings.nav.settings)}
-          >
-            <Settings size={20} strokeWidth={1.5} />
+          {/* Al pie: Settings (engranaje) y el acceso al perfil. */}
+          <div className="mt-auto flex flex-col items-center gap-1.5">
+            {panelLink(settingsPanel)}
+            <UserMenu />
           </div>
         </aside>
 
-        {/* Panel "Administración" — solo dentro de sus rutas, y solo con
-            los ítems que el usuario puede abrir. */}
-        {isAdminRoute && (
+        {/* Panel crema del ícono activo (Administración o Settings) — solo
+            dentro de sus rutas, y solo con los ítems que el usuario puede abrir. */}
+        {openPanel && (
           <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
             <div className="px-5 pt-[22px] pb-4">
-              <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
+              <h2 className="text-[15px] font-bold text-ink-900">{t(lang, openPanel.title)}</h2>
             </div>
             <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
-              {panelItems.map(({ href, icon: Icon, label }) => {
-                const isActive = pathname === href || pathname.startsWith(`${href}/`);
+              {openPanel.items.map((item) => {
+                const { href, icon: Icon, label } = item;
+                const isActive = isNavItemActive(item, pathname);
                 return (
                   <Link
                     key={href}

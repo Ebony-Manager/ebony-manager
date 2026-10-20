@@ -1,4 +1,4 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, Briefcase, Settings, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -19,9 +19,9 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 }
 
 /**
- * Compartido entre `sidebar.tsx` (los renderiza) y `navbar.tsx` (los lee
- * para armar el breadcrumb "Administración / Planilla") — una sola lista,
- * así nunca quedan desincronizados.
+ * Compartido entre `sidebar.tsx` (los renderiza) y `breadcrumbFor` (lo
+ * pinta cada pantalla: "Administración / Planilla") — una sola lista, así
+ * nunca quedan desincronizados.
  */
 
 // Módulos de trabajo del día a día — links directos del rail, sin panel.
@@ -33,29 +33,58 @@ export const RAIL_ITEMS: NavItem[] = [
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
 ];
 
-// El panel de "Administración" tiene, en este orden: Dashboard (global:
-// Planilla + Contratistas juntos), Planilla, Contratistas y Usuarios. Cada
-// usuario ve solo los que le tocan; el ícono del rail aparece si ve al menos
-// uno y lleva al primero que vea. El gate de verdad sigue siendo
-// requireModule()/requireAdmin() en cada página + RLS.
-export const ADMIN_PANEL_ITEMS: NavItem[] = [
-  { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas, modules: ["planilla", "contratistas"] },
-  { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
-  { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
-  { href: "/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
-];
+/**
+ * Un ícono del rail que, al entrar a cualquiera de sus rutas, abre al lado un
+ * panel crema con sus ítems. Cada usuario ve solo los ítems que le tocan; el
+ * ícono aparece si ve al menos uno y lleva al primero que vea. El gate de
+ * verdad sigue siendo requireModule()/requireAdmin() en cada página + RLS.
+ */
+export interface NavPanel {
+  key: "administracion" | "settings";
+  icon: LucideIcon;
+  title: (typeof strings.nav)[keyof typeof strings.nav];
+  items: NavItem[];
+}
+
+// Administración — en el rail, debajo de los módulos de trabajo: Dashboard
+// (global: Planilla + Contratistas juntos), Planilla y Contratistas.
+export const ADMIN_PANEL: NavPanel = {
+  key: "administracion",
+  icon: Briefcase,
+  title: strings.nav.administracion,
+  items: [
+    { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas, modules: ["planilla", "contratistas"] },
+    { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
+    { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
+  ],
+};
+
+// Settings — el engranaje al pie del rail: configuración de la app.
+export const SETTINGS_PANEL: NavPanel = {
+  key: "settings",
+  icon: Settings,
+  title: strings.nav.settings,
+  items: [{ href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true }],
+};
+
+export const NAV_PANELS: NavPanel[] = [ADMIN_PANEL, SETTINGS_PANEL];
+
+export function isNavItemActive(item: NavItem, pathname: string): boolean {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 /**
- * "Administración / Planilla" — un módulo del panel de Administración da
- * dos crumbs; uno del rail (sin panel) da uno solo ("Cronograma"). Sin
- * match (ej. `/`, fuera de (app)) no rinde nada. Vive acá (no en
- * navbar.tsx) porque el breadcrumb ahora lo pinta cada pantalla dentro de
- * su propio contenido (ver planilla-client.tsx), no el navbar global.
+ * "Administración / Planilla" o "Settings / Usuarios" — un ítem de panel da
+ * dos crumbs; uno del rail (sin panel) da uno solo ("Cronograma"). Sin match
+ * (ej. `/`, fuera de (app)) no rinde nada. Lo pinta cada pantalla dentro de
+ * su propio contenido (ver planilla-client.tsx).
  */
 export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
-  const adminItem = ADMIN_PANEL_ITEMS.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  if (adminItem) return [t(lang, strings.nav.administracion), t(lang, adminItem.label)];
-  const railItem = RAIL_ITEMS.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  for (const panel of NAV_PANELS) {
+    const item = panel.items.find((i) => isNavItemActive(i, pathname));
+    if (item) return [t(lang, panel.title), t(lang, item.label)];
+  }
+  const railItem = RAIL_ITEMS.find((i) => isNavItemActive(i, pathname));
   if (railItem) return [t(lang, railItem.label)];
   return [];
 }

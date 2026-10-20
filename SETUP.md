@@ -48,13 +48,13 @@ Proyecto conectado: **Ebony**, ref `jdfkfbopecqvvyxherku`.
    (no hay CLI local enlazada — ver `supabase/README.md`).
 3. Acceso: `public.allowed_emails` es la lista de usuarios. Ya está
    sembrado un admin (`teofilohafeitz@gmail.com`); agrega al resto del
-   equipo desde **Administración → Usuarios** (ver 3b).
+   equipo desde **Settings → Usuarios** (ver 3b).
 
 ---
 
 ### 3b. Usuarios e invitaciones por correo
 
-Los usuarios se agregan desde **Administración → Usuarios** (solo admin):
+Los usuarios se agregan desde **Settings → Usuarios** (solo admin):
 correo, rol y módulos. Al guardar, Supabase Auth le manda a esa persona un
 enlace de acceso que la lleva a `/auth/confirm` y la deja dentro. No usa la
 `service_role`. Para que los correos lleguen hace falta, en el dashboard de

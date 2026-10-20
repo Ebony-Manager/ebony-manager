@@ -18,7 +18,7 @@ export default function AuthCodeErrorPage() {
           <p className="text-xs text-ebony-light">
             Tu cuenta no está autorizada para entrar a Ebony Manager, o el enlace
             de acceso expiró. Si crees que deberías tener acceso, pide a un
-            administrador que te invite desde Administración → Usuarios.
+            administrador que te invite desde Settings → Usuarios.
           </p>
         </div>
         <Link

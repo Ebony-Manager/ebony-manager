@@ -134,7 +134,7 @@ Fase 1 — Cotizador. **Pendiente de aplicar** (se corre en el SQL Editor).
 
 ### 20261020120000_usuarios_permisos.sql
 
-Usuarios y permisos por módulo (pantalla **Administración → Usuarios**).
+Usuarios y permisos por módulo (pantalla **Settings → Usuarios**).
 **Aplicada** el 2026-10-20 con `execute_sql` del MCP, en 4 partes (el
 `apply_migration` del MCP se quedaba esperando una confirmación por los
 `DROP`, por eso la migración ya no tiene ninguno). Idempotente.

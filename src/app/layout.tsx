@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Seed the client AuthProvider from the verified server session so the
-  // shell (Navbar avatar, role-gated bits) renders right on first paint,
+  // shell (profile menu, role-gated bits) renders right on first paint,
   // with no logged-out flash.
   const [user, profile] = await Promise.all([getUser(), getProfile()]);
 

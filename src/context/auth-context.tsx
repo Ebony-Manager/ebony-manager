@@ -15,7 +15,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { hasModule, type AppModule, type AppRole } from "@/lib/auth/modules";
 
-// Shape the app UI (Navbar, Login) consumes. Derived from the Supabase
+// Shape the app UI (UserMenu, Login) consumes. Derived from the Supabase
 // user + profile — kept small on purpose so components don't reach into
 // Supabase types directly.
 export interface EbonyUser {

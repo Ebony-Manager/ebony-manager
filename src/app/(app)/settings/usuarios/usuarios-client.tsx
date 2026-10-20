@@ -29,7 +29,7 @@ function shortDate(lang: Lang, iso: string | null): string {
 }
 
 /**
- * Administración → Usuarios: la lista de quién entra a la app, con su rol,
+ * Settings → Usuarios: la lista de quién entra a la app, con su rol,
  * sus módulos y si ya aceptó la invitación. Desde acá se invita (por
  * correo), se cambian permisos, se reenvía la invitación y se quita el
  * acceso. Los datos vienen del servidor; tras cada cambio, router.refresh().

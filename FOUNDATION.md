@@ -160,7 +160,7 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
 ### Usuarios y permisos por módulo
 
 Ver `supabase/migrations/20261020120000_usuarios_permisos.sql` y la
-pantalla **Administración → Usuarios** (`src/app/(app)/usuarios/`, solo admin).
+pantalla **Settings → Usuarios** (`src/app/(app)/settings/usuarios/`, solo admin).
 
 - `allowed_emails` es la lista de usuarios: `role` (`admin` = todo;
   `vendedor` = "Usuario", solo lo marcado) + `modules`. Un trigger copia

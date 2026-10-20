@@ -13,7 +13,7 @@ import type { AppUserInput } from "@/types/usuarios";
 // lanzado desde un action, y acá el mensaje es lo que el admin necesita leer
 // ("ese correo ya está", "límite de correos de Supabase"...).
 
-const PATH = "/usuarios";
+const PATH = "/settings/usuarios";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 export type InviteResult = { ok: true; emailSent: boolean; emailError?: string } | { ok: false; error: string };

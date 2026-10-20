@@ -1,6 +1,6 @@
 import type { AppModule, AppRole } from "@/lib/auth/modules";
 
-/** Un usuario de la app, tal como lo muestra Administración → Usuarios. */
+/** Un usuario de la app, tal como lo muestra Settings → Usuarios. */
 export interface AppUser {
   email: string;
   role: AppRole;

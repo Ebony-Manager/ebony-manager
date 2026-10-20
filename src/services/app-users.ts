@@ -7,7 +7,7 @@ import type { Database } from "@/types/database";
 import type { AppUser, AppUserInput } from "@/types/usuarios";
 
 /**
- * Capa de datos de Administración → Usuarios. La lista de usuarios es
+ * Capa de datos de Settings → Usuarios. La lista de usuarios es
  * `allowed_emails` (quién puede entrar y a qué); `profiles` solo aporta
  * nombre, foto y último acceso de quien ya tiene cuenta. Los permisos se
  * guardan en `allowed_emails` y un trigger los copia al perfil (ver

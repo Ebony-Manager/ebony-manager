@@ -1,6 +1,6 @@
 // Bilingual strings — ES (primary) / EN (secondary).
 //
-// Trimmed to what the foundation shell (Sidebar/Navbar/Login) needs. The
+// Trimmed to what the foundation shell (Sidebar/UserMenu/Login) needs. The
 // old quote.*/plan.* dictionaries lived here too, but those belong to
 // Cotización, which is archived in _legacy/ and not wired into the new
 // app — porting its strings here would just be dead weight. They're still
@@ -40,15 +40,14 @@ export const strings = {
     // cualquier otro (no apagado/disabled) con una etiqueta "NUEVO" en vez
     // de "Pronto" — pero sigue sin link real, la página todavía no existe.
     nuevo: { es: "NUEVO", en: "NEW" },
-    // Navbar (rediseño Opción C): breadcrumb a la izquierda, campana entre
-    // el selector de idioma y el usuario a la derecha. Sin backend de
-    // notificaciones todavía — es un ícono inerte, mismo criterio que el
-    // placeholder "Pronto" de arriba.
-    notifications: { es: "Notificaciones", en: "Notifications" },
-    // Engranaje al pie de la barra nogal (mockup Opción C) — inerte, sin
-    // destino todavía (ver sidebar.tsx).
-    settings: { es: "Configuración", en: "Settings" },
+    // Engranaje al pie del rail: abre el panel "Settings" (hoy, Usuarios).
+    settings: { es: "Settings", en: "Settings" },
     usuarios: { es: "Usuarios", en: "Users" },
+    // Menú de perfil, abajo a la izquierda del rail (ver user-menu.tsx).
+    profile: { es: "Mi perfil", en: "My profile" },
+    language: { es: "Idioma", en: "Language" },
+    // Botón para abrir el menú lateral en el celular.
+    menu: { es: "Menú", en: "Menu" },
   },
 
   // Dashboard global de Administración (Planilla + Contratistas juntos).
@@ -1759,7 +1758,7 @@ export const strings = {
     in_def_delivery_days: { es: "Días de entrega", en: "Delivery days" },
   },
 
-  // Administración → Usuarios: quién entra a la app y a qué módulos.
+  // Settings → Usuarios: quién entra a la app y a qué módulos.
   usuarios: {
     title: { es: "Usuarios", en: "Users" },
     subtitle: {
