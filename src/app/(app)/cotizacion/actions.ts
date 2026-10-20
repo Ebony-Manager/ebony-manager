@@ -12,9 +12,10 @@ import type { Quote } from "@/types/cotizador";
 // que se guardó) y las páginas son `force-dynamic`, así que la lista
 // vuelve a leer sola al entrar.
 
-export async function createQuoteAction(): Promise<string> {
+/** Primer guardado de una cotización nueva (hasta ahí solo vivía en el editor). */
+export async function createQuoteAction(quote: Quote): Promise<void> {
   await requireModule("cotizacion");
-  return cotizador.createQuote();
+  await cotizador.createQuote(quote);
 }
 
 export async function saveQuoteAction(quote: Quote): Promise<void> {

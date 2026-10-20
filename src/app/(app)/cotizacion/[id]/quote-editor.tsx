@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type CatalogItem, type Quote, type QuoteDefaults, type QuoteSection, type QuoteStatus } from "@/types/cotizador";
-import { duplicateQuoteAction, saveQuoteAction } from "../actions";
+import { createQuoteAction, duplicateQuoteAction, saveQuoteAction } from "../actions";
 import { NumField } from "../num-field";
 import { ClientView } from "./client-view";
 import { SectionEditor, type BlockKey } from "./section-editor";
@@ -26,14 +26,20 @@ const SAVE_DELAY_MS = 700;
  * de dejar de escribir (la cotización completa en una sola llamada). Los
  * guardados van en fila: si llega un cambio mientras uno está en curso,
  * se manda otro al terminar con la versión más reciente.
+ *
+ * Una cotización nueva (`isNew`, abierta desde /cotizacion/nueva) todavía no
+ * existe en la base: se crea con el primer cambio. Si el usuario sale sin
+ * tocar nada, no queda ningún borrador vacío.
  */
 export function QuoteEditor({
   initialQuote,
+  isNew = false,
   catalog,
   defaults,
   canEditCosts,
 }: {
   initialQuote: Quote;
+  isNew?: boolean;
   catalog: CatalogItem[];
   defaults: QuoteDefaults;
   canEditCosts: boolean;
@@ -49,11 +55,33 @@ export function QuoteEditor({
   const [open, setOpen] = React.useState<Record<BlockKey, boolean>>({ eb: true, sb: true, ex: false, mg: false });
   const [saveState, setSaveState] = React.useState<SaveState>("saved");
   const [duplicating, setDuplicating] = React.useState(false);
+  const [isPersisted, setIsPersisted] = React.useState(!isNew);
 
   const latest = React.useRef(quote);
   const timer = React.useRef<number | null>(null);
   const inFlight = React.useRef(false);
   const queued = React.useRef(false);
+  const persisted = React.useRef(!isNew);
+  const creating = React.useRef<Promise<void> | null>(null);
+
+  // El primer guardado de una cotización nueva la crea y deja la dirección
+  // en /cotizacion/<id> (sin recargar); los siguientes la actualizan. Si se
+  // pide guardar mientras se está creando (ej. al salir de la pantalla), se
+  // espera a que termine para no crearla dos veces. Al salir no se toca la
+  // dirección: ya es la de otra página.
+  async function persist(q: Quote, { updateUrl = true } = {}) {
+    if (!persisted.current && creating.current) await creating.current.catch(() => {});
+    if (persisted.current) return saveQuoteAction(q);
+    creating.current = createQuoteAction(q);
+    try {
+      await creating.current;
+    } finally {
+      creating.current = null;
+    }
+    persisted.current = true;
+    setIsPersisted(true);
+    if (updateUrl) window.history.replaceState(null, "", `/cotizacion/${q.id}`);
+  }
 
   async function flush() {
     if (inFlight.current) {
@@ -65,7 +93,7 @@ export function QuoteEditor({
     try {
       do {
         queued.current = false;
-        await saveQuoteAction(latest.current);
+        await persist(latest.current);
       } while (queued.current);
       if (timer.current === null) setSaveState("saved");
     } catch (err) {
@@ -94,7 +122,7 @@ export function QuoteEditor({
       if (timer.current !== null) {
         window.clearTimeout(timer.current);
         timer.current = null;
-        void saveQuoteAction(latest.current).catch(() => {});
+        void persist(latest.current, { updateUrl: false }).catch(() => {});
       }
     };
   }, []);
@@ -134,7 +162,7 @@ export function QuoteEditor({
       if (timer.current !== null) {
         window.clearTimeout(timer.current);
         timer.current = null;
-        await saveQuoteAction(latest.current);
+        await persist(latest.current);
         setSaveState("saved");
       }
       const id = await duplicateQuoteAction(quote.id);
@@ -171,10 +199,10 @@ export function QuoteEditor({
           </Link>
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-              {saveState === "saved" && <Check className="size-3.5 text-[var(--status-ok)]" />}
+              {saveState === "saved" && isPersisted && <Check className="size-3.5 text-[var(--status-ok)]" />}
               {(saveState === "saving" || saveState === "pending") && <Loader2 className="size-3.5 animate-spin" />}
               {saveState === "error" && <TriangleAlert className="size-3.5 text-destructive" />}
-              {saveState === "saved" ? tt("save_saved") : saveState === "error" ? tt("save_error") : tt("save_saving")}
+              {saveState === "saved" ? tt(isPersisted ? "save_saved" : "save_new") : saveState === "error" ? tt("save_error") : tt("save_saving")}
               {saveState === "error" && (
                 <button type="button" onClick={() => void flush()} className="underline">
                   {tt("save_retry")}
@@ -185,7 +213,7 @@ export function QuoteEditor({
               value={quote.status}
               aria-label={tt("f_status")}
               onChange={(e) => setHeader({ status: e.currentTarget.value as QuoteStatus })}
-              className="h-8 border border-input bg-card px-2 text-xs font-semibold outline-none focus-visible:border-ring"
+              className="h-8 rounded-md border border-input bg-card px-2 text-xs font-semibold outline-none focus-visible:border-ring"
             >
               {QUOTE_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -195,10 +223,10 @@ export function QuoteEditor({
             </select>
             <button
               type="button"
-              disabled={duplicating}
+              disabled={duplicating || !isPersisted}
               onClick={onDuplicate}
               title={tt("duplicate_hint")}
-              className="inline-flex h-8 items-center gap-1.5 border border-input bg-card px-2.5 text-xs font-medium hover:border-ink-700 disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium hover:border-ink-700 disabled:opacity-50"
             >
               <Copy className="size-3.5" />
               {tt("duplicate")}

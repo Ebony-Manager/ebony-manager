@@ -1616,6 +1616,7 @@ export const strings = {
     duplicated: { es: "Copia creada", en: "Copy created" },
     costs_link: { es: "Costos", en: "Costs" },
     save_saved: { es: "Guardado", en: "Saved" },
+    save_new: { es: "Nueva · se guarda al escribir", en: "New · saves as you type" },
     save_saving: { es: "Guardando…", en: "Saving…" },
     save_error: { es: "No se pudo guardar", en: "Could not save" },
     save_retry: { es: "Reintentar", en: "Retry" },
