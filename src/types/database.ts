@@ -30,8 +30,10 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          first_name: string | null
           invited_at: string | null
           invited_by: string | null
+          last_name: string | null
           modules: string[]
           note: string | null
           role: string
@@ -40,8 +42,10 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
+          last_name?: string | null
           modules?: string[]
           note?: string | null
           role?: string
@@ -50,8 +54,10 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
+          last_name?: string | null
           modules?: string[]
           note?: string | null
           role?: string

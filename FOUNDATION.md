@@ -188,7 +188,9 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
 Ver `supabase/migrations/20261020120000_usuarios_permisos.sql` y la
 pantalla **Settings → Usuarios** (`src/app/(app)/settings/usuarios/`, solo admin).
 
-- `allowed_emails` es la lista de usuarios: `role` (`admin` = todo;
+- `allowed_emails` es la lista de usuarios: `first_name` / `last_name`
+  (los pone el admin al invitar; mandan sobre el nombre de Google y se
+  copian a `profiles.full_name`), `role` (`admin` = todo;
   `vendedor` = "Usuario", solo lo marcado) + `modules`. Un trigger copia
   ambos a `profiles`, que es lo que leen la RLS y el servidor; quitar un
   correo borra el perfil y sin perfil no se entra.

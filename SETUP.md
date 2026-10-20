@@ -55,7 +55,7 @@ Proyecto conectado: **Ebony**, ref `jdfkfbopecqvvyxherku`.
 ### 3b. Usuarios e invitaciones por correo
 
 Los usuarios se agregan desde **Settings → Usuarios** (solo admin):
-correo, rol y módulos. Al guardar, Supabase Auth le manda a esa persona un
+nombre, apellido, correo, rol y módulos. Al guardar, Supabase Auth le manda a esa persona un
 enlace de acceso que la lleva a `/auth/confirm` y la deja dentro. No usa la
 `service_role`. Para que los correos lleguen hace falta, en el dashboard de
 Supabase:
@@ -86,10 +86,16 @@ Supabase:
 3. **Auth → URL Configuration → Redirect URLs**: que incluya el dominio de
    la app (`https://admin.ebonypanama.com/**`, ver §6) y la URL local que
    se use (`http://localhost:4001/**` con `npm run dev`).
-4. (Opcional) **Auth → Email Templates**: traducir al español "Confirm
-   signup" (la recibe quien todavía no tiene cuenta) y "Magic Link" (la
-   recibe quien ya tenía). Ej. asunto *"Te invitaron a Ebony Manager"* y
-   cuerpo con `<a href="{{ .ConfirmationURL }}">Entrar a Ebony Manager</a>`.
+4. **Auth → Emails → Templates**: las plantillas con la marca de Ebony
+   están en `supabase/templates/` (en español, con el logo servido desde
+   `https://admin.ebonypanama.com/email/ebony-logo.png` y el saludo
+   `{{ .Data.first_name }}`, que la app manda al invitar):
+   - **Confirm signup** (la recibe quien todavía no tiene cuenta): asunto
+     *"Te invitaron a Ebony Manager"*, cuerpo = `invitacion.html`.
+   - **Magic link** (la recibe quien ya tenía cuenta): asunto *"Tu enlace
+     para entrar a Ebony Manager"*, cuerpo = `enlace-de-acceso.html`.
+
+   Se pegan a mano en el dashboard (no se publican con el código).
 
 Si el correo falla, el usuario igual queda agregado: puede entrar con Google
 (si su correo es de Google) o se le reenvía la invitación desde su menú en

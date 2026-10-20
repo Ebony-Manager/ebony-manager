@@ -25,9 +25,9 @@ import { inviteUserAction, updateUserAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
 
 /**
- * Invitar a alguien nuevo (con correo) o cambiar los permisos de un usuario
- * existente (sin correo: no se puede cambiar, se quita y se vuelve a
- * invitar). Rol Administrador = todo; Usuario = solo los módulos marcados.
+ * Invitar a alguien nuevo (nombre, apellido y correo) o cambiar el nombre y
+ * los permisos de un usuario existente (el correo no se puede cambiar: se
+ * quita y se vuelve a invitar). Rol Administrador = todo; Usuario = solo los módulos marcados.
  * Un sub-permiso (Asistencia, Costos) arrastra a su módulo padre al
  * marcarse, y se apaga si se desmarca el padre.
  */
@@ -49,6 +49,8 @@ export function UserFormDialog({
   const isInvite = !user;
 
   const [email, setEmail] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
   const [role, setRole] = React.useState<AppRole>("vendedor");
   const [modules, setModules] = React.useState<AppModule[]>([]);
   const [note, setNote] = React.useState("");
@@ -59,6 +61,8 @@ export function UserFormDialog({
   React.useEffect(() => {
     if (!open) return;
     setEmail("");
+    setFirstName(user?.firstName ?? "");
+    setLastName(user?.lastName ?? "");
     setRole(user?.role ?? "vendedor");
     setModules(user?.modules ?? []);
     setNote(user?.note ?? "");
@@ -86,7 +90,7 @@ export function UserFormDialog({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const input = { role, modules, note };
+    const input = { firstName, lastName, role, modules, note };
 
     if (isInvite) {
       const res = await inviteUserAction(email, input);
@@ -121,6 +125,34 @@ export function UserFormDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-first-name" className="text-xs text-muted-foreground">
+                {tt("field_first_name")}
+              </Label>
+              <Input
+                id="user-first-name"
+                autoComplete="off"
+                required
+                autoFocus={isInvite}
+                value={firstName}
+                onChange={(ev) => setFirstName(ev.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-last-name" className="text-xs text-muted-foreground">
+                {tt("field_last_name")}
+              </Label>
+              <Input
+                id="user-last-name"
+                autoComplete="off"
+                required
+                value={lastName}
+                onChange={(ev) => setLastName(ev.target.value)}
+              />
+            </div>
+          </div>
+
           {isInvite && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="invite-email" className="text-xs text-muted-foreground">
@@ -132,7 +164,6 @@ export function UserFormDialog({
                 inputMode="email"
                 autoComplete="off"
                 required
-                autoFocus
                 value={email}
                 onChange={(ev) => setEmail(ev.target.value)}
                 placeholder="nombre@correo.com"
@@ -223,7 +254,10 @@ export function UserFormDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               {tt("cancel")}
             </Button>
-            <Button type="submit" disabled={submitting || (isInvite && !email.trim())}>
+            <Button
+              type="submit"
+              disabled={submitting || !firstName.trim() || !lastName.trim() || (isInvite && !email.trim())}
+            >
               {submitting ? (isInvite ? tt("sending") : tt("saving")) : isInvite ? tt("send_invite") : tt("save")}
             </Button>
           </DialogFooter>
