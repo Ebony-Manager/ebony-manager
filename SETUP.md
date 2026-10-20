@@ -62,14 +62,32 @@ enlace de acceso que la lleva a `/auth/confirm` y la deja dentro. No usa la
 `service_role`. Para que los correos lleguen hace falta, en el dashboard de
 Supabase:
 
-1. **Auth → SMTP Settings → Enable custom SMTP** (Resend, SendGrid, Gmail
-   Workspace, etc.). Sin esto, el servicio de correo incluido en Supabase
-   solo entrega a los miembros del equipo del proyecto y con un límite muy
-   bajo por hora — las invitaciones a cualquier otra persona no llegan.
+1. **Auth → SMTP Settings → Enable custom SMTP**. Sin esto, el servicio de
+   correo incluido en Supabase solo entrega a los miembros del equipo del
+   proyecto y con un límite muy bajo por hora — las invitaciones a cualquier
+   otra persona no llegan. Opción recomendada, **Resend** (gratis hasta
+   3.000 correos/mes):
+   1. Crear cuenta en resend.com → **Domains → Add domain** →
+      `ebonypanama.com`. Resend muestra 3–4 registros DNS (DKIM en
+      `resend._domainkey`, y MX + SPF en `send`): agregarlos donde se
+      administra el DNS de `ebonypanama.com`. No tocan el correo actual
+      (`ventas@…` sigue igual: no cambian el MX principal).
+   2. Cuando Resend marque el dominio como *Verified*: **API Keys → Create**
+      (permiso "Sending access").
+   3. En Supabase → SMTP Settings: Sender email `no-reply@ebonypanama.com`,
+      Sender name `Ebony Manager`, Host `smtp.resend.com`, Port `465`,
+      Username `resend`, Password = la API key. Guardar.
+   4. **Auth → Rate Limits → Emails sent**: subirlo (ej. 30 por hora); con
+      SMTP propio ya no está atado al límite del correo de Supabase.
+
+   Alternativa si `ebonypanama.com` usa Google Workspace: Host
+   `smtp.gmail.com`, Port `465`, Username = un buzón del dominio, Password =
+   una *contraseña de aplicación* de ese buzón (requiere verificación en 2
+   pasos).
 2. **Auth → Providers → Email**: habilitado (viene así por defecto).
-3. **Auth → URL Configuration → Redirect URLs**: que incluya
-   `https://ebony-manager.vercel.app/**` y la URL local que se use
-   (`http://localhost:4001/**` con `npm run dev`).
+3. **Auth → URL Configuration → Redirect URLs**: que incluya el dominio de
+   la app (`https://admin.ebonypanama.com/**`, ver §6) y la URL local que
+   se use (`http://localhost:4001/**` con `npm run dev`).
 4. (Opcional) **Auth → Email Templates**: traducir al español "Confirm
    signup" (la recibe quien todavía no tiene cuenta) y "Magic Link" (la
    recibe quien ya tenía). Ej. asunto *"Te invitaron a Ebony Manager"* y
@@ -105,7 +123,29 @@ vercel --prod
 ```
 
 O conecta el repositorio en [vercel.com](https://vercel.com) para deploys
-automáticos en cada push. Next no necesita el `vercel.json` de rewrites
+automáticos en cada push.
+
+---
+
+### 6. Dominio propio: `admin.ebonypanama.com`
+
+El código no tiene el dominio escrito en ningún lado (los enlaces de
+invitación usan la dirección desde la que se invita), así que solo es
+configuración:
+
+1. **Vercel** → proyecto `ebony-manager` → **Settings → Domains → Add** →
+   `admin.ebonypanama.com` (Production).
+2. **DNS de `ebonypanama.com`** (donde esté administrado): registro
+   **CNAME**, nombre `admin`, valor = el que muestra Vercel en ese paso
+   (algo como `cname.vercel-dns.com` o `xxxx.vercel-dns-0xx.com`). Vercel
+   emite el certificado HTTPS solo al ver el registro.
+3. **Supabase → Auth → URL Configuration**: Site URL
+   `https://admin.ebonypanama.com`; en Redirect URLs agregar
+   `https://admin.ebonypanama.com/**` (dejar la de `vercel.app` mientras
+   se hace el cambio).
+4. **Google Cloud Console** → el OAuth client de Ebony → Authorized
+   JavaScript origins: agregar `https://admin.ebonypanama.com`. (El
+   redirect URI sigue siendo el de Supabase, no cambia.) Next no necesita el `vercel.json` de rewrites
 que tenía la versión Vite (SPA) — se eliminó.
 
 ---
