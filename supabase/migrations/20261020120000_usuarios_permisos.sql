@@ -21,6 +21,10 @@
 -- Fase 1 sigue rechazando a quien no esté en allowed_emails.
 --
 -- Idempotente: se puede correr más de una vez (pegado en el SQL Editor).
+-- Sin sentencias que borren objetos, a propósito (el MCP de Supabase pide
+-- confirmarlas una por una y en una sesión sin pantalla se queda esperando):
+-- las policies viejas se renombran y se modifican con ALTER POLICY, los
+-- triggers usan CREATE OR REPLACE y el check se agrega solo si falta.
 
 -- ============================================================================
 -- 1. Columnas nuevas
@@ -31,9 +35,14 @@ alter table public.allowed_emails
   add column if not exists invited_by uuid        references auth.users (id) on delete set null,
   add column if not exists updated_at timestamptz not null default now();
 
-alter table public.allowed_emails drop constraint if exists allowed_emails_modules_check;
-alter table public.allowed_emails add constraint allowed_emails_modules_check
-  check (modules <@ array['cotizacion', 'costos', 'planilla', 'asistencia', 'contratistas']::text[]);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'allowed_emails_modules_check') then
+    alter table public.allowed_emails add constraint allowed_emails_modules_check
+      check (modules <@ array['cotizacion', 'costos', 'planilla', 'asistencia', 'contratistas']::text[]);
+  end if;
+end;
+$$;
 
 comment on column public.allowed_emails.modules is
   'Módulos a los que entra un usuario con role vendedor. El admin entra a todo y esto se ignora.';
@@ -57,8 +66,7 @@ update public.profiles p
   from auth.users u
  where u.id = p.id and p.last_sign_in_at is null;
 
-drop trigger if exists allowed_emails_touch_updated_at on public.allowed_emails;
-create trigger allowed_emails_touch_updated_at
+create or replace trigger allowed_emails_touch_updated_at
   before update on public.allowed_emails
   for each row execute function private.touch_updated_at();
 
@@ -174,8 +182,7 @@ $$;
 
 revoke all on function private.sync_profile_from_allowed_email() from public;
 
-drop trigger if exists allowed_emails_sync_profile on public.allowed_emails;
-create trigger allowed_emails_sync_profile
+create or replace trigger allowed_emails_sync_profile
   after insert or update or delete on public.allowed_emails
   for each row execute function private.sync_profile_from_allowed_email();
 
@@ -197,8 +204,7 @@ $$;
 revoke all on function private.sync_profile_last_sign_in() from public;
 grant execute on function private.sync_profile_last_sign_in() to supabase_auth_admin;
 
-drop trigger if exists on_auth_user_signed_in on auth.users;
-create trigger on_auth_user_signed_in
+create or replace trigger on_auth_user_signed_in
   after update of last_sign_in_at on auth.users
   for each row
   when (new.last_sign_in_at is distinct from old.last_sign_in_at)
@@ -232,86 +238,86 @@ $$;
 
 -- ============================================================================
 -- 7. Policies por módulo (reemplazan las solo-admin)
+--    Cada fila: la policy vieja (si existe) se renombra a la nueva y se le
+--    cambia la condición; si no hay ninguna de las dos, se crea la nueva.
+--    Una tabla de una migración todavía sin aplicar (ej. payroll_indrive_rides)
+--    se salta: volver a correr esto después de crearla.
 -- ============================================================================
 do $$
 declare
-  r record;
+  r    record;
+  stmt text;
 begin
   for r in
     select * from (values
-      ('payroll_employees',             'planilla'),
-      ('payroll_entries',               'planilla'),
-      ('payroll_ledger_entries',        'planilla'),
-      ('payroll_loans',                 'planilla'),
-      ('payroll_salary_changes',        'planilla'),
-      ('payroll_positions',             'planilla'),
-      ('payroll_indrive_rides',         'planilla'),
-      ('contractors',                   'contratistas'),
-      ('projects',                      'contratistas'),
-      ('contractor_ledger_entries',     'contratistas'),
-      ('contractor_ledger_entry_items', 'contratistas'),
-      ('project_assignments',           'contratistas'),
-      ('labor_rates',                   'contratistas'),
-      ('contractor_helpers',            'contratistas'),
-      ('quote_item_recipes',            'costos')
-    ) as t (tbl, module)
+      ('public',  'payroll_employees',             'payroll_employees_admin_all',             'payroll_employees_module_all',             'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_entries',               'payroll_entries_admin_all',               'payroll_entries_module_all',               'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_ledger_entries',        'payroll_ledger_entries_admin_all',        'payroll_ledger_entries_module_all',        'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_loans',                 'payroll_loans_admin_all',                 'payroll_loans_module_all',                 'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_salary_changes',        'payroll_salary_changes_admin_all',        'payroll_salary_changes_module_all',        'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_positions',             'payroll_positions_admin_all',             'payroll_positions_module_all',             'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'payroll_indrive_rides',         'payroll_indrive_rides_admin_all',         'payroll_indrive_rides_module_all',         'all',    $p$private.has_module('planilla')$p$,     $p$private.has_module('planilla')$p$),
+      ('public',  'contractors',                   'contractors_admin_all',                   'contractors_module_all',                   'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'projects',                      'projects_admin_all',                      'projects_module_all',                      'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'contractor_ledger_entries',     'contractor_ledger_entries_admin_all',     'contractor_ledger_entries_module_all',     'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'contractor_ledger_entry_items', 'contractor_ledger_entry_items_admin_all', 'contractor_ledger_entry_items_module_all', 'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'project_assignments',           'project_assignments_admin_all',           'project_assignments_module_all',           'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'labor_rates',                   'labor_rates_admin_all',                   'labor_rates_module_all',                   'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      ('public',  'contractor_helpers',            'contractor_helpers_admin_all',            'contractor_helpers_module_all',            'all',    $p$private.has_module('contratistas')$p$, $p$private.has_module('contratistas')$p$),
+      -- Cotizador: las cotizaciones, quien tiene el Cotizador; las recetas, quien tiene Costos.
+      ('public',  'quotes',                        'quotes_app_users_all',                    'quotes_module_all',                        'all',    $p$private.has_module('cotizacion')$p$,   $p$private.has_module('cotizacion')$p$),
+      ('public',  'quote_sections',                'quote_sections_app_users_all',            'quote_sections_module_all',                'all',    $p$private.has_module('cotizacion')$p$,   $p$private.has_module('cotizacion')$p$),
+      ('public',  'quote_lines',                   'quote_lines_app_users_all',               'quote_lines_module_all',                   'all',    $p$private.has_module('cotizacion')$p$,   $p$private.has_module('cotizacion')$p$),
+      ('public',  'quote_item_recipes',            'quote_item_recipes_admin_all',            'quote_item_recipes_module_all',            'all',    $p$private.has_module('costos')$p$,       $p$private.has_module('costos')$p$),
+      -- Insumos y catálogo: los lee quien cotiza; los cambia quien tiene Costos.
+      ('public',  'quote_cost_inputs',             'quote_cost_inputs_read',                  'quote_cost_inputs_module_read',            'select', $p$private.has_module('cotizacion') or private.has_module('costos')$p$, null),
+      ('public',  'quote_cost_inputs',             'quote_cost_inputs_admin_insert',          'quote_cost_inputs_costos_insert',          'insert', null,                                     $p$private.has_module('costos')$p$),
+      ('public',  'quote_cost_inputs',             'quote_cost_inputs_admin_update',          'quote_cost_inputs_costos_update',          'update', $p$private.has_module('costos')$p$,       $p$private.has_module('costos')$p$),
+      ('public',  'quote_cost_inputs',             'quote_cost_inputs_admin_delete',          'quote_cost_inputs_costos_delete',          'delete', $p$private.has_module('costos')$p$,       null),
+      ('public',  'quote_catalog_items',           'quote_catalog_items_read',                'quote_catalog_items_module_read',          'select', $p$private.has_module('cotizacion') or private.has_module('costos')$p$, null),
+      ('public',  'quote_catalog_items',           'quote_catalog_items_admin_insert',        'quote_catalog_items_costos_insert',        'insert', null,                                     $p$private.has_module('costos')$p$),
+      ('public',  'quote_catalog_items',           'quote_catalog_items_admin_update',        'quote_catalog_items_costos_update',        'update', $p$private.has_module('costos')$p$,       $p$private.has_module('costos')$p$),
+      ('public',  'quote_catalog_items',           'quote_catalog_items_admin_delete',        'quote_catalog_items_costos_delete',        'delete', $p$private.has_module('costos')$p$,       null)
+    ) as t (sch, tbl, old_name, new_name, cmd, using_expr, check_expr)
   loop
-    -- Una tabla de una migración todavía sin aplicar se salta.
-    if to_regclass('public.' || r.tbl) is null then
+    if to_regclass(format('%I.%I', r.sch, r.tbl)) is null then
       continue;
     end if;
-    execute format('drop policy if exists %I on public.%I', r.tbl || '_admin_all', r.tbl);
-    execute format('drop policy if exists %I on public.%I', r.tbl || '_module_all', r.tbl);
-    execute format(
-      'create policy %I on public.%I for all to authenticated using (private.has_module(%L)) with check (private.has_module(%L))',
-      r.tbl || '_module_all', r.tbl, r.module, r.module
-    );
+
+    if exists (select 1 from pg_policies where schemaname = r.sch and tablename = r.tbl and policyname = r.old_name)
+       and not exists (select 1 from pg_policies where schemaname = r.sch and tablename = r.tbl and policyname = r.new_name) then
+      execute format('alter policy %I on %I.%I rename to %I', r.old_name, r.sch, r.tbl, r.new_name);
+    end if;
+
+    if exists (select 1 from pg_policies where schemaname = r.sch and tablename = r.tbl and policyname = r.new_name) then
+      stmt := format('alter policy %I on %I.%I to authenticated', r.new_name, r.sch, r.tbl);
+    else
+      stmt := format('create policy %I on %I.%I for %s to authenticated', r.new_name, r.sch, r.tbl, r.cmd);
+    end if;
+    if r.using_expr is not null then
+      stmt := stmt || ' using (' || r.using_expr || ')';
+    end if;
+    if r.check_expr is not null then
+      stmt := stmt || ' with check (' || r.check_expr || ')';
+    end if;
+    execute stmt;
   end loop;
 end;
 $$;
 
--- Fotos de empleados (bucket privado de Planilla).
-drop policy if exists "employee_photos_admin_all" on storage.objects;
-drop policy if exists "employee_photos_module_all" on storage.objects;
-create policy "employee_photos_module_all"
-  on storage.objects for all
-  to authenticated
-  using (bucket_id = 'employee-photos' and private.has_module('planilla'))
-  with check (bucket_id = 'employee-photos' and private.has_module('planilla'));
-
--- Cotizador: insumos y catálogo los lee quien cotiza; los cambia quien tiene Costos.
-drop policy if exists "quote_cost_inputs_read"         on public.quote_cost_inputs;
-drop policy if exists "quote_cost_inputs_admin_insert" on public.quote_cost_inputs;
-drop policy if exists "quote_cost_inputs_admin_update" on public.quote_cost_inputs;
-drop policy if exists "quote_cost_inputs_admin_delete" on public.quote_cost_inputs;
-drop policy if exists "quote_cost_inputs_module_read"  on public.quote_cost_inputs;
-drop policy if exists "quote_cost_inputs_costos_write" on public.quote_cost_inputs;
-create policy "quote_cost_inputs_module_read" on public.quote_cost_inputs for select to authenticated
-  using (private.has_module('cotizacion') or private.has_module('costos'));
-create policy "quote_cost_inputs_costos_write" on public.quote_cost_inputs for all to authenticated
-  using (private.has_module('costos')) with check (private.has_module('costos'));
-
-drop policy if exists "quote_catalog_items_read"         on public.quote_catalog_items;
-drop policy if exists "quote_catalog_items_admin_insert" on public.quote_catalog_items;
-drop policy if exists "quote_catalog_items_admin_update" on public.quote_catalog_items;
-drop policy if exists "quote_catalog_items_admin_delete" on public.quote_catalog_items;
-drop policy if exists "quote_catalog_items_module_read"  on public.quote_catalog_items;
-drop policy if exists "quote_catalog_items_costos_write" on public.quote_catalog_items;
-create policy "quote_catalog_items_module_read" on public.quote_catalog_items for select to authenticated
-  using (private.has_module('cotizacion') or private.has_module('costos'));
-create policy "quote_catalog_items_costos_write" on public.quote_catalog_items for all to authenticated
-  using (private.has_module('costos')) with check (private.has_module('costos'));
-
--- Cotizaciones: quien tiene el Cotizador.
-drop policy if exists "quotes_app_users_all"         on public.quotes;
-drop policy if exists "quote_sections_app_users_all" on public.quote_sections;
-drop policy if exists "quote_lines_app_users_all"    on public.quote_lines;
-drop policy if exists "quotes_module_all"            on public.quotes;
-drop policy if exists "quote_sections_module_all"    on public.quote_sections;
-drop policy if exists "quote_lines_module_all"       on public.quote_lines;
-create policy "quotes_module_all" on public.quotes for all to authenticated
-  using (private.has_module('cotizacion')) with check (private.has_module('cotizacion'));
-create policy "quote_sections_module_all" on public.quote_sections for all to authenticated
-  using (private.has_module('cotizacion')) with check (private.has_module('cotizacion'));
-create policy "quote_lines_module_all" on public.quote_lines for all to authenticated
-  using (private.has_module('cotizacion')) with check (private.has_module('cotizacion'));
+-- Fotos de empleados (bucket privado de Planilla). storage.objects es del
+-- servicio de Storage: se le pueden crear policies pero no renombrarlas ni
+-- cambiarlas. Se agrega la de módulo al lado de la vieja; las policies se
+-- suman con OR, así que `employee_photos_admin_all` queda redundante.
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                 and policyname = 'employee_photos_module_all') then
+    create policy "employee_photos_module_all"
+      on storage.objects for all
+      to authenticated
+      using (bucket_id = 'employee-photos' and private.has_module('planilla'))
+      with check (bucket_id = 'employee-photos' and private.has_module('planilla'));
+  end if;
+end;
+$$;

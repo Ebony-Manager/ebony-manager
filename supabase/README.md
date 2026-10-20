@@ -135,8 +135,9 @@ Fase 1 — Cotizador. **Pendiente de aplicar** (se corre en el SQL Editor).
 ### 20261020120000_usuarios_permisos.sql
 
 Usuarios y permisos por módulo (pantalla **Administración → Usuarios**).
-**Pendiente de aplicar**: es lo que contiene hoy `PENDIENTE_correr_en_supabase.sql`.
-Idempotente.
+**Aplicada** el 2026-10-20 con `execute_sql` del MCP, en 4 partes (el
+`apply_migration` del MCP se quedaba esperando una confirmación por los
+`DROP`, por eso la migración ya no tiene ninguno). Idempotente.
 
 - `public.allowed_emails` pasa a ser la lista de usuarios: `role`
   (`admin` = todo; `vendedor` = "Usuario", solo sus módulos) + `modules`
@@ -152,10 +153,13 @@ Idempotente.
   - `protect_profile_privileged_columns` — un no-admin tampoco puede
     cambiarse `modules`.
 - `private.has_module(m)` (admin siempre `true`) reemplaza a
-  `private.is_admin()` en las policies: Planilla (+ fotos de empleados) →
+  `private.is_admin()` en las policies (las viejas se renombran a
+  `*_module_*`/`*_costos_*` y se les cambia la condición con ALTER POLICY): Planilla (+ fotos de empleados) →
   `planilla`; Contratistas → `contratistas`; cotizaciones → `cotizacion`;
   catálogo e insumos: leen `cotizacion`/`costos`, escribe `costos`; recetas →
-  `costos`. Una tabla que no exista todavía (ej. `payroll_indrive_rides`) se
+  `costos`. En `storage.objects` (dueño: Storage) no se pueden cambiar
+  policies, así que `employee_photos_module_all` se agrega al lado de
+  `employee_photos_admin_all`, que queda redundante. Una tabla que no exista todavía (ej. `payroll_indrive_rides`) se
   salta: volver a correr esta migración después de crearla.
 - `asistencia` no tiene tablas propias: escribe en `payroll_entries` (por
   eso exige `planilla`); el permiso lo hace cumplir la app.
