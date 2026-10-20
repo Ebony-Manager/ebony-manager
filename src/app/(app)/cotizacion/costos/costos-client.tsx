@@ -39,7 +39,7 @@ function inputAffix(unit: string): { prefix?: string; suffix?: string } {
 }
 
 /**
- * Costos (solo admin). Tres piezas:
+ * Costos (módulo `costos`). Tres piezas:
  *  - Catálogo: junto a cada renglón, lo que da el cálculo y el precio con
  *    el que se cotiza. Si no coinciden se ve la diferencia, para ajustar
  *    la receta o fijar el precio.

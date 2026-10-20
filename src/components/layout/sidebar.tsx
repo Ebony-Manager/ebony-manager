@@ -7,15 +7,17 @@ import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ADMIN_PANEL_ITEMS } from "./nav-items";
+import { RAIL_ITEMS, ADMIN_PANEL_ITEMS, canSeeNavItem } from "./nav-items";
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
-  const { role } = useAuth();
+  const { role, modules } = useAuth();
   const pathname = usePathname();
-  const isAdmin = role === "admin";
-  const [firstAdminItem] = ADMIN_PANEL_ITEMS;
-  const isAdminRoute = ADMIN_PANEL_ITEMS.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const access = { role, modules };
+  const railItems = RAIL_ITEMS.filter((i) => canSeeNavItem(i, access));
+  const panelItems = ADMIN_PANEL_ITEMS.filter((i) => canSeeNavItem(i, access));
+  const [firstAdminItem] = panelItems;
+  const isAdminRoute = panelItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
 
   return (
     <>
@@ -43,7 +45,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </div>
 
           <nav className="flex-1 flex flex-col items-center gap-1.5">
-            {RAIL_ITEMS.map(({ href, icon: Icon, label }) => {
+            {railItems.map(({ href, icon: Icon, label }) => {
               const isActive = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
@@ -63,12 +65,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
               );
             })}
 
-            {/* Administración — un Link normal como los 5 de arriba (no un
+            {/* Administración — un Link normal como los de arriba (no un
                 toggle que abre/cierra nada); el panel crema de al lado
                 aparece solo, según la ruta (ver isAdminRoute), al entrar
-                acá. Solo para admin: un vendedor no tiene nada que ver en
-                Planilla/Contratistas. */}
-            {isAdmin && (
+                acá. Solo si el usuario ve al menos un ítem del panel
+                (Planilla, Contratistas, Usuarios…). */}
+            {firstAdminItem && (
               <Link
                 href={firstAdminItem.href}
                 onClick={onClose}
@@ -96,9 +98,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </div>
         </aside>
 
-        {/* Panel "Administración" — solo para admins, y solo dentro de
-            Planilla o Contratistas (antes aparecía en cualquier ruta). */}
-        {isAdmin && isAdminRoute && (
+        {/* Panel "Administración" — solo dentro de sus rutas, y solo con
+            los ítems que el usuario puede abrir. */}
+        {isAdminRoute && (
           <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
             <div className="px-5 pt-[22px] pb-4">
               <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
@@ -106,7 +108,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
-              {ADMIN_PANEL_ITEMS.map(({ href, icon: Icon, label }) => {
+              {panelItems.map(({ href, icon: Icon, label }) => {
                 const isActive = pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link

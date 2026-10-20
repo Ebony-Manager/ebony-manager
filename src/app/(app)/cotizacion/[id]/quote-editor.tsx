@@ -31,12 +31,12 @@ export function QuoteEditor({
   initialQuote,
   catalog,
   defaults,
-  isAdmin,
+  canEditCosts,
 }: {
   initialQuote: Quote;
   catalog: CatalogItem[];
   defaults: QuoteDefaults;
-  isAdmin: boolean;
+  canEditCosts: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
@@ -265,7 +265,7 @@ export function QuoteEditor({
             {v === "edit" ? tt("tab_edit") : tt("tab_client")}
           </button>
         ))}
-        {isAdmin && (
+        {canEditCosts && (
           <Link href="/cotizacion/costos" className="ml-auto pb-[11px] text-xs text-ink-900/35 hover:text-ink-900/70">
             {tt("costs_link")}
           </Link>
@@ -343,7 +343,7 @@ export function QuoteEditor({
                   key={section.id}
                   section={section}
                   catalog={catalog}
-                  isAdmin={isAdmin}
+                  canEditCosts={canEditCosts}
                   open={open}
                   onToggle={(k) => setOpen((o) => ({ ...o, [k]: !o[k] }))}
                   onChange={setSection}

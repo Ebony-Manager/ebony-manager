@@ -70,7 +70,11 @@ export function Navbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             )}
             <div className="leading-[1.15]">
               <div className="text-[13px] font-semibold text-ink-900">{user.name}</div>
-              {role && <div className="text-[10.5px] text-ink-900/45 capitalize">{role}</div>}
+              {role && (
+                <div className="text-[10.5px] text-ink-900/45">
+                  {t(lang, role === "admin" ? strings.usuarios.role_admin : strings.usuarios.role_user)}
+                </div>
+              )}
             </div>
             {/* No está en el mockup — Teofilo no mostró cómo cerrar sesión
                 ahí. Se deja el ícono para no perder la función; avisar si

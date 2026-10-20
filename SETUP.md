@@ -48,9 +48,36 @@ Proyecto conectado: **Ebony**, ref `jdfkfbopecqvvyxherku`.
 2. Esquema: está versionado en `supabase/migrations/`. Se aplica al
    proyecto remoto vía el MCP de Supabase o pegándolo en el SQL editor
    (no hay CLI local enlazada — ver `supabase/README.md`).
-3. Acceso: `public.allowed_emails` es la allow-list de correos. Ya está
+3. Acceso: `public.allowed_emails` es la lista de usuarios. Ya está
    sembrado un admin (`teofilohafeitz@gmail.com`); agrega al resto del
-   equipo insertando ahí una vez dentro de la app.
+   equipo desde **Administración → Usuarios** (ver 3b).
+
+---
+
+### 3b. Usuarios e invitaciones por correo
+
+Los usuarios se agregan desde **Administración → Usuarios** (solo admin):
+correo, rol y módulos. Al guardar, Supabase Auth le manda a esa persona un
+enlace de acceso que la lleva a `/auth/confirm` y la deja dentro. No usa la
+`service_role`. Para que los correos lleguen hace falta, en el dashboard de
+Supabase:
+
+1. **Auth → SMTP Settings → Enable custom SMTP** (Resend, SendGrid, Gmail
+   Workspace, etc.). Sin esto, el servicio de correo incluido en Supabase
+   solo entrega a los miembros del equipo del proyecto y con un límite muy
+   bajo por hora — las invitaciones a cualquier otra persona no llegan.
+2. **Auth → Providers → Email**: habilitado (viene así por defecto).
+3. **Auth → URL Configuration → Redirect URLs**: que incluya
+   `https://ebony-manager.vercel.app/**` y la URL local que se use
+   (`http://localhost:4001/**` con `npm run dev`).
+4. (Opcional) **Auth → Email Templates**: traducir al español "Confirm
+   signup" (la recibe quien todavía no tiene cuenta) y "Magic Link" (la
+   recibe quien ya tenía). Ej. asunto *"Te invitaron a Ebony Manager"* y
+   cuerpo con `<a href="{{ .ConfirmationURL }}">Entrar a Ebony Manager</a>`.
+
+Si el correo falla, el usuario igual queda agregado: puede entrar con Google
+(si su correo es de Google) o se le reenvía la invitación desde su menú en
+la lista.
 
 ---
 

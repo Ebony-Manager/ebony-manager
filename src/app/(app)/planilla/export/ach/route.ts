@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import {
   achFileName,
   ACH_DEFAULT_ADDENDA_TEXT,
@@ -9,7 +9,7 @@ import {
 import { buildAchWorkbook } from "@/lib/planilla/bank-export-xls";
 import { getRegistroForPeriod } from "@/services/payroll";
 
-// Solo admin, y nunca cacheado: el archivo sale de los datos de ESTA quincena.
+// Pide el módulo Planilla, y nunca cacheado: el archivo sale de los datos de ESTA quincena.
 export const dynamic = "force-dynamic";
 
 /**
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * la vista previa de Registro lista a los que quedan fuera y por qué.
  */
 export async function GET(request: NextRequest) {
-  await requireAdmin();
+  await requireModule("planilla");
 
   const sp = request.nextUrl.searchParams;
   const year = Number(sp.get("year"));

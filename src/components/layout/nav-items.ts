@@ -1,10 +1,21 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
+import { hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
 export interface NavItem {
   href: string;
   icon: LucideIcon;
   label: (typeof strings.nav)[keyof typeof strings.nav];
+  /** Módulos que hacen falta (todos) para ver el ítem. Sin esto lo ve cualquiera. */
+  modules?: AppModule[];
+  /** Solo para el rol admin (ej. Usuarios). */
+  adminOnly?: boolean;
+}
+
+/** El menú solo muestra lo que el usuario puede abrir; el gate real es requireModule() + RLS. */
+export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | undefined): boolean {
+  if (item.adminOnly) return subject?.role === "admin";
+  return !item.modules || hasModules(subject, item.modules);
 }
 
 /**
@@ -15,21 +26,23 @@ export interface NavItem {
 
 // Módulos de trabajo del día a día — links directos del rail, sin panel.
 export const RAIL_ITEMS: NavItem[] = [
-  { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion },
+  { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos },
   { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
   { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
 ];
 
-// El panel de "Administración" (siempre visible para un admin) tiene, en este
-// orden: Dashboard (global: Planilla + Contratistas juntos), Planilla y
-// Contratistas. El gate de verdad sigue siendo requireAdmin() en cada página +
-// RLS. El primero es también a donde lleva el ícono del rail.
+// El panel de "Administración" tiene, en este orden: Dashboard (global:
+// Planilla + Contratistas juntos), Planilla, Contratistas y Usuarios. Cada
+// usuario ve solo los que le tocan; el ícono del rail aparece si ve al menos
+// uno y lleva al primero que vea. El gate de verdad sigue siendo
+// requireModule()/requireAdmin() en cada página + RLS.
 export const ADMIN_PANEL_ITEMS: NavItem[] = [
-  { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas },
-  { href: "/planilla", icon: Users, label: strings.nav.taller },
-  { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas },
+  { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas, modules: ["planilla", "contratistas"] },
+  { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
+  { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
+  { href: "/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
 ];
 
 /**
