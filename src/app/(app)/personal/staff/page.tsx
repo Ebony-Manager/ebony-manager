@@ -33,6 +33,7 @@ export default async function StaffPage() {
     <StaffClient
       members={members}
       employees={employees}
+      contractors={contractors}
       positions={positions}
       photoUrls={photoUrls}
       contractorPhotoUrls={contractorPhotoUrls}

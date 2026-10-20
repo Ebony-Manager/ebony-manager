@@ -82,6 +82,12 @@ export const strings = {
     add_contractor: { es: "Contratista", en: "Contractor" },
     balance_ebony_owes: { es: "Ebony le debe", en: "Ebony owes" },
     balance_owes_ebony: { es: "Le debe a Ebony", en: "Owes Ebony" },
+    export_who: { es: "¿A quiénes?", en: "Who?" },
+    export_include: { es: "Incluir", en: "Include" },
+    export_title_all: { es: "Lista del staff", en: "Staff list" },
+    export_title_employee: { es: "Lista de empleados", en: "Employee list" },
+    export_title_contractor: { es: "Lista de contratistas", en: "Contractor list" },
+    export_empty: { es: "No hay nadie para esa selección.", en: "No one matches that selection." },
   },
 
   // Personal → Resumen (Planilla + Contratistas juntos).

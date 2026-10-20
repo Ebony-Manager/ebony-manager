@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, Hammer, Phone, Plus, Users } from "lucide-react";
 
 import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
+import type { Contractor } from "@/types/contractors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,7 @@ import { EmployeeAvatar } from "../../planilla/employee-avatar";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
 import { EmployeeSearchInput } from "../../planilla/employee-search-input";
 import { EmployeeFormDialog } from "../../planilla/employee-form-dialog";
-import { EmployeeRosterExport } from "../../planilla/employee-roster-export";
+import { StaffRosterExport } from "./staff-roster-export";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
 
@@ -35,12 +36,13 @@ import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog"
  * buscador y filtro por tipo. Es EL lugar del staff: desde acá se agrega a
  * alguien (empleado o contratista, según los módulos del usuario) y cada
  * fila abre su ficha (`/personal/staff/...`), donde se edita. Los que ya no
- * laboran van aparte, plegados. "Descargar PDF" baja la lista de empleados
- * con su ficha, para imprimir.
+ * laboran van aparte, plegados. "Descargar PDF" baja la lista (todos, solo
+ * empleados o solo contratistas) con su ficha, para imprimir.
  */
 export function StaffClient({
   members,
   employees,
+  contractors,
   positions,
   photoUrls,
   contractorPhotoUrls,
@@ -48,8 +50,9 @@ export function StaffClient({
   canContractors,
 }: {
   members: TeamMember[];
-  /** Empleados completos (para el PDF); vacío sin el módulo Planilla. */
+  /** Fichas completas (para el PDF); vacías sin el módulo correspondiente. */
   employees: PayrollEmployee[];
+  contractors: Contractor[];
   /** Catálogo de posiciones, para el formulario de empleado nuevo. */
   positions: PayrollPosition[];
   /** Fotos de empleados (las lee EmployeeAvatar vía EmployeePhotosProvider). */
@@ -155,11 +158,14 @@ export function StaffClient({
               ))}
             </div>
           )}
-          {canEmployees && (
-            <div className="ml-auto">
-              <EmployeeRosterExport employees={employees} />
-            </div>
-          )}
+          <div className="ml-auto">
+            <StaffRosterExport
+              employees={employees}
+              contractors={contractors}
+              canEmployees={canEmployees}
+              canContractors={canContractors}
+            />
+          </div>
         </div>
 
         {members.length === 0 ? (

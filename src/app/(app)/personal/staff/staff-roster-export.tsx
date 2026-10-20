@@ -5,6 +5,7 @@ import { FileDown } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { PayrollEmployee } from "@/types/planilla";
+import type { Contractor } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,27 +13,41 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { buildRoster, type RosterLabels } from "@/lib/planilla/employee-roster";
+import { buildRoster, type RosterKind, type RosterLabels } from "@/lib/personal/staff-roster";
 import { formatDate } from "@/lib/planilla/format";
-import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { countryName } from "@/lib/countries";
-import { downloadRosterPdf } from "./employee-roster-pdf";
+import { downloadRosterPdf } from "./staff-roster-pdf";
 
 /**
- * Botón "Descargar PDF" de Staff: la lista de TODOS los empleados con su
- * ficha (vigentes por defecto), para imprimir. Antes de bajarlo se elige si
- * incluir a los que ya no laboran, los datos bancarios y el contacto de
- * emergencia.
+ * Botón "Descargar PDF" de Staff: la lista del staff con su ficha, para
+ * imprimir. Antes de bajarlo se elige a quiénes (todos, solo empleados o
+ * solo contratistas — si el usuario ve los dos) y si incluir a los que ya
+ * no laboran, los datos bancarios y el contacto de emergencia.
  */
-export function EmployeeRosterExport({ employees }: { employees: PayrollEmployee[] }) {
+export function StaffRosterExport({
+  employees,
+  contractors,
+  canEmployees,
+  canContractors,
+}: {
+  employees: PayrollEmployee[];
+  contractors: Contractor[];
+  canEmployees: boolean;
+  canContractors: boolean;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const ts = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
 
+  const canChoose = canEmployees && canContractors;
+  const [kind, setKind] = React.useState<RosterKind>(canChoose ? "all" : canEmployees ? "employee" : "contractor");
   const [includeInactive, setIncludeInactive] = React.useState(false);
   const [showBank, setShowBank] = React.useState(true);
   const [showEmergency, setShowEmergency] = React.useState(true);
@@ -42,6 +57,9 @@ export function EmployeeRosterExport({ employees }: { employees: PayrollEmployee
     pasaporte: tt("id_type_pasaporte"),
     taller: tt("categoria_taller"),
     administrativo: tt("categoria_administrativo"),
+    contractor: ts("kind_contractor"),
+    ebanista: ts("group_ebanista"),
+    pintor: ts("group_pintor"),
     ahorro: tt("bank_type_ahorro"),
     corriente: tt("bank_type_corriente"),
     active: tt("active_label"),
@@ -49,23 +67,33 @@ export function EmployeeRosterExport({ employees }: { employees: PayrollEmployee
     country: (code) => countryName(code, lang),
   };
 
+  const TITLE: Record<RosterKind, keyof typeof strings.staff> = {
+    all: "export_title_all",
+    employee: "export_title_employee",
+    contractor: "export_title_contractor",
+  };
+  const FILE: Record<RosterKind, string> = { all: "Staff", employee: "Empleados", contractor: "Contratistas" };
+
   async function onPdf() {
-    const rows = buildRoster(employees, { includeInactive }, (iso) => formatDate(lang, iso), labels);
-    if (rows.length === 0) return;
+    const rows = buildRoster({ employees, contractors }, { includeInactive, kind }, (iso) => formatDate(lang, iso), labels);
+    if (rows.length === 0) {
+      toast.error(ts("export_empty"));
+      return;
+    }
     const now = new Date();
     try {
       await downloadRosterPdf(
         rows,
-        { showBank, showEmergency, showStatus: includeInactive },
+        { showPosition: kind !== "contractor", showBank, showEmergency, showStatus: includeInactive },
         {
           company: tt("pdf_company"),
-          title: tt("roster_title"),
+          title: ts(TITLE[kind]),
           generated: `${tt("pdf_generated")} ${now.toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "long", year: "numeric" })}`,
           columns: {
             n: "#",
-            employee: tt("col_empleado"),
+            employee: kind === "employee" ? tt("col_empleado") : ts("col_person"),
             position: tt("pd_position"),
-            type: tt("pd_category"),
+            type: ts("col_type"),
             start: tt("pd_start_date"),
             document: tt("pd_document"),
             nationality: tt("f_nationality"),
@@ -78,10 +106,10 @@ export function EmployeeRosterExport({ employees }: { employees: PayrollEmployee
           },
           page: tt("pdf_page"),
         },
-        `Empleados-${currentPeriod().year}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.pdf`
+        `${FILE[kind]}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.pdf`
       );
     } catch (err) {
-      console.error("Planilla: no se pudo generar el PDF de empleados", err);
+      console.error("Staff: no se pudo generar el PDF", err);
       toast.error(tt("load_failed"));
     }
   }
@@ -92,13 +120,30 @@ export function EmployeeRosterExport({ employees }: { employees: PayrollEmployee
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" size="sm" variant="outline" disabled={employees.length === 0}>
+        <Button type="button" size="sm" variant="outline">
           <FileDown className="size-3.5" />
           {tt("roster_pdf")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>{tt("roster_title")}</DropdownMenuLabel>
+        {canChoose && (
+          <>
+            <DropdownMenuLabel>{ts("export_who")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={kind} onValueChange={(v) => setKind(v as RosterKind)}>
+              <DropdownMenuRadioItem value="all" onSelect={keepOpen}>
+                {ts("filter_all")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="employee" onSelect={keepOpen}>
+                {ts("filter_employee")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="contractor" onSelect={keepOpen}>
+                {ts("filter_contractor")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuLabel>{ts("export_include")}</DropdownMenuLabel>
         <DropdownMenuCheckboxItem checked={includeInactive} onCheckedChange={(v) => setIncludeInactive(v === true)} onSelect={keepOpen}>
           {tt("roster_include_inactive")}
         </DropdownMenuCheckboxItem>

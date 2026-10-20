@@ -1,4 +1,4 @@
-import type { RosterRow } from "@/lib/planilla/employee-roster";
+import type { RosterRow } from "@/lib/personal/staff-roster";
 
 export interface RosterPdfLabels {
   company: string;
@@ -22,17 +22,26 @@ export interface RosterPdfLabels {
   page: string;
 }
 
+export interface RosterPdfOptions {
+  /** Puesto: solo tienen los empleados. */
+  showPosition: boolean;
+  showBank: boolean;
+  showEmergency: boolean;
+  showStatus: boolean;
+}
+
 const WALNUT: [number, number, number] = [107, 87, 68];
 const INK: [number, number, number] = [4, 7, 7];
 
 /**
- * PDF horizontal (A4) con la lista de empleados y su ficha, para imprimir.
- * `showBank` / `showEmergency` / `showStatus` activan esas columnas. La
+ * PDF horizontal (A4) con la lista del staff (empleados y/o contratistas) y
+ * su ficha, para imprimir. `showPosition` / `showBank` / `showEmergency` /
+ * `showStatus` activan esas columnas. La
  * librería se carga solo al descargar.
  */
 export async function buildRosterPdf(
   rows: readonly RosterRow[],
-  opts: { showBank: boolean; showEmergency: boolean; showStatus: boolean },
+  opts: RosterPdfOptions,
   labels: RosterPdfLabels
 ) {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
@@ -53,7 +62,7 @@ export async function buildRosterPdf(
   doc.text(labels.generated, pageW - margin, 34, { align: "right" });
 
   const c = labels.columns;
-  const head = [c.n, c.employee, c.position, c.type, c.start, c.document, c.nationality, c.birth, c.phone];
+  const head = [c.n, c.employee, ...(opts.showPosition ? [c.position] : []), c.type, c.start, c.document, c.nationality, c.birth, c.phone];
   if (opts.showBank) head.push(c.bank);
   if (opts.showEmergency) head.push(c.emergency);
   if (opts.showStatus) head.push(c.end, c.status);
@@ -63,7 +72,7 @@ export async function buildRosterPdf(
     margin: { left: margin, right: margin, bottom: 36 },
     head: [head],
     body: rows.map((r) => {
-      const line = [String(r.n), r.name, r.position, r.type, r.startDate, r.document, r.nationality, r.birthDate, r.phone];
+      const line = [String(r.n), r.name, ...(opts.showPosition ? [r.position] : []), r.type, r.startDate, r.document, r.nationality, r.birthDate, r.phone];
       if (opts.showBank) line.push(r.bank);
       if (opts.showEmergency) line.push(r.emergency);
       if (opts.showStatus) line.push(r.endDate, r.status);
@@ -87,7 +96,7 @@ export async function buildRosterPdf(
 
 export async function downloadRosterPdf(
   rows: readonly RosterRow[],
-  opts: { showBank: boolean; showEmergency: boolean; showStatus: boolean },
+  opts: RosterPdfOptions,
   labels: RosterPdfLabels,
   fileName: string
 ) {
