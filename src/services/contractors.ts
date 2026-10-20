@@ -140,6 +140,14 @@ function mapProject(r: ProjectRow): Project {
   };
 }
 
+/** Contratistas sin saldo (para Personal → Equipo, que no necesita los movimientos). */
+export async function getContractors(): Promise<Contractor[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("contractors").select("*").order("sort_order").order("name");
+  if (error) throw error;
+  return (data ?? []).map(mapContractor);
+}
+
 /** Directorio: contratistas (activos primero) + su saldo actual. Dos
  *  queries (contratistas + resumen de movimientos), el saldo se computa
  *  en memoria. */

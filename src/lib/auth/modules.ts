@@ -58,6 +58,11 @@ export function hasModules(subject: AccessSubject | null | undefined, modules: r
   return modules.every((m) => hasModule(subject, m));
 }
 
+/** Al menos uno de los módulos pedidos (ej. Equipo: Planilla o Contratistas). */
+export function hasAnyModule(subject: AccessSubject | null | undefined, modules: readonly AppModule[]): boolean {
+  return modules.some((m) => hasModule(subject, m));
+}
+
 /**
  * A dónde mandar a alguien al entrar (o cuando cae en un módulo que no
  * tiene): el primer módulo al que tiene acceso. Si no tiene ninguno, al

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasModule, hasModules, homePathFor, normalizeModules } from "./modules";
+import { hasAnyModule, hasModule, hasModules, homePathFor, normalizeModules } from "./modules";
 
 describe("normalizeModules", () => {
   it("quita repetidos y claves desconocidas, y ordena como APP_MODULES", () => {
@@ -33,6 +33,13 @@ describe("hasModule", () => {
     const u = { role: "vendedor", modules: ["planilla"] };
     expect(hasModules(u, ["planilla"])).toBe(true);
     expect(hasModules(u, ["planilla", "contratistas"])).toBe(false);
+  });
+
+  it("hasAnyModule pide al menos uno", () => {
+    const u = { role: "vendedor", modules: ["contratistas"] };
+    expect(hasAnyModule(u, ["planilla", "contratistas"])).toBe(true);
+    expect(hasAnyModule(u, ["planilla", "cotizacion"])).toBe(false);
+    expect(hasAnyModule({ role: "admin", modules: [] }, ["planilla"])).toBe(true);
   });
 });
 

@@ -18,7 +18,7 @@ type Data = Awaited<ReturnType<typeof getAdminDashboardAction>>;
 type RankScope = "month" | "year";
 
 /**
- * Dashboard global de Administración: lo que se paga cada mes juntando la
+ * Personal → Resumen: lo que se paga cada mes juntando la
  * Planilla (Taller + Administrativos) y los Contratistas (la pintura va dentro
  * de contratistas). Barras apiladas por mes, KPIs del mes elegido con su
  * comparación contra el mes anterior, reparto por categoría, proyectos
@@ -46,7 +46,7 @@ export function AdminDashboardView() {
         }
       })
       .catch((err) => {
-        console.error("Administración: no se pudo cargar el dashboard", err);
+        console.error("Personal: no se pudo cargar el resumen", err);
         if (!cancelled) setFailed(true);
       });
     return () => {

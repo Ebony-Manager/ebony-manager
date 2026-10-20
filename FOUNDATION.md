@@ -170,6 +170,19 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
 - Las funciones helper/trigger viven en el esquema `private` (no expuesto
   por PostgREST). `get_advisors` (security) queda limpio.
 
+### Organización del menú
+
+- **Rail:** módulos de trabajo (Cotización, Proyectos, Cronograma, Gastos,
+  Dashboard ejecutivo) y el ícono **Personal**; al pie, **Settings** y el
+  menú de perfil.
+- **Personal** (`/personal`): Resumen (lo pagado por mes, Planilla +
+  Contratistas), **Equipo** (`/personal/equipo`: empleados y contratistas
+  en una sola lista, solo lectura, cada fila abre su ficha), Planilla y
+  Contratistas. "Dashboard" queda reservado para el ejecutivo de la empresa.
+- **Settings** (`/settings`): Usuarios.
+- Paneles e ítems definidos en `src/components/layout/nav-items.ts`
+  (`modules` = todos, `anyModules` = alguno, `adminOnly`).
+
 ### Usuarios y permisos por módulo
 
 Ver `supabase/migrations/20261020120000_usuarios_permisos.sql` y la

@@ -7,7 +7,7 @@ import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t } from "@/lib/i18n";
 import { EbonyMark } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ADMIN_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { RAIL_ITEMS, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
@@ -23,9 +23,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
   // Cada panel con solo los ítems que este usuario puede abrir.
   const visible = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
-  const adminPanel = visible(ADMIN_PANEL);
+  const personalPanel = visible(PERSONAL_PANEL);
   const settingsPanel = visible(SETTINGS_PANEL);
-  const openPanel = [adminPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
+  const openPanel = [personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
 
   // Ícono del rail para un panel: un Link normal al primer ítem que el
   // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
@@ -87,7 +87,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
               );
             })}
 
-            {panelLink(adminPanel)}
+            {panelLink(personalPanel)}
           </nav>
 
           {/* Al pie: Settings (engranaje) y el acceso al perfil. */}
@@ -97,7 +97,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </div>
         </aside>
 
-        {/* Panel crema del ícono activo (Administración o Settings) — solo
+        {/* Panel del ícono activo (Personal o Settings) — solo
             dentro de sus rutas, y solo con los ítems que el usuario puede abrir. */}
         {openPanel && (
           <aside className="w-56 h-full flex flex-col shrink-0 bg-sidebar border-r border-sidebar-border">

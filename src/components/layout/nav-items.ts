@@ -1,6 +1,6 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, Briefcase, Settings, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, Briefcase, Settings, Contact, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
-import { hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
+import { hasAnyModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
 export interface NavItem {
   href: string;
@@ -8,19 +8,24 @@ export interface NavItem {
   label: (typeof strings.nav)[keyof typeof strings.nav];
   /** Módulos que hacen falta (todos) para ver el ítem. Sin esto lo ve cualquiera. */
   modules?: AppModule[];
+  /** Alternativa a `modules`: alcanza con uno de estos. */
+  anyModules?: AppModule[];
   /** Solo para el rol admin (ej. Usuarios). */
   adminOnly?: boolean;
+  /** Activo solo en su ruta exacta, no en sus sub-rutas (el Resumen en /personal, que no debe marcarse en /personal/equipo). */
+  exact?: boolean;
 }
 
 /** El menú solo muestra lo que el usuario puede abrir; el gate real es requireModule() + RLS. */
 export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | undefined): boolean {
   if (item.adminOnly) return subject?.role === "admin";
+  if (item.anyModules) return hasAnyModule(subject, item.anyModules);
   return !item.modules || hasModules(subject, item.modules);
 }
 
 /**
  * Compartido entre `sidebar.tsx` (los renderiza) y `breadcrumbFor` (lo
- * pinta cada pantalla: "Administración / Planilla") — una sola lista, así
+ * pinta cada pantalla: "Personal / Planilla") — una sola lista, así
  * nunca quedan desincronizados.
  */
 
@@ -40,20 +45,22 @@ export const RAIL_ITEMS: NavItem[] = [
  * verdad sigue siendo requireModule()/requireAdmin() en cada página + RLS.
  */
 export interface NavPanel {
-  key: "administracion" | "settings";
+  key: "personal" | "settings";
   icon: LucideIcon;
   title: (typeof strings.nav)[keyof typeof strings.nav];
   items: NavItem[];
 }
 
-// Administración — en el rail, debajo de los módulos de trabajo: Dashboard
-// (global: Planilla + Contratistas juntos), Planilla y Contratistas.
-export const ADMIN_PANEL: NavPanel = {
-  key: "administracion",
+// Personal — en el rail, debajo de los módulos de trabajo: Resumen (lo
+// pagado por mes, Planilla + Contratistas), Equipo (todos juntos), Planilla
+// y Contratistas.
+export const PERSONAL_PANEL: NavPanel = {
+  key: "personal",
   icon: Briefcase,
-  title: strings.nav.administracion,
+  title: strings.nav.personal,
   items: [
-    { href: "/administracion", icon: Layers, label: strings.nav.resumenPlanillas, modules: ["planilla", "contratistas"] },
+    { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, modules: ["planilla", "contratistas"], exact: true },
+    { href: "/personal/equipo", icon: Contact, label: strings.nav.equipo, anyModules: ["planilla", "contratistas"] },
     { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
     { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
   ],
@@ -67,14 +74,14 @@ export const SETTINGS_PANEL: NavPanel = {
   items: [{ href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true }],
 };
 
-export const NAV_PANELS: NavPanel[] = [ADMIN_PANEL, SETTINGS_PANEL];
+export const NAV_PANELS: NavPanel[] = [PERSONAL_PANEL, SETTINGS_PANEL];
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`));
 }
 
 /**
- * "Administración / Planilla" o "Settings / Usuarios" — un ítem de panel da
+ * "Personal / Planilla" o "Settings / Usuarios" — un ítem de panel da
  * dos crumbs; uno del rail (sin panel) da uno solo ("Cronograma"). Sin match
  * (ej. `/`, fuera de (app)) no rinde nada. Lo pinta cada pantalla dentro de
  * su propio contenido (ver planilla-client.tsx).

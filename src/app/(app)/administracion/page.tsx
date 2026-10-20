@@ -1,11 +1,7 @@
-import { requireModule } from "@/lib/auth/dal";
-import { AdminDashboardView } from "./admin-dashboard-view";
+import { redirect } from "next/navigation";
 
-// Dashboard global de Administración (Planilla + Contratistas): pide los dos módulos,
-// y nunca cacheado porque los datos cambian por acción del usuario.
-export const dynamic = "force-dynamic";
-
-export default async function AdministracionPage() {
-  await requireModule("planilla", "contratistas");
-  return <AdminDashboardView />;
+// "Administración" pasó a llamarse "Personal" (/personal): esta dirección
+// vieja queda solo para que no se rompan enlaces guardados.
+export default function AdministracionRedirect() {
+  redirect("/personal");
 }

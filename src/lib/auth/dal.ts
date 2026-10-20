@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import { hasModules, homePathFor, normalizeModules, type AppModule, type AppRole } from "./modules";
+import { hasAnyModule, hasModules, homePathFor, normalizeModules, type AppModule, type AppRole } from "./modules";
 
 // Data Access Layer for auth. Every server-side auth/role check goes
 // through here so the rules live in one place. Not a Client Component
@@ -90,5 +90,12 @@ export const requireAdmin = cache(async (): Promise<Profile> => {
 export async function requireModule(...modules: AppModule[]): Promise<Profile> {
   const profile = await requireProfile();
   if (!hasModules(profile, modules)) redirect(homePathFor(profile));
+  return profile;
+}
+
+/** Como requireModule, pero alcanza con UNO de los módulos (ej. Equipo). */
+export async function requireAnyModule(...modules: AppModule[]): Promise<Profile> {
+  const profile = await requireProfile();
+  if (!hasAnyModule(profile, modules)) redirect(homePathFor(profile));
   return profile;
 }

@@ -22,19 +22,17 @@ export const strings = {
     dashboard: { es: "Dashboard", en: "Dashboard" },
     planilla: { es: "Planilla", en: "Payroll" },
     contratistas: { es: "Contratistas", en: "Contractors" },
-    // Rail + panel (Fase 2, sidebar de dos columnas): "Administración" es el
-    // ícono del rail que abre/activa el panel; "Taller" es cómo se llama
-    // Planilla ahí adentro — un nombre corto de sección, no el título de la
-    // página (esa sigue diciendo "Planilla" en su propio encabezado).
-    administracion: { es: "Administración", en: "Administration" },
+    // Panel "Personal": la gente de Ebony y lo que se le paga — Resumen,
+    // Equipo (empleados + contratistas juntos), Planilla y Contratistas.
+    personal: { es: "Personal", en: "People" },
+    equipo: { es: "Equipo", en: "Team" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     // El filtro Todos/Taller/Administrativo que ya vive DENTRO del módulo
     // es lo que distingue ahora — el nombre del menú no necesita cargarlo.
     taller: { es: "Planilla", en: "Payroll" },
-    // Panel "Administración" (rediseño visual): placeholder del Resumen de
-    // Planillas global (Taller + Contratistas juntos) — todavía sin
-    // construir, ver sidebar.tsx.
-    resumenPlanillas: { es: "Dashboard", en: "Dashboard" },
+    // Resumen global de Personal (lo pagado por mes: Planilla + Contratistas).
+    // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
+    resumenPersonal: { es: "Resumen", en: "Summary" },
     proximamente: { es: "Pronto", en: "Soon" },
     // Mockup Opción C (Rail): el ítem "Dashboard" del panel se ve como
     // cualquier otro (no apagado/disabled) con una etiqueta "NUEVO" en vez
@@ -54,9 +52,36 @@ export const strings = {
     menu: { es: "Menú", en: "Menu" },
   },
 
-  // Dashboard global de Administración (Planilla + Contratistas juntos).
+  // Personal → Equipo: empleados y contratistas en una sola lista.
+  equipo: {
+    title: { es: "Equipo", en: "Team" },
+    subtitle: {
+      es: "Todas las personas que trabajan con Ebony: empleados de planilla y contratistas. Toca a alguien para abrir su ficha.",
+      en: "Everyone who works with Ebony: payroll employees and contractors. Tap someone to open their profile.",
+    },
+    search: { es: "Buscar por nombre…", en: "Search by name…" },
+    filter_all: { es: "Todos", en: "All" },
+    filter_employee: { es: "Empleados", en: "Employees" },
+    filter_contractor: { es: "Contratistas", en: "Contractors" },
+    kind_employee: { es: "Empleado", en: "Employee" },
+    kind_contractor: { es: "Contratista", en: "Contractor" },
+    group_taller: { es: "Taller", en: "Workshop" },
+    group_administrativo: { es: "Administrativo", en: "Administrative" },
+    group_ebanista: { es: "Ebanista", en: "Cabinetmaker" },
+    group_pintor: { es: "Pintor", en: "Painter" },
+    col_person: { es: "Persona", en: "Person" },
+    col_type: { es: "Tipo", en: "Type" },
+    col_position: { es: "Puesto", en: "Position" },
+    col_since: { es: "Desde", en: "Since" },
+    active_count: { es: "activos", en: "active" },
+    inactive_section: { es: "Ya no laboran", en: "No longer working" },
+    empty: { es: "Todavía no hay nadie registrado.", en: "No one registered yet." },
+    no_results: { es: "Nadie coincide con la búsqueda.", en: "No one matches the search." },
+  },
+
+  // Personal → Resumen (Planilla + Contratistas juntos).
   adminDash: {
-    title: { es: "Dashboard de Administración", en: "Administration dashboard" },
+    title: { es: "Resumen de Personal", en: "People summary" },
     subtitle: {
       es: "Lo que se paga cada mes entre Planilla (Taller y Administrativos) y Contratistas",
       en: "What is paid each month across Payroll (Workshop and Admin) and Contractors",
@@ -418,7 +443,7 @@ export const strings = {
     view_detail_annual: { es: "Ver detalle anual", en: "View annual detail" },
 
     // Tabs B2
-    tab_dashboard: { es: "Dashboard", en: "Dashboard" },
+    tab_dashboard: { es: "Resumen", en: "Summary" },
     tab_auditoria: { es: "Auditoría", en: "Audit" },
 
     // Categorías (leyendas)
@@ -1306,7 +1331,7 @@ export const strings = {
     },
 
     // Pestañas del módulo.
-    tab_dashboard: { es: "Dashboard", en: "Dashboard" },
+    tab_dashboard: { es: "Resumen", en: "Summary" },
     cd_title: { es: "Resumen de contratistas", en: "Contractors overview" },
     cd_subtitle: { es: "Lo que se les ha pagado, lo que llevan y cómo se comparan.", en: "What they've been paid, what they carry and how they compare." },
     cd_all: { es: "Todo", en: "All" },
@@ -1848,8 +1873,8 @@ export const strings = {
       en: "Directory, projects, statements and rates.",
     },
     dashboard_note: {
-      es: "El Dashboard de Administración aparece a quien tenga Planilla y Contratistas.",
-      en: "The Administration dashboard shows for users with both Payroll and Contractors.",
+      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; Equipo, a quien tenga cualquiera de los dos.",
+      en: "The People summary shows for users with both Payroll and Contractors; Team, for users with either.",
     },
   },
 
@@ -1877,11 +1902,7 @@ export const strings = {
     retry: { es: "Volver a intentar", en: "Try again" },
     signIn: { es: "Iniciar sesión con Google", en: "Sign in with Google" },
     signOut: { es: "Cerrar sesión", en: "Sign out" },
-    welcome: { es: "Bienvenido a Ebony Manager", en: "Welcome to Ebony Manager" },
-    subtitle: {
-      es: "Sistema de gestión para Ebony Custom Woodwork",
-      en: "Management system for Ebony Custom Woodwork",
-    },
+    welcome: { es: "Bienvenido", en: "Welcome" },
   },
 } as const satisfies Record<string, Record<string, Entry>>;
 

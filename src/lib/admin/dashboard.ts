@@ -1,5 +1,5 @@
 /**
- * Cálculos PUROS del Dashboard global de Administración: lo que se paga cada
+ * Cálculos PUROS de Personal → Resumen: lo que se paga cada
  * mes juntando la Planilla (Taller + Administrativos) y los Contratistas
  * (pintura va dentro de contratistas).
  *

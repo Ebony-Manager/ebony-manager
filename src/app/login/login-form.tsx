@@ -11,8 +11,8 @@ export function LoginForm() {
 
   return (
     <AuthShell
+      logo="wordmark"
       title={t(lang, strings.auth.welcome)}
-      subtitle={t(lang, strings.auth.subtitle)}
       footer={
         <button type="button" onClick={toggle} className="transition-colors hover:text-foreground">
           {lang === "es" ? "English" : "Español"}
