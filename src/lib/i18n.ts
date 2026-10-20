@@ -1865,6 +1865,16 @@ export const strings = {
       en: "The link is invalid or has expired. Ask for the invitation to be resent, or sign in with Google.",
     },
     back_to_login: { es: "Ir a iniciar sesión", en: "Go to sign in" },
+    access_note: {
+      es: "Solo para el equipo de Ebony. Si no tienes acceso, pide a un administrador que te invite.",
+      en: "For the Ebony team only. If you don't have access, ask an administrator to invite you.",
+    },
+    error_title: { es: "No se pudo iniciar sesión", en: "Couldn't sign you in" },
+    error_body: {
+      es: "Tu cuenta no está autorizada para entrar a Ebony Manager, o el enlace de acceso expiró. Si crees que deberías tener acceso, pide a un administrador que te invite desde Settings → Usuarios.",
+      en: "Your account isn't authorized to use Ebony Manager, or the sign-in link expired. If you think you should have access, ask an administrator to invite you from Settings → Users.",
+    },
+    retry: { es: "Volver a intentar", en: "Try again" },
     signIn: { es: "Iniciar sesión con Google", en: "Sign in with Google" },
     signOut: { es: "Cerrar sesión", en: "Sign out" },
     welcome: { es: "Bienvenido a Ebony Manager", en: "Welcome to Ebony Manager" },

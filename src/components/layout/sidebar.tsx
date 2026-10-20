@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t } from "@/lib/i18n";
-import { EbonyLogo } from "@/components/brand/ebony-logo";
+import { EbonyMark } from "@/components/brand/ebony-logo";
 import { RAIL_ITEMS, ADMIN_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
@@ -68,9 +68,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             <X size={14} />
           </button>
 
-          <div className="w-9 h-9 rounded-md bg-sidebar-primary flex items-center justify-center mb-[22px] shrink-0">
-            <EbonyLogo variant="isotipo" tone="white" height={20} />
-          </div>
+          <EbonyMark size={36} className="mb-[22px]" />
 
           <nav className="flex-1 flex flex-col items-center gap-1.5">
             {railItems.map(({ href, icon: Icon, label }) => {

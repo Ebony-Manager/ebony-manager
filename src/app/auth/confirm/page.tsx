@@ -6,7 +6,9 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { EbonyLogo } from "@/components/brand/ebony-logo";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AuthShell } from "@/components/brand/auth-shell";
 
 /**
  * Adónde llega el enlace del correo de invitación (ver
@@ -60,25 +62,19 @@ export default function AuthConfirmPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
-      <div className="bg-ebony-warm rounded-lg shadow-2xl p-10 w-full max-w-sm text-center space-y-5">
-        <div className="mx-auto flex h-14 items-center justify-center">
-          <EbonyLogo variant="isotipo" tone="black" height={28} />
+    <AuthShell title={t(lang, failed ? strings.auth.error_title : strings.auth.confirming)}>
+      {failed ? (
+        <>
+          <p className="text-sm text-muted-foreground">{t(lang, strings.auth.confirm_failed)}</p>
+          <Button asChild className="mt-5 h-11 w-full">
+            <Link href="/login">{t(lang, strings.auth.back_to_login)}</Link>
+          </Button>
+        </>
+      ) : (
+        <div className="flex justify-center py-2">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
-        {failed ? (
-          <>
-            <p className="text-sm text-ebony-dark">{t(lang, strings.auth.confirm_failed)}</p>
-            <Link
-              href="/login"
-              className="inline-block w-full bg-ebony-dark text-cream-100 rounded-lg px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
-            >
-              {t(lang, strings.auth.back_to_login)}
-            </Link>
-          </>
-        ) : (
-          <p className="text-sm text-ebony-light">{t(lang, strings.auth.confirming)}</p>
-        )}
-      </div>
-    </div>
+      )}
+    </AuthShell>
   );
 }

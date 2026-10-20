@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type Variant = "wordmark" | "isotipo";
-type Tone = "white" | "black" | "walnut";
+type Tone = "white" | "black" | "walnut" | "inverse";
 
 /**
  * The real Ebony mark — both variants are now genuine vectors (inline
@@ -25,6 +25,9 @@ const TONE_CLASS: Record<Tone, string> = {
   white: "text-white",
   black: "text-ink-900",
   walnut: "text-walnut",
+  // Color del fondo de la página: blanco en modo claro, negro en oscuro —
+  // para ir sobre un fondo del color del texto (ver EbonyMark).
+  inverse: "text-background",
 };
 
 const WORDMARK_VIEWBOX = "243.398 522.853 713.205 191.048";
@@ -60,5 +63,22 @@ export function EbonyLogo({ variant, tone, height, className, alt = "Ebony" }: E
     >
       <path d={path} fill="currentColor" />
     </svg>
+  );
+}
+
+/**
+ * La marca para el chrome de la app: la "n" sobre un círculo del color del
+ * texto — negro con la "n" blanca en modo claro, y al revés en oscuro, así
+ * nunca se pierde contra el fondo. Va arriba del rail y en las pantallas de
+ * acceso (login, confirmación, error).
+ */
+export function EbonyMark({ size, className }: { size: number; className?: string }) {
+  return (
+    <div
+      className={cn("flex shrink-0 items-center justify-center rounded-full bg-foreground", className)}
+      style={{ width: size, height: size }}
+    >
+      <EbonyLogo variant="isotipo" tone="inverse" height={Math.round(size * 0.46)} />
+    </div>
   );
 }
