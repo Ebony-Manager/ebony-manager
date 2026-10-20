@@ -88,6 +88,22 @@ export const strings = {
     export_title_employee: { es: "Lista de empleados", en: "Employee list" },
     export_title_contractor: { es: "Lista de contratistas", en: "Contractor list" },
     export_empty: { es: "No hay nadie para esa selección.", en: "No one matches that selection." },
+    intake_title: { es: "Nuevos registros", en: "New sign-ups" },
+    intake_hint: {
+      es: "Llegaron del formulario de registro. Créalos como empleado o contratista (el formulario abre con sus datos ya puestos), vincúlalos a alguien que ya está, o descártalos.",
+      en: "They came from the sign-up form. Create them as an employee or contractor (the form opens pre-filled), link them to someone already here, or dismiss them.",
+    },
+    intake_received: { es: "Llegó el", en: "Received" },
+    intake_document: { es: "Ver documento", en: "View ID" },
+    intake_match: { es: "Parece que ya está:", en: "Looks like an existing person:" },
+    intake_link_match: { es: "Completar su ficha", en: "Fill in their profile" },
+    intake_link_other: { es: "Es alguien que ya está…", en: "Someone already here…" },
+    intake_linked: { es: "Ficha completada:", en: "Profile filled in:" },
+    intake_create_employee: { es: "Crear empleado", en: "Create employee" },
+    intake_create_contractor: { es: "Crear contratista", en: "Create contractor" },
+    intake_dismiss: { es: "Descartar", en: "Dismiss" },
+    intake_dismiss_confirm: { es: "¿Descartar este registro?", en: "Dismiss this sign-up?" },
+    intake_dismissed: { es: "Registro descartado.", en: "Sign-up dismissed." },
   },
 
   // Personal → Resumen (Planilla + Contratistas juntos).

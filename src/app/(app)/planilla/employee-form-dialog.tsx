@@ -76,6 +76,24 @@ interface FormState {
   benefitsExternalCompany: string;
 }
 
+/** Datos con los que puede llegar prellenada el alta (ej. desde un registro de JotForm). */
+export type EmployeePrefill = Partial<
+  Pick<
+    FormState,
+    | "name"
+    | "phone"
+    | "email"
+    | "address"
+    | "birthDate"
+    | "emergencyContactName"
+    | "emergencyContactPhone"
+    | "bankName"
+    | "bankAccountType"
+    | "bankAccountNumber"
+    | "notes"
+  >
+>;
+
 const EMPTY: FormState = {
   name: "",
   categoria: "taller",
@@ -148,12 +166,18 @@ export function EmployeeFormDialog({
   positions,
   open,
   onOpenChange,
+  prefill,
+  onCreated,
 }: {
   mode: "add" | "edit";
   employee?: PayrollEmployee | null;
   positions: PayrollPosition[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Solo en "add": el formulario abre con estos datos ya puestos. */
+  prefill?: EmployeePrefill;
+  /** Solo en "add": después de crear, con el id del empleado nuevo. */
+  onCreated?: (employeeId: string) => void | Promise<void>;
 }) {
   const { lang } = useLang();
   const [form, setForm] = React.useState<FormState>(EMPTY);
@@ -192,11 +216,11 @@ export function EmployeeFormDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el empleado editado cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : EMPTY);
+    setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : { ...EMPTY, ...prefill });
     setSalaryShown({ monthly: employee?.baseSalaryCents ?? 0, benefits: employee?.benefitsBaseSalaryCents ?? null });
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario arriba: catálogo solo importa al abrir.
-  }, [open, mode, employee]);
+  }, [open, mode, employee, prefill]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -261,12 +285,13 @@ export function EmployeeFormDialog({
       if (mode === "edit" && employee) {
         await updateEmployeeAction(employee.id, { ...common, ...profileExtra });
       } else {
-        await createEmployeeAction({
+        const created = await createEmployeeAction({
           ...common,
           ...profileExtra,
           baseSalaryCents: toCents(form.baseSalary),
           benefitsBaseSalaryCents: form.benefitsBaseSalary.trim() ? toCents(form.benefitsBaseSalary) : null,
         });
+        await onCreated?.(created.id);
       }
       toast.success(t(lang, mode === "edit" ? strings.planilla.action_save : strings.planilla.action_add));
       onOpenChange(false);

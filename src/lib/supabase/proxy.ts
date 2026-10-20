@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
 // Paths that must stay reachable without a session.
-const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check"];
+// /api/jotform: el webhook de JotForm, sin sesión (se autentica con su token).
+const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check", "/api/jotform"];
 
 /**
  * Runs on every request (see proxy.ts). Two jobs:

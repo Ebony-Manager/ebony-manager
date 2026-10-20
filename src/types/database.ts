@@ -1354,12 +1354,99 @@ export type Database = {
           },
         ]
       }
+      staff_intake: {
+        Row: {
+          address: string | null
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_name: string | null
+          birth_date: string | null
+          created_at: string
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          first_name: string | null
+          form_id: string | null
+          id: string
+          id_document_url: string | null
+          last_name: string | null
+          person_id: string | null
+          person_kind: string | null
+          phone: string | null
+          raw: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          status: string
+          submission_id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          first_name?: string | null
+          form_id?: string | null
+          id?: string
+          id_document_url?: string | null
+          last_name?: string | null
+          person_id?: string | null
+          person_kind?: string | null
+          phone?: string | null
+          raw?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          submission_id: string
+          submitted_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          first_name?: string | null
+          form_id?: string | null
+          id?: string
+          id_document_url?: string | null
+          last_name?: string | null
+          person_id?: string | null
+          person_kind?: string | null
+          phone?: string | null
+          raw?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          submission_id?: string
+          submitted_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ingest_staff_intake: {
+        Args: { p_token: string; p_data: Json }
+        Returns: string | null
+      }
     }
     Enums: {
       [_ in never]: never

@@ -103,6 +103,27 @@ la lista.
 
 ---
 
+### 3c. Registro de empleados desde JotForm
+
+El formulario **"Registro Empleado"** de JotForm (id `232606019835052`)
+manda cada respuesta a la app por webhook, y aparece en **Staff → Nuevos
+registros** para crearla como empleado o contratista (con el formulario de
+alta ya lleno), completar la ficha de alguien que ya está, o descartarla.
+Código: `src/app/api/jotform/webhook/route.ts`, `src/lib/personal/jotform-intake.ts`
+y la migración `20261020210000_staff_intake_jotform.sql`.
+
+1. **JotForm → el formulario → Settings → Integrations → WebHooks**: pegar
+   `https://admin.ebonypanama.com/api/jotform/webhook?token=<TOKEN>`. El
+   token es secreto: en la base solo está su hash
+   (`private.integration_tokens`, fila `jotform`). Para cambiarlo, generar
+   uno nuevo, guardar su SHA-256 (hex) en esa fila y actualizar la URL.
+2. (Recomendado) **JotForm → Settings → API → Create new key** (permiso
+   *Read Access*) y ponerla en Vercel como `JOTFORM_API_KEY`. Con ella, el
+   webhook pide la respuesta a la API de JotForm en vez de confiar en lo
+   que llega en el POST. Sin ella también funciona.
+
+---
+
 ### 4. Variables de entorno
 
 Crea `.env.local` en la raíz (o configúralas en Vercel) — ver
@@ -117,6 +138,9 @@ En Vercel: Project Settings → Environment Variables, en Production, Preview
 y Development. Ambas son públicas (la anon key solo puede lo que RLS
 permite). Ya no hace falta ninguna variable de Google en el cliente: el
 login se configura entero en el dashboard de Supabase.
+
+Opcional, solo en el servidor (no `NEXT_PUBLIC_`): `JOTFORM_API_KEY` (ver
+§3c).
 
 ---
 

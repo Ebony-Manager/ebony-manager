@@ -28,6 +28,9 @@ import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
 import { EmployeeSearchInput } from "../../planilla/employee-search-input";
 import { EmployeeFormDialog } from "../../planilla/employee-form-dialog";
 import { StaffRosterExport } from "./staff-roster-export";
+import { IntakeInbox } from "./intake-inbox";
+import type { StaffIntake } from "@/types/staff-intake";
+import type { MatchCandidate } from "@/lib/personal/jotform-intake";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
 
@@ -36,13 +39,16 @@ import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog"
  * buscador y filtro por tipo. Es EL lugar del staff: desde acá se agrega a
  * alguien (empleado o contratista, según los módulos del usuario) y cada
  * fila abre su ficha (`/personal/staff/...`), donde se edita. Los que ya no
- * laboran van aparte, plegados. "Descargar PDF" baja la lista (todos, solo
+ * laboran van aparte, plegados. Arriba, si hay, los "Nuevos registros" que
+ * llegaron del formulario de JotForm (ver intake-inbox.tsx). "Descargar PDF" baja la lista (todos, solo
  * empleados o solo contratistas) con su ficha, para imprimir.
  */
 export function StaffClient({
   members,
   employees,
   contractors,
+  intakes,
+  candidates,
   positions,
   photoUrls,
   contractorPhotoUrls,
@@ -53,6 +59,9 @@ export function StaffClient({
   /** Fichas completas (para el PDF); vacías sin el módulo correspondiente. */
   employees: PayrollEmployee[];
   contractors: Contractor[];
+  /** Registros del formulario de JotForm por revisar. */
+  intakes: StaffIntake[];
+  candidates: MatchCandidate[];
   /** Catálogo de posiciones, para el formulario de empleado nuevo. */
   positions: PayrollPosition[];
   /** Fotos de empleados (las lee EmployeeAvatar vía EmployeePhotosProvider). */
@@ -138,6 +147,14 @@ export function StaffClient({
             </Button>
           )}
         </div>
+
+        <IntakeInbox
+          intakes={intakes}
+          candidates={candidates}
+          positions={positions}
+          canEmployees={canEmployees}
+          canContractors={canContractors}
+        />
 
         <div className="flex flex-wrap items-center gap-3">
           <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="w-full max-w-xs" />

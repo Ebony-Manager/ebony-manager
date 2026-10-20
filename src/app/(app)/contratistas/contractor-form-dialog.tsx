@@ -51,6 +51,23 @@ interface FormState {
   bankAccountNumber: string;
 }
 
+/** Datos con los que puede llegar prellenada el alta (ej. desde un registro de JotForm). */
+export type ContractorPrefill = Partial<
+  Pick<
+    FormState,
+    | "name"
+    | "phone"
+    | "email"
+    | "address"
+    | "birthDate"
+    | "emergencyContactName"
+    | "emergencyContactPhone"
+    | "bankName"
+    | "bankAccountType"
+    | "bankAccountNumber"
+  >
+>;
+
 function toForm(c?: Contractor): FormState {
   return {
     name: c?.name ?? "",
@@ -77,27 +94,33 @@ export function ContractorFormDialog({
   contractor,
   open,
   onOpenChange,
+  prefill,
+  onCreated,
 }: {
   /** Con contratista = editar; sin = agregar uno nuevo. */
   contractor?: Contractor;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Solo al agregar: el formulario abre con estos datos ya puestos. */
+  prefill?: ContractorPrefill;
+  /** Solo al agregar: después de crear, con el id del contratista nuevo. */
+  onCreated?: (contractorId: string) => void | Promise<void>;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const isEdit = Boolean(contractor);
 
-  const [form, setForm] = React.useState<FormState>(() => toForm(contractor));
+  const [form, setForm] = React.useState<FormState>(() => (contractor ? toForm(contractor) : { ...toForm(), ...prefill }));
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(toForm(contractor));
+    setForm(contractor ? toForm(contractor) : { ...toForm(), ...prefill });
     setError(null);
-  }, [open, contractor]);
+  }, [open, contractor, prefill]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -136,7 +159,8 @@ export function ContractorFormDialog({
         await updateContractorAction(contractor.id, data);
         toast.success(tt("action_save"));
       } else {
-        await createContractorAction(data);
+        const created = await createContractorAction(data);
+        await onCreated?.(created.id);
         toast.success(tt("action_add"));
       }
       onOpenChange(false);
