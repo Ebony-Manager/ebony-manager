@@ -31,8 +31,8 @@ el servidor — ver FOUNDATION.md §5).
 3. En el dashboard de Supabase → **Auth → Providers → Google**: habilítalo
    y pega Client ID + Secret. (El secret vive en Supabase, no en el repo.)
 4. En **Auth → URL Configuration**:
-   - Site URL: `https://ebony-manager.vercel.app`
-   - Redirect URLs: `https://ebony-manager.vercel.app/**`, `http://localhost:3001/**`
+   - Site URL: `https://admin.ebonypanama.com`
+   - Redirect URLs: `https://admin.ebonypanama.com/**`, `https://ebony-manager.vercel.app/**`, `http://localhost:4001/**`
 
 ---
 
