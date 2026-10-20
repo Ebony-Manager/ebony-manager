@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
+/* Modo oscuro por clase: `.dark` en <html> (lo pone el script de tema de
+   layout.tsx según la preferencia guardada — Claro / Oscuro / Automático). */
+@custom-variant dark (&:is(.dark *));
+
 /* =============================================================================
    FUNDACIÓN — mecanismo de tokens (reutilizable entre apps)
 
    Tailwind v4 CSS-first: los colores/radio/tipografía se declaran como
-   variables CSS en :root y se re-exponen a la escala de utilidades dentro de
-   @theme inline (--color-x -> genera bg-x/text-x/border-x, etc). Ninguna
-   pieza de interfaz debe fijar un color/radio/sombra literal — todas leen de
-   aquí, así una app puede cambiar de piel sin tocar componentes.
+   variables CSS en :root (y .dark) y se re-exponen a la escala de utilidades
+   dentro de @theme inline (--color-x -> genera bg-x/text-x/border-x, etc).
+   Ninguna pieza de interfaz debe fijar un color/radio/sombra literal — todas
+   leen de aquí, así la app cambia de piel sin tocar componentes.
 
    Ver FOUNDATION.md para la decisión completa.
    ============================================================================= */
@@ -21,6 +25,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    letter-spacing: var(--tracking-normal);
   }
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
@@ -28,62 +33,146 @@
 }
 
 /* =============================================================================
-   EBONY — identidad visual (específico de esta app)
+   TEMA — exportado de tweakcn (formato oklch), claro y oscuro.
 
-   Paleta REAL de la marca Ebony Custom Woodwork (brand guidelines p.20,
-   ver _diseño-ebony-fuente/tokens/colors.css) — reemplaza la aproximación
-   inventada que había acá antes (maderas/dorado no eran la marca real).
-   Cinco valores y nada más: tinta, tres piedras y una crema. NO hay
-   acento de color en la marca — el énfasis viene de contraste de valor y
-   escala, nunca de un color. Los --status-* son la única adición del
-   sistema real (la guía no define semántica de color; la UI necesita
-   tres), desaturados para calzar con la paleta.
+   Es la única fuente de color, radio, sombra y espaciado de letras de la
+   app. Para cambiar de piel: reemplazar los valores de :root y .dark con
+   los de un tema nuevo (mismos nombres). Agregados de Ebony que el tema no
+   trae: --success / --warning (badges, montos a favor/pendientes) y
+   --row-hover / --row-focus (tablas con columna congelada). Las fuentes
+   las carga next/font en layout.tsx (Inter, Merriweather, JetBrains Mono).
    ============================================================================= */
 
 :root {
-  --ink-900: #040707; /* NEGRO — tinta primaria, logo */
-  --ink-700: #2a2c2c; /* negro alzado, para texto largo sobre crema */
-  --stone-500: #a8a8a7; /* Pantone Cool Gray 7 C */
-  --stone-400: #cac1b9; /* Pantone 406 C */
-  --stone-200: #dfdbd6; /* Pantone 2330 C */
-  --cream-100: #f3eddf; /* C6 M7 Y14 K0 */
-  --white: #ffffff;
+  --background: oklch(0.9946 0.0026 286.3519);
+  --foreground: oklch(0.1615 0.0105 285.1663);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1615 0.0105 285.1663);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1615 0.0105 285.1663);
+  --primary: oklch(0.5828 0.2188 258.8797);
+  --primary-foreground: oklch(0.967 0.0029 264.5419);
+  --secondary: oklch(0.9518 0.0231 277.9569);
+  --secondary-foreground: oklch(0.4446 0.0983 268.5283);
+  --muted: oklch(0.9601 0.0093 286.2229);
+  --muted-foreground: oklch(0.5052 0.0379 284.964);
+  --accent: oklch(0.9712 0.0136 258.3446);
+  --accent-foreground: oklch(0.6081 0.2114 266.213);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(0.9842 0.0034 247.8575);
+  --success: oklch(0.6 0.13 155);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.68 0.15 65);
+  --warning-foreground: oklch(0.985 0 0);
+  --border: oklch(0.9163 0.0162 286.0759);
+  --input: oklch(0.9163 0.0162 286.0759);
+  --ring: oklch(0.5565 0.243 261.9529);
+  --chart-1: oklch(0.5553 0.2554 283.4559);
+  --chart-2: oklch(0.6037 0.2141 267.5162);
+  --chart-3: oklch(0.7495 0.1297 210.9704);
+  --chart-4: oklch(0.8023 0.1492 175.5763);
+  --chart-5: oklch(0.6945 0.1422 167.0638);
+  --sidebar: oklch(0.9946 0.0026 286.3519);
+  --sidebar-foreground: oklch(0.1615 0.0105 285.1663);
+  --sidebar-primary: oklch(0.5828 0.2188 258.8797);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.9634 0.0175 279.0619);
+  --sidebar-accent-foreground: oklch(0.6256 0.2009 264.0684);
+  --sidebar-border: oklch(0.9163 0.0162 286.0759);
+  --sidebar-ring: oklch(0.5828 0.2188 258.8797);
+  --radius: 1.4rem;
+  --shadow-2xs: 0px 4px 15px 0px hsl(0 0% 0% / 0.07);
+  --shadow-xs: 0px 4px 15px 0px hsl(0 0% 0% / 0.07);
+  --shadow-sm: 0px 4px 15px 0px hsl(0 0% 0% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow: 0px 4px 15px 0px hsl(0 0% 0% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow-md: 0px 4px 15px 0px hsl(0 0% 0% / 0.15), 0px 2px 4px -1px hsl(0 0% 0% / 0.15);
+  --shadow-lg: 0px 4px 15px 0px hsl(0 0% 0% / 0.15), 0px 4px 6px -1px hsl(0 0% 0% / 0.15);
+  --shadow-xl: 0px 4px 15px 0px hsl(0 0% 0% / 0.15), 0px 8px 10px -1px hsl(0 0% 0% / 0.15);
+  --shadow-2xl: 0px 4px 15px 0px hsl(0 0% 0% / 0.38);
+  --tracking-normal: -0.01em;
 
-  /* NO es del manual de marca (esa página solo tiene tinta/piedras/crema,
-     sin acento) — es una extensión aprobada a mano por Teofilo, inspirada
-     en las fotos de madera del manual. Arrancó como "acento puntual"
-     (el panel de Administración, la barra de sub-tabs), pero Teofilo
-     aprobó expandir su uso — hoy también pinta la barra de navegación,
-     el logo del navbar y las tarjetas KPI de Registro. Sigue sin ser
-     parte de la paleta OFICIAL del manual (eso no cambió); lo que cambió
-     es cuánto de la interfaz se apoya en esta extensión aprobada. */
-  --walnut: #6b5744;
-  --walnut-tint: #ede6d9; /* nogal muy aclarado — fondo del panel de Administración,
-    para diferenciarlo del blanco del área de trabajo. Opción A aprobada por Teofilo
-    entre dos variantes. */
-  --bg-tint: #faf7f1; /* fondo general de toda la app — crema/nogal MUY clarito.
-    Reemplaza el blanco liso como --background, para que las ventanas blancas
-    (tarjetas, tablas) se destaquen arriba de este fondo en vez de perderse
-    contra un blanco igual. Aprobado por Teofilo, referencia: Baytek. */
+  /* Realce OPACO de fila en hover / edición, para tablas con columna
+     congelada (sticky): la celda sticky necesita fondo sólido y debe usar
+     EXACTAMENTE el mismo valor que el resto de la fila (Registro de
+     Planilla, estado de cuenta de Contratistas). */
+  --row-hover: color-mix(in oklch, var(--muted) 60%, var(--background));
+  --row-focus: color-mix(in oklch, var(--primary) 7%, var(--background));
+}
 
-  /* Únicas transparencias del sistema — hairline (bordes) y texto
-     tenue sobre tinta. */
-  --ink-a16: rgba(4, 7, 7, 0.16);
-  --white-a72: rgba(255, 255, 255, 0.72);
+.dark {
+  --background: oklch(0.144 0.0028 247.0906);
+  --foreground: oklch(0.9643 0.0083 271.3283);
+  --card: oklch(0.1809 0.0052 248.1162);
+  --card-foreground: oklch(0.9643 0.0083 271.3283);
+  --popover: oklch(0.1899 0.0051 248.0992);
+  --popover-foreground: oklch(0.9643 0.0083 271.3283);
+  --primary: oklch(0.5828 0.2188 258.8797);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2673 0.0433 266.5444);
+  --secondary-foreground: oklch(0.8818 0.0577 274.3908);
+  --muted: oklch(0.2303 0.0125 264.2926);
+  --muted-foreground: oklch(0.7364 0.0183 248.0773);
+  --accent: oklch(0.3071 0.044 265.8618);
+  --accent-foreground: oklch(0.8761 0.0629 250.7253);
+  --destructive: oklch(0.526 0.2086 27.2595);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.7 0.14 155);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.78 0.14 70);
+  --warning-foreground: oklch(0.145 0 0);
+  --border: oklch(0.2258 0.0025 247.9355);
+  --input: oklch(0.2989 0.0165 275.4735);
+  --ring: oklch(0.7034 0.1543 265.1217);
+  --chart-1: oklch(0.6231 0.188 259.8145);
+  --chart-2: oklch(0.6268 0.2325 303.9004);
+  --chart-3: oklch(0.5854 0.2041 277.1173);
+  --chart-4: oklch(0.6056 0.2189 292.7172);
+  --chart-5: oklch(0.7845 0.1325 181.912);
+  --sidebar: oklch(0.1809 0.0052 248.1162);
+  --sidebar-foreground: oklch(0.9197 0.004 286.3202);
+  --sidebar-primary: oklch(0.661 0.1822 256.573);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.2753 0.0392 259.3583);
+  --sidebar-accent-foreground: oklch(0.8877 0.0543 270.3821);
+  --sidebar-border: oklch(0.2793 0.0034 228.9134);
+  --sidebar-ring: oklch(0.7429 0.1344 255.6155);
+  --shadow-2xs: 0px 10px 25px 0px hsl(0 0% 0% / 0.07);
+  --shadow-xs: 0px 10px 25px 0px hsl(0 0% 0% / 0.07);
+  --shadow-sm: 0px 10px 25px 0px hsl(0 0% 0% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow: 0px 10px 25px 0px hsl(0 0% 0% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow-md: 0px 10px 25px 0px hsl(0 0% 0% / 0.15), 0px 2px 4px -1px hsl(0 0% 0% / 0.15);
+  --shadow-lg: 0px 10px 25px 0px hsl(0 0% 0% / 0.15), 0px 4px 6px -1px hsl(0 0% 0% / 0.15);
+  --shadow-xl: 0px 10px 25px 0px hsl(0 0% 0% / 0.15), 0px 8px 10px -1px hsl(0 0% 0% / 0.15);
+  --shadow-2xl: 0px 10px 25px 0px hsl(0 0% 0% / 0.38);
+}
 
-  --status-ok: #5a6b5c;
-  --status-warn: #8c7a4f;
-  --status-error: #8c4f49;
-  --status-info: var(--stone-500);
+/* =============================================================================
+   NOMBRES DE MARCA HEREDADOS → TEMA
 
-  /* Alias --ebony-* — nombres heredados de la versión Vite. YA NO son una
-     paleta inventada: cada uno resuelve a su equivalente real de arriba.
-     Se conservan (en vez de borrarse) porque payroll-colors.ts y
-     contractor-colors.ts los referencian para las categorías de Planilla
-     y Contratistas — fuera de alcance de este cambio (ver más abajo). El
-     nombre "gold" ya no describe el valor real (ya no existe el dorado);
-     renombrarlos es limpieza pendiente para una pasada aparte, igual que
-     los 47 archivos con rounded-* a mano. */
+   Muchas pantallas todavía usan clases con los nombres de la paleta
+   anterior (text-ink-900, bg-walnut, bg-cream-100, text-ebony-light…).
+   En vez de reescribirlas, cada nombre apunta ahora a su equivalente del
+   tema, así siguen al tema y al modo oscuro: tinta = texto, madera =
+   color principal, crema = fondo, piedras = grises del tema. Pantalla
+   nueva: usar directamente los nombres del tema (foreground, primary…).
+   ============================================================================= */
+
+:root {
+  --ink-900: var(--foreground);
+  --ink-700: color-mix(in oklch, var(--foreground) 82%, var(--background));
+  --stone-500: var(--muted-foreground);
+  --stone-400: color-mix(in oklch, var(--foreground) 22%, var(--background));
+  --stone-200: var(--muted);
+  --cream-100: var(--background);
+  --white: var(--card);
+  --walnut: var(--primary);
+  --walnut-tint: var(--accent);
+
+  --status-ok: var(--success);
+  --status-warn: var(--warning);
+  --status-error: var(--destructive);
+  --status-info: var(--muted-foreground);
+
   --ebony-dark: var(--ink-900);
   --ebony-medium: var(--ink-700);
   --ebony-light: var(--stone-500);
@@ -91,18 +180,11 @@
   --ebony-gray: var(--stone-200);
   --ebony-gold: var(--status-warn);
   --ebony-gold-light: var(--stone-400);
-
   --ebony-destructive: var(--status-error);
-
   --ebony-success: var(--status-ok);
-  --ebony-success-foreground: var(--cream-100);
+  --ebony-success-foreground: var(--success-foreground);
   --ebony-warning: var(--status-warn);
-  --ebony-warning-foreground: var(--cream-100);
-
-  /* La marca es cuadrada — radius-none del sistema real. Los cálculos de
-     --radius-sm/md/lg/xl de abajo siguen sin tocarse (piden eso aparte);
-     sm/md se acotan a 0 para no terminar en un valor negativo inválido. */
-  --radius: 0px;
+  --ebony-warning-foreground: var(--warning-foreground);
 }
 
 /* Cruz fila + columna de Auditoría: la clase la pone/quita auditoria-view.tsx
@@ -114,106 +196,6 @@
 }
 tr:hover > .payroll-col-hot {
   background-image: linear-gradient(var(--payroll-row-veil-focus), var(--payroll-row-veil-focus)) !important;
-}
-
-@theme inline {
-  --color-ink-900: var(--ink-900);
-  --color-ink-700: var(--ink-700);
-  --color-stone-500: var(--stone-500);
-  --color-stone-400: var(--stone-400);
-  --color-stone-200: var(--stone-200);
-  --color-cream-100: var(--cream-100);
-  --color-walnut: var(--walnut);
-  --color-walnut-tint: var(--walnut-tint);
-
-  /* --color-ebony-* — todavía consumidas como clases bg-ebony-x/text-ebony-x
-     en 6 archivos de chrome (navbar, sidebar, login, etc.) que no se
-     tocaron a fondo en este cambio; solo se corrigieron ahí los usos de
-     "gold" que quedaban ilegibles con el valor real (ver alias arriba).
-     Sin esto, esas clases dejan de existir y Tailwind no compila. */
-  --color-ebony-dark: var(--ebony-dark);
-  --color-ebony-medium: var(--ebony-medium);
-  --color-ebony-light: var(--ebony-light);
-  --color-ebony-warm: var(--ebony-warm);
-  --color-ebony-gray: var(--ebony-gray);
-  --color-ebony-gold: var(--ebony-gold);
-  --color-ebony-gold-light: var(--ebony-gold-light);
-
-  --font-sans: var(--font-work-sans);
-  --font-body: var(--font-catamaran);
-}
-
-/* =============================================================================
-   CONTRATO DE PIEZAS COMPARTIDAS — tokens estilo shadcn/ui
-
-   Nombres de token estilo shadcn/ui (--background, --primary, --card...)
-   mapeados a la paleta real de arriba, siguiendo los alias semánticos del
-   propio sistema de diseño (surface-page, text-primary, border-hairline,
-   etc. de _diseño-ebony-fuente/tokens/colors.css). NO hay acento de
-   color en la marca: --primary es tinta con texto crema ("Primary
-   button: ink → ink-700" en el hover), no dorado.
-
-   --radius es 0px (esquinas cuadradas, radius-none del sistema real).
-   sm/md se acotan con max(0px, …) para no terminar en un calc negativo
-   inválido; lg/xl no se tocan — igual que los 47 archivos con rounded-*
-   a mano, es limpieza para una segunda etapa aparte.
-   ============================================================================= */
-
-:root {
-  --background: var(--bg-tint);
-  --foreground: var(--ink-900);
-
-  --card: var(--white);
-  --card-foreground: var(--ink-900);
-
-  --popover: var(--white);
-  --popover-foreground: var(--ink-900);
-
-  --primary: var(--ink-900);
-  --primary-foreground: var(--cream-100);
-
-  --secondary: var(--stone-200);
-  --secondary-foreground: var(--ink-900);
-
-  --muted: var(--stone-200);
-  --muted-foreground: var(--stone-500);
-
-  --accent: var(--stone-400);
-  --accent-foreground: var(--ink-900);
-
-  --destructive: var(--status-error);
-  --destructive-foreground: var(--cream-100);
-
-  --success: var(--status-ok);
-  --success-foreground: var(--cream-100);
-  --warning: var(--status-warn);
-  --warning-foreground: var(--cream-100);
-
-  /* El hairline (tinta al 16%) es el separador primario de la marca —
-     "Borders & shadows" en el readme del sistema. --input reusa el mismo
-     valor: antes --border/--input también eran idénticos (los dos
-     --ebony-gray). */
-  --border: var(--ink-a16);
-  --input: var(--ink-a16);
-  --ring: var(--ink-900);
-
-  /* Realce OPACO de fila en hover, para tablas con columna congelada
-     (sticky): la celda sticky necesita fondo sólido y debe usar
-     EXACTAMENTE este mismo valor que el resto de la fila, así el hover se
-     ve parejo (Registro de Planilla, estado de cuenta de Contratistas).
-     Sin alpha a propósito — un tono translúcido sobre la sticky se
-     compone distinto que sobre el resto y se ve disparejo. */
-  --row-hover: color-mix(in oklch, var(--muted) 40%, var(--background));
-  /* Equivalente OPACO de `bg-primary/[0.07]` para el mismo caso en estado
-     de edición (focus-within) del Registro de Planilla. */
-  --row-focus: color-mix(in oklch, var(--primary) 7%, var(--background));
-
-  --sidebar: var(--ink-900);
-  --sidebar-foreground: var(--cream-100);
-  --sidebar-border: var(--ink-700);
-  --sidebar-accent: var(--cream-100);
-  --sidebar-accent-foreground: var(--ink-900);
-  --sidebar-muted-foreground: var(--white-a72);
 }
 
 /* =============================================================================
@@ -252,22 +234,24 @@ tr:hover > .payroll-col-hot {
   --payroll-avg: var(--ebony-gold-light); /* stat "Prom. mensual" (Atlas: --chart-5) */
 
   /* Realce de fila (hover / edición) de las tablas de Planilla: un velo
-     gris NEUTRO translúcido (croma 0, sin matiz) que se pinta por ENCIMA
+     NEUTRO translúcido (el color de texto del tema, muy diluido: oscuro en
+     modo claro, claro en modo oscuro) que se pinta por ENCIMA
      del fondo de cada celda — así se ve igual sobre blanco, sobre el tinte
      de categoría o sobre el nogal de las columnas extremas, sin teñir de
      beige/rosado como hacía --row-hover (stone, matiz ~80°). */
-  --payroll-row-veil: oklch(0% 0 0 / 0.05);
-  --payroll-row-veil-focus: oklch(0% 0 0 / 0.09);
+  --payroll-row-veil: color-mix(in oklch, var(--foreground) 5%, transparent);
+  --payroll-row-veil-focus: color-mix(in oklch, var(--foreground) 9%, transparent);
   /* Columna resaltada en la cruz de Auditoría (Macro / Quincenal). */
-  --payroll-col-veil: oklch(0% 0 0 / 0.04);
+  --payroll-col-veil: color-mix(in oklch, var(--foreground) 4%, transparent);
 
-  /* Grises NEUTROS (croma 0) para el chrome de las tablas de Planilla —
-     nada de crema/nogal: columnas extremas (Empleado, Total, Pagado,
-     Método) apenas grisáceas, encabezados un paso más oscuros, pie de
-     totales en medio. Todos opacos (las columnas congeladas lo exigen). */
-  --payroll-col-soft: oklch(98.2% 0 0);
-  --payroll-foot: oklch(95.8% 0 0);
-  --payroll-head: oklch(93% 0 0);
+  /* Grises para el chrome de las tablas de Planilla: columnas extremas
+     (Empleado, Total, Pagado, Método) apenas teñidas, encabezados un paso
+     más, pie de totales en medio. Mezcla del texto sobre la tarjeta, así
+     funcionan en claro y en oscuro. Todos opacos (las columnas congeladas
+     lo exigen). */
+  --payroll-col-soft: color-mix(in oklch, var(--foreground) 2%, var(--card));
+  --payroll-foot: color-mix(in oklch, var(--foreground) 4.5%, var(--card));
+  --payroll-head: color-mix(in oklch, var(--foreground) 7%, var(--card));
 
   /* Colores de identidad por empleado — eje independiente del de categorías
      (una categoría dice "qué tipo de dinero"; esto dice "de quién es esta
@@ -326,32 +310,62 @@ tr:hover > .payroll-col-hot {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: max(0px, calc(var(--radius) - 0.375rem));
-  --radius-md: max(0px, calc(var(--radius) - 0.125rem));
+  /* Nombres de marca heredados (ver arriba) — ya apuntan al tema. */
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-stone-500: var(--stone-500);
+  --color-stone-400: var(--stone-400);
+  --color-stone-200: var(--stone-200);
+  --color-cream-100: var(--cream-100);
+  --color-walnut: var(--walnut);
+  --color-walnut-tint: var(--walnut-tint);
+  --color-ebony-dark: var(--ebony-dark);
+  --color-ebony-medium: var(--ebony-medium);
+  --color-ebony-light: var(--ebony-light);
+  --color-ebony-warm: var(--ebony-warm);
+  --color-ebony-gray: var(--ebony-gray);
+  --color-ebony-gold: var(--ebony-gold);
+  --color-ebony-gold-light: var(--ebony-gold-light);
+
+  /* Variables que define next/font en layout.tsx. */
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-merriweather);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 0.375rem);
+  --radius-xl: calc(var(--radius) + 4px);
 
-  /* Escala de sombra — las piezas usan shadow-sm/xs/md/lg (button, card,
-     input, dialog, popover, dropdown-menu, select, tabs, tooltip...).
-     Sin esto resolvían igual, pero contra los valores por defecto de
-     Tailwind, no contra un token que Ebony sea dueña de reasignar. Valores
-     iguales a los de Tailwind (neutros, sin teñir de marca) porque la
-     versión Vite tampoco tenía un color de sombra propio — es la misma
-     sombra de siempre, solo que ahora nombrada acá. */
-  --shadow-2xs: 0 1px rgb(0 0 0 / 0.05);
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+  --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+  --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+  --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 
   /* Animaciones de apertura — dialog/sheet/popover/dropdown-menu las usan
      (data-[state=open]:animate-fade-in / animate-slide-in). Copiadas tal

@@ -152,7 +152,7 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">{tt("indrive_desc")}</p>
       {missingTable && (
-        <p className="rounded-none border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-foreground">
+        <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-foreground">
           {tt("migration_pending")}
         </p>
       )}
@@ -163,14 +163,14 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
           { label: tt("indrive_kpi_charged"), value: sum(thisMonth.filter((r) => r.charge)) },
           { label: tt("indrive_kpi_free"), value: sum(thisMonth.filter((r) => !r.charge)) },
         ].map((k) => (
-          <div key={k.label} className="rounded-none border border-border px-3 py-2">
+          <div key={k.label} className="rounded-lg border border-border px-3 py-2">
             <p className="truncate text-[11px] text-muted-foreground">{k.label}</p>
             <p className="text-base font-semibold tabular-nums text-foreground">{formatCents(k.value)}</p>
           </div>
         ))}
       </div>
 
-      <form onSubmit={onAdd} className="flex flex-col gap-2 rounded-none border border-border p-3">
+      <form onSubmit={onAdd} className="flex flex-col gap-2 rounded-lg border border-border p-3">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-[9rem_7rem_1fr]">
           <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
             {tt("indrive_f_date")}
@@ -208,7 +208,7 @@ export function IndrivePanel({ employeeId, onChanged }: { employeeId: string; on
             const ids = g.rides.filter((r) => !r.locked && !r.id.startsWith("tmp-")).map((r) => r.id);
             const allCharged = g.rides.every((r) => r.charge);
             return (
-              <section key={`${g.period.year}-${g.period.month}-${g.period.half}`} className="rounded-none border border-border">
+              <section key={`${g.period.year}-${g.period.month}-${g.period.half}`} className="rounded-lg border border-border">
                 <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-3 py-1.5 text-xs">
                   <span className="font-medium text-foreground">
                     {monthShort(lang, g.period.month)} {g.period.year} · {g.period.half === 1 ? "1ra" : "2da"}

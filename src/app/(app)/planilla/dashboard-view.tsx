@@ -73,7 +73,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
           <p className="font-medium text-foreground">{tt("tab_dashboard")}</p>
           <p className="text-xs text-muted-foreground">{tt("dashboard_subtitle")}</p>
         </div>
-        <div className="flex items-center gap-1 rounded-none border border-border px-1">
+        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
           <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year - 1)}>
             <ChevronLeft className="size-4" />
           </Button>
@@ -85,7 +85,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
       </div>
 
       {failed ? (
-        <div className="flex items-center gap-3 rounded-none border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
           {tt("load_failed")}
           <Button size="sm" variant="outline" onClick={retry}>
             {tt("retry")}
@@ -123,7 +123,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
           <MonthlyPayrollChart composition={composition} year={year} />
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded-none border border-border bg-card p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <p className="mb-3 text-sm font-medium text-foreground">{tt("dash_top_title")}</p>
               {stats.perEmployee.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tt("no_payroll_this_year")}</p>
@@ -158,7 +158,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
               )}
             </div>
 
-            <div className="rounded-none border border-border bg-card p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <p className="mb-3 text-sm font-medium text-foreground">{tt("dash_loans_top_title")}</p>
               {stats.debtors.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tt("dash_loans_none")}</p>

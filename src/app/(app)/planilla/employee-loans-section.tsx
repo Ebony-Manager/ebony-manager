@@ -65,7 +65,7 @@ export function EmployeeLoansSection({
   const num = "px-3 py-1.5 text-right tabular-nums";
 
   return (
-    <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">{tt("loans_title")}</h2>
         {statement && statement.movements.length > 0 && (
@@ -99,7 +99,7 @@ export function EmployeeLoansSection({
               { label: tt("ls_balance_today"), value: statement.totals.balanceTodayCents },
               { label: tt("ls_balance_end"), value: statement.totals.balanceEndCents },
             ].map((k) => (
-              <div key={k.label} className="rounded-none border border-border px-3 py-2">
+              <div key={k.label} className="rounded-lg border border-border px-3 py-2">
                 <p className="text-xs text-muted-foreground">{k.label}</p>
                 <p className="text-lg font-semibold tabular-nums text-foreground">{formatCents(k.value)}</p>
               </div>

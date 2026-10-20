@@ -93,7 +93,7 @@ export function AdminDashboardView() {
           <p className="text-xs text-muted-foreground">{tt("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-none border border-border px-1">
+          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => setMonth((x) => Math.max(1, x - 1))} disabled={month === 1}>
               <ChevronLeft className="size-4" />
             </Button>
@@ -102,7 +102,7 @@ export function AdminDashboardView() {
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-1 rounded-none border border-border px-1">
+          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => changeYear(year - 1)}>
               <ChevronLeft className="size-4" />
             </Button>
@@ -115,7 +115,7 @@ export function AdminDashboardView() {
       </div>
 
       {failed ? (
-        <div className="flex items-center gap-3 rounded-none border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
           {tt("load_failed")}
           <Button size="sm" variant="outline" onClick={() => setAttempt((a) => a + 1)}>
             {tt("retry")}
@@ -149,7 +149,7 @@ export function AdminDashboardView() {
           <AdminMonthlyChart months={dash.months} year={year} selectedMonth={month} onSelectMonth={setMonth} />
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded-none border border-border bg-card p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <p className="mb-3 text-sm font-medium text-foreground">
                 {tt("split_title")} · {monthLabel(lang, month)}
               </p>
@@ -198,7 +198,7 @@ export function AdminDashboardView() {
               )}
             </div>
 
-            <div className="rounded-none border border-border bg-card p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-foreground">{tt("rank_title")}</p>
                 <div className="flex items-center gap-1">

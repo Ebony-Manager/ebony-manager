@@ -108,7 +108,7 @@ export function EmployeeRosterTable({ employees }: { employees: PayrollEmployee[
       </div>
       {(showBank || showEmergency) && <p className="text-[11px] text-muted-foreground">{tt("roster_sensitive_note")}</p>}
 
-      <div className="overflow-x-auto rounded-none border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[900px] border-collapse text-xs">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-muted-foreground">

@@ -177,7 +177,7 @@ export function PlanillaClient({
         <h1 className="text-[19px] font-bold text-ink-900">{tt("subtitle")}</h1>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-0.5 rounded-[9px] border border-ink-900/10 bg-white p-[3px]">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
             {CATEGORIA_FILTERS.map(({ value, label }) => {
               const active = categoriaFilter === value;
               return (
@@ -187,8 +187,8 @@ export function PlanillaClient({
                   onClick={() => setCategoriaFilter(value)}
                   className={
                     active
-                      ? "rounded-[6px] bg-walnut px-[13px] py-1.5 text-[12.5px] font-semibold text-white"
-                      : "rounded-[6px] px-[13px] py-1.5 text-[12.5px] font-medium text-[#5b5b58]"
+                      ? "rounded-md bg-primary px-[13px] py-1.5 text-[12.5px] font-semibold text-primary-foreground"
+                      : "rounded-md px-[13px] py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"
                   }
                 >
                   {label}
@@ -199,7 +199,7 @@ export function PlanillaClient({
           <Button
             size="sm"
             onClick={() => setAddOpen(true)}
-            className="rounded-[9px] bg-walnut px-4 py-[9px] text-[13px] font-semibold text-white hover:bg-walnut/90"
+            className="rounded-md bg-primary px-4 py-[9px] text-[13px] font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="size-[15px]" />
             {tt("add_employee")}

@@ -14,7 +14,7 @@ const PLOT_H = 260; // alto del área de barras
 const AXIS_W = 52;
 
 /** Cuatro colores suaves de la paleta de Planilla (mezclados con blanco). */
-const soft = (token: string, pct = 60) => `color-mix(in oklch, var(${token}) ${pct}%, white)`;
+const soft = (token: string, pct = 60) => `color-mix(in oklch, var(${token}) ${pct}%, var(--card))`;
 const SERIES = {
   salary: { color: soft("--payroll-salario", 48), label: "dash_series_salary" },
   extras: { color: soft("--payroll-bonos"), label: "dash_series_extras" },
@@ -45,7 +45,7 @@ export function MonthlyPayrollChart({ composition, year }: { composition: MonthC
   const pct = (cents: number) => (total > 0 ? `${((cents / total) * 100).toFixed(0)}%` : "—");
 
   return (
-    <div className="rounded-none border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{tt("dash_chart_title")}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">

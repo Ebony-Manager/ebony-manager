@@ -61,7 +61,7 @@ export default function AuthConfirmPage() {
 
   return (
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
-      <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-5">
+      <div className="bg-ebony-warm rounded-lg shadow-2xl p-10 w-full max-w-sm text-center space-y-5">
         <div className="mx-auto flex h-14 items-center justify-center">
           <EbonyLogo variant="isotipo" tone="black" height={28} />
         </div>
@@ -70,7 +70,7 @@ export default function AuthConfirmPage() {
             <p className="text-sm text-ebony-dark">{t(lang, strings.auth.confirm_failed)}</p>
             <Link
               href="/login"
-              className="inline-block w-full bg-ebony-dark text-cream-100 rounded-none px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
+              className="inline-block w-full bg-ebony-dark text-cream-100 rounded-lg px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
             >
               {t(lang, strings.auth.back_to_login)}
             </Link>

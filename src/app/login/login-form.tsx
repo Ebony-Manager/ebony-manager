@@ -11,7 +11,7 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
-      <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
+      <div className="bg-ebony-warm rounded-lg shadow-2xl p-10 w-full max-w-sm text-center space-y-6">
         {/* Sin bg-ebony-dark: tone="black" ya es la marca oscura, y esta
             tarjeta (bg-ebony-warm) es clara — un fondo oscuro detrás la
             volvería a tapar, como pasaba con la "E" antes. */}
@@ -27,7 +27,7 @@ export function LoginForm() {
         <button
           onClick={() => void signInWithGoogle()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-ebony-gray rounded-none px-4 py-3 shadow-sm hover:shadow-md transition-shadow font-medium text-ebony-dark text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 bg-card border border-ebony-gray rounded-lg px-4 py-3 shadow-sm hover:shadow-md transition-shadow font-medium text-ebony-dark text-sm disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path

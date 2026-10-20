@@ -110,7 +110,7 @@ export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: 
                       // eslint-disable-next-line @next/next/no-img-element -- external Google avatar URL, not a local/optimizable asset
                       <img src={u.avatarUrl} alt="" className="size-8 shrink-0 rounded-full border border-ink-900/15" />
                     ) : (
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-walnut text-[12px] font-bold text-white">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">
                         {display[0]?.toUpperCase()}
                       </div>
                     )}

@@ -82,7 +82,7 @@ export function ProjectDetailSheet({
           </div>
 
           {project?.notes && (
-            <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
               {project.notes}
             </div>
           )}
@@ -91,7 +91,7 @@ export function ProjectDetailSheet({
           <div className="flex flex-col gap-3 border-t border-border pt-4">
             <h3 className="text-sm font-medium text-foreground">{tt("proj_contract_section")}</h3>
             {hasContract ? (
-              <div className="grid grid-cols-1 gap-4 rounded-none border border-border p-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <ProfileField label={tt("proj_f_scope")} value={project?.scope} />
                 </div>
@@ -107,14 +107,14 @@ export function ProjectDetailSheet({
                 />
               </div>
             ) : (
-              <p className="rounded-none border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+              <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
                 {tt("proj_contract_empty")}
               </p>
             )}
           </div>
 
           {/* Zona de peligro */}
-          <div className="flex flex-col gap-2 rounded-none border border-destructive/40 bg-destructive/5 p-4">
+          <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <h3 className="text-sm font-medium text-destructive">{tt("proj_delete_title")}</h3>
             <p className="text-xs text-muted-foreground">{tt("proj_delete_keeps_moves")}</p>
             <Button

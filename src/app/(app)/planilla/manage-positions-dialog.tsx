@@ -197,7 +197,7 @@ export function ManagePositionsDialog({
                         checked={position.active}
                         disabled={isSaving}
                         onChange={() => toggleActive(position)}
-                        className="size-4 rounded-none border-input accent-primary"
+                        className="size-4 rounded-lg border-input accent-primary"
                       />
                       {position.active ? tt("position_active") : tt("position_inactive")}
                     </label>

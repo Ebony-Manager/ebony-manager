@@ -68,7 +68,7 @@ export function RemoveUserDialog({
           <DialogDescription>{user.fullName ? `${user.fullName} · ${user.email}` : user.email}</DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-none border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
           {tt("del_desc")}
         </div>
 

@@ -139,7 +139,7 @@ export function Viewer3D({
         ) : (
           <>
             <canvas ref={canvasRef} aria-label={tt("viewer_title")} className="block h-[340px] w-full cursor-grab touch-pan-y" />
-            <p className="pointer-events-none absolute bottom-2 left-2.5 bg-white/70 px-1.5 py-0.5 text-[11px] text-ink-700">
+            <p className="pointer-events-none absolute bottom-2 left-2.5 bg-card/70 px-1.5 py-0.5 text-[11px] text-ink-700">
               {empty ? tt("viewer_hint_empty") : scene.approximate ? tt("viewer_hint_approx") : tt("viewer_hint")}
             </p>
           </>

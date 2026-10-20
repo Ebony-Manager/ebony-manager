@@ -67,7 +67,7 @@ export function DeleteProjectDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {tt("proj_delete_keeps_moves")}
         </div>
 

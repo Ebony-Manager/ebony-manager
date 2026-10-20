@@ -46,6 +46,10 @@ export const strings = {
     // Menú de perfil, abajo a la izquierda del rail (ver user-menu.tsx).
     profile: { es: "Mi perfil", en: "My profile" },
     language: { es: "Idioma", en: "Language" },
+    theme: { es: "Tema", en: "Theme" },
+    theme_light: { es: "Claro", en: "Light" },
+    theme_dark: { es: "Oscuro", en: "Dark" },
+    theme_system: { es: "Automático", en: "Automatic" },
     // Botón para abrir el menú lateral en el celular.
     menu: { es: "Menú", en: "Menu" },
   },

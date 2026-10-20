@@ -323,7 +323,7 @@ export function QuoteEditor({
                       onClick={() => setConfirmDelete(s.id)}
                       className={cn(
                         "absolute top-1 right-1 flex size-5 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
-                        section?.id === s.id ? "text-cream-100/70 hover:bg-white/15 hover:text-white" : "text-muted-foreground hover:bg-muted hover:text-destructive"
+                        section?.id === s.id ? "text-cream-100/70 hover:bg-cream-100/15 hover:text-cream-100" : "text-muted-foreground hover:bg-muted hover:text-destructive"
                       )}
                     >
                       <X className="size-3.5" />

@@ -33,7 +33,7 @@ function EmployeeCard({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const className = `relative flex flex-col gap-3 rounded-none border bg-card p-4 text-left transition-colors ${
+  const className = `relative flex flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-colors ${
     selected ? "border-primary bg-accent/40" : "border-border hover:border-primary/40 hover:bg-accent/30"
   }`;
   const body = (
@@ -156,7 +156,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
 
   if (employees.length === 0) {
     return (
-      <div className="rounded-none border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
         {tt("empty_employees")}
       </div>
     );
@@ -190,7 +190,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
             {selectMode ? <X className="size-3.5" /> : <Check className="size-3.5" />}
             {selectMode ? tt("sel_cancel") : tt("sel_start")}
           </Button>
-          <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-xs">
             {(
               [
                 { key: "cards", icon: LayoutGrid, label: tt("roster_view_cards") },
@@ -204,7 +204,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
                   setView(key);
                   if (key === "table") exitSelect();
                 }}
-                className={`flex items-center gap-1.5 rounded-none px-2.5 py-1 font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <Icon className="size-3.5" />
                 {label}
@@ -216,7 +216,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
 
       {/* Barra de acciones: aparece al entrar en modo selección. */}
       {selectMode && (
-        <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted/40 px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
           <span className="font-medium text-foreground">
             {selected.size} {tt("sel_count")}
           </span>
@@ -252,7 +252,7 @@ export function EmpleadosView({ employees }: { employees: PayrollEmployee[] }) {
       {view === "table" ? (
         <EmployeeRosterTable employees={filtered} />
       ) : filtered.length === 0 ? (
-        <div className="rounded-none border border-dashed border-border px-6 py-10 text-center">
+        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center">
           <p className="text-sm font-medium text-foreground">{tt("no_results")}</p>
           <p className="mt-1 text-xs text-muted-foreground">{tt("no_results_desc")}</p>
         </div>

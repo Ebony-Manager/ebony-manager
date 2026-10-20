@@ -133,7 +133,7 @@ export function EmployeeBenefitsSection({
   const payingConcept = CONCEPTS.find((c) => c.key === paying) ?? null;
 
   return (
-    <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-foreground">{tt("benefits_title")}</h2>
@@ -146,7 +146,7 @@ export function EmployeeBenefitsSection({
       </div>
 
       {enabled && employee.benefitsExternalCompany && (
-        <p className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {tt("benefits_external_note")}{" "}
           <span className="font-medium text-foreground">{employee.benefitsExternalCompany}</span>{" "}
           {tt("benefits_external_note2")}
@@ -167,7 +167,7 @@ export function EmployeeBenefitsSection({
               .pop();
             const nd = c.key === "decimo" ? nextDecimoDate(now) : null;
             return (
-              <div key={c.key} className="flex flex-col gap-2 rounded-none border border-border p-3">
+              <div key={c.key} className="flex flex-col gap-2 rounded-lg border border-border p-3">
                 <p className="text-xs font-medium text-muted-foreground">{tt(c.title)}</p>
                 <p className="text-2xl font-semibold tabular-nums text-foreground">{formatCents(accrued)}</p>
                 <p className="text-xs text-muted-foreground">

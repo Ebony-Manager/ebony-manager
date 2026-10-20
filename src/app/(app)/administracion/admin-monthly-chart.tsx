@@ -12,7 +12,7 @@ import { t, strings } from "@/lib/i18n";
 const PLOT_H = 280;
 const AXIS_W = 56;
 
-const soft = (token: string, pct = 60) => `color-mix(in oklch, var(${token}) ${pct}%, white)`;
+const soft = (token: string, pct = 60) => `color-mix(in oklch, var(${token}) ${pct}%, var(--card))`;
 export const ADMIN_SERIES = {
   taller: { color: soft("--payroll-salario", 55), label: "ad_series_taller" },
   admin: { color: soft("--payroll-bonos", 55), label: "ad_series_admin" },
@@ -50,7 +50,7 @@ export function AdminMonthlyChart({
   const order: AdminSeriesKey[] = ["admin", "taller", "contractors"];
 
   return (
-    <div className="rounded-none border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{tt("chart_title")}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">

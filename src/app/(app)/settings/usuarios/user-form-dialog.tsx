@@ -159,7 +159,7 @@ export function UserFormDialog({
                     disabled={locked}
                     onClick={() => setRole(value)}
                     className={cn(
-                      "flex items-start gap-2 border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                       active ? "border-walnut bg-walnut-tint" : "border-border hover:bg-ink-900/5"
                     )}
                   >
@@ -176,7 +176,7 @@ export function UserFormDialog({
 
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{tt("field_modules")}</span>
-            <div className="flex flex-col divide-y divide-border border border-border">
+            <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
               {APP_MODULES.map((m) => {
                 const parent = MODULE_PARENT[m];
                 const checked = isAdminRole || modules.includes(m);

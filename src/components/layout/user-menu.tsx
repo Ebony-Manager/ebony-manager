@@ -1,26 +1,37 @@
 "use client";
 
-import { Languages, LogOut } from "lucide-react";
+import { Languages, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
+import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const THEME_OPTIONS: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.nav }[] = [
+  { value: "light", icon: Sun, label: "theme_light" },
+  { value: "dark", icon: Moon, label: "theme_dark" },
+  { value: "system", icon: Monitor, label: "theme_system" },
+];
+
 /**
  * Acceso al perfil, abajo a la izquierda del rail (antes vivía en la barra
  * superior, que ya no existe): la foto o inicial abre un menú con nombre,
- * correo y rol, el cambio de idioma y cerrar sesión.
+ * correo y rol, el tema (claro / oscuro / automático), el idioma y cerrar
+ * sesión.
  */
 export function UserMenu() {
   const { user, role, signOut } = useAuth();
   const { lang, toggle } = useLang();
+  const { theme, setTheme } = useTheme();
   if (!user) return null;
 
   const initial = user.name?.[0]?.toUpperCase();
@@ -33,13 +44,13 @@ export function UserMenu() {
           type="button"
           title={user.name}
           aria-label={t(lang, strings.nav.profile)}
-          className="flex size-11 items-center justify-center rounded-[11px] transition-colors hover:bg-white/10 data-[state=open]:bg-white/20"
+          className="flex size-11 items-center justify-center rounded-md transition-colors hover:bg-sidebar-accent data-[state=open]:bg-sidebar-accent"
         >
           {user.picture ? (
             // eslint-disable-next-line @next/next/no-img-element -- external Google avatar URL, not a local/optimizable asset
-            <img src={user.picture} alt="" className="size-8 rounded-full border border-white/30" />
+            <img src={user.picture} alt="" className="size-8 rounded-full border border-sidebar-border" />
           ) : (
-            <span className="flex size-8 items-center justify-center rounded-full bg-white/20 text-[13px] font-bold text-white">
+            <span className="flex size-8 items-center justify-center rounded-full bg-sidebar-primary text-[13px] font-bold text-sidebar-primary-foreground">
               {initial}
             </span>
           )}
@@ -51,6 +62,16 @@ export function UserMenu() {
           <span className="truncate text-xs text-muted-foreground">{user.email}</span>
           {roleLabel && <span className="text-xs text-muted-foreground">{roleLabel}</span>}
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(lang, strings.nav.theme)}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemePref)}>
+          {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
+            <DropdownMenuRadioItem key={value} value={value} onSelect={(e) => e.preventDefault()}>
+              <Icon className="size-3.5" />
+              {t(lang, strings.nav[label])}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         {/* onSelect sin cerrar el menú: se ve el cambio de idioma al instante. */}
         <DropdownMenuItem

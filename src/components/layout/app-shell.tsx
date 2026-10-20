@@ -23,16 +23,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex h-12 shrink-0 items-center gap-3 border-b border-ink-900/8 bg-white px-4 md:hidden">
+        <div className="flex h-12 shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 md:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-label={t(lang, strings.nav.menu)}
-            className="p-1 text-ink-900/60 transition-colors hover:text-ink-900"
+            className="p-1 text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground"
           >
             <Menu size={20} />
           </button>
-          <EbonyLogo variant="wordmark" tone="walnut" height={16} />
+          <EbonyLogo variant="wordmark" tone="black" height={16} />
         </div>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>

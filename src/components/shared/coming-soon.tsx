@@ -12,7 +12,7 @@ export function ComingSoon({ icon: Icon, name }: { icon: LucideIcon; name: strin
 
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
-      <div className="w-16 h-16 rounded-none bg-ebony-gray/30 flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center mb-4">
         <Icon className="text-ebony-medium" size={28} />
       </div>
       <h2 className="text-lg font-semibold text-ebony-dark">{name}</h2>

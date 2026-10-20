@@ -353,7 +353,7 @@ export function EmployeeFormDialog({
                   </Field>
                 </>
               ) : (
-                <div className="flex items-center justify-between gap-3 rounded-none border border-border px-3 py-2 sm:col-span-2">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 sm:col-span-2">
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">{tt("current_salary")}</p>
                     {salaryShown.monthly > 0 ? (
@@ -395,7 +395,7 @@ export function EmployeeFormDialog({
               )}
             </div>
 
-            <label className="flex cursor-pointer items-start gap-2 rounded-none border border-border px-3 py-2 text-sm">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 className="mt-1"

@@ -39,7 +39,7 @@ function RankingCard({
 }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
-    <div className="rounded-none border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <p className="mb-3 text-sm font-medium text-foreground">{title}</p>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
@@ -176,7 +176,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
       </div>
 
       {/* Detalle por contratista, con los proyectos que lleva cada uno. */}
-      <div className="rounded-none border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-medium text-foreground">{tt("cd_table_title")}</p>
           <p className="text-xs text-muted-foreground">{tt("cd_table_hint")}</p>
@@ -269,7 +269,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
 
       {/* Comparaciones aproximadas: tiempo por proyecto y costo por m². */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="rounded-none border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="mb-1 text-sm font-medium text-foreground">{tt("cd_speed_title")}</p>
           <p className="mb-3 text-[11px] leading-snug text-muted-foreground">{tt("cd_speed_note")}</p>
           {bySpeed.length === 0 ? (
@@ -292,7 +292,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
           )}
         </div>
 
-        <div className="rounded-none border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="mb-1 text-sm font-medium text-foreground">{tt("cd_cost_title")}</p>
           <p className="mb-3 text-[11px] leading-snug text-muted-foreground">{tt("cd_cost_note")}</p>
           {byCost.length === 0 ? (

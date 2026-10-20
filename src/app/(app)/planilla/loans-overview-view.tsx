@@ -139,7 +139,7 @@ export function LoansOverviewView({
       ) : shown.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">{tt("lo_empty")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">

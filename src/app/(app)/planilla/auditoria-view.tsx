@@ -460,7 +460,7 @@ export function AuditoriaView({
               <React.Fragment key={g.key}>
                 <tr className={`cursor-pointer text-[11px] ${d.groupRow}`} onClick={() => toggleGroup(groupKey)}>
                   <td
-                    className={`sticky left-0 z-10 pl-8 pr-2 ${d.groupRow} ${hasLineItems ? "rounded-t-none" : "rounded-none"}`}
+                    className={`sticky left-0 z-10 pl-8 pr-2 ${d.groupRow} ${hasLineItems ? "rounded-t-none" : "rounded-lg"}`}
                     style={{ ...headerBorder, borderLeft: `1px solid ${borderColor}` }}
                   >
                     <div className="flex items-center gap-1">
@@ -619,7 +619,7 @@ export function AuditoriaView({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-muted">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
             <ClipboardCheck className="size-4 text-muted-foreground" />
           </div>
           <div>
@@ -646,7 +646,7 @@ export function AuditoriaView({
                     {tt("col_empleado")}
                     {employeeFilter.size > 0 ? ` (${employeeFilter.size})` : ""}
                   </div>
-                  <div className="max-h-48 overflow-y-auto rounded-none border border-border">
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
                     {(data?.rows ?? []).map((r) => (
                       <label
                         key={r.employee.id}
@@ -665,13 +665,13 @@ export function AuditoriaView({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="text-xs font-medium text-muted-foreground">{tt("estado")}</div>
-                  <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
+                  <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-xs">
                     {(["todos", "activo", "inactivo"] as const).map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => setStatusFilter(s)}
-                        className={`flex-1 rounded-none px-2 py-1 font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        className={`flex-1 rounded-lg px-2 py-1 font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                       >
                         {s === "todos" ? tt("filtro_todos") : s === "activo" ? tt("filtro_activo") : tt("filtro_inactivo")}
                       </button>
@@ -787,7 +787,7 @@ export function AuditoriaView({
             {tt("exportar")}
           </Button>
 
-          <div className="flex items-center gap-1 rounded-none border border-border px-1">
+          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year - 1)}>
               <ChevronLeft className="size-4" />
             </Button>
@@ -800,14 +800,14 @@ export function AuditoriaView({
       </div>
 
       <p
-        className="rounded-none px-3 py-2 text-xs text-muted-foreground"
+        className="rounded-lg px-3 py-2 text-xs text-muted-foreground"
         style={{ backgroundColor: "color-mix(in oklch, var(--payroll-next-pay) 12%, transparent)" }}
       >
         {isMonthly ? tt("auditoria_note_monthly") : tt("auditoria_note_biweekly")}
       </p>
 
       {data && data.findings.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-none border border-border bg-card p-3">
+        <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-3">
           <p className="text-xs font-medium text-foreground">
             {tt("findings_title")} ({data.findings.length})
           </p>
@@ -829,7 +829,7 @@ export function AuditoriaView({
       {!data ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table
             ref={tableRef}
             onMouseOver={onTableMouseOver}
@@ -964,7 +964,7 @@ export function AuditoriaView({
       )}
 
       {data && query.trim() !== "" && filteredRows.length === 0 && (
-        <p className="rounded-none border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           {tt("emp_search_empty")}
         </p>
       )}

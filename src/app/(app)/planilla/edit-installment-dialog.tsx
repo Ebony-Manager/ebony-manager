@@ -117,7 +117,7 @@ export function EditInstallmentDialog({
       <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>
 
       {changed && !same && (
-        <fieldset className="flex flex-col gap-2 rounded-none border border-border p-3">
+        <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <legend className="px-1 text-xs font-medium text-foreground">{tt("loan_edit_mode_title")}</legend>
           {(["extend", "spread"] as const).map((m) => (
             <label key={m} className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
@@ -140,7 +140,7 @@ export function EditInstallmentDialog({
       )}
 
       {changed && shown.length > 0 && (
-        <div className="rounded-none border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           <p className="mb-1 font-medium text-foreground">{tt("loan_edit_preview")}</p>
           <ul className="flex flex-col gap-0.5">
             {shown.map((i, idx) => (

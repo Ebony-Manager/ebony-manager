@@ -379,7 +379,7 @@ export function LoanDialog({
       </Field>
 
       {canCharge && (
-        <div className="flex flex-col gap-3 rounded-none border border-border p-3">
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={interestOn} onChange={(e) => setInterestOn(e.target.checked)} />
             {tt("loan_interest_charge")}
@@ -439,7 +439,7 @@ export function LoanDialog({
       )}
 
       {isVariable && (
-        <div className="flex flex-col gap-2 rounded-none border border-border p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium text-foreground">{tt("loan_variable_title")}</p>
             <Button
@@ -493,7 +493,7 @@ export function LoanDialog({
       )}
 
       {amountCents > 0 && schedule.length > 0 && payoff && (
-        <div className="rounded-none border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           {isAdelanto ? (
             <p>
               {tt("loan_preview_adelanto")}{" "}

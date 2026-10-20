@@ -223,7 +223,7 @@ export function EmployeeProfileView({
         </div>
 
         {/* Datos del empleado — la "ficha" con todo lo que se sabe de la persona. */}
-        <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">{tt("pd_title")}</h2>
             <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
@@ -278,13 +278,13 @@ export function EmployeeProfileView({
         </section>
 
         {employee.notes && (
-          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
             {employee.notes}
           </div>
         )}
 
         {employee.liquidationNotes && (
-          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{tt("liq_notes_title")}: </span>
             <span className="whitespace-pre-wrap">{employee.liquidationNotes}</span>
           </div>

@@ -10,9 +10,9 @@ import { EbonyLogo } from "@/components/brand/ebony-logo";
 import { RAIL_ITEMS, ADMIN_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
-const railButton = "w-11 h-11 flex items-center justify-center rounded-[11px] transition-colors duration-100";
-const railActive = "bg-white/20 text-white";
-const railIdle = "text-white/80 hover:bg-white/10 hover:text-white";
+const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
+const railActive = "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm";
+const railIdle = "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
@@ -59,16 +59,16 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Barra nogal — íconos grandes y blancos, estilo ClickUp. */}
-        <aside className="relative w-[68px] h-full flex flex-col items-center shrink-0 bg-walnut py-4">
+        {/* Rail de íconos — colores de barra lateral del tema (--sidebar-*). */}
+        <aside className="relative w-[68px] h-full flex flex-col items-center shrink-0 bg-sidebar border-r border-sidebar-border py-4">
           <button
             onClick={onClose}
-            className="md:hidden absolute top-1.5 right-1.5 text-white/60 hover:text-white"
+            className="md:hidden absolute top-1.5 right-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground"
           >
             <X size={14} />
           </button>
 
-          <div className="w-9 h-9 rounded-[10px] bg-white/16 flex items-center justify-center mb-[22px] shrink-0">
+          <div className="w-9 h-9 rounded-md bg-sidebar-primary flex items-center justify-center mb-[22px] shrink-0">
             <EbonyLogo variant="isotipo" tone="white" height={20} />
           </div>
 
@@ -102,11 +102,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         {/* Panel crema del ícono activo (Administración o Settings) — solo
             dentro de sus rutas, y solo con los ítems que el usuario puede abrir. */}
         {openPanel && (
-          <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
+          <aside className="w-56 h-full flex flex-col shrink-0 bg-sidebar border-r border-sidebar-border">
             <div className="px-5 pt-[22px] pb-4">
-              <h2 className="text-[15px] font-bold text-ink-900">{t(lang, openPanel.title)}</h2>
+              <h2 className="text-[15px] font-bold text-sidebar-foreground">{t(lang, openPanel.title)}</h2>
             </div>
-            <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
+            <div className="h-px bg-sidebar-border mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
               {openPanel.items.map((item) => {
@@ -118,12 +118,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     href={href}
                     onClick={onClose}
                     className={`
-                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
+                      flex items-center gap-[11px] rounded-md px-3 py-[9px] text-[13.5px]
                       transition-colors duration-100
                       ${
                         isActive
-                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
-                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
+                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                          : "font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                       }
                     `}
                   >

@@ -100,26 +100,26 @@ export function EmployeeStatementSection({
   const td = "px-3 py-1.5 text-right tabular-nums";
 
   return (
-    <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">{tt("st_title")}</h2>
           <p className="text-xs text-muted-foreground">{tt("st_subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-none border border-border p-0.5 text-xs">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-xs">
             {(["month", "quincena"] as const).map((g) => (
               <button
                 key={g}
                 type="button"
                 onClick={() => setGranularity(g)}
-                className={`rounded-none px-2.5 py-1 font-medium transition-colors ${granularity === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-lg px-2.5 py-1 font-medium transition-colors ${granularity === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {g === "month" ? tt("st_view_month") : tt("st_view_quincena")}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 rounded-none border border-border px-1">
+          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => setYear((y) => y - 1)}>
               <ChevronLeft className="size-4" />
             </Button>
@@ -141,7 +141,7 @@ export function EmployeeStatementSection({
               type="button"
               aria-pressed={on}
               onClick={() => setShown((s) => ({ ...s, [c.key]: !s[c.key] }))}
-              className={`flex items-center gap-1.5 rounded-none border px-2.5 py-1 text-xs font-medium transition-colors ${on ? "border-border bg-muted/40 text-foreground" : "border-dashed border-border text-muted-foreground line-through"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${on ? "border-border bg-muted/40 text-foreground" : "border-dashed border-border text-muted-foreground line-through"}`}
             >
               <span className="size-2 rounded-full" style={{ backgroundColor: PAYROLL_CATEGORY[c.category].color }} />
               {tt(c.label)}
