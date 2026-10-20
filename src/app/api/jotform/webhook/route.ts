@@ -155,8 +155,14 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     console.warn("JotForm webhook: formulario no reconocido; campos recibidos:", Object.keys(body).join(", "));
     return Response.json({ ok: true, ignored: true });
   }
+  // El botón TEST de JotForm manda los campos vacíos: se contesta 200 para
+  // que deje guardar el paso, sin guardar nada.
+  if (!submissionId) {
+    console.warn("JotForm webhook: llamada sin datos (¿prueba?); campos recibidos:", Object.keys(body).join(", "));
+    return Response.json({ ok: true, ignored: "no data" });
+  }
   if (!/^(\d+|wf-\d+)$/.test(submissionId)) {
-    console.error("JotForm webhook: sin submissionID; campos recibidos:", Object.keys(body).join(", "));
+    console.error("JotForm webhook: submissionID inválido; campos recibidos:", Object.keys(body).join(", "));
     return Response.json({ ok: false, error: "bad submissionID" }, { status: 400 });
   }
 
@@ -172,6 +178,12 @@ async function handle(request: NextRequest, body: Record<string, string>) {
   if (!answers) {
     console.error("JotForm webhook: sin datos del envío (falta JOTFORM_API_KEY o los parámetros); campos:", Object.keys(body).join(", "));
     return Response.json({ ok: false, error: "no submission data" }, { status: 400 });
+  }
+  // Una solicitud sin monto no es real (la prueba puede mandar los campos
+  // con texto de ejemplo): no se guarda.
+  if (formId === MONEY_FORM_ID && normalizeMoneyRequest(answers).amountCents === null) {
+    console.warn("JotForm webhook: solicitud de dinero sin monto válido (¿prueba?); campos:", Object.keys(body).join(", "));
+    return Response.json({ ok: true, ignored: "no amount" });
   }
 
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
