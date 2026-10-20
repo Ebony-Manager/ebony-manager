@@ -55,8 +55,17 @@ export function answersFromWorkflowParams(params: Record<string, string>): Answe
   const get = (k: string) => params[k]?.trim() ?? "";
   if (!get("nombre") && !get("correo") && !get("monto")) return null;
   const f = MONEY_FORM_FIELDS;
+  // El campo Nombre completo puede llegar como {"first":..,"last":..}.
+  let name: unknown = { first: get("nombre"), last: get("apellido") };
+  if (get("nombre").startsWith("{")) {
+    try {
+      name = JSON.parse(get("nombre"));
+    } catch {
+      /* se queda como texto */
+    }
+  }
   return {
-    [f.name]: { first: get("nombre"), last: get("apellido") },
+    [f.name]: name,
     [f.email]: get("correo"),
     [f.type]: get("tipo"),
     [f.amount]: get("monto"),

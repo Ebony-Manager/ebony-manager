@@ -65,19 +65,30 @@ function queryParams(request: NextRequest): Record<string, string> {
   return out;
 }
 
+/** Un objeto JSON plano → valores en texto (los anidados quedan como JSON). */
+function flatten(json: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(json).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]));
+}
+
+/**
+ * El cuerpo del POST, venga como venga: JSON, formulario (multipart o
+ * urlencoded) o texto plano con JSON o `a=1&b=2` adentro (el "Body" del paso
+ * Webhook del workflow de JotForm).
+ */
 async function readBody(request: NextRequest): Promise<Record<string, string>> {
   const type = request.headers.get("content-type") ?? "";
-  if (!type) return {};
-  if (type.includes("application/json")) {
-    const json = (await request.json()) as Record<string, unknown>;
-    return Object.fromEntries(Object.entries(json).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]));
+  if (type.includes("multipart/form-data") || type.includes("application/x-www-form-urlencoded")) {
+    const form = await request.formData();
+    const out: Record<string, string> = {};
+    form.forEach((value, key) => {
+      if (typeof value === "string") out[key] = value;
+    });
+    return out;
   }
-  const form = await request.formData();
-  const out: Record<string, string> = {};
-  form.forEach((value, key) => {
-    if (typeof value === "string") out[key] = value;
-  });
-  return out;
+  const text = (await request.text()).trim();
+  if (!text) return {};
+  if (text.startsWith("{")) return flatten(JSON.parse(text) as Record<string, unknown>);
+  return Object.fromEntries(new URLSearchParams(text));
 }
 
 /** El webhook del formulario y el del workflow no nombran igual los campos. */
