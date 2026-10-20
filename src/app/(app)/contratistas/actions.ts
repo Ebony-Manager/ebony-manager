@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
+import { STAFF_PATH } from "@/lib/personal/paths";
 import * as contractors from "@/services/contractors";
 
 // Contratistas es para quien tiene el módulo `contratistas` (el admin
@@ -12,18 +13,18 @@ import * as contractors from "@/services/contractors";
 
 const PATH = "/contratistas";
 
-// La ficha del contratista vive en `/contratistas/[id]` (ruta dinámica):
-// un movimiento del estado de cuenta afecta tanto al directorio como a
-// esa ficha, así que se revalidan las dos.
+// La lista y la ficha del contratista viven en Personal → Staff
+// (`/personal/staff/contratistas/[id]`): un cambio afecta al Dashboard de
+// Contratistas, a la lista de Staff y a la ficha, así que se revalidan todos.
 function revalidateContractors() {
   revalidatePath(PATH);
-  revalidatePath(`${PATH}/[id]`, "page");
+  revalidatePath(STAFF_PATH, "layout");
 }
 
 export async function createContractorAction(input: contractors.CreateContractorInput) {
   await requireModule("contratistas");
   const contractor = await contractors.createContractor(input);
-  revalidatePath(PATH);
+  revalidateContractors();
   return contractor;
 }
 

@@ -34,9 +34,14 @@ const contractor = (over: Partial<Contractor>): Contractor => ({
 });
 
 describe("employeeToMember / contractorToMember", () => {
-  it("lleva a la ficha de su sección", () => {
-    expect(employeeToMember(employee({})).href).toBe("/planilla/e1");
-    expect(contractorToMember(contractor({})).href).toBe("/contratistas/c1");
+  it("lleva a la ficha dentro de Staff", () => {
+    expect(employeeToMember(employee({})).href).toBe("/personal/staff/empleados/e1");
+    expect(contractorToMember(contractor({})).href).toBe("/personal/staff/contratistas/c1");
+  });
+
+  it("lleva el saldo solo en contratistas", () => {
+    expect(employeeToMember(employee({})).balanceCents).toBeNull();
+    expect(contractorToMember({ ...contractor({}), balanceCents: -500 }).balanceCents).toBe(-500);
   });
 
   it("marca inactivos y conserva grupo y puesto", () => {

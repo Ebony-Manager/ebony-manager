@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
+import { STAFF_PATH } from "@/lib/personal/paths";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
@@ -16,25 +17,24 @@ import type { LedgerCategory, LedgerDirection, LoanCategory, LoanPaymentMethod }
 
 const PATH = "/planilla";
 
+// Los empleados se listan y se editan en Personal → Staff (la lista y la
+// ficha `/personal/staff/empleados/[id]`): se revalida Planilla y todo Staff.
+function revalidatePlanilla() {
+  revalidatePath(PATH);
+  revalidatePath(STAFF_PATH, "layout");
+}
+
 export async function createEmployeeAction(input: employees.CreatePayrollEmployeeInput) {
   await requireModule("planilla");
   const employee = await employees.createPayrollEmployee(input);
-  revalidatePath(PATH);
+  revalidatePlanilla();
   return employee;
 }
 
 export async function updateEmployeeAction(id: string, input: employees.UpdatePayrollEmployeeInput) {
   await requireModule("planilla");
   await employees.updatePayrollEmployee(id, input);
-  revalidatePath(PATH);
-}
-
-/** Marca a varios empleados como que ya no laboran (o los reactiva). */
-export async function setEmployeesStatusAction(ids: string[], status: "ACTIVE" | "INACTIVE") {
-  await requireModule("planilla");
-  const count = await employees.setPayrollEmployeesStatus(ids, status);
-  revalidatePath(PATH);
-  return count;
+  revalidatePlanilla();
 }
 
 export async function getRegistroAction(year: number, month: number, half: 1 | 2) {
@@ -295,7 +295,7 @@ export async function registerSalaryChangeAction(input: {
 }) {
   await requireModule("planilla");
   const change = await salary.registerSalaryChange(input);
-  revalidatePath(PATH);
+  revalidatePlanilla();
   return change;
 }
 
@@ -309,14 +309,14 @@ export async function getPayrollPositionsAction() {
 export async function createPayrollPositionAction(name: string) {
   await requireModule("planilla");
   const position = await positions.createPayrollPosition(name);
-  revalidatePath(PATH);
+  revalidatePlanilla();
   return position;
 }
 
 export async function updatePayrollPositionAction(id: string, input: { name?: string; active?: boolean }) {
   await requireModule("planilla");
   await positions.updatePayrollPosition(id, input);
-  revalidatePath(PATH);
+  revalidatePlanilla();
 }
 
 // ── Borrar empleado (irreversible; la UI confirma antes) ──────────────
@@ -324,5 +324,5 @@ export async function updatePayrollPositionAction(id: string, input: { name?: st
 export async function deleteEmployeeAction(id: string) {
   await requireModule("planilla");
   await employees.deletePayrollEmployee(id);
-  revalidatePath(PATH);
+  revalidatePlanilla();
 }

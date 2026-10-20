@@ -2,23 +2,19 @@
 
 import * as React from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
 
-import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
+import type { PayrollEmployee } from "@/types/planilla";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { breadcrumbFor } from "@/components/layout/nav-items";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { RegistroView } from "./registro-view";
-import { EmpleadosView } from "./empleados-view";
 import { DashboardView } from "./dashboard-view";
 import { AuditoriaView } from "./auditoria-view";
 import { LoansOverviewView } from "./loans-overview-view";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
 import { EmployeePhotosProvider } from "./employee-photos-context";
-import { EmployeeFormDialog } from "./employee-form-dialog";
 import {
   type CategoriaFilter,
   defaultVisibleColumns,
@@ -29,11 +25,11 @@ import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/plan
 
 /**
  * Chrome del módulo Planilla (Fase 2 completa, mockup Opción C): Dashboard,
- * Registro, Auditoría y Empleados, + el sheet de Detalle (abierto
- * desde Registro) y "Agregar empleado". La vieja pestaña "Resumen Anual" se
- * retiró (Taller · Tanda 1): su función la reemplaza el Historial dentro
- * del perfil de cada empleado (`/planilla/[id]`), que también es donde
- * "Empleados" navega ahora en vez de abrir un sheet. "Panorama" (Tanda 3)
+ * Registro, Auditoría y Préstamos, + el sheet de Detalle (abierto desde
+ * Registro). La lista de empleados, "Agregar" y la ficha de cada uno viven
+ * en Personal → Staff (`/personal/staff/empleados/[id]`). La vieja pestaña
+ * "Resumen Anual" se retiró (Taller · Tanda 1): su función la reemplaza el
+ * Historial dentro de la ficha de cada empleado. "Panorama" (Tanda 3)
  * es la misma idea en lenguaje simple, sin jerga — Dashboard sigue siendo
  * el panel financiero, sin tocar.
  *
@@ -48,18 +44,16 @@ import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/plan
  *
  * El filtro de tipo de empleado (Taller/Administrativo/Todos) es POR
  * PANTALLA: Registro y Auditoría cada una el suyo (porque cada una lo
- * guarda en su vista); Empleados/Dashboard/Panorama comparten un tercero.
+ * guarda en su vista); Dashboard/Préstamos comparten un tercero.
  * El selector del encabezado muestra y cambia el de la pestaña activa.
  * Registro filtra `employees` antes de recibirlos; Auditoría filtra sus
  * filas con el tipo de cada empleado.
  */
 export function PlanillaClient({
   employees,
-  positions,
   photoUrls,
 }: {
   employees: PayrollEmployee[];
-  positions: PayrollPosition[];
   photoUrls: Record<string, string>;
 }) {
   const { lang } = useLang();
@@ -67,12 +61,11 @@ export function PlanillaClient({
   const pathname = usePathname();
   const crumbs = breadcrumbFor(pathname, lang);
 
-  const [addOpen, setAddOpen] = React.useState(false);
-  // La pestaña vive en la URL (`?tab=empleados`): así, al entrar al perfil de
+  // La pestaña vive en la URL (`?tab=registro`): así, al entrar al perfil de
   // un empleado y volver (con el botón "Volver" o el de atrás del navegador),
   // se regresa a la MISMA pestaña en vez de caer siempre en Registro.
   const searchParams = useSearchParams();
-  const TAB_VALUES = ["dashboard", "registro", "auditoria", "prestamos", "empleados"];
+  const TAB_VALUES = ["dashboard", "registro", "auditoria", "prestamos"];
   const [tab, setTabState] = React.useState(() => {
     const fromUrl = searchParams?.get("tab");
     return fromUrl && TAB_VALUES.includes(fromUrl) ? fromUrl : "registro";
@@ -131,7 +124,6 @@ export function PlanillaClient({
     { value: "registro", label: tt("tab_registro") },
     { value: "auditoria", label: tt("tab_auditoria") },
     { value: "prestamos", label: tt("tab_loans_overview") },
-    { value: "empleados", label: tt("tab_empleados") },
   ];
 
   return (
@@ -196,14 +188,6 @@ export function PlanillaClient({
               );
             })}
           </div>
-          <Button
-            size="sm"
-            onClick={() => setAddOpen(true)}
-            className="rounded-md bg-primary px-4 py-[9px] text-[13px] font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="size-[15px]" />
-            {tt("add_employee")}
-          </Button>
         </div>
       </div>
 
@@ -243,9 +227,6 @@ export function PlanillaClient({
             }}
           />
         </TabsContent>
-        <TabsContent value="empleados" className="pt-0">
-          <EmpleadosView employees={otherEmployees} />
-        </TabsContent>
       </Tabs>
 
       <EmployeeDetailSheet
@@ -256,8 +237,6 @@ export function PlanillaClient({
         onOpenChange={(open) => !open && setDetailEmployeeId(null)}
         onChanged={() => setRegistroReload((n) => n + 1)}
       />
-
-      <EmployeeFormDialog mode="add" positions={positions} open={addOpen} onOpenChange={setAddOpen} />
     </div>
     </EmployeePhotosProvider>
   );

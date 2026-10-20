@@ -1,7 +1,6 @@
 import { requireModule } from "@/lib/auth/dal";
 import {
   getContractorsDashboardInput,
-  getContractorsWithBalance,
   getLaborRates,
   getProjects,
 } from "@/services/contractors";
@@ -15,14 +14,13 @@ export const dynamic = "force-dynamic";
 
 export default async function ContratistasPage() {
   await requireModule("contratistas");
-  const [contractors, projects, laborRates, dashboard] = await Promise.all([
-    getContractorsWithBalance(),
+  const [projects, laborRates, dashboard] = await Promise.all([
     getProjects(),
     getLaborRates(),
     getContractorsDashboardInput(),
   ]);
 
   return (
-    <ContratistasClient contractors={contractors} projects={projects} laborRates={laborRates} dashboard={dashboard} />
+    <ContratistasClient projects={projects} laborRates={laborRates} dashboard={dashboard} />
   );
 }

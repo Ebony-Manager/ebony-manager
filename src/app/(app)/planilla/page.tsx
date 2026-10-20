@@ -1,6 +1,5 @@
 import { requireModule } from "@/lib/auth/dal";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getPayrollPositions } from "@/services/payroll-positions";
 import { PlanillaClient } from "./planilla-client";
 
 // Planilla requiere el módulo `planilla`. `requireModule()` rebota a quien
@@ -11,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 export default async function PlanillaPage() {
   await requireModule("planilla");
-  const [employees, positions] = await Promise.all([getPayrollEmployees(), getPayrollPositions()]);
+  const employees = await getPayrollEmployees();
 
   const photoUrls = await getEmployeePhotoUrls(employees);
 
-  return <PlanillaClient employees={employees} positions={positions} photoUrls={photoUrls} />;
+  return <PlanillaClient employees={employees} photoUrls={photoUrls} />;
 }

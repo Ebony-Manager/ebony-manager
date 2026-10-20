@@ -17,6 +17,7 @@ import { LoansPanel } from "./loans-panel";
 import { OtherMovementsPanel } from "./other-movements-panel";
 import { IndrivePanel } from "./indrive-panel";
 import type { LedgerPeriodOption } from "./ledger-entry-dialog";
+import { employeeProfilePath } from "@/lib/personal/paths";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
 
@@ -237,7 +238,7 @@ export function EmployeeDetailSheet({
           </SheetDescription>
           {employee && (
             <Link
-              href={`/planilla/${employee.id}?from=registro`}
+              href={employeeProfilePath(employee.id, "registro")}
               className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
             >
               <ExternalLink className="size-3.5" />

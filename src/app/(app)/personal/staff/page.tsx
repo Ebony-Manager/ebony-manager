@@ -2,13 +2,15 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { contractorToMember, employeeToMember, sortTeam } from "@/lib/personal/team";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getContractorPhotoUrls, getContractors } from "@/services/contractors";
+import { getContractorPhotoUrls, getContractorsWithBalance } from "@/services/contractors";
+import { getPayrollPositions } from "@/services/payroll-positions";
 import { StaffClient } from "./staff-client";
 
-// Personal → Staff: empleados + contratistas en una sola lista. Alcanza con
-// uno de los dos módulos, y cada quien ve solo los de su(s) módulo(s) — la RLS
-// de cada tabla repite la regla. Es solo lectura: cada fila lleva a la ficha
-// donde se edita. `force-dynamic` porque los datos cambian por acción del usuario.
+// Personal → Staff: empleados + contratistas en una sola lista, el lugar
+// donde se agregan y desde donde se abre la ficha de cada uno. Alcanza con
+// uno de los dos módulos, y cada quien ve (y agrega) solo los de su(s)
+// módulo(s) — la RLS de cada tabla repite la regla. `force-dynamic` porque los
+// datos cambian por acción del usuario.
 export const dynamic = "force-dynamic";
 
 export default async function StaffPage() {
@@ -16,9 +18,10 @@ export default async function StaffPage() {
   const canEmployees = hasModule(profile, "planilla");
   const canContractors = hasModule(profile, "contratistas");
 
-  const [employees, contractors] = await Promise.all([
+  const [employees, contractors, positions] = await Promise.all([
     canEmployees ? getPayrollEmployees() : Promise.resolve([]),
-    canContractors ? getContractors() : Promise.resolve([]),
+    canContractors ? getContractorsWithBalance() : Promise.resolve([]),
+    canEmployees ? getPayrollPositions() : Promise.resolve([]),
   ]);
   const [photoUrls, contractorPhotoUrls] = await Promise.all([
     canEmployees ? getEmployeePhotoUrls(employees) : Promise.resolve({}),
@@ -29,9 +32,12 @@ export default async function StaffPage() {
   return (
     <StaffClient
       members={members}
+      employees={employees}
+      positions={positions}
       photoUrls={photoUrls}
       contractorPhotoUrls={contractorPhotoUrls}
-      showKindFilter={canEmployees && canContractors}
+      canEmployees={canEmployees}
+      canContractors={canContractors}
     />
   );
 }

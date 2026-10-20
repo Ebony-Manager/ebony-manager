@@ -1,11 +1,12 @@
 import type { PayrollEmployee } from "@/types/planilla";
 import type { Contractor } from "@/types/contractors";
 import { matchesEmployeeQuery } from "@/lib/planilla/employee-search";
+import { contractorProfilePath, employeeProfilePath } from "./paths";
 
 /**
- * Staff: empleados de planilla y contratistas en una sola lista. Es solo
- * una vista — cada persona se sigue editando en su ficha (Planilla o
- * Contratistas), a la que enlaza `href`. Puro, sin Supabase ni React.
+ * Staff: empleados de planilla y contratistas en una sola lista. Cada
+ * persona se edita en su ficha (dentro de Staff), a la que enlaza `href`.
+ * Puro, sin Supabase ni React.
  */
 
 export type TeamMemberKind = "employee" | "contractor";
@@ -23,6 +24,8 @@ export interface TeamMember {
   phone: string | null;
   startDate: string | null;
   active: boolean;
+  /** Saldo del contratista con Ebony (positivo = Ebony le debe); null en empleados. */
+  balanceCents: number | null;
   /** Ficha de la persona, donde se edita. */
   href: string;
   /** Orden propio de su sección — el color del avatar de un empleado sale de acá. */
@@ -41,12 +44,13 @@ export function employeeToMember(e: PayrollEmployee): TeamMember {
     phone: e.phone,
     startDate: e.startDate,
     active: e.status === "ACTIVE",
-    href: `/planilla/${e.id}`,
+    balanceCents: null,
+    href: employeeProfilePath(e.id),
     sortOrder: e.sortOrder,
   };
 }
 
-export function contractorToMember(c: Contractor): TeamMember {
+export function contractorToMember(c: Contractor & { balanceCents?: number }): TeamMember {
   return {
     kind: "contractor",
     id: c.id,
@@ -56,7 +60,8 @@ export function contractorToMember(c: Contractor): TeamMember {
     phone: c.phone,
     startDate: c.startDate,
     active: c.status === "ACTIVE",
-    href: `/contratistas/${c.id}`,
+    balanceCents: c.balanceCents ?? null,
+    href: contractorProfilePath(c.id),
     sortOrder: c.sortOrder,
   };
 }

@@ -79,7 +79,7 @@ export interface ContractorHelper {
   notes: string | null;
 }
 
-/** Contratista + su saldo actual calculado (para el directorio). */
+/** Contratista + su saldo actual calculado (para la lista de Staff). */
 export interface ContractorWithBalance extends Contractor {
   balanceCents: number;
 }

@@ -56,8 +56,8 @@ export const strings = {
   staff: {
     title: { es: "Staff", en: "Staff" },
     subtitle: {
-      es: "Todas las personas que trabajan con Ebony: empleados de planilla y contratistas. Toca a alguien para abrir su ficha.",
-      en: "Everyone who works with Ebony: payroll employees and contractors. Tap someone to open their profile.",
+      es: "Todas las personas que trabajan con Ebony: empleados de planilla y contratistas. Toca a alguien para abrir su ficha, o agrega a alguien nuevo.",
+      en: "Everyone who works with Ebony: payroll employees and contractors. Tap someone to open their profile, or add someone new.",
     },
     search: { es: "Buscar por nombre…", en: "Search by name…" },
     filter_all: { es: "Todos", en: "All" },
@@ -71,12 +71,19 @@ export const strings = {
     group_pintor: { es: "Pintor", en: "Painter" },
     col_person: { es: "Persona", en: "Person" },
     col_type: { es: "Tipo", en: "Type" },
-    col_position: { es: "Puesto", en: "Position" },
+    col_position: { es: "Puesto · saldo", en: "Position · balance" },
     col_since: { es: "Desde", en: "Since" },
     active_count: { es: "activos", en: "active" },
     inactive_section: { es: "Ya no laboran", en: "No longer working" },
     empty: { es: "Todavía no hay nadie registrado.", en: "No one registered yet." },
     no_results: { es: "Nadie coincide con la búsqueda.", en: "No one matches the search." },
+    add: { es: "Agregar", en: "Add" },
+    add_employee: { es: "Empleado de planilla", en: "Payroll employee" },
+    add_contractor: { es: "Contratista", en: "Contractor" },
+    view_list: { es: "Lista", en: "List" },
+    view_table: { es: "Tabla de empleados", en: "Employee table" },
+    balance_ebony_owes: { es: "Ebony le debe", en: "Ebony owes" },
+    balance_owes_ebony: { es: "Le debe a Ebony", en: "Owes Ebony" },
   },
 
   // Personal → Resumen (Planilla + Contratistas juntos).
@@ -128,7 +135,6 @@ export const strings = {
     title: { es: "Planilla", en: "Payroll" },
     subtitle: { es: "Empleados asalariados por quincena", en: "Salaried employees, paid biweekly" },
     tab_registro: { es: "Registro", en: "Register" },
-    tab_empleados: { es: "Empleados", en: "Employees" },
     add_employee: { es: "Agregar empleado", en: "Add employee" },
 
     dlg_add_title: { es: "Agregar empleado", en: "Add employee" },
@@ -186,16 +192,10 @@ export const strings = {
       en: "Search by name, position, phone, ID…",
     },
     no_position: { es: "Sin posición", en: "No position" },
-    no_phone: { es: "Sin teléfono", en: "No phone" },
     no_id: { es: "Sin cédula/pasaporte", en: "No ID / passport" },
     inactive: { es: "Inactivo", en: "Inactive" },
-    no_longer_work: { es: "Ya no laboran", en: "No longer employed" },
     no_results: { es: "Sin resultados", en: "No results" },
     no_results_desc: { es: "Nada coincide con esa búsqueda.", en: "Nothing matches that search." },
-    empty_employees: {
-      es: "Agrega al menos un empleado para empezar.",
-      en: "Add at least one employee to get started.",
-    },
     profile_fallback: { es: "Perfil del empleado", en: "Employee profile" },
     documents_deferred: {
       es: "La sección de documentos llega en una entrega posterior.",
@@ -279,25 +279,6 @@ export const strings = {
     dash_tip_empty: { es: "Sin movimientos registrados.", en: "No activity recorded." },
     dash_loans_year_title: { es: "A quién más se le ha prestado este año", en: "Who has been lent the most this year" },
     dash_loans_year_none: { es: "No se ha prestado nada este año.", en: "Nothing has been lent this year." },
-    sel_start: { es: "Seleccionar", en: "Select" },
-    sel_cancel: { es: "Cancelar selección", en: "Cancel selection" },
-    sel_count: { es: "seleccionados", en: "selected" },
-    sel_visible: { es: "Seleccionar todos los que se ven", en: "Select all shown" },
-    sel_clear: { es: "Quitar selección", en: "Clear selection" },
-    sel_mark_inactive: { es: "Ya no laboran", en: "No longer working" },
-    sel_mark_active: { es: "Reactivar", en: "Reactivate" },
-    sel_confirm_inactive_title: { es: "Marcar como que ya no laboran", en: "Mark as no longer working" },
-    sel_confirm_active_title: { es: "Reactivar empleados", en: "Reactivate employees" },
-    sel_confirm_inactive_desc: {
-      es: "Pasarán a la sección de empleados que ya no laboran y dejarán de aparecer en Registro. Su historial se conserva y puedes reactivarlos cuando quieras.",
-      en: "They will move to the former employees section and stop appearing in Registro. Their history is kept and you can reactivate them anytime.",
-    },
-    sel_confirm_active_desc: {
-      es: "Volverán a aparecer en Registro como empleados activos.",
-      en: "They will appear again in Registro as active employees.",
-    },
-    sel_done_inactive: { es: "empleados marcados como que ya no laboran.", en: "employees marked as no longer working." },
-    sel_done_active: { es: "empleados reactivados.", en: "employees reactivated." },
     ach_button: { es: "Exportar al banco", en: "Export to bank" },
     ach_title: { es: "Archivo para la banca en línea", en: "Online banking file" },
     ach_desc: { es: "Pago de planilla por transferencia (formato TR_ACH, Excel .xls)", en: "Payroll transfer payment (TR_ACH format, Excel .xls)" },
@@ -340,8 +321,6 @@ export const strings = {
     pdf_count: { es: "Empleados", en: "Employees" },
     pdf_yes: { es: "Sí", en: "Yes" },
     pdf_page: { es: "Página", en: "Page" },
-    roster_view_cards: { es: "Tarjetas", en: "Cards" },
-    roster_view_table: { es: "Tabla", en: "Table" },
     roster_title: { es: "Lista de empleados", en: "Employee list" },
     roster_include_inactive: { es: "Incluir los que ya no laboran", en: "Include former employees" },
     roster_show_bank: { es: "Datos bancarios", en: "Bank details" },
@@ -353,8 +332,6 @@ export const strings = {
       en: "Includes ID numbers and bank accounts: be careful who you hand it to.",
     },
     more_actions: { es: "Más acciones", en: "More actions" },
-    former_show: { es: "mostrar", en: "show" },
-    former_hide: { es: "esconder", en: "hide" },
     save_failed: { es: "No se pudo guardar el cambio. Se restauró lo guardado.", en: "Could not save the change. Saved data was restored." },
     ls_total_given: { es: "Total otorgado", en: "Total lent" },
     ls_total_paid: { es: "Total descontado", en: "Total repaid" },
@@ -1036,7 +1013,6 @@ export const strings = {
 
     // Perfil del empleado a pantalla completa (Taller · Tanda 1).
     settings_menu: { es: "Ajustes del empleado", en: "Employee settings" },
-    back_to_employees: { es: "Volver a Empleados", en: "Back to Employees" },
     details_title: { es: "Datos personales", en: "Personal details" },
 
     // Cuenta bancaria — base para el export a Banco General (Tanda 5).
@@ -1171,7 +1147,6 @@ export const strings = {
     loading: { es: "Cargando…", en: "Loading…" },
 
     search_ph: { es: "Buscar por nombre, cédula, teléfono…", en: "Search by name, ID, phone…" },
-    no_phone: { es: "Sin teléfono", en: "No phone" },
     no_id: { es: "Sin cédula/pasaporte", en: "No ID / passport" },
     no_results: { es: "Sin resultados", en: "No results" },
     no_results_desc: { es: "Nada coincide con esa búsqueda.", en: "Nothing matches that search." },
@@ -1180,7 +1155,6 @@ export const strings = {
       en: "Add at least one contractor to get started.",
     },
     profile_fallback: { es: "Ficha del contratista", en: "Contractor profile" },
-    back_to_directory: { es: "Volver al directorio", en: "Back to directory" },
     not_found: { es: "Contratista no encontrado", en: "Contractor not found" },
     not_found_desc: {
       es: "Este contratista no existe o fue eliminado.",
@@ -1370,14 +1344,10 @@ export const strings = {
     cd_cost_note: { es: "Solo quienes tienen m² registrados.", en: "Only contractors with m² recorded." },
     cd_type_ebanista: { es: "Ebanista", en: "Carpenter" },
     cd_type_pintor: { es: "Pintor", en: "Painter" },
-    tab_directory: { es: "Contratistas", en: "Contractors" },
     tab_projects: { es: "Proyectos", en: "Projects" },
     tab_rates: { es: "Tarifas", en: "Rates" },
 
     // Directorio — contratistas inactivos.
-    no_longer_work: { es: "Ya no laboran", en: "No longer active" },
-    former_show: { es: "Mostrar", en: "Show" },
-    former_hide: { es: "Ocultar", en: "Hide" },
     inactive_badge: { es: "Inactivo", en: "Inactive" },
 
     // Proyectos (ficha simple).
@@ -1874,6 +1844,7 @@ export const strings = {
 
   common: {
     loading: { es: "Cargando…", en: "Loading…" },
+    back: { es: "Volver", en: "Back" },
     // Foto de perfil (empleados y contratistas): se toca el avatar.
     photo_add: { es: "Agregar foto", en: "Add photo" },
     photo_change: { es: "Cambiar foto", en: "Change photo" },

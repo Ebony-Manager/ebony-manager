@@ -33,6 +33,7 @@ import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
 import { countryName } from "@/lib/countries";
+import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import { LiquidationDialog } from "./liquidation-dialog";
 import { DeleteEmployeeDialog } from "./delete-employee-dialog";
@@ -60,7 +61,7 @@ function DataItem({
 
 /**
  * Perfil del empleado a pantalla completa (Taller · Tanda 1) — mismo
- * patrón visual que `/contratistas/[id]`: volver + engranaje arriba,
+ * patrón visual que la ficha del contratista: volver + engranaje arriba,
  * tarjeta de encabezado, secciones apiladas debajo. Reemplaza al viejo
  * `EmployeeProfileSheet` como destino de "Empleados"; `EmployeeDetailSheet`
  * (con el ledger de préstamos, editable) sigue existiendo aparte, sin
@@ -76,7 +77,7 @@ export function EmployeeProfileView({
   positions,
   photoUrl: initialPhotoUrl,
   initial,
-  from = "empleados",
+  from,
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
@@ -84,8 +85,8 @@ export function EmployeeProfileView({
   /** Datos de las secciones ya cargados por el servidor (en paralelo con el
    *  empleado), para que la página abra con todo en vez de pedirlo por
    *  separado y en fila después de pintarse. */
-  /** Pestaña de Planilla desde la que se llegó (a ella regresa "Volver"). */
-  from?: "dashboard" | "registro" | "auditoria" | "empleados";
+  /** Pantalla desde la que se llegó (a ella regresa "Volver"); sin esto, a Staff. */
+  from?: EmployeeFrom;
   initial?: {
     detail: ComponentProps<typeof EmployeeStatementSection>["initialDetail"];
     ledger: PayrollLedgerEntry[];
@@ -132,9 +133,9 @@ export function EmployeeProfileView({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-              <Link href={`/planilla?tab=${from}`}>
+              <Link href={employeeBackPath(from)}>
                 <ArrowLeft className="size-3.5" />
-                {tt("back_to_employees")}
+                {t(lang, strings.common.back)}
               </Link>
             </Button>
 
@@ -337,7 +338,7 @@ export function EmployeeProfileView({
         employee={employee}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onDeleted={() => router.push(`/planilla?tab=${from}`)}
+        onDeleted={() => router.push(employeeBackPath(from))}
       />
     </EmployeePhotosProvider>
   );

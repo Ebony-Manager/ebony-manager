@@ -13,6 +13,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getAdminDashboardAction } from "./actions";
 import { ADMIN_SERIES, AdminMonthlyChart, type AdminSeriesKey } from "./admin-monthly-chart";
+import { contractorProfilePath, employeeProfilePath } from "@/lib/personal/paths";
 
 type Data = Awaited<ReturnType<typeof getAdminDashboardAction>>;
 type RankScope = "month" | "year";
@@ -214,12 +215,12 @@ export function AdminDashboardView() {
               <RankList
                 items={employees}
                 empty={tt("rank_empty")}
-                href={(x) => `/planilla/${x.id}`}
+                href={(x) => employeeProfilePath(x.id, "resumen")}
                 badge={(x) => (x.categoria === "administrativo" ? tt("ad_series_admin") : tt("ad_series_taller"))}
               />
 
               <p className="mt-5 mb-1 border-t border-border pt-4 text-xs font-medium text-muted-foreground">{tt("rank_contractors")}</p>
-              <RankList items={contractors} empty={tt("rank_empty")} href={(x) => `/contratistas/${x.id}`} />
+              <RankList items={contractors} empty={tt("rank_empty")} href={(x) => contractorProfilePath(x.id, "resumen")} />
             </div>
           </div>
         </>

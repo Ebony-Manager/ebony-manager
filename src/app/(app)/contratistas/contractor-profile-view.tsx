@@ -92,6 +92,7 @@ import { ContractorAvatar } from "./contractor-avatar";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
 import { countryName } from "@/lib/countries";
+import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
@@ -153,7 +154,7 @@ function readStoredKpisOpen(): boolean | null {
 }
 
 /**
- * Ficha del contratista A PANTALLA COMPLETA (`/contratistas/[id]`):
+ * Ficha del contratista A PANTALLA COMPLETA (`/personal/staff/contratistas/[id]`):
  * tarjeta de encabezado (nombre/tipo + saldo), KPIs colapsables y el
  * estado de cuenta. Los datos personales y las acciones de estado
  * (inactivar / liquidar / reactivar / borrar) viven en el menú del
@@ -178,12 +179,15 @@ export function ContractorProfileView({
   initialEntries,
   initialProjects,
   laborRates,
+  from,
 }: {
   contractor: Contractor;
   photoUrl: string | null;
   initialEntries: ContractorLedgerEntry[];
   initialProjects: Project[];
   laborRates: LaborRate[];
+  /** Pantalla desde la que se llegó (a ella regresa "Volver"); sin esto, a Staff. */
+  from?: ContractorFrom;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -393,9 +397,9 @@ export function ContractorProfileView({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-            <Link href="/contratistas">
+            <Link href={contractorBackPath(from)}>
               <ArrowLeft className="size-3.5" />
-              {tt("back_to_directory")}
+              {t(lang, strings.common.back)}
             </Link>
           </Button>
 
@@ -968,7 +972,7 @@ export function ContractorProfileView({
         contractor={contractor}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onDeleted={() => router.push("/contratistas")}
+        onDeleted={() => router.push(contractorBackPath(from))}
       />
     </div>
   );

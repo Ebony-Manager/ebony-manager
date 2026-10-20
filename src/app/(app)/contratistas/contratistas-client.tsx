@@ -2,33 +2,27 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
 
-import type { ContractorWithBalance, LaborRate, Project } from "@/types/contractors";
-import { Button } from "@/components/ui/button";
+import type { LaborRate, Project } from "@/types/contractors";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { breadcrumbFor } from "@/components/layout/nav-items";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { ContractorDirectory } from "./contractor-directory";
-import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProjectsView } from "./projects-view";
 import { LaborRatesView } from "./labor-rates-view";
 import { ContractorsDashboardView, type ContractorsDashboardInput } from "./contractors-dashboard-view";
 
 /**
  * Chrome del módulo Contratistas (C2): pestañas "Dashboard" (resumen de
- * todos), "Contratistas" (directorio), "Proyectos" y "Tarifas" (catálogo de mano de obra). El
- * estado de cuenta completo vive en la ficha de cada contratista
- * (`/contratistas/[id]`).
+ * todos), "Proyectos" y "Tarifas" (catálogo de mano de obra). La lista de
+ * contratistas, "Agregar" y la ficha de cada uno (con su estado de cuenta)
+ * viven en Personal → Staff (`/personal/staff/contratistas/[id]`).
  */
 export function ContratistasClient({
-  contractors,
   projects,
   laborRates,
   dashboard,
 }: {
-  contractors: ContractorWithBalance[];
   projects: Project[];
   laborRates: LaborRate[];
   dashboard: ContractorsDashboardInput;
@@ -39,11 +33,9 @@ export function ContratistasClient({
   const crumbs = breadcrumbFor(pathname, lang);
 
   const [tab, setTab] = React.useState("dashboard");
-  const [addOpen, setAddOpen] = React.useState(false);
 
   const TABS = [
     { value: "dashboard", label: tt("tab_dashboard") },
-    { value: "directory", label: tt("tab_directory") },
     { value: "projects", label: tt("tab_projects") },
     { value: "rates", label: tt("tab_rates") },
   ];
@@ -91,20 +83,11 @@ export function ContratistasClient({
           <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
           <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
         </div>
-        {tab === "directory" && (
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="size-3.5" />
-            {tt("add_contractor")}
-          </Button>
-        )}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsContent value="dashboard" className="pt-0">
           <ContractorsDashboardView input={dashboard} />
-        </TabsContent>
-        <TabsContent value="directory" className="pt-0">
-          <ContractorDirectory contractors={contractors} />
         </TabsContent>
         <TabsContent value="projects" className="pt-0">
           <ProjectsView projects={projects} />
@@ -113,8 +96,6 @@ export function ContratistasClient({
           <LaborRatesView rates={laborRates} />
         </TabsContent>
       </Tabs>
-
-      <ContractorFormDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

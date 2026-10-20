@@ -253,19 +253,6 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (error) throw new Error(error.message);
 }
 
-/** Cambia el estado (ACTIVE / INACTIVE) de VARIOS empleados de una vez —
- *  "estos ya no laboran". Solo toca `status`: `end_date` es la fecha de
- *  liquidación de prestaciones (reinicia acumulados) y no se mezcla con
- *  esto. Devuelve cuántos cambió. */
-export async function setPayrollEmployeesStatus(ids: string[], status: "ACTIVE" | "INACTIVE"): Promise<number> {
-  const unique = [...new Set(ids)];
-  if (unique.length === 0) return 0;
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("payroll_employees").update({ status }).in("id", unique).select("id");
-  if (error) throw new Error(error.message);
-  return data?.length ?? 0;
-}
-
 /** Borra por completo al empleado. Por el `on delete cascade` de las 4
  *  tablas hijas, esto elimina también sus payroll_entries,
  *  payroll_ledger_entries, payroll_loans y payroll_salary_changes.

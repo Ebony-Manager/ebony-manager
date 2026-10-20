@@ -1,0 +1,53 @@
+import { notFound } from "next/navigation";
+
+import { requireModule } from "@/lib/auth/dal";
+import { currentPeriod } from "@/lib/planilla/payroll-period";
+import { getEmployeePhotoUrls, getPayrollEmployee } from "@/services/payroll-employees";
+import { getPayrollPositions } from "@/services/payroll-positions";
+import { getSalaryChanges } from "@/services/payroll-salary";
+import { getEmployeeAnnualDetail, getLedgerEntries } from "@/services/payroll";
+import { parseEmployeeFrom } from "@/lib/personal/paths";
+import { EmployeeProfileView } from "@/app/(app)/planilla/employee-profile-view";
+
+// Ficha del empleado, dentro de Personal → Staff. Pide el módulo `planilla`,
+// igual que el resto de Planilla: `requireModule()` rebota a quien no lo tiene antes de cargar
+// nada y la RLS de `payroll_employees` es la última línea. `force-dynamic`
+// porque los datos cambian por acción del usuario y no deben cachearse.
+export const dynamic = "force-dynamic";
+
+export default async function EmployeeDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
+  await requireModule("planilla");
+  const { id } = await params;
+  const { from } = await searchParams;
+  const year = currentPeriod().year;
+
+  // Todo lo que pinta el perfil se pide EN PARALELO desde el servidor (un
+  // solo viaje de espera), en vez de que cada sección lo pida por su cuenta
+  // después de pintarse, una detrás de otra.
+  const [employee, positions, detail, ledger, salaryChanges] = await Promise.all([
+    getPayrollEmployee(id),
+    getPayrollPositions(),
+    getEmployeeAnnualDetail(id, year),
+    getLedgerEntries(id),
+    getSalaryChanges(id),
+  ]);
+  if (!employee) notFound();
+
+  const photoUrls = await getEmployeePhotoUrls([employee]);
+
+  return (
+    <EmployeeProfileView
+      employee={employee}
+      positions={positions}
+      photoUrl={photoUrls[employee.id] ?? null}
+      from={parseEmployeeFrom(from)}
+      initial={{ detail: { year, rows: detail }, ledger, salaryChanges }}
+    />
+  );
+}

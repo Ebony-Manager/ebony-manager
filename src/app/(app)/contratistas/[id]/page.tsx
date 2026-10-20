@@ -1,40 +1,10 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { requireModule } from "@/lib/auth/dal";
-import { getContractor, getContractorLedger, getLaborRates, getProjects, getContractorPhotoUrls } from "@/services/contractors";
-import { ContractorProfileView } from "../contractor-profile-view";
+import { contractorProfilePath } from "@/lib/personal/paths";
 
-// La ficha del contratista pide el módulo `contratistas`, igual que el
-// resto: `requireModule()` rebota a quien no lo tiene antes de cargar nada
-// y la RLS de las tablas es la última línea. `force-dynamic` porque el
-// estado de cuenta cambia por acción del usuario y no debe cachearse.
-export const dynamic = "force-dynamic";
-
-export default async function ContractorDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  await requireModule("contratistas");
+// La ficha del contratista se mudó a Personal → Staff. Esta ruta queda solo
+// para que los enlaces y marcadores viejos sigan funcionando.
+export default async function OldContractorProfileRedirect({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-
-  const contractor = await getContractor(id);
-  if (!contractor) notFound();
-
-  const [entries, projects, laborRates, photoUrls] = await Promise.all([
-    getContractorLedger(id),
-    getProjects(),
-    getLaborRates(),
-    getContractorPhotoUrls([contractor]),
-  ]);
-
-  return (
-    <ContractorProfileView
-      contractor={contractor}
-      photoUrl={photoUrls[contractor.id] ?? null}
-      initialEntries={entries}
-      initialProjects={projects}
-      laborRates={laborRates}
-    />
-  );
+  redirect(contractorProfilePath(id));
 }

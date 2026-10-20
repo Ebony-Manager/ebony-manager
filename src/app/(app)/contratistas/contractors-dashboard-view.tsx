@@ -20,6 +20,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorAvatar } from "./contractor-avatar";
 import { ContractorsMonthlyChart } from "./contractors-monthly-chart";
+import { contractorProfilePath } from "@/lib/personal/paths";
 
 export interface ContractorsDashboardInput {
   contractors: DashboardContractor[];
@@ -48,7 +49,7 @@ function RankingCard({
           {rows.map((r, i) => (
             <li key={r.id} className="flex items-center gap-2 text-sm">
               <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</span>
-              <Link href={`/contratistas/${r.id}`} className="w-36 shrink-0 truncate text-foreground hover:underline">
+              <Link href={contractorProfilePath(r.id, "contratistas")} className="w-36 shrink-0 truncate text-foreground hover:underline">
                 {r.name}
               </Link>
               <div className="h-2 flex-1 bg-muted">
@@ -214,7 +215,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
                           <ContractorAvatar name={c.contractor.name} />
                           <div className="min-w-0">
                             <Link
-                              href={`/contratistas/${c.contractor.id}`}
+                              href={contractorProfilePath(c.contractor.id, "contratistas")}
                               onClick={(e) => e.stopPropagation()}
                               className="whitespace-nowrap font-medium text-foreground hover:underline"
                             >
