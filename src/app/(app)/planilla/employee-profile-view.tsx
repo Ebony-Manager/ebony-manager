@@ -32,7 +32,7 @@ import { EmployeeBenefitsSection } from "./employee-benefits-section";
 import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
-import { IdDocumentSection } from "@/components/shared/id-document-section";
+import { IdDocumentFile } from "@/components/shared/id-document-file";
 import { countryName } from "@/lib/countries";
 import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
@@ -251,9 +251,20 @@ export function EmployeeProfileView({
             <DataItem
               label={tt("pd_document")}
               value={
-                employee.idDocument
-                  ? `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
-                  : null
+                <>
+                  {employee.idDocument ? (
+                    `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
+                  ) : (
+                    <span className="text-muted-foreground/70">{tt("pd_not_set")}</span>
+                  )}
+                  <IdDocumentFile
+                    kind="employee"
+                    ownerId={employee.id}
+                    initialPath={employee.idDocumentPath}
+                    initialUrl={documentUrl}
+                    savePath={(path) => updateEmployeeAction(employee.id, { idDocumentPath: path })}
+                  />
+                </>
               }
             />
             <DataItem label={tt("f_nationality")} value={countryName(employee.nationality, lang)} />
@@ -303,14 +314,6 @@ export function EmployeeProfileView({
             <DataItem label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} hideWhenEmpty />
           </dl>
         </section>
-
-        <IdDocumentSection
-          kind="employee"
-          ownerId={employee.id}
-          initialPath={employee.idDocumentPath}
-          initialUrl={documentUrl}
-          savePath={(path) => updateEmployeeAction(employee.id, { idDocumentPath: path })}
-        />
 
         {employee.notes && (
           <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

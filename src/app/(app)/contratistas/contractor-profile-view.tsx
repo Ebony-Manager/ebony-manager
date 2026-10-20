@@ -91,7 +91,7 @@ import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { ContractorAvatar } from "./contractor-avatar";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
-import { IdDocumentSection } from "@/components/shared/id-document-section";
+import { IdDocumentFile } from "@/components/shared/id-document-file";
 import { countryName } from "@/lib/countries";
 import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
@@ -505,7 +505,25 @@ export function ContractorProfileView({
           </Button>
         </div>
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <DataItem label={tp("pd_document")} value={contractor.idDocument ? [docType, contractor.idDocument].filter(Boolean).join(" ") : null} />
+          <DataItem
+            label={tp("pd_document")}
+            value={
+              <>
+                {contractor.idDocument ? (
+                  [docType, contractor.idDocument].filter(Boolean).join(" ")
+                ) : (
+                  <span className="text-muted-foreground/70">{tp("pd_not_set")}</span>
+                )}
+                <IdDocumentFile
+                  kind="contractor"
+                  ownerId={contractor.id}
+                  initialPath={contractor.idDocumentPath}
+                  initialUrl={documentUrl}
+                  savePath={(path) => updateContractorAction(contractor.id, { idDocumentPath: path })}
+                />
+              </>
+            }
+          />
           <DataItem label={tp("f_nationality")} value={countryName(contractor.nationality, lang)} />
           <DataItem label={tp("f_birth_date")} value={contractor.birthDate ? formatDate(lang, contractor.birthDate) : null} />
           <DataItem
@@ -537,14 +555,6 @@ export function ContractorProfileView({
           <DataItem label={tp("f_bank_routing_code")} value={contractor.bankRoutingCode} hideWhenEmpty />
         </dl>
       </section>
-
-      <IdDocumentSection
-        kind="contractor"
-        ownerId={contractor.id}
-        initialPath={contractor.idDocumentPath}
-        initialUrl={documentUrl}
-        savePath={(path) => updateContractorAction(contractor.id, { idDocumentPath: path })}
-      />
 
       {contractor.notes && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

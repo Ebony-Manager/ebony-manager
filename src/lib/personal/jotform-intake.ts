@@ -228,25 +228,6 @@ export function nameKey(name: string): string {
     .trim();
 }
 
-/**
- * La persona del staff que corresponde a un nombre escrito a mano (una
- * carpeta de Drive, un archivo): el nombre completo igual, o el mismo primer
- * nombre y algún apellido en común ("Jeremy liam Hernández Quiróz" →
- * "Jeremy Hernandez"). Si hay más de una posible, null: mejor elegir a mano.
- */
-export function matchPersonByName<P extends { name: string }>(name: string, people: readonly P[]): P | null {
-  const key = nameKey(name);
-  if (!key) return null;
-  const exact = people.filter((p) => nameKey(p.name) === key);
-  if (exact.length === 1) return exact[0];
-  const words = key.split(" ");
-  const loose = people.filter((p) => {
-    const pw = nameKey(p.name).split(" ");
-    return pw[0] === words[0] && pw.slice(1).some((w) => words.slice(1).includes(w));
-  });
-  return loose.length === 1 ? loose[0] : null;
-}
-
 export interface MatchCandidate {
   kind: "employee" | "contractor";
   id: string;
