@@ -900,8 +900,8 @@ export const strings = {
     att_night: { es: "Recargo nocturno", en: "Night surcharge" },
     att_sat: { es: "sáb", en: "sat" },
     att_footnote: {
-      es: "Horas descontadas = llegadas tarde (sin tolerancia) + 5.5 h por cada sábado sin marcar. Días descontados = días de lunes a viernes sin ninguna marcación. Los campos son editables; las celdas en ámbar difieren de lo que hay hoy en la app.",
-      en: "Docked hours = late arrivals (no tolerance) + 5.5 h per Saturday without a punch. Docked days = Mon–Fri days without any punch. Fields are editable; amber cells differ from what is in the app now.",
+      es: "Horas descontadas = llegadas tarde, minuto a minuto (desde las 7:30 de lunes a viernes y las 8:00 el sábado). Días descontados = días sin ninguna marcación; un sábado vale un día completo. Los campos son editables; las celdas en ámbar difieren de lo que hay hoy en la app.",
+      en: "Docked hours = late arrivals, minute by minute (from 7:30 Mon–Fri and 8:00 on Saturday). Docked days = days without any punch; a Saturday counts as a full day. Fields are editable; amber cells differ from what is in the app now.",
     },
     att_copy_review: { es: "Copiar lista de días a revisar", en: "Copy list of days to review" },
     att_copied: { es: "Lista copiada", en: "List copied" },
