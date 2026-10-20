@@ -68,6 +68,8 @@ interface FormState {
   idDocumentType: "cedula" | "pasaporte" | typeof NO_ACCOUNT_TYPE;
   nationality: string;
   birthDate: string;
+  email: string;
+  address: string;
   bankAccountNumber: string;
   bankRoutingCode: string;
   benefitsEnabled: boolean;
@@ -93,6 +95,8 @@ const EMPTY: FormState = {
   idDocumentType: NO_ACCOUNT_TYPE,
   nationality: "",
   birthDate: "",
+  email: "",
+  address: "",
   bankAccountNumber: "",
   bankRoutingCode: "",
   benefitsEnabled: true,
@@ -124,6 +128,8 @@ function fromEmployee(e: PayrollEmployee, activePositions: PayrollPosition[]): F
     idDocumentType: e.idDocumentType ?? NO_ACCOUNT_TYPE,
     nationality: e.nationality ?? "",
     birthDate: e.birthDate ?? "",
+    email: e.email ?? "",
+    address: e.address ?? "",
     bankAccountNumber: e.bankAccountNumber ?? "",
     bankRoutingCode: e.bankRoutingCode ?? "",
     benefitsEnabled: e.benefitsEnabled,
@@ -228,6 +234,8 @@ export function EmployeeFormDialog({
       const docType = form.idDocumentType === NO_ACCOUNT_TYPE ? null : form.idDocumentType;
       const nationality = form.nationality.trim() || null;
       const birthDate = form.birthDate || null;
+      const email = form.email.trim() || null;
+      const address = form.address.trim() || null;
       const profileExtra =
         mode === "edit" && employee
           ? {
@@ -238,6 +246,8 @@ export function EmployeeFormDialog({
               ...(docType !== employee.idDocumentType ? { idDocumentType: docType } : {}),
               ...(nationality !== employee.nationality ? { nationality } : {}),
               ...(birthDate !== employee.birthDate ? { birthDate } : {}),
+              ...(email !== employee.email ? { email } : {}),
+              ...(address !== employee.address ? { address } : {}),
             }
           : {
               ...(!form.benefitsEnabled ? { benefitsEnabled: false } : {}),
@@ -245,6 +255,8 @@ export function EmployeeFormDialog({
               ...(docType ? { idDocumentType: docType } : {}),
               ...(nationality ? { nationality } : {}),
               ...(birthDate ? { birthDate } : {}),
+              ...(email ? { email } : {}),
+              ...(address ? { address } : {}),
             };
       if (mode === "edit" && employee) {
         await updateEmployeeAction(employee.id, { ...common, ...profileExtra });
@@ -450,6 +462,21 @@ export function EmployeeFormDialog({
               </Field>
               <Field label={tt("f_birth_date")}>
                 <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+              </Field>
+              <Field label={tt("f_email")}>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("f_address")} className="sm:col-span-2">
+                <Input
+                  value={form.address}
+                  onChange={(e) => set("address", e.target.value)}
+                  placeholder={tt("f_address_ph")}
+                />
               </Field>
               <Field label={tt("f_emg_name")}>
                 <Input

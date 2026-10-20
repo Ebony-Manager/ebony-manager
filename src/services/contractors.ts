@@ -60,6 +60,8 @@ function mapContractor(r: ContractorRow): Contractor {
     birthDate: r.birth_date,
     photoPath: r.photo_path,
     phone: r.phone,
+    email: r.email,
+    address: r.address,
     emergencyContactName: r.emergency_contact_name,
     emergencyContactPhone: r.emergency_contact_phone,
     contractInfo: r.contract_info,
@@ -379,6 +381,8 @@ export interface ContractorPersonalInput {
   nationality?: string | null;
   birthDate?: string | null;
   phone?: string | null;
+  email?: string | null;
+  address?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -401,6 +405,8 @@ const PERSONAL_COLUMNS = {
   nationality: "nationality",
   birthDate: "birth_date",
   phone: "phone",
+  email: "email",
+  address: "address",
   emergencyContactName: "emergency_contact_name",
   emergencyContactPhone: "emergency_contact_phone",
   contractInfo: "contract_info",

@@ -40,6 +40,8 @@ interface FormState {
   idDocument: string;
   nationality: string | null;
   birthDate: string;
+  email: string;
+  address: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
   contractInfo: string;
@@ -59,6 +61,8 @@ function toForm(c?: Contractor): FormState {
     idDocument: c?.idDocument ?? "",
     nationality: c?.nationality ?? null,
     birthDate: c?.birthDate ?? "",
+    email: c?.email ?? "",
+    address: c?.address ?? "",
     emergencyContactName: c?.emergencyContactName ?? "",
     emergencyContactPhone: c?.emergencyContactPhone ?? "",
     contractInfo: c?.contractInfo ?? "",
@@ -117,6 +121,8 @@ export function ContractorFormDialog({
       idDocument: orNull(form.idDocument),
       nationality: form.nationality,
       birthDate: form.birthDate || null,
+      email: orNull(form.email),
+      address: orNull(form.address),
       emergencyContactName: orNull(form.emergencyContactName),
       emergencyContactPhone: orNull(form.emergencyContactPhone),
       contractInfo: orNull(form.contractInfo),
@@ -203,7 +209,21 @@ export function ContractorFormDialog({
             <Field label={tp("f_birth_date")}>
               <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
             </Field>
-            <div className="hidden sm:block" />
+            <Field label={tp("f_email")}>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder={tp("f_optional")}
+              />
+            </Field>
+            <Field label={tp("f_address")} className="sm:col-span-2">
+              <Input
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                placeholder={tp("f_address_ph")}
+              />
+            </Field>
             <Field label={tp("f_emg_name")}>
               <Input
                 value={form.emergencyContactName}

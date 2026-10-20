@@ -258,6 +258,17 @@ export function EmployeeProfileView({
             />
             <DataItem label={tt("f_phone")} value={employee.phone} />
             <DataItem
+              label={tt("f_email")}
+              value={
+                employee.email ? (
+                  <a href={`mailto:${employee.email}`} className="break-all hover:text-primary">
+                    {employee.email}
+                  </a>
+                ) : null
+              }
+            />
+            <DataItem label={tt("f_address")} value={employee.address} />
+            <DataItem
               label={tt("pd_contact")}
               value={
                 employee.emergencyContactName || employee.emergencyContactPhone

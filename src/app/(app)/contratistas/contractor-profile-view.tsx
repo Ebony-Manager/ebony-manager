@@ -510,6 +510,17 @@ export function ContractorProfileView({
               ) : null
             }
           />
+          <DataItem
+            label={tp("f_email")}
+            value={
+              contractor.email ? (
+                <a href={`mailto:${contractor.email}`} className="break-all hover:text-primary">
+                  {contractor.email}
+                </a>
+              ) : null
+            }
+          />
+          <DataItem label={tp("f_address")} value={contractor.address} />
           <DataItem label={tp("pd_contact")} value={emergency || null} />
           <DataItem label={tp("f_contract")} value={contractor.contractInfo} />
           <DataItem label={tt("f_start_date")} value={contractor.startDate ? formatDate(lang, contractor.startDate) : null} />

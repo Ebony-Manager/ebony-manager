@@ -84,6 +84,8 @@ function makeEmployee(
     sortOrder: 0,
     idDocument: null,
     phone: null,
+    email: null,
+    address: null,
     emergencyContactName: null,
     emergencyContactPhone: null,
     contractInfo: null,

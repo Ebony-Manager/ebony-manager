@@ -59,6 +59,10 @@ export interface PayrollEmployee {
   /** Ruta de la foto en el bucket privado `employee-photos`; null = sin foto. */
   photoPath: string | null;
   phone: string | null;
+  /** Correo personal. */
+  email: string | null;
+  /** Dirección de domicilio, texto libre. */
+  address: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   contractInfo: string | null;

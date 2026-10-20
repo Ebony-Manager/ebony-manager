@@ -240,6 +240,7 @@ export type Database = {
       }
       contractors: {
         Row: {
+          address: string | null
           bank_account_number: string | null
           bank_account_type: string | null
           bank_name: string | null
@@ -249,6 +250,7 @@ export type Database = {
           contract_info: string | null
           contractor_type: string
           created_at: string
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           end_date: string | null
@@ -266,6 +268,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_name?: string | null
@@ -275,6 +278,7 @@ export type Database = {
           contract_info?: string | null
           contractor_type: string
           created_at?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           end_date?: string | null
@@ -292,6 +296,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_name?: string | null
@@ -301,6 +306,7 @@ export type Database = {
           contract_info?: string | null
           contractor_type?: string
           created_at?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           end_date?: string | null
@@ -360,6 +366,7 @@ export type Database = {
       }
       payroll_employees: {
         Row: {
+          address: string | null
           bank_account_number: string | null
           bank_account_type: string | null
           bank_name: string | null
@@ -371,6 +378,7 @@ export type Database = {
           categoria: string
           contract_info: string | null
           created_at: string
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           end_date: string | null
@@ -391,6 +399,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_name?: string | null
@@ -402,6 +411,7 @@ export type Database = {
           categoria?: string
           contract_info?: string | null
           created_at?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           end_date?: string | null
@@ -422,6 +432,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_name?: string | null
@@ -433,6 +444,7 @@ export type Database = {
           categoria?: string
           contract_info?: string | null
           created_at?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           end_date?: string | null

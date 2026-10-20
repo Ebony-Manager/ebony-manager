@@ -228,6 +228,9 @@ export const strings = {
     id_type_pasaporte: { es: "Pasaporte", en: "Passport" },
     f_nationality: { es: "Nacionalidad", en: "Nationality" },
     f_birth_date: { es: "Fecha de nacimiento", en: "Date of birth" },
+    f_email: { es: "Correo", en: "Email" },
+    f_address: { es: "Dirección", en: "Address" },
+    f_address_ph: { es: "Calle, casa, barrio, ciudad", en: "Street, house, neighborhood, city" },
     st_title: { es: "Estado de cuenta", en: "Account statement" },
     st_subtitle: {
       es: "Salario, descuentos y préstamos del empleado. Marca o desmarca para ver solo lo que te interesa.",

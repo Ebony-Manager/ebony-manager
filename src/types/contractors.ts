@@ -48,6 +48,10 @@ export interface Contractor {
   /** Ruta de la foto en el bucket privado `contractor-photos`; null = sin foto. */
   photoPath: string | null;
   phone: string | null;
+  /** Correo personal. */
+  email: string | null;
+  /** Dirección de domicilio, texto libre. */
+  address: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   contractInfo: string | null;

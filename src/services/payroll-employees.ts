@@ -53,6 +53,8 @@ function mapEmployee(r: Row): PayrollEmployee {
     nationality: r.nationality ?? null,
     birthDate: r.birth_date ?? null,
     photoPath: r.photo_path ?? null,
+    email: r.email ?? null,
+    address: r.address ?? null,
     emergencyContactName: r.emergency_contact_name,
     emergencyContactPhone: r.emergency_contact_phone,
     contractInfo: r.contract_info,
@@ -104,6 +106,8 @@ export interface CreatePayrollEmployeeInput {
   idDocumentType?: "cedula" | "pasaporte" | null;
   nationality?: string | null;
   birthDate?: string | null;
+  email?: string | null;
+  address?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -149,6 +153,8 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       ...(input.idDocumentType ? { id_document_type: input.idDocumentType } : {}),
       ...(input.nationality ? { nationality: input.nationality } : {}),
       ...(input.birthDate ? { birth_date: input.birthDate } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(input.address ? { address: input.address } : {}),
       ...(input.benefitsEnabled === false ? { benefits_enabled: false } : {}),
       ...(input.benefitsExternalCompany ? { benefits_external_company: input.benefitsExternalCompany } : {}),
       sort_order: nextSort,
@@ -197,6 +203,8 @@ export interface UpdatePayrollEmployeeInput {
   nationality?: string | null;
   birthDate?: string | null;
   photoPath?: string | null;
+  email?: string | null;
+  address?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -228,6 +236,8 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.nationality !== undefined) patch.nationality = input.nationality;
   if (input.birthDate !== undefined) patch.birth_date = input.birthDate;
   if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
+  if (input.email !== undefined) patch.email = input.email;
+  if (input.address !== undefined) patch.address = input.address;
   if (input.emergencyContactName !== undefined) patch.emergency_contact_name = input.emergencyContactName;
   if (input.emergencyContactPhone !== undefined) patch.emergency_contact_phone = input.emergencyContactPhone;
   if (input.contractInfo !== undefined) patch.contract_info = input.contractInfo;
