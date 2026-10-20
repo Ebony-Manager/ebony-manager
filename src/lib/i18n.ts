@@ -80,8 +80,6 @@ export const strings = {
     add: { es: "Agregar", en: "Add" },
     add_employee: { es: "Empleado de planilla", en: "Payroll employee" },
     add_contractor: { es: "Contratista", en: "Contractor" },
-    view_list: { es: "Lista", en: "List" },
-    view_table: { es: "Tabla de empleados", en: "Employee table" },
     balance_ebony_owes: { es: "Ebony le debe", en: "Ebony owes" },
     balance_owes_ebony: { es: "Le debe a Ebony", en: "Owes Ebony" },
   },

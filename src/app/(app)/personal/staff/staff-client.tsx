@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronRight, Hammer, LayoutList, Phone, Plus, Table2, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Hammer, Phone, Plus, Users } from "lucide-react";
 
 import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import { Badge } from "@/components/ui/badge";
@@ -20,14 +20,13 @@ import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
-import { matchesEmployeeQuery } from "@/lib/planilla/employee-search";
 import { balanceTone, toneTextStyle } from "@/lib/contractors/contractor-colors";
 import { filterTeam, type TeamFilter, type TeamMember } from "@/lib/personal/team";
 import { EmployeeAvatar } from "../../planilla/employee-avatar";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
 import { EmployeeSearchInput } from "../../planilla/employee-search-input";
 import { EmployeeFormDialog } from "../../planilla/employee-form-dialog";
-import { EmployeeRosterTable } from "../../planilla/employee-roster-table";
+import { EmployeeRosterExport } from "../../planilla/employee-roster-export";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
 
@@ -36,8 +35,8 @@ import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog"
  * buscador y filtro por tipo. Es EL lugar del staff: desde acá se agrega a
  * alguien (empleado o contratista, según los módulos del usuario) y cada
  * fila abre su ficha (`/personal/staff/...`), donde se edita. Los que ya no
- * laboran van aparte, plegados. La vista "Tabla de empleados" es la ficha
- * de todos los empleados de una vez, para ver o bajar en PDF.
+ * laboran van aparte, plegados. "Descargar PDF" baja la lista de empleados
+ * con su ficha, para imprimir.
  */
 export function StaffClient({
   members,
@@ -49,7 +48,7 @@ export function StaffClient({
   canContractors,
 }: {
   members: TeamMember[];
-  /** Empleados completos (para la tabla y su PDF); vacío sin el módulo Planilla. */
+  /** Empleados completos (para el PDF); vacío sin el módulo Planilla. */
   employees: PayrollEmployee[];
   /** Catálogo de posiciones, para el formulario de empleado nuevo. */
   positions: PayrollPosition[];
@@ -67,7 +66,6 @@ export function StaffClient({
   const [query, setQuery] = React.useState("");
   const [kind, setKind] = React.useState<TeamFilter>("all");
   const [showInactive, setShowInactive] = React.useState(false);
-  const [view, setView] = React.useState<"list" | "table">("list");
   const [addEmployeeOpen, setAddEmployeeOpen] = React.useState(false);
   const [addContractorOpen, setAddContractorOpen] = React.useState(false);
   const showKindFilter = canEmployees && canContractors;
@@ -140,7 +138,7 @@ export function StaffClient({
 
         <div className="flex flex-wrap items-center gap-3">
           <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="w-full max-w-xs" />
-          {showKindFilter && view === "list" && (
+          {showKindFilter && (
             <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
               {FILTERS.map(({ value, label }) => (
                 <button
@@ -158,33 +156,13 @@ export function StaffClient({
             </div>
           )}
           {canEmployees && (
-            <div className="ml-auto flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
-              {(
-                [
-                  { key: "list", icon: LayoutList, label: tt("view_list") },
-                  { key: "table", icon: Table2, label: tt("view_table") },
-                ] as const
-              ).map(({ key, icon: Icon, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setView(key)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-md px-3 py-1 text-[12.5px] transition-colors",
-                    view === key ? "bg-primary font-semibold text-primary-foreground" : "font-medium text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="size-3.5" />
-                  {label}
-                </button>
-              ))}
+            <div className="ml-auto">
+              <EmployeeRosterExport employees={employees} />
             </div>
           )}
         </div>
 
-        {view === "table" ? (
-          <EmployeeRosterTable employees={employees.filter((e) => matchesEmployeeQuery(e.name, query))} />
-        ) : members.length === 0 ? (
+        {members.length === 0 ? (
           <EmptyBox>{tt("empty")}</EmptyBox>
         ) : visible.length === 0 ? (
           <EmptyBox>{tt("no_results")}</EmptyBox>
