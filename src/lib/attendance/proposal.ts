@@ -38,9 +38,10 @@ export interface EmployeeProposal {
   review: { date: string; flags: DayFlag[] }[];
   /** Lo que se sugiere escribir en Registro. */
   suggested: {
-    /** Horas decimales (3.38 = 3 h 23 min): llegadas tarde + sábados sin marcar. */
+    /** Horas decimales (3.38 = 3 h 23 min): solo las llegadas tarde, minuto a minuto. */
     horasDescontadas: number;
-    /** Días laborables (lunes a viernes) sin ninguna marcación. */
+    /** Días sin ninguna marcación, sábados incluidos (un sábado vale un día completo,
+     *  para que no empiecen a faltar los sábados por valer menos). */
     diasDescontados: number;
     /** Horas extra autorizadas. */
     extraHours: number;
@@ -51,9 +52,6 @@ export interface EmployeeProposal {
 
 /** Quien tiene recargo nocturno automático (minúsculas, sin acentos). Hoy solo José Salcedo. */
 export const NIGHT_SURCHARGE_NAMES = ["jose salcedo"];
-
-/** Un sábado sin ninguna marcación se descuenta como estas horas (8:00 a 1:30 pm). */
-export const SATURDAY_HOURS = 5.5;
 
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
@@ -100,7 +98,7 @@ export function buildProposal(input: {
       endDate: e.status === "INACTIVE" ? e.endDate : null,
     });
     const hasNight = NIGHT_SURCHARGE_NAMES.includes(fold(e.name));
-    const lateHours = minutesToHours(a.lateMinutes) + a.absentSaturdays * SATURDAY_HOURS;
+    const lateHours = minutesToHours(a.lateMinutes);
     proposals.push({
       employeeId: e.id,
       name: e.name,
@@ -114,7 +112,7 @@ export function buildProposal(input: {
       review: a.review,
       suggested: {
         horasDescontadas: Math.round(lateHours * 100) / 100,
-        diasDescontados: punches.length > 0 ? a.absentWeekdays : 0,
+        diasDescontados: punches.length > 0 ? a.absentWeekdays + a.absentSaturdays : 0,
         extraHours: minutesToHours(overtimeMinutes),
         nightSurchargeCents: hasNight ? nightSurchargeCents(a.nightMinutes, e.monthlySalaryCents) : 0,
       },

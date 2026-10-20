@@ -201,6 +201,16 @@ describe("buildProposal", () => {
     expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0.33, diasDescontados: 1, extraHours: 1.23, nightSurchargeCents: 0 });
   });
 
+  it("un sábado sin marcar vale un día completo (no 5.5 horas)", () => {
+    const { proposals } = buildProposal({
+      from: "2026-10-02",
+      to: "2026-10-03",
+      employees: [emp("1", "Mario Loaiza")],
+      punches: [p("Mario Loaiza", "2026-10-02", "07:30"), p("Mario Loaiza", "2026-10-02", "17:00")],
+    });
+    expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0, diasDescontados: 1 });
+  });
+
   it("sin marcaciones ni extras no se propone nada", () => {
     const { proposals } = buildProposal({ from: "2026-10-05", to: "2026-10-07", employees: [emp("1", "Karina Cardona")], punches: [] });
     expect(proposals).toEqual([]);
