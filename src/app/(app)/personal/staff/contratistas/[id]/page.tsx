@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/dal";
 import { getContractor, getContractorLedger, getLaborRates, getProjects, getContractorPhotoUrls } from "@/services/contractors";
 import { parseContractorFrom } from "@/lib/personal/paths";
+import { signedDocumentUrl } from "@/services/photos";
 import { ContractorProfileView } from "@/app/(app)/contratistas/contractor-profile-view";
 
 // Ficha del contratista, dentro de Personal → Staff. Pide el módulo
@@ -26,17 +27,19 @@ export default async function ContractorDetailPage({
   const contractor = await getContractor(id);
   if (!contractor) notFound();
 
-  const [entries, projects, laborRates, photoUrls] = await Promise.all([
+  const [entries, projects, laborRates, photoUrls, documentUrl] = await Promise.all([
     getContractorLedger(id),
     getProjects(),
     getLaborRates(),
     getContractorPhotoUrls([contractor]),
+    signedDocumentUrl(contractor.idDocumentPath),
   ]);
 
   return (
     <ContractorProfileView
       contractor={contractor}
       photoUrl={photoUrls[contractor.id] ?? null}
+      documentUrl={documentUrl}
       initialEntries={entries}
       initialProjects={projects}
       laborRates={laborRates}

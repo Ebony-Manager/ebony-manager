@@ -91,6 +91,7 @@ import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { ContractorAvatar } from "./contractor-avatar";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { IdDocumentSection } from "@/components/shared/id-document-section";
 import { countryName } from "@/lib/countries";
 import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
@@ -176,6 +177,7 @@ function readStoredKpisOpen(): boolean | null {
 export function ContractorProfileView({
   contractor,
   photoUrl: initialPhotoUrl,
+  documentUrl,
   initialEntries,
   initialProjects,
   laborRates,
@@ -183,6 +185,8 @@ export function ContractorProfileView({
 }: {
   contractor: Contractor;
   photoUrl: string | null;
+  /** URL firmada del documento (cédula / pasaporte), si tiene. */
+  documentUrl: string | null;
   initialEntries: ContractorLedgerEntry[];
   initialProjects: Project[];
   laborRates: LaborRate[];
@@ -533,6 +537,14 @@ export function ContractorProfileView({
           <DataItem label={tp("f_bank_routing_code")} value={contractor.bankRoutingCode} hideWhenEmpty />
         </dl>
       </section>
+
+      <IdDocumentSection
+        kind="contractor"
+        ownerId={contractor.id}
+        initialPath={contractor.idDocumentPath}
+        initialUrl={documentUrl}
+        savePath={(path) => updateContractorAction(contractor.id, { idDocumentPath: path })}
+      />
 
       {contractor.notes && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

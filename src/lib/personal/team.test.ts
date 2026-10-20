@@ -15,6 +15,7 @@ const contractor = (over: Partial<Contractor>): Contractor => ({
   nationality: null,
   birthDate: null,
   photoPath: null,
+  idDocumentPath: null,
   phone: "6000-0000",
   email: null,
   address: null,

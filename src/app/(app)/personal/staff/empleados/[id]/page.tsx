@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/dal";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { getEmployeePhotoUrls, getPayrollEmployee } from "@/services/payroll-employees";
+import { signedDocumentUrl } from "@/services/photos";
 import { getPayrollPositions } from "@/services/payroll-positions";
 import { getSalaryChanges } from "@/services/payroll-salary";
 import { getEmployeeAnnualDetail, getLedgerEntries } from "@/services/payroll";
@@ -39,13 +40,17 @@ export default async function EmployeeDetailPage({
   ]);
   if (!employee) notFound();
 
-  const photoUrls = await getEmployeePhotoUrls([employee]);
+  const [photoUrls, documentUrl] = await Promise.all([
+    getEmployeePhotoUrls([employee]),
+    signedDocumentUrl(employee.idDocumentPath),
+  ]);
 
   return (
     <EmployeeProfileView
       employee={employee}
       positions={positions}
       photoUrl={photoUrls[employee.id] ?? null}
+      documentUrl={documentUrl}
       from={parseEmployeeFrom(from)}
       initial={{ detail: { year, rows: detail }, ledger, salaryChanges }}
     />

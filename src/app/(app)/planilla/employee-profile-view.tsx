@@ -32,6 +32,7 @@ import { EmployeeBenefitsSection } from "./employee-benefits-section";
 import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { IdDocumentSection } from "@/components/shared/id-document-section";
 import { countryName } from "@/lib/countries";
 import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
@@ -76,12 +77,15 @@ export function EmployeeProfileView({
   employee,
   positions,
   photoUrl: initialPhotoUrl,
+  documentUrl,
   initial,
   from,
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
   photoUrl: string | null;
+  /** URL firmada del documento (cédula / pasaporte), si tiene. */
+  documentUrl: string | null;
   /** Datos de las secciones ya cargados por el servidor (en paralelo con el
    *  empleado), para que la página abra con todo en vez de pedirlo por
    *  separado y en fila después de pintarse. */
@@ -299,6 +303,14 @@ export function EmployeeProfileView({
             <DataItem label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} hideWhenEmpty />
           </dl>
         </section>
+
+        <IdDocumentSection
+          kind="employee"
+          ownerId={employee.id}
+          initialPath={employee.idDocumentPath}
+          initialUrl={documentUrl}
+          savePath={(path) => updateEmployeeAction(employee.id, { idDocumentPath: path })}
+        />
 
         {employee.notes && (
           <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

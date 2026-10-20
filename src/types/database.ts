@@ -262,6 +262,7 @@ export type Database = {
           end_date: string | null
           id: string
           id_document: string | null
+          id_document_path: string | null
           id_document_type: string | null
           name: string
           nationality: string | null
@@ -290,6 +291,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_path?: string | null
           id_document_type?: string | null
           name: string
           nationality?: string | null
@@ -318,6 +320,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_path?: string | null
           id_document_type?: string | null
           name?: string
           nationality?: string | null
@@ -390,6 +393,7 @@ export type Database = {
           end_date: string | null
           id: string
           id_document: string | null
+          id_document_path: string | null
           id_document_type: string | null
           liquidation_notes: string | null
           name: string
@@ -423,6 +427,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_path?: string | null
           id_document_type?: string | null
           nationality?: string | null
           photo_path?: string | null
@@ -456,6 +461,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           id_document?: string | null
+          id_document_path?: string | null
           id_document_type?: string | null
           nationality?: string | null
           photo_path?: string | null

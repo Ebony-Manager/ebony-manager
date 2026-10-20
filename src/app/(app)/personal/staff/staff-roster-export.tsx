@@ -72,7 +72,11 @@ export function StaffRosterExport({
     employee: "export_title_employee",
     contractor: "export_title_contractor",
   };
-  const FILE: Record<RosterKind, string> = { all: "Staff", employee: "Empleados", contractor: "Contratistas" };
+  const FILE: Record<RosterKind, string> = {
+    all: lang === "en" ? "Staff" : "Personal",
+    employee: lang === "en" ? "Employees" : "Empleados",
+    contractor: lang === "en" ? "Contractors" : "Contratistas",
+  };
 
   async function onPdf() {
     const rows = buildRoster({ employees, contractors }, { includeInactive, kind }, (iso) => formatDate(lang, iso), labels);

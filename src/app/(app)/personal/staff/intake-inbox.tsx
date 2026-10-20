@@ -16,7 +16,7 @@ import { formatDate } from "@/lib/planilla/format";
 import { findStaffMatch, type MatchCandidate } from "@/lib/personal/jotform-intake";
 import { EmployeeFormDialog, type EmployeePrefill } from "../../planilla/employee-form-dialog";
 import { ContractorFormDialog, type ContractorPrefill } from "../../contratistas/contractor-form-dialog";
-import { dismissIntakeAction, linkIntakeAction, markIntakeCreatedAction } from "./actions";
+import { dismissIntakeAction, linkIntakeAction, markIntakeCreatedAction, type IntakeResult } from "./actions";
 
 /**
  * "Nuevos registros": lo que llegó del formulario de JotForm y falta
@@ -68,6 +68,7 @@ export function IntakeInbox({
     if (!creating) return;
     const res = await markIntakeCreatedAction(creating.intake.id, kind, personId);
     if (!res.ok) toast.error(res.error);
+    else if (res.documentCopied === false) toast(tt("intake_doc_not_copied"), { duration: 8000 });
     router.refresh();
   }
 
@@ -143,7 +144,7 @@ function IntakeCard({
   const kindLabel = (k: MatchCandidate["kind"]) => tt(k === "employee" ? "kind_employee" : "kind_contractor");
   const canLink = (k: MatchCandidate["kind"]) => (k === "employee" ? canEmployees : canContractors);
 
-  async function run(action: () => Promise<{ ok: true } | { ok: false; error: string }>, done: string) {
+  async function run(action: () => Promise<IntakeResult>, done: string) {
     setBusy(true);
     const res = await action();
     setBusy(false);
@@ -152,6 +153,7 @@ function IntakeCard({
       return;
     }
     toast.success(done);
+    if (res.documentCopied === false) toast(tt("intake_doc_not_copied"), { duration: 8000 });
     router.refresh();
   }
 

@@ -56,6 +56,8 @@ export interface PayrollEmployee {
   nationality: string | null;
   /** Fecha de nacimiento, `YYYY-MM-DD`. */
   birthDate: string | null;
+  /** Foto o PDF del documento en el bucket privado `staff-documents`; null = sin documento. */
+  idDocumentPath: string | null;
   /** Ruta de la foto en el bucket privado `employee-photos`; null = sin foto. */
   photoPath: string | null;
   phone: string | null;

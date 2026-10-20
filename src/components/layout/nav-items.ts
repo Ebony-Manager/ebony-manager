@@ -89,7 +89,8 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
   for (const panel of NAV_PANELS) {
     const item = panel.items.find((i) => isNavItemActive(i, pathname));
-    if (item) return [t(lang, panel.title), t(lang, item.label)];
+    // "Personal / Personal" (el panel y su lista se llaman igual en español) → un solo crumb.
+    if (item) return t(lang, panel.title) === t(lang, item.label) ? [t(lang, item.label)] : [t(lang, panel.title), t(lang, item.label)];
   }
   const railItem = RAIL_ITEMS.find((i) => isNavItemActive(i, pathname));
   if (railItem) return [t(lang, railItem.label)];

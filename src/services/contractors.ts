@@ -59,6 +59,7 @@ function mapContractor(r: ContractorRow): Contractor {
     nationality: r.nationality,
     birthDate: r.birth_date,
     photoPath: r.photo_path,
+    idDocumentPath: r.id_document_path,
     phone: r.phone,
     email: r.email,
     address: r.address,
@@ -438,6 +439,8 @@ export interface UpdateContractorInput extends ContractorPersonalInput {
   contractorType?: ContractorType;
   /** Nueva foto (ruta en contractor-photos) o null para quitarla. */
   photoPath?: string | null;
+  /** Documento (ruta en staff-documents) o null para quitarlo. */
+  idDocumentPath?: string | null;
   /** Salida del contratista: INACTIVE + `endDate` + `notes` documentan el
    *  cierre. La historia y el saldo NUNCA se borran por esto. */
   status?: ContractorStatus;
@@ -452,6 +455,7 @@ export async function updateContractor(id: string, input: UpdateContractorInput)
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.contractorType !== undefined) patch.contractor_type = input.contractorType;
   if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
+  if (input.idDocumentPath !== undefined) patch.id_document_path = input.idDocumentPath;
   if (input.status !== undefined) patch.status = input.status;
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.notes !== undefined) patch.notes = input.notes;

@@ -10,7 +10,7 @@ const emp = (over: Partial<PayrollEmployee>): PayrollEmployee =>
   ({
     id: "1", name: "Jose Salcedo", position: "Ebanista", startDate: "2023-07-11", endDate: null, status: "ACTIVE", categoria: "taller",
     baseSalaryCents: 0, benefitsBaseSalaryCents: null, benefitsEnabled: true, benefitsExternalCompany: null, notes: null, liquidationNotes: null, sortOrder: 0,
-    idDocument: "BA974846", idDocumentType: "pasaporte", nationality: "CO", birthDate: null, photoPath: null,
+    idDocument: "BA974846", idDocumentType: "pasaporte", nationality: "CO", birthDate: null, photoPath: null, idDocumentPath: null,
     phone: "6824-9383", email: null, address: null, emergencyContactName: "Daniela", emergencyContactPhone: "6644-1584", contractInfo: null,
     bankName: "Banco General", bankAccountType: "ahorro", bankAccountNumber: "04-21-96", bankRoutingCode: null, ...over,
   }) as PayrollEmployee;
@@ -18,7 +18,7 @@ const emp = (over: Partial<PayrollEmployee>): PayrollEmployee =>
 const con = (over: Partial<Contractor>): Contractor =>
   ({
     id: "k", name: "Wilson Castro", contractorType: "ebanista", idDocument: "BC652536", idDocumentType: "pasaporte", nationality: "CO",
-    birthDate: "1975-03-19", photoPath: null, phone: "6132-8832", email: null, address: null, emergencyContactName: null, emergencyContactPhone: null,
+    birthDate: "1975-03-19", photoPath: null, idDocumentPath: null, phone: "6132-8832", email: null, address: null, emergencyContactName: null, emergencyContactPhone: null,
     contractInfo: null, bankName: null, bankAccountType: null, bankAccountNumber: null, bankRoutingCode: null, startDate: null,
     status: "ACTIVE", endDate: null, notes: null, sortOrder: 0, ...over,
   }) as Contractor;

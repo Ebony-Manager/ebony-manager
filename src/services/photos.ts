@@ -31,3 +31,15 @@ export async function signedPhotoUrls(
     return {};
   }
 }
+
+/** URL firmada (1 h) de un documento del bucket privado staff-documents; null si no hay o falla. */
+export async function signedDocumentUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("staff-documents").createSignedUrl(path, 3600);
+  if (error) {
+    console.error("No se pudo firmar el documento", error);
+    return null;
+  }
+  return data.signedUrl;
+}

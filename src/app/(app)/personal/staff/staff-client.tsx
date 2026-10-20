@@ -29,6 +29,7 @@ import { EmployeeSearchInput } from "../../planilla/employee-search-input";
 import { EmployeeFormDialog } from "../../planilla/employee-form-dialog";
 import { StaffRosterExport } from "./staff-roster-export";
 import { IntakeInbox } from "./intake-inbox";
+import { DocumentImportDialog, type DocumentPerson } from "./document-import-dialog";
 import type { StaffIntake } from "@/types/staff-intake";
 import type { MatchCandidate } from "@/lib/personal/jotform-intake";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
@@ -81,6 +82,13 @@ export function StaffClient({
   const [addEmployeeOpen, setAddEmployeeOpen] = React.useState(false);
   const [addContractorOpen, setAddContractorOpen] = React.useState(false);
   const showKindFilter = canEmployees && canContractors;
+  const documentPeople = React.useMemo<DocumentPerson[]>(
+    () => [
+      ...employees.map((e) => ({ kind: "employee" as const, id: e.id, name: e.name, idDocumentPath: e.idDocumentPath })),
+      ...contractors.map((c) => ({ kind: "contractor" as const, id: c.id, name: c.name, idDocumentPath: c.idDocumentPath })),
+    ],
+    [employees, contractors]
+  );
 
   const visible = filterTeam(members, { kind, query });
   const active = visible.filter((m) => m.active);
@@ -175,7 +183,8 @@ export function StaffClient({
               ))}
             </div>
           )}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <DocumentImportDialog people={documentPeople} />
             <StaffRosterExport
               employees={employees}
               contractors={contractors}

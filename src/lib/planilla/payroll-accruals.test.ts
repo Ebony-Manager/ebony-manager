@@ -97,6 +97,7 @@ function makeEmployee(
     nationality: null,
     birthDate: null,
     photoPath: null,
+    idDocumentPath: null,
   };
 }
 

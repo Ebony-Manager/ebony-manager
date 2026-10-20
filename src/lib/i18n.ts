@@ -25,7 +25,7 @@ export const strings = {
     // Panel "Personal": la gente de Ebony y lo que se le paga — Resumen,
     // Staff (empleados + contratistas juntos), Planilla y Contratistas.
     personal: { es: "Personal", en: "People" },
-    staff: { es: "Staff", en: "Staff" },
+    staff: { es: "Personal", en: "Staff" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     // El filtro Todos/Taller/Administrativo que ya vive DENTRO del módulo
     // es lo que distingue ahora — el nombre del menú no necesita cargarlo.
@@ -54,7 +54,7 @@ export const strings = {
 
   // Personal → Staff: empleados y contratistas en una sola lista.
   staff: {
-    title: { es: "Staff", en: "Staff" },
+    title: { es: "Personal", en: "Staff" },
     subtitle: {
       es: "Todas las personas que trabajan con Ebony: empleados de planilla y contratistas. Toca a alguien para abrir su ficha, o agrega a alguien nuevo.",
       en: "Everyone who works with Ebony: payroll employees and contractors. Tap someone to open their profile, or add someone new.",
@@ -84,10 +84,24 @@ export const strings = {
     balance_owes_ebony: { es: "Le debe a Ebony", en: "Owes Ebony" },
     export_who: { es: "¿A quiénes?", en: "Who?" },
     export_include: { es: "Incluir", en: "Include" },
-    export_title_all: { es: "Lista del staff", en: "Staff list" },
+    export_title_all: { es: "Lista del personal", en: "Staff list" },
     export_title_employee: { es: "Lista de empleados", en: "Employee list" },
     export_title_contractor: { es: "Lista de contratistas", en: "Contractor list" },
     export_empty: { es: "No hay nadie para esa selección.", en: "No one matches that selection." },
+    docs_import: { es: "Cargar documentos", en: "Upload IDs" },
+    docs_import_title: { es: "Cargar documentos en lote", en: "Bulk upload ID documents" },
+    docs_import_desc: {
+      es: "Elige la carpeta descargada de Drive (una subcarpeta por persona) o archivos con el nombre de cada persona. Revisa a quién va cada uno y carga.",
+      en: "Pick the folder downloaded from Drive (one subfolder per person) or files named after each person. Check who each one goes to and upload.",
+    },
+    docs_pick_folder: { es: "Elegir carpeta", en: "Pick folder" },
+    docs_pick_files: { es: "Elegir archivos", en: "Pick files" },
+    docs_skip: { es: "— No cargar —", en: "— Skip —" },
+    docs_has_document: { es: "Ya tiene documento: reemplazarlo", en: "Already has a document: replace it" },
+    docs_upload: { es: "Cargar", en: "Upload" },
+    docs_close: { es: "Cerrar", en: "Close" },
+    docs_import_done: { es: "documentos cargados.", en: "documents uploaded." },
+    docs_import_failed: { es: "no se pudieron cargar. Revisa los marcados con ✕.", en: "failed. Check the ones marked ✕." },
     intake_title: { es: "Nuevos registros", en: "New sign-ups" },
     intake_hint: {
       es: "Llegaron del formulario de registro. Créalos como empleado o contratista (el formulario abre con sus datos ya puestos), vincúlalos a alguien que ya está, o descártalos.",
@@ -104,6 +118,10 @@ export const strings = {
     intake_dismiss: { es: "Descartar", en: "Dismiss" },
     intake_dismiss_confirm: { es: "¿Descartar este registro?", en: "Dismiss this sign-up?" },
     intake_dismissed: { es: "Registro descartado.", en: "Sign-up dismissed." },
+    intake_doc_not_copied: {
+      es: "No se pudo traer el documento desde JotForm (¿falta la API key?). El enlace quedó en las notas; puedes subirlo desde la ficha.",
+      en: "Couldn't fetch the ID from JotForm (missing API key?). The link is in the notes; you can upload it from the profile.",
+    },
   },
 
   // Personal → Resumen (Planilla + Contratistas juntos).
@@ -1859,7 +1877,7 @@ export const strings = {
       en: "Directory, projects, statements and rates.",
     },
     dashboard_note: {
-      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; Staff, a quien tenga cualquiera de los dos.",
+      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; la lista de Personal, a quien tenga cualquiera de los dos.",
       en: "The People summary shows for users with both Payroll and Contractors; Staff, for users with either.",
     },
   },
@@ -1867,6 +1885,18 @@ export const strings = {
   common: {
     loading: { es: "Cargando…", en: "Loading…" },
     back: { es: "Volver", en: "Back" },
+    // Documento de identidad en la ficha (empleados y contratistas).
+    doc_title: { es: "Documento", en: "ID document" },
+    doc_upload: { es: "Subir", en: "Upload" },
+    doc_change: { es: "Cambiar", en: "Replace" },
+    doc_remove: { es: "Quitar documento", en: "Remove document" },
+    doc_empty: { es: "Sin documento. Toca para subir la foto o el PDF de la cédula o pasaporte.", en: "No document. Tap to upload a photo or PDF of the ID or passport." },
+    doc_unavailable: { es: "No se pudo cargar el documento. Recarga la página.", en: "Couldn't load the document. Reload the page." },
+    doc_open: { es: "Abrir en grande", en: "Open full size" },
+    doc_open_pdf: { es: "Abrir el PDF del documento", en: "Open the document PDF" },
+    doc_saved: { es: "Documento guardado.", en: "Document saved." },
+    doc_removed: { es: "Documento quitado.", en: "Document removed." },
+    doc_error: { es: "No se pudo guardar el documento. Intenta de nuevo.", en: "Couldn't save the document. Try again." },
     // Foto de perfil (empleados y contratistas): se toca el avatar.
     photo_add: { es: "Agregar foto", en: "Add photo" },
     photo_change: { es: "Cambiar foto", en: "Change photo" },

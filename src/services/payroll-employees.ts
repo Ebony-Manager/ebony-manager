@@ -53,6 +53,7 @@ function mapEmployee(r: Row): PayrollEmployee {
     nationality: r.nationality ?? null,
     birthDate: r.birth_date ?? null,
     photoPath: r.photo_path ?? null,
+    idDocumentPath: r.id_document_path ?? null,
     email: r.email ?? null,
     address: r.address ?? null,
     emergencyContactName: r.emergency_contact_name,
@@ -203,6 +204,7 @@ export interface UpdatePayrollEmployeeInput {
   nationality?: string | null;
   birthDate?: string | null;
   photoPath?: string | null;
+  idDocumentPath?: string | null;
   email?: string | null;
   address?: string | null;
   emergencyContactName?: string | null;
@@ -236,6 +238,7 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.nationality !== undefined) patch.nationality = input.nationality;
   if (input.birthDate !== undefined) patch.birth_date = input.birthDate;
   if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
+  if (input.idDocumentPath !== undefined) patch.id_document_path = input.idDocumentPath;
   if (input.email !== undefined) patch.email = input.email;
   if (input.address !== undefined) patch.address = input.address;
   if (input.emergencyContactName !== undefined) patch.emergency_contact_name = input.emergencyContactName;
