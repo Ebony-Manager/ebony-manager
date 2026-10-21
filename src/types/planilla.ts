@@ -168,7 +168,11 @@ export type LedgerCategory =
   /** Viajes de InDrive (transporte) — se registran en su propio tab. */
   | "indrive"
   /** Intereses cobrados en un préstamo (deuda propia, enlazada al préstamo). */
-  | "interes";
+  | "interes"
+  /** Descuento a terceros (ej. una financiera): se le descuenta a la persona y
+   *  Ebony se lo paga a ese tercero. No es dinero que Ebony prestó: no cuenta
+   *  en lo que el empleado le debe a la empresa. */
+  | "tercero";
 
 export type LedgerDirection = "debt" | "payment";
 
@@ -194,7 +198,7 @@ export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
 
 /** Lo que se financia a cuotas: dinero (préstamo/adelanto) o una compra
  *  (herramienta) / un cobro (daño). */
-export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro";
+export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro" | "tercero";
 
 /** Cómo se calculó el interés de un préstamo. */
 export type LoanInterestMode = "monthly_pct" | "total_pct" | "fixed";

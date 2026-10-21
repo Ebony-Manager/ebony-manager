@@ -266,6 +266,7 @@ export const strings = {
     type_dano: { es: "Daños", en: "Damages" },
     type_indrive: { es: "InDrive", en: "InDrive" },
     type_otro: { es: "Otros", en: "Other" },
+    type_tercero: { es: "A terceros", en: "Third parties" },
     add_title: { es: "Agregar préstamo o descuento", en: "Add loan or deduction" },
     add_desc: {
       es: "Elige qué quieres registrar y a quién. Las solicitudes de JotForm llegan solas a la bandeja; esto es para lo que se registra a mano.",
@@ -282,6 +283,10 @@ export const strings = {
     add_hint_dano: { es: "Daño o reposición; en cuotas sin interés.", en: "Damage or replacement; installments, no interest." },
     add_hint_indrive: { es: "Viaje pagado por Ebony; se descuenta en la quincena del viaje.", en: "Ride paid by Ebony; deducted in the ride's pay period." },
     add_hint_otro: { es: "Seguro social, carnet, uniforme…; con nota, en una o varias cuotas.", en: "Social security, ID card, uniform…; with a note, one or more installments." },
+    add_hint_tercero: {
+      es: "Lo que se le descuenta para pagárselo a otro (ej. una financiera). No es dinero de Ebony. Solo empleados.",
+      en: "Withheld to pay someone else (e.g. a lender). Not Ebony's money. Employees only.",
+    },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -676,11 +681,13 @@ export const strings = {
     ledger_cat_seguro_social: { es: "Seguro Social", en: "Social Security" },
     ledger_cat_carnet: { es: "Carnet", en: "Permit" },
     ledger_cat_otro: { es: "Otro", en: "Other" },
+    ledger_cat_tercero: { es: "A terceros", en: "Third party" },
     ledger_cat_indrive: { es: "InDrive", en: "InDrive" },
     tab_loans_overview: { es: "Préstamos", en: "Loans" },
     lo_kpi_lent: { es: "Prestado (vigentes)", en: "Lent (active)" },
     lo_kpi_collected: { es: "Ya cobrado", en: "Collected" },
     lo_kpi_pending: { es: "Por cobrar", en: "Outstanding" },
+    lo_kpi_third_party: { es: "Aparte, por pagar a terceros:", en: "Separately, owed to third parties:" },
     lo_kpi_count: { es: "Vigentes", en: "Active" },
     lo_show_history: { es: "Mostrar historial (pagados y cancelados)", en: "Show history (paid and cancelled)" },
     lo_col_type: { es: "Tipo", en: "Type" },
@@ -763,6 +770,17 @@ export const strings = {
     loan_f_ride_date: { es: "Fecha del viaje", en: "Ride date" },
     loan_type_otro: { es: "Otro descuento (en cuotas)", en: "Other deduction (installments)" },
     loan_new_otro: { es: "Otro descuento", en: "Other deduction" },
+    loan_type_tercero: { es: "Descuento a terceros (en cuotas)", en: "Third-party deduction (installments)" },
+    loan_new_tercero: { es: "Descuento a terceros", en: "Third-party deduction" },
+    loan_submit_tercero: { es: "Registrar descuento", en: "Register deduction" },
+    loan_dlg_tercero_title: { es: "Descuento a terceros", en: "Third-party deduction" },
+    loan_dlg_tercero_desc: {
+      es: "Se le descuenta en cada quincena y Ebony se lo paga al tercero (ej. una financiera). No cuenta como dinero que Ebony prestó.",
+      en: "Withheld every pay period and paid by Ebony to the third party (e.g. a lender). Not counted as money Ebony lent.",
+    },
+    loan_f_payee: { es: "¿A quién se le paga?", en: "Paid to" },
+    loan_f_payee_ph: { es: "Ej. Fácil Credit", en: "E.g. Fácil Credit" },
+    loan_f_payee_required: { es: "Escribe a quién se le paga.", en: "Enter who it is paid to." },
     loan_dlg_otro_title: { es: "Nuevo descuento", en: "New deduction" },
     loan_submit_otro: { es: "Registrar descuento", en: "Register deduction" },
     loan_dlg_otro_desc: {
@@ -968,6 +986,7 @@ export const strings = {
     li_danos: { es: "Daños", en: "Damages" },
     li_indrive: { es: "InDrive", en: "InDrive" },
     li_otros: { es: "Otros", en: "Other" },
+    li_tercero: { es: "A terceros", en: "Third parties" },
 
     // Sueldo / Aumentos
     base_readonly_hint: {
@@ -1352,6 +1371,7 @@ export const strings = {
     cat_dano: { es: "Daño", en: "Damage" },
     cat_indrive: { es: "InDrive", en: "InDrive" },
     cat_otro: { es: "Otro descuento", en: "Other deduction" },
+    cat_tercero: { es: "Descuento a terceros", en: "Third-party deduction" },
     scheduled: { es: "Programada", en: "Scheduled" },
 
     // KPIs de la ficha del contratista (arriba del estado de cuenta).

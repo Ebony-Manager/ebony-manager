@@ -27,7 +27,7 @@ import {
   type ContractorLoanResult,
 } from "../../contratistas/actions";
 
-const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro"]);
+const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"]);
 
 /** Una fila de la lista: de un empleado o de un contratista, con el mismo formato. */
 interface ChargeRow {
@@ -38,7 +38,8 @@ interface ChargeRow {
   sortOrder: number;
   /** Préstamo de contratista en cuotas (para cancelar/borrar); null en los demás. */
   contractorLoanId: string | null;
-  category: ContractorLedgerCategory;
+  /** "tercero" solo existe para empleados. */
+  category: ContractorLedgerCategory | "tercero";
   date: string;
   principalCents: number;
   interestCents: number;
@@ -186,9 +187,12 @@ export function ChargesListView({
   }, [employees, employeeLoans, contractors, showEmployees, showContractors, typeFilter, lang]);
 
   const active = rows.filter((r) => !r.done);
-  const kpiLent = active.reduce((s, r) => s + r.principalCents, 0);
-  const kpiPending = active.reduce((s, r) => s + r.pendingCents, 0);
-  const kpiCollected = active.reduce((s, r) => s + r.paidCents, 0);
+  // Los descuentos a terceros (ej. una financiera) no son dinero de Ebony: fuera de prestado / cobrado / por cobrar.
+  const own = active.filter((r) => r.category !== "tercero");
+  const kpiLent = own.reduce((s, r) => s + r.principalCents, 0);
+  const kpiPending = own.reduce((s, r) => s + r.pendingCents, 0);
+  const kpiCollected = own.reduce((s, r) => s + r.paidCents, 0);
+  const thirdPartyPending = active.filter((r) => r.category === "tercero").reduce((s, r) => s + r.pendingCents, 0);
   // Intereses: lo pactado en lo no cancelado y la parte ya cobrada (proporcional a lo pagado).
   const interestAgreed = rows.filter((r) => !r.cancelled).reduce((s, r) => s + r.interestCents, 0);
   const interestCollected = rows.reduce((s, r) => {
@@ -221,7 +225,12 @@ export function ChargesListView({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <PayrollKpiCard icon={HandCoins} label={tp("lo_kpi_lent")} value={formatCents(kpiLent)} />
         <PayrollKpiCard icon={CheckCircle2} label={tp("lo_kpi_collected")} value={formatCents(kpiCollected)} />
-        <PayrollKpiCard icon={Hourglass} label={tp("lo_kpi_pending")} value={formatCents(kpiPending)} />
+        <PayrollKpiCard
+          icon={Hourglass}
+          label={tp("lo_kpi_pending")}
+          value={formatCents(kpiPending)}
+          sublabel={thirdPartyPending > 0 ? `${tp("lo_kpi_third_party")} ${formatCents(thirdPartyPending)}` : undefined}
+        />
         <PayrollKpiCard icon={ListChecks} label={tp("lo_kpi_count")} value={String(active.length)} />
         <PayrollKpiCard
           icon={Percent}

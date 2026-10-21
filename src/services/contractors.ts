@@ -758,9 +758,12 @@ const LOAN_LABEL: Record<LoanCategory, string> = {
   dano: "Daño",
   indrive: "InDrive",
   otro: "Otro descuento",
+  tercero: "Descuento a terceros",
 };
 
 export async function createContractorLoan(input: ContractorLoanInput): Promise<void> {
+  // Descuento a terceros: por ahora solo para empleados.
+  if (input.category === "tercero") throw new Error("El descuento a terceros es solo para empleados");
   if (!(input.principalCents > 0)) throw new Error("El monto debe ser mayor que cero");
   const supabase = await createClient();
   const paymentMethod = input.paymentMethod ?? "cuota_fija";

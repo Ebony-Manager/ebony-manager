@@ -12,4 +12,5 @@ export const LEDGER_CATEGORY_LABEL_KEY: Record<LedgerCategory, string> = {
   otro: "ledger_cat_otro",
   indrive: "ledger_cat_indrive",
   interes: "ledger_cat_interes",
+  tercero: "ledger_cat_tercero",
 };

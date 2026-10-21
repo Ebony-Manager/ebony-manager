@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PayrollEmployee, PayrollEntry } from "@/types/planilla";
-import { computeLedgerBalanceToDate, computeMonthlyComposition, type EmployeeHistory, type LedgerRowFull } from "./payroll-reports";
+import { computeLedgerBalance, computeLedgerBalanceToDate, computeMonthlyComposition, type EmployeeHistory, type LedgerRowFull } from "./payroll-reports";
 
 function entry(id: string, month: number, half: 1 | 2, over: Partial<PayrollEntry> = {}): PayrollEntry {
   return {
@@ -61,5 +61,8 @@ describe("computeLedgerBalanceToDate", () => {
   });
   it("seguro_social no cuenta", () => {
     expect(computeLedgerBalanceToDate([led("debt", 9999, "2026-01-15", null, "seguro_social")], NOW)).toBe(0);
+    // Descuento a terceros (ej. una financiera): no es dinero que se le deba a Ebony.
+    expect(computeLedgerBalanceToDate([led("debt", 83097, "2026-09-30", null, "tercero")], NOW)).toBe(0);
+    expect(computeLedgerBalance([led("debt", 83097, "2026-09-30", null, "tercero"), led("debt", 1000, "2026-09-30")], new Map())).toBe(1000);
   });
 });

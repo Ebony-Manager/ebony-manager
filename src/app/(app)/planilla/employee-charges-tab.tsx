@@ -10,10 +10,10 @@ import { t, strings } from "@/lib/i18n";
 import { LoansPanel } from "./loans-panel";
 import { AddChargeDialog } from "./add-charge-dialog";
 
-export const CHARGE_TYPES: LoanCategory[] = ["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro"];
+export const CHARGE_TYPES: LoanCategory[] = ["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"];
 export type ChargeTypeFilter = "all" | LoanCategory;
 
-/** Chips Todos · Préstamos · Adelantos · Herramientas · Daños · InDrive · Otros. */
+/** Chips Todos · Préstamos · Adelantos · Herramientas · Daños · InDrive · Otros · A terceros. */
 export function ChargeTypeChips({ value, onChange }: { value: ChargeTypeFilter; onChange: (v: ChargeTypeFilter) => void }) {
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);

@@ -695,7 +695,7 @@ export async function deleteLedgerEntry(id: string): Promise<void> {
 // ============================================================================
 
 function toLoanCategory(c: string): LoanCategory {
-  return c === "adelanto" || c === "herramienta" || c === "dano" || c === "indrive" || c === "otro" ? c : "prestamo";
+  return c === "adelanto" || c === "herramienta" || c === "dano" || c === "indrive" || c === "otro" || c === "tercero" ? c : "prestamo";
 }
 
 function mapLoan(r: LoanRow): PayrollLoan {

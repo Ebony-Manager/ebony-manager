@@ -126,9 +126,11 @@ export function computeAnnualSummary(
 
 /** Saldo que el empleado debe: sum(debt) - sum(payment realizado). Un
  *  'payment' cuenta como realizado si no está atado a una quincena, o
- *  si su quincena ya fue pagada. Portado de `getLedgerBalance` de Atlas. */
+ *  si su quincena ya fue pagada. Portado de `getLedgerBalance` de Atlas.
+ *  Los descuentos a terceros quedan fuera: no se le deben a Ebony. */
 export function computeLedgerBalance(ledger: LedgerRowFull[], entryPaidById: Map<string, boolean>): number {
   return ledger.reduce((sum, r) => {
+    if (r.category === "tercero") return sum;
     if (r.direction === "debt") return sum + r.amountCents;
     const realized = r.payrollEntryId === null || entryPaidById.get(r.payrollEntryId) === true;
     return realized ? sum - r.amountCents : sum;
@@ -144,7 +146,7 @@ export function computeLedgerBalance(ledger: LedgerRowFull[], entryPaidById: Map
 export function computeLedgerBalanceToDate(ledger: LedgerRowFull[], now: Period): number {
   const nowOrd = periodOrdinal(now.year, now.month, now.half);
   return ledger.reduce((sum, r) => {
-    if (r.category === "seguro_social") return sum;
+    if (r.category === "seguro_social" || r.category === "tercero") return sum;
     const p = periodFromDateString(r.entryDate);
     if (!p || periodOrdinal(p.year, p.month, p.half) > nowOrd) return sum;
     return r.direction === "debt" ? sum + r.amountCents : sum - r.amountCents;
@@ -310,6 +312,7 @@ const LEDGER_GROUPS: { key: string; labelKey: string; category: string }[] = [
   { key: "dano", labelKey: "li_danos", category: "dano" },
   { key: "indrive", labelKey: "li_indrive", category: "indrive" },
   { key: "otro", labelKey: "li_otros", category: "otro" },
+  { key: "tercero", labelKey: "li_tercero", category: "tercero" },
 ];
 
 /** Una fila de Auditoría (6 grupos de concepto a granularidad de 24

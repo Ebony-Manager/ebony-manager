@@ -61,6 +61,7 @@ const CATEGORY_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   dano: "loan_type_dano",
   indrive: "loan_type_indrive",
   otro: "loan_type_otro",
+  tercero: "loan_type_tercero",
 };
 
 const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -70,6 +71,7 @@ const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   dano: "loan_dlg_dano_title",
   indrive: "loan_dlg_indrive_title",
   otro: "loan_dlg_otro_title",
+  tercero: "loan_dlg_tercero_title",
 };
 
 const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -79,6 +81,7 @@ const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   dano: "loan_submit_dano",
   indrive: "loan_submit_indrive",
   otro: "loan_submit_otro",
+  tercero: "loan_submit_tercero",
 };
 
 /** Reparte `total` en `n` partes (el sobrante de la división va a la última). */
@@ -278,6 +281,11 @@ export function LoanDialog({
       setError(tt("loan_variable_mismatch"));
       return;
     }
+    // A un tercero hay que saber a quién se le paga.
+    if (category === "tercero" && !notes.trim()) {
+      setError(tt("loan_f_payee_required"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -325,6 +333,8 @@ export function LoanDialog({
             ? tt("loan_dlg_edit_desc")
             : category === "otro"
               ? tt("loan_dlg_otro_desc")
+              : category === "tercero"
+                ? tt("loan_dlg_tercero_desc")
               : isItem
                 ? tt("loan_dlg_item_desc")
                 : category === "indrive"
@@ -564,9 +574,15 @@ export function LoanDialog({
         </div>
       )}
 
-      <Field label={tt("mov_f_notes")}>
-        <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
+      {category === "tercero" ? (
+        <Field label={tt("loan_f_payee")}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("loan_f_payee_ph")} />
+        </Field>
+      ) : (
+        <Field label={tt("mov_f_notes")}>
+          <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </Field>
+      )}
     </FormDialog>
   );
 }

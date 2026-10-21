@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Banknote, Car, ChevronDown, HandCoins, ReceiptText, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Banknote, Car, ChevronDown, HandCoins, Landmark, ReceiptText, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 import type { LoanCategory } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ const TYPES: { value: LoanCategory; icon: LucideIcon; hint: keyof typeof strings
   { value: "dano", icon: TriangleAlert, hint: "add_hint_dano" },
   { value: "indrive", icon: Car, hint: "add_hint_indrive" },
   { value: "otro", icon: ReceiptText, hint: "add_hint_otro" },
+  // Solo empleados: se descuenta en la planilla y Ebony se lo paga al tercero.
+  { value: "tercero", icon: Landmark, hint: "add_hint_tercero" },
 ];
 
 const TYPE_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -36,6 +38,7 @@ const TYPE_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   dano: "loan_new_dano",
   indrive: "loan_new_indrive",
   otro: "loan_new_otro",
+  tercero: "loan_new_tercero",
 };
 
 /**
@@ -82,6 +85,9 @@ export function AddChargeDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const person = fixedPerson ?? picked;
+  // "A terceros" es solo para empleados (por ahora).
+  const types = TYPES.filter((x) => x.value !== "tercero" || (fixedPerson?.kind ?? "employee") === "employee");
+  const pickable = (people ?? []).filter((p) => type !== "tercero" || p.kind === "employee");
   const kindLabel = (p: ChargePerson) => ts(p.kind === "employee" ? "kind_employee" : "kind_contractor");
 
   function next() {
@@ -107,12 +113,13 @@ export function AddChargeDialog({
       >
         <Field label={tg("add_type")}>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {TYPES.map(({ value, icon: Icon, hint }) => (
+            {types.map(({ value, icon: Icon, hint }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => {
                   setType(value);
+                  if (value === "tercero" && picked?.kind === "contractor") setPicked(null);
                   setError(null);
                 }}
                 className={cn(
@@ -144,7 +151,7 @@ export function AddChargeDialog({
                   <CommandInput placeholder={ts("search")} />
                   <CommandList>
                     <CommandEmpty>{ts("no_results")}</CommandEmpty>
-                    {(people ?? []).map((p) => (
+                    {pickable.map((p) => (
                       <CommandItem
                         key={`${p.kind}-${p.id}`}
                         value={`${p.name} ${p.kind}-${p.id}`}
