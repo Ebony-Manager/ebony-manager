@@ -20,7 +20,6 @@ import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/plan
 import { AsistenciaView } from "../../planilla/asistencia-view";
 import { RegistroView } from "../../planilla/registro-view";
 import { AuditoriaView } from "../../planilla/auditoria-view";
-import { LoansOverviewView } from "../../planilla/loans-overview-view";
 import { MoneyRequestInbox } from "../../planilla/money-request-inbox";
 import { EmployeeDetailSheet } from "../../planilla/employee-detail-sheet";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
@@ -29,7 +28,7 @@ import { ChargeTypeChips, type ChargeTypeFilter } from "../../planilla/employee-
 import { type CategoriaFilter, defaultVisibleColumns, sanitizeRegistroView } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
-import { ContractorLoansView } from "../../contratistas/contractor-loans-view";
+import { ChargesListView } from "./charges-list-view";
 import { ProjectsView } from "../../contratistas/projects-view";
 import { LaborRatesView } from "../../contratistas/labor-rates-view";
 import type { ContractorsDashboardInput } from "../../contratistas/contractors-dashboard-view";
@@ -261,28 +260,18 @@ export function PagosClient({
               canContractors={canContractors}
               onChanged={reload}
             />
-            <div className="flex flex-col gap-8">
-              {showEmployeeLoans && (
-                <section className="flex flex-col gap-3">
-                  {showContractorLoans && <h2 className="text-sm font-semibold text-foreground">{tg("loans_employees_title")}</h2>}
-                  <LoansOverviewView
-                    employees={byCategoria(employees, loansCategoria)}
-                    typeFilter={chargeType}
-                    reloadSignal={registroReload}
-                    onOpenEmployee={(id, initialTab) => {
-                      setDetailTab(initialTab);
-                      setDetailEmployeeId(id);
-                    }}
-                  />
-                </section>
-              )}
-              {showContractorLoans && contractorsDashboard && (
-                <section className="flex flex-col gap-3">
-                  {showEmployeeLoans && <h2 className="text-sm font-semibold text-foreground">{tg("cl_title")}</h2>}
-                  <ContractorLoansView input={contractorsDashboard} typeFilter={chargeType} />
-                </section>
-              )}
-            </div>
+            <ChargesListView
+              employees={byCategoria(employees, loansCategoria)}
+              contractors={contractorsDashboard}
+              showEmployees={showEmployeeLoans}
+              showContractors={showContractorLoans}
+              typeFilter={chargeType}
+              reloadSignal={registroReload}
+              onOpenEmployee={(id) => {
+                setDetailTab("prestamos");
+                setDetailEmployeeId(id);
+              }}
+            />
           </TabsContent>
           {canContractors && (
             <>
