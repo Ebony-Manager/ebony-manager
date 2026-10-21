@@ -132,7 +132,7 @@ export function AddChargeDialog({
 
         {!fixedPerson && (
           <Field label={tg("add_person")}>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <Popover modal open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
                 <Button type="button" variant="outline" className="w-full justify-between font-normal">
                   {picked ? `${picked.name} · ${kindLabel(picked)}` : tg("add_pick_person")}
