@@ -60,6 +60,7 @@ const CATEGORY_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   herramienta: "loan_type_herramienta",
   dano: "loan_type_dano",
   indrive: "loan_type_indrive",
+  otro: "loan_type_otro",
 };
 
 const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -68,6 +69,7 @@ const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   herramienta: "loan_dlg_herramienta_title",
   dano: "loan_dlg_dano_title",
   indrive: "loan_dlg_indrive_title",
+  otro: "loan_dlg_otro_title",
 };
 
 const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -76,6 +78,7 @@ const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   herramienta: "loan_submit_herramienta",
   dano: "loan_submit_dano",
   indrive: "loan_submit_indrive",
+  otro: "loan_submit_otro",
 };
 
 /** Reparte `total` en `n` partes (el sobrante de la división va a la última). */
@@ -320,13 +323,15 @@ export function LoanDialog({
           ? tt("loan_dlg_contractor_desc")
           : editing
             ? tt("loan_dlg_edit_desc")
-            : isItem
-              ? tt("loan_dlg_item_desc")
-              : category === "indrive"
-                ? tt("loan_dlg_indrive_desc")
-                : isAdelanto
-                  ? tt("loan_dlg_adelanto_desc")
-                  : tt("loan_dlg_prestamo_desc")
+            : category === "otro"
+              ? tt("loan_dlg_otro_desc")
+              : isItem
+                ? tt("loan_dlg_item_desc")
+                : category === "indrive"
+                  ? tt("loan_dlg_indrive_desc")
+                  : isAdelanto
+                    ? tt("loan_dlg_adelanto_desc")
+                    : tt("loan_dlg_prestamo_desc")
       }
       onSubmit={onSubmit}
       submitting={submitting}

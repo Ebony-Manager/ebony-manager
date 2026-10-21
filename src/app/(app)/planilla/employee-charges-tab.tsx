@@ -3,19 +3,17 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { LoanCategory, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
+import type { LoanCategory, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { LoansPanel } from "./loans-panel";
-import { OtherMovementsPanel } from "./other-movements-panel";
 import { AddChargeDialog } from "./add-charge-dialog";
-import type { LedgerPeriodOption } from "./ledger-entry-dialog";
 
-export const CHARGE_TYPES: LoanCategory[] = ["prestamo", "adelanto", "herramienta", "dano", "indrive"];
+export const CHARGE_TYPES: LoanCategory[] = ["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro"];
 export type ChargeTypeFilter = "all" | LoanCategory;
 
-/** Chips Todos · Préstamos · Adelantos · Herramientas · Daños · InDrive. */
+/** Chips Todos · Préstamos · Adelantos · Herramientas · Daños · InDrive · Otros. */
 export function ChargeTypeChips({ value, onChange }: { value: ChargeTypeFilter; onChange: (v: ChargeTypeFilter) => void }) {
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
@@ -32,21 +30,16 @@ export function ChargeTypeChips({ value, onChange }: { value: ChargeTypeFilter; 
 
 /**
  * Pestaña "Préstamos y descuentos" del detalle del empleado: préstamos,
- * adelantos, herramientas, daños e InDrive en una sola lista (con chips para
- * filtrar por tipo) y un solo botón "Agregar". Abajo, los otros descuentos
- * sueltos (seguro social, carnet…), que no llevan cuotas.
+ * adelantos, herramientas, daños, InDrive y otros descuentos en una sola
+ * lista (con chips para filtrar por tipo) y un solo botón "Agregar".
  */
 export function EmployeeChargesTab({
   employee,
   loans,
-  ledger,
-  periodOptions,
   onChanged,
 }: {
   employee: { id: string; name: string };
   loans: PayrollLoanWithSchedule[] | null;
-  ledger: PayrollLedgerEntry[] | null;
-  periodOptions: LedgerPeriodOption[];
   onChanged: () => void;
 }) {
   const { lang } = useLang();
@@ -70,12 +63,6 @@ export function EmployeeChargesTab({
         loans={loans}
         onChanged={onChanged}
       />
-
-      {filter === "all" && (
-        <div className="border-t border-border pt-3">
-          <OtherMovementsPanel employeeId={employee.id} entries={ledger} periodOptions={periodOptions} onChanged={onChanged} />
-        </div>
-      )}
 
       <AddChargeDialog
         open={addOpen}

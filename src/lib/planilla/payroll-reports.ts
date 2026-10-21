@@ -308,6 +308,7 @@ const LEDGER_GROUPS: { key: string; labelKey: string; descLabelKey: string; cate
   { key: "herramienta", labelKey: "li_herramientas", descLabelKey: "li_desc_herramientas", category: "herramienta" },
   { key: "dano", labelKey: "li_danos", descLabelKey: "li_desc_danos", category: "dano" },
   { key: "indrive", labelKey: "li_indrive", descLabelKey: "li_desc_indrive", category: "indrive" },
+  { key: "otro", labelKey: "li_otros", descLabelKey: "li_otros_descuentos", category: "otro" },
   // Los intereses de un préstamo se cobran dentro de sus cuotas (categoría del
   // préstamo): solo tienen línea de "otorgado", no de descuento propio.
   { key: "interes", labelKey: "li_interes", descLabelKey: "li_desc_interes", category: "interes", debtOnly: true },
@@ -362,7 +363,6 @@ export function computeAuditoriaRow(
   const descuentos = makeGroup("descuentos", "grp_descuentos", [
     makeLineItem("horas_descontadas", "li_horas_descontadas", pick((r) => -(r.entry?.horasDescontadasCents ?? 0))),
     makeLineItem("dias_descontados", "li_dias_descontados", pick((r) => -(r.entry?.diasDescontadosCents ?? 0))),
-    makeLineItem("otros", "li_otros_descuentos", pick((r) => -(r.entry?.otherDeductionCents ?? 0))),
   ]);
 
   const prestamosOtros = makeGroup(

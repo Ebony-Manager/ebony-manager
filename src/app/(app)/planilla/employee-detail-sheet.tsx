@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ChevronDown, ExternalLink, ListTree } from "lucide-react";
 
-import type { PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
+import type { PayrollEmployee, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { periodOrdinal, currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
 import { monthShort } from "@/lib/planilla/format";
@@ -12,9 +12,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getEmployeeAnnualDetailAction, getLedgerEntriesAction, getLoansAction } from "./actions";
+import { getEmployeeAnnualDetailAction, getLoansAction } from "./actions";
 import { EmployeeChargesTab } from "./employee-charges-tab";
-import type { LedgerPeriodOption } from "./ledger-entry-dialog";
 import { employeeProfilePath } from "@/lib/personal/paths";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
@@ -61,7 +60,6 @@ export function EmployeeDetailSheet({
   const [summaryView, setSummaryView] = React.useState<SummaryView>("quincena");
   const [showAll, setShowAll] = React.useState(false);
   const [loans, setLoans] = React.useState<PayrollLoanWithSchedule[] | null>(null);
-  const [ledger, setLedger] = React.useState<PayrollLedgerEntry[] | null>(null);
 
   const loadRows = React.useCallback(() => {
     if (!employeeId || !open) return;
@@ -83,7 +81,6 @@ export function EmployeeDetailSheet({
   const loadFinancing = React.useCallback(() => {
     if (!employeeId || !open) return;
     getLoansAction(employeeId).then(setLoans);
-    getLedgerEntriesAction(employeeId).then(setLedger);
   }, [employeeId, open]);
 
   React.useEffect(() => {
@@ -103,7 +100,6 @@ export function EmployeeDetailSheet({
     setRows(null);
     setRowsFailed(false);
     setLoans(null);
-    setLedger(null);
     setTab(initialTab);
     setShowAll(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- la pestaña inicial solo importa al abrir.
@@ -114,9 +110,6 @@ export function EmployeeDetailSheet({
     (r) => r.entry !== null || r.ledgerDebtCents > 0 || r.ledgerPaymentCents > 0
   );
 
-  const periodOptions: LedgerPeriodOption[] = (rows ?? [])
-    .filter((r) => r.entry !== null)
-    .map((r) => ({ payrollEntryId: r.entry!.id, year: r.year, month: r.month, half: r.half }));
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const current = currentPeriod();
@@ -136,7 +129,12 @@ export function EmployeeDetailSheet({
         r.entry ? r.entry.extraHoursCents + r.entry.extraDaysCents + r.entry.viaticosCents + r.entry.bonusCents : 0,
     },
     { key: "dias_libres", labelKey: "br_dias_libres", sign: 1, pick: (r) => r.entry?.diasLibresCents ?? 0 },
-    { key: "descuentos", labelKey: "br_descuentos", sign: -1, pick: (r) => r.entry?.otherDeductionCents ?? 0 },
+    {
+      key: "descuentos",
+      labelKey: "br_descuentos",
+      sign: -1,
+      pick: (r) => (r.entry ? r.entry.horasDescontadasCents + r.entry.diasDescontadosCents + r.entry.otherDeductionCents : 0),
+    },
     { key: "abono", labelKey: "br_abono", sign: -1, pick: (r) => r.ledgerPaymentCents },
   ];
 
@@ -192,7 +190,9 @@ export function EmployeeDetailSheet({
         row.entry.decimoPaidCents +
         row.entry.vacationPaidCents
       : 0,
-    deductions: row.entry ? row.entry.otherDeductionCents + row.ledgerPaymentCents : 0,
+    deductions: row.entry
+      ? row.entry.horasDescontadasCents + row.entry.diasDescontadosCents + row.entry.otherDeductionCents + row.ledgerPaymentCents
+      : 0,
     loans: row.ledgerDebtCents,
     total: row.totalCents,
   }));
@@ -467,8 +467,6 @@ export function EmployeeDetailSheet({
                 <EmployeeChargesTab
                   employee={employee}
                   loans={loans}
-                  ledger={ledger}
-                  periodOptions={periodOptions}
                   onChanged={handleChanged}
                 />
               )}

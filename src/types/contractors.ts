@@ -94,7 +94,8 @@ export type ContractorLedgerCategory =
   | "ajuste"
   | "herramienta"
   | "dano"
-  | "indrive";
+  | "indrive"
+  | "otro";
 
 /** `a_favor` sube el saldo (Ebony le debe más al contratista); `reduce`
  *  lo baja. */
@@ -140,7 +141,7 @@ export interface ContractorLedgerEntry {
 export interface ContractorLoanSummary {
   id: string;
   contractorId: string;
-  category: "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive";
+  category: "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro";
   requestDate: string;
   principalCents: number;
   interestCents: number;

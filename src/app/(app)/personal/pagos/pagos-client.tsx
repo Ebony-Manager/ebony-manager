@@ -228,8 +228,8 @@ export function PagosClient({
                   onVisibleColumnsChange={setVisibleColumns}
                   categoria={registroCategoria}
                   onCategoriaChange={setRegistroCategoria}
-                  onViewDetail={(id) => {
-                    setDetailTab("resumen");
+                  onViewDetail={(id, initialTab) => {
+                    setDetailTab(initialTab ?? "resumen");
                     setDetailEmployeeId(id);
                   }}
                   reloadSignal={registroReload}

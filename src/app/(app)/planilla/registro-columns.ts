@@ -25,7 +25,9 @@ export type FieldKey =
   | "decimoPaidCents"
   | "vacationPaidCents"
   | "primaAntiguedadPaidCents";
-export type ColumnKey = FieldKey | "paid";
+/** `loanPaymentCents`: las cuotas de préstamos y descuentos de la quincena
+ *  (solo lectura; se registran en Préstamos y descuentos). */
+export type ColumnKey = FieldKey | "loanPaymentCents" | "paid";
 
 /** Las cuatro columnas que se entran como cantidad (horas/días) en vez
  *  de un monto en dólares — la rejilla las pinta con un input de
@@ -49,7 +51,8 @@ type Entry = { es: string; en: string };
 /** Toda columna menos Empleado/Total es opcional. Secciones de color:
  *  Bonificaciones (verde) = horas extra, días extra, bonos, días libres
  *  (viáticos no tiene columna de captura en Registro); Descuentos (vino) =
- *  horas / días descontados y otros; Prestaciones (familia dorada) =
+ *  horas / días descontados y préstamos y descuentos (las cuotas, de solo
+ *  lectura); Prestaciones (familia dorada) =
  *  Décimo, Vacación y Prima, cada una con su propio tono vecino.
  *  Pagado no lleva categoría (va en la columna extrema nogal). Todos los
  *  pagos son por transferencia: no hay columna de método.
@@ -62,7 +65,7 @@ export const COLUMN_DEFS: { key: ColumnKey; label: Entry; category?: PayrollCate
   { key: "diasLibresCents", label: strings.planilla.col_dias_libres, category: "bonos" },
   { key: "horasDescontadasCents", label: strings.planilla.col_horas_desc, category: "descuentos" },
   { key: "diasDescontadosCents", label: strings.planilla.col_dias_desc, category: "descuentos" },
-  { key: "otherDeductionCents", label: strings.planilla.col_otros_desc, category: "descuentos" },
+  { key: "loanPaymentCents", label: strings.planilla.col_prestamos_desc, category: "descuentoPrestamos" },
   { key: "decimoPaidCents", label: strings.planilla.col_decimo, category: "decimo" },
   { key: "vacationPaidCents", label: strings.planilla.col_vacacion, category: "vacacion" },
   { key: "primaAntiguedadPaidCents", label: strings.planilla.col_prima, category: "prima" },
@@ -85,7 +88,7 @@ export const COLUMN_SECTIONS: { key: string; label: Entry; columns: ColumnKey[] 
   {
     key: "descuentos",
     label: strings.planilla.col_descuentos_simple,
-    columns: ["horasDescontadasCents", "diasDescontadosCents", "otherDeductionCents"],
+    columns: ["horasDescontadasCents", "diasDescontadosCents", "loanPaymentCents"],
   },
   {
     key: "prestaciones",

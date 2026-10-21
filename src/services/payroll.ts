@@ -297,20 +297,22 @@ export async function upsertEntry(input: UpsertEntryInput): Promise<PayrollEntry
 async function ledgerForEntryIds(
   supabase: SupabaseServerClient,
   entryIds: string[]
-): Promise<Map<string, { debt: number; payment: number }>> {
-  const byEntry = new Map<string, { debt: number; payment: number }>();
+): Promise<Map<string, { debt: number; payment: number; payments: QuincenaDeduction[] }>> {
+  const byEntry = new Map<string, { debt: number; payment: number; payments: QuincenaDeduction[] }>();
   if (entryIds.length === 0) return byEntry;
   const { data, error } = await supabase
     .from("payroll_ledger_entries")
-    .select("direction, amount_cents, payroll_entry_id")
+    .select("direction, amount_cents, payroll_entry_id, category, notes")
     .in("payroll_entry_id", entryIds)
     .neq("category", "seguro_social");
   if (error) throw new Error(error.message);
   for (const l of data ?? []) {
     if (!l.payroll_entry_id) continue;
-    const acc = byEntry.get(l.payroll_entry_id) ?? { debt: 0, payment: 0 };
-    if (l.direction === "payment") acc.payment += l.amount_cents;
-    else acc.debt += l.amount_cents;
+    const acc = byEntry.get(l.payroll_entry_id) ?? { debt: 0, payment: 0, payments: [] };
+    if (l.direction === "payment") {
+      acc.payment += l.amount_cents;
+      acc.payments.push({ category: l.category as LedgerCategory, amountCents: l.amount_cents, notes: l.notes });
+    } else acc.debt += l.amount_cents;
     byEntry.set(l.payroll_entry_id, acc);
   }
   return byEntry;
@@ -333,9 +335,19 @@ export async function getPeriodTotal(
   return computePeriodTotalFromEntry(entry, ledger);
 }
 
+/** Una cuota que se descuenta en la quincena (préstamo, adelanto, herramienta…). */
+export interface QuincenaDeduction {
+  category: LedgerCategory;
+  amountCents: number;
+  /** "Cuota 1 de 3", la nota del registro, etc. */
+  notes: string | null;
+}
+
 export interface RegistroRow {
   employee: PayrollEmployee;
   total: PayrollPeriodTotal;
+  /** Detalle de `total.ledgerPaymentCents`: las cuotas de esta quincena. */
+  deductions: QuincenaDeduction[];
   /** Sueldo mensual vigente en esa quincena (según el historial): el cliente lo
    *  usa para calcular al instante el monto de horas/días extra y descontados. */
   monthlySalaryCents: number;
@@ -369,7 +381,7 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
 
   return employees.map((employee) => {
     const row = entryByEmployee.get(employee.id) ?? null;
-    const ledger = row ? ledgerByEntry.get(row.id) ?? { debt: 0, payment: 0 } : { debt: 0, payment: 0 };
+    const ledger = (row && ledgerByEntry.get(row.id)) || { debt: 0, payment: 0, payments: [] };
     const changes = toSalaryChanges(salaryByEmployee.get(employee.id) ?? []);
     const baseCents = quincenaBaseCentsAt(changes, year, month, half);
     // Con fila real: se le sobrescribe la base con la del historial.
@@ -384,6 +396,7 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
     return {
       employee,
       total: computePeriodTotalFromEntry(entry, ledger),
+      deductions: ledger.payments,
       monthlySalaryCents: monthlySalaryAt(changes, year, month, half),
     };
   });
@@ -682,7 +695,7 @@ export async function deleteLedgerEntry(id: string): Promise<void> {
 // ============================================================================
 
 function toLoanCategory(c: string): LoanCategory {
-  return c === "adelanto" || c === "herramienta" || c === "dano" || c === "indrive" ? c : "prestamo";
+  return c === "adelanto" || c === "herramienta" || c === "dano" || c === "indrive" || c === "otro" ? c : "prestamo";
 }
 
 function mapLoan(r: LoanRow): PayrollLoan {

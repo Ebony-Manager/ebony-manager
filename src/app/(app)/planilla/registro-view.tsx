@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { PayrollEmployee, PayrollEntry } from "@/types/planilla";
+import type { LedgerCategory, PayrollEmployee, PayrollEntry } from "@/types/planilla";
+import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { computePeriodTotalFromEntry } from "@/lib/planilla/payroll-accruals";
 import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
 import { Button } from "@/components/ui/button";
@@ -90,21 +91,23 @@ function periodPayDate(p: { year: number; month: number; half: 1 | 2 }): Date {
   return p.half === 1 ? new Date(p.year, p.month - 1, 15) : new Date(p.year, p.month, 0);
 }
 
-function fieldMinWidth(c: { key: FieldKey }): number {
+function fieldMinWidth(c: { key: FieldKey | "loanPaymentCents" }): number {
+  if (c.key === "loanPaymentCents") return 120;
   return QUANTITY_FIELD_META[c.key] ? 96 : 88;
 }
 
 /** Columnas de la vista Simple que son una suma (todas de solo lectura).
  *  Prestaciones usa el tono "decimo" (dorado) como color de la sección. */
-type SimpleColumnKey = "base" | "bonificaciones" | "descuentos" | "prestaciones";
+type SimpleColumnKey = "base" | "bonificaciones" | "descuentos" | "prestamos" | "prestaciones";
 const SIMPLE_COLUMNS: {
   key: SimpleColumnKey;
-  labelKey: "col_salario_base" | "col_bonificaciones" | "col_descuentos_simple" | "col_prestaciones_simple";
+  labelKey: "col_salario_base" | "col_bonificaciones" | "col_descuentos_simple" | "col_prestamos_desc" | "col_prestaciones_simple";
   category: PayrollCategoryKey;
 }[] = [
   { key: "base", labelKey: "col_salario_base", category: "salario" },
   { key: "bonificaciones", labelKey: "col_bonificaciones", category: "bonos" },
   { key: "descuentos", labelKey: "col_descuentos_simple", category: "descuentos" },
+  { key: "prestamos", labelKey: "col_prestamos_desc", category: "descuentoPrestamos" },
   { key: "prestaciones", labelKey: "col_prestaciones_simple", category: "decimo" },
 ];
 
@@ -139,12 +142,14 @@ export function RegistroView({
   onVisibleColumnsChange: (columns: Record<ColumnKey, boolean>) => void;
   categoria: CategoriaFilter;
   onCategoriaChange: (categoria: CategoriaFilter) => void;
-  onViewDetail: (employeeId: string) => void;
+  /** Abre el detalle del empleado (opcional: en una pestaña, ej. "prestamos"). */
+  onViewDetail: (employeeId: string, tab?: string) => void;
   /** Sube cuando algo cambió fuera de esta tabla (ej. un préstamo desde la ventana del empleado): se vuelve a leer la quincena. */
   reloadSignal?: number;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const deductionLabel = (c: LedgerCategory) => tt(LEDGER_CATEGORY_LABEL_KEY[c] as keyof typeof strings.planilla);
 
   const [period, setPeriod] = React.useState(() => currentPeriod());
   // `rows` recuerda A QUÉ quincena pertenecen los datos. Si `period` ya
@@ -406,7 +411,7 @@ export function RegistroView({
   }
 
   const fieldColumns = COLUMN_DEFS.filter(
-    (c): c is { key: FieldKey; label: { es: string; en: string }; category?: PayrollCategoryKey } =>
+    (c): c is { key: FieldKey | "loanPaymentCents"; label: { es: string; en: string }; category?: PayrollCategoryKey } =>
       c.key !== "paid" && visibleColumns[c.key]
   );
   const visibleCount = 1 + COLUMN_DEFS.filter((c) => visibleColumns[c.key]).length;
@@ -670,7 +675,7 @@ export function RegistroView({
             </tr>
           </thead>
           <tbody>
-            {shownRows.map(({ employee, total }) => {
+            {shownRows.map(({ employee, total, deductions }) => {
               const key = employee.id;
               // Período de los datos que se están pintando (== `period`
               // mientras `visibleRows` no sea null). Los save* lo reciben
@@ -706,7 +711,29 @@ export function RegistroView({
                     </div>
                   </td>
                   {fieldColumns.map((c) => {
-                    const value = (total.entry?.[c.key] ?? 0) as number;
+                    // Préstamos y descuentos: las cuotas de esta quincena, de
+                    // solo lectura (se registran en Préstamos y descuentos).
+                    // Al pasar el mouse, el detalle; clic abre esa pestaña.
+                    if (c.key === "loanPaymentCents") {
+                      const cents = total.ledgerPaymentCents;
+                      const detail = deductions
+                        .map((d) => `${deductionLabel(d.category)}${d.notes ? ` (${d.notes})` : ""} · ${formatCents(d.amountCents)}`)
+                        .join("\n");
+                      return (
+                        <td key={c.key} className={`p-0 ${VEIL}`} style={fieldCellStyle(c.category, fieldMinWidth(c))}>
+                          <button
+                            type="button"
+                            onClick={() => onViewDetail(employee.id, "prestamos")}
+                            title={[detail, tt("col_prestamos_desc_hint")].filter(Boolean).join("\n\n")}
+                            className="block w-full px-3 py-1.5 text-right tabular-nums hover:underline"
+                          >
+                            {cents === 0 ? <span className="text-muted-foreground">–</span> : formatCents(-cents)}
+                          </button>
+                        </td>
+                      );
+                    }
+                    const fieldKey = c.key;
+                    const value = (total.entry?.[fieldKey] ?? 0) as number;
                     // "Base" es SOLO LECTURA: sale del historial de sueldos
                     // (sueldo vigente de esta quincena ÷ 2), ya no se edita
                     // a mano en la tabla.
@@ -774,7 +801,7 @@ export function RegistroView({
                             // Igual que las cantidades: sin cambio real
                             // respecto a lo guardado, no se escribe.
                             if (nextCents === (value || 0)) return;
-                            saveField(key, p, c.key, e.target.value);
+                            saveField(key, p, fieldKey, e.target.value);
                           }}
                           className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none"
                         />
@@ -884,6 +911,7 @@ export function RegistroView({
                   base: sums.baseCents,
                   bonificaciones: sums.bonificacionesCents,
                   descuentos: -sums.descuentosCents,
+                  prestamos: -total.ledgerPaymentCents,
                   prestaciones: sums.prestacionesCents,
                 };
                 return (
@@ -955,7 +983,7 @@ export function RegistroView({
             {visibleRows && shownRows.length > 0 && (
               <tfoot>
                 <tr className={`border-t border-ink-900/8 ${PAYROLL_FOOT_BG_CLASS}`}>
-                  <td className="py-3 pr-3 pl-3 text-right text-[12.5px] font-semibold text-ink-900/60" colSpan={6}>
+                  <td className="py-3 pr-3 pl-3 text-right text-[12.5px] font-semibold text-ink-900/60" colSpan={7}>
                     {searching ? `${tt("emp_search_total")} (${shownRows.length})` : tt("total_quincena")}
                   </td>
                   <td className="px-3 py-3 text-right text-[14px] font-bold tabular-nums text-ink-900">

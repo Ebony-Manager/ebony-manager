@@ -194,7 +194,7 @@ export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
 
 /** Lo que se financia a cuotas: dinero (préstamo/adelanto) o una compra
  *  (herramienta) / un cobro (daño). */
-export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive";
+export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro";
 
 /** Cómo se calculó el interés de un préstamo. */
 export type LoanInterestMode = "monthly_pct" | "total_pct" | "fixed";

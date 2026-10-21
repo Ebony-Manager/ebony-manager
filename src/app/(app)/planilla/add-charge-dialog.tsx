@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Banknote, Car, ChevronDown, HandCoins, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Banknote, Car, ChevronDown, HandCoins, ReceiptText, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 import type { LoanCategory } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const TYPES: { value: LoanCategory; icon: LucideIcon; hint: keyof typeof strings
   { value: "herramienta", icon: Wrench, hint: "add_hint_herramienta" },
   { value: "dano", icon: TriangleAlert, hint: "add_hint_dano" },
   { value: "indrive", icon: Car, hint: "add_hint_indrive" },
+  { value: "otro", icon: ReceiptText, hint: "add_hint_otro" },
 ];
 
 const TYPE_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -34,6 +35,7 @@ const TYPE_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   herramienta: "loan_new_herramienta",
   dano: "loan_new_dano",
   indrive: "loan_new_indrive",
+  otro: "loan_new_otro",
 };
 
 /**

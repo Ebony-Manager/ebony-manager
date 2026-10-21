@@ -757,6 +757,7 @@ const LOAN_LABEL: Record<LoanCategory, string> = {
   herramienta: "Herramienta",
   dano: "Daño",
   indrive: "InDrive",
+  otro: "Otro descuento",
 };
 
 export async function createContractorLoan(input: ContractorLoanInput): Promise<void> {

@@ -27,7 +27,7 @@ import {
   type ContractorLoanResult,
 } from "../../contratistas/actions";
 
-const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive"]);
+const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro"]);
 
 /** Una fila de la lista: de un empleado o de un contratista, con el mismo formato. */
 interface ChargeRow {
