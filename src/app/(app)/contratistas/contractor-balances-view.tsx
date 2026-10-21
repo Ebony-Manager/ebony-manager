@@ -37,7 +37,8 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
     () => computeContractorsDashboard(input.contractors, input.entries, new Map(input.projectNames), period),
     [input, period]
   );
-  const tableRows = [...data.contractors].sort(
+  // Lista de cuentas: solo activos (a nadie se inactiva sin saldar su saldo).
+  const tableRows = data.contractors.filter((c) => c.contractor.status === "ACTIVE").sort(
     (a, b) => b.balanceCents - a.balanceCents || b.deliveredCents - a.deliveredCents
   );
 
