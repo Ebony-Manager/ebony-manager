@@ -73,6 +73,7 @@ export const strings = {
     col_type: { es: "Tipo", en: "Type" },
     col_department: { es: "Departamento", en: "Department" },
     col_position: { es: "Puesto", en: "Position" },
+    col_since: { es: "Desde", en: "Since" },
     dept_taller: { es: "Taller", en: "Workshop" },
     dept_pintura: { es: "Pintura", en: "Painting" },
     dept_administrativo: { es: "Administrativo", en: "Administrative" },

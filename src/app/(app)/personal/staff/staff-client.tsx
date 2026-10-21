@@ -19,6 +19,7 @@ import { breadcrumbFor } from "@/components/layout/nav-items";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { formatDateCompact } from "@/lib/planilla/format";
 import { filterTeam, type TeamFilter, type TeamMember } from "@/lib/personal/team";
 import { EmployeeAvatar } from "../../planilla/employee-avatar";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
@@ -223,7 +224,7 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_20px]";
+const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_20px]";
 
 function TeamList({
   members,
@@ -245,6 +246,7 @@ function TeamList({
         <span>{tt("col_type")}</span>
         <span>{tt("col_department")}</span>
         <span>{tt("col_position")}</span>
+        <span>{tt("col_since")}</span>
         <span />
       </div>
       <ul className="divide-y divide-border">
@@ -274,7 +276,7 @@ function TeamList({
                 </div>
               </div>
 
-              <ChevronRight className="col-start-2 row-start-1 size-4 text-muted-foreground md:col-start-5" />
+              <ChevronRight className="col-start-2 row-start-1 size-4 text-muted-foreground md:col-start-6" />
 
               {/* En el celular, tipo · departamento · puesto van en una sola línea bajo el nombre. */}
               <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
@@ -288,6 +290,23 @@ function TeamList({
                   {/* Los contratistas no tienen puesto: va su oficio (Ebanista / Pintor). */}
                   {m.position ?? (m.kind === "contractor" ? tt(`group_${m.group}`) : "—")}
                 </div>
+              </div>
+
+              <div
+                className={cn(
+                  "col-span-2 text-xs text-muted-foreground md:col-span-1 md:col-start-5 md:row-start-1",
+                  !m.startDate && "hidden md:block"
+                )}
+              >
+                {m.startDate ? (
+                  <>
+                    {/* En el celular no hay encabezado de columna: la fecha lleva su etiqueta. */}
+                    <span className="md:hidden">{tt("col_since")} </span>
+                    {formatDateCompact(lang, m.startDate)}
+                  </>
+                ) : (
+                  "—"
+                )}
               </div>
             </Link>
           </li>
