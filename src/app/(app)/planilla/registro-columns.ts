@@ -25,7 +25,7 @@ export type FieldKey =
   | "decimoPaidCents"
   | "vacationPaidCents"
   | "primaAntiguedadPaidCents";
-export type ColumnKey = FieldKey | "paymentMethod" | "paid";
+export type ColumnKey = FieldKey | "paid";
 
 /** Las cuatro columnas que se entran como cantidad (horas/días) en vez
  *  de un monto en dólares — la rejilla las pinta con un input de
@@ -51,7 +51,8 @@ type Entry = { es: string; en: string };
  *  (viáticos no tiene columna de captura en Registro); Descuentos (vino) =
  *  horas / días descontados y otros; Prestaciones (familia dorada) =
  *  Décimo, Vacación y Prima, cada una con su propio tono vecino.
- *  Método/Pagado no llevan categoría (van en la columna extrema nogal).
+ *  Pagado no lleva categoría (va en la columna extrema nogal). Todos los
+ *  pagos son por transferencia: no hay columna de método.
  *  Todas visibles por defecto. */
 export const COLUMN_DEFS: { key: ColumnKey; label: Entry; category?: PayrollCategoryKey }[] = [
   { key: "basePayCents", label: strings.planilla.col_base, category: "salario" },
@@ -65,7 +66,6 @@ export const COLUMN_DEFS: { key: ColumnKey; label: Entry; category?: PayrollCate
   { key: "decimoPaidCents", label: strings.planilla.col_decimo, category: "decimo" },
   { key: "vacationPaidCents", label: strings.planilla.col_vacacion, category: "vacacion" },
   { key: "primaAntiguedadPaidCents", label: strings.planilla.col_prima, category: "prima" },
-  { key: "paymentMethod", label: strings.planilla.col_metodo },
   { key: "paid", label: strings.planilla.col_pagado },
 ];
 
@@ -75,7 +75,7 @@ export function defaultVisibleColumns(): Record<ColumnKey, boolean> {
 
 /** Secciones del menú "Vista": esconden / muestran de un golpe un grupo de
  *  columnas (p. ej. Décimo + Vacación + Prima juntos). Las columnas sueltas
- *  (Base, Método, Pagado) se manejan una por una. */
+ *  (Base, Pagado) se manejan una por una. */
 export const COLUMN_SECTIONS: { key: string; label: Entry; columns: ColumnKey[] }[] = [
   {
     key: "bonificaciones",

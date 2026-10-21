@@ -154,7 +154,7 @@ function mapEntry(r: EntryRow): PayrollEntry {
     decimoPaidCents: r.decimo_paid_cents,
     vacationPaidCents: r.vacation_paid_cents,
     primaAntiguedadPaidCents: r.prima_antiguedad_paid_cents,
-    paymentMethod: (r.payment_method as PaymentMethod) ?? "efectivo",
+    paymentMethod: (r.payment_method as PaymentMethod) ?? "transferencia",
     paid: r.paid,
     paidAt: r.paid_at,
     notes: r.notes,
@@ -427,7 +427,7 @@ export async function duplicatePreviousPeriod(year: number, month: number, half:
       periodYear: year,
       periodMonth: month,
       periodHalf: half,
-      paymentMethod: (src.payment_method as PaymentMethod) ?? "efectivo",
+      paymentMethod: (src.payment_method as PaymentMethod) ?? "transferencia",
     });
     copied += 1;
   }

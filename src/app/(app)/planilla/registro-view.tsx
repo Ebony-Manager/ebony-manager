@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { PayrollEmployee, PayrollEntry, PaymentMethod } from "@/types/planilla";
+import type { PayrollEmployee, PayrollEntry } from "@/types/planilla";
 import { computePeriodTotalFromEntry } from "@/lib/planilla/payroll-accruals";
 import { hourlyRateCents, dailyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
 import { Button } from "@/components/ui/button";
@@ -207,14 +207,9 @@ export function RegistroView({
             benefits: tt("col_prestaciones_simple"),
             loan: tt("pdf_col_loan"),
             net: tt("pdf_col_net"),
-            method: tt("col_metodo"),
             paid: tt("col_pagado"),
           },
           total: tt("col_total"),
-          byMethodTitle: tt("pdf_by_method"),
-          methodCount: tt("pdf_count"),
-          methodNet: tt("col_total"),
-          methodName: (m) => PAYMENT_METHOD_LABEL[m as PaymentMethod] ?? m,
           yes: tt("pdf_yes"),
           page: tt("pdf_page"),
         },
@@ -384,14 +379,6 @@ export function RegistroView({
     );
   }
 
-  async function savePaymentMethod(employeeId: string, p: Period, paymentMethod: PaymentMethod) {
-    const optimistic = patchEntryNow(employeeId, { paymentMethod });
-    await persist(
-      { employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, paymentMethod },
-      optimistic
-    );
-  }
-
   async function togglePaid(employeeId: string, p: Period, paid: boolean) {
     const optimistic = patchEntryNow(employeeId, { paid, paidAt: paid ? new Date().toISOString() : null });
     await persist({ employeeId, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, paid }, optimistic);
@@ -408,13 +395,6 @@ export function RegistroView({
     }
   }
 
-  const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
-    efectivo: tt("pm_efectivo"),
-    transferencia: tt("pm_transferencia"),
-    yappy: tt("pm_yappy"),
-    cheque: tt("pm_cheque"),
-  };
-
   const quincenaLabel = (half: 1 | 2) => (half === 1 ? tt("quincena_1") : tt("quincena_2"));
 
   if (employees.length === 0) {
@@ -427,17 +407,15 @@ export function RegistroView({
 
   const fieldColumns = COLUMN_DEFS.filter(
     (c): c is { key: FieldKey; label: { es: string; en: string }; category?: PayrollCategoryKey } =>
-      c.key !== "paymentMethod" && c.key !== "paid" && visibleColumns[c.key]
+      c.key !== "paid" && visibleColumns[c.key]
   );
   const visibleCount = 1 + COLUMN_DEFS.filter((c) => visibleColumns[c.key]).length;
 
   // Fila de KPIs — derivada de las mismas `rows` que pinta la tabla,
   // nunca un query aparte, para que nunca discrepen.
   const totalCents = allRows.reduce((sum, r) => sum + r.total.totalCents, 0);
-  const cashCents = allRows.reduce(
-    (sum, r) => sum + ((r.total.entry?.paymentMethod ?? "transferencia") === "efectivo" ? r.total.totalCents : 0),
-    0
-  );
+  // Cuotas de préstamos y descuentos que se descuentan en esta quincena.
+  const loansCents = allRows.reduce((sum, r) => sum + r.total.ledgerPaymentCents, 0);
   const decimoCents = allRows.reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
   const descuentosCents = allRows.reduce(
     (sum, r) =>
@@ -471,9 +449,9 @@ export function RegistroView({
         />
         <RegistroKpiCard
           icon={Banknote}
-          label={tt("kpi_cash")}
-          value={formatCents(cashCents)}
-          sublabel={pct(cashCents)}
+          label={tt("kpi_loan_installments")}
+          value={formatCents(loansCents)}
+          sublabel={pct(loansCents)}
         />
         <RegistroKpiCard
           icon={Award}
@@ -684,9 +662,6 @@ export function RegistroView({
                   {t(lang, c.label)}
                 </th>
               ))}
-              {visibleColumns.paymentMethod && (
-                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">{tt("col_metodo")}</th>
-              )}
               {visibleColumns.paid && (
                 <th className="px-3 py-2 text-center font-medium">{tt("col_pagado")}</th>
               )}
@@ -806,28 +781,6 @@ export function RegistroView({
                       </td>
                     );
                   })}
-                  {visibleColumns.paymentMethod && (
-                    <td className={`${extreme} px-2 py-1 ${VEIL}`}>
-                      <Select
-                        value={total.entry?.paymentMethod ?? "transferencia"}
-                        onValueChange={(v) => {
-                          if ((v as PaymentMethod) === (total.entry?.paymentMethod ?? "transferencia")) return;
-                          savePaymentMethod(key, p, v as PaymentMethod);
-                        }}
-                      >
-                        <SelectTrigger className="h-8 w-32 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {PAYMENT_METHOD_LABEL[value]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                  )}
                   {visibleColumns.paid && (
                     <td className={`${extreme} px-3 py-1.5 text-center ${VEIL}`}>
                       <input
@@ -919,9 +872,6 @@ export function RegistroView({
                 <th className="px-3 py-[11px] text-center text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase">
                   {tt("col_pagado")}
                 </th>
-                <th className="px-3 py-[11px] text-left text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase">
-                  {tt("col_metodo")}
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -998,26 +948,6 @@ export function RegistroView({
                         </button>
                       </div>
                     </td>
-                    <td className={`${extreme} px-3 py-[13px] ${VEIL}`}>
-                      <Select
-                        value={e?.paymentMethod ?? "transferencia"}
-                        onValueChange={(v) => {
-                          if ((v as PaymentMethod) === (e?.paymentMethod ?? "transferencia")) return;
-                          savePaymentMethod(key, p, v as PaymentMethod);
-                        }}
-                      >
-                        <SelectTrigger className="h-auto w-fit gap-1.5 rounded-[7px] border-ink-900/12 px-[9px] py-1 text-[12px] font-medium text-ink-900/60 shadow-none">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {PAYMENT_METHOD_LABEL[value]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
                   </tr>
                 );
               })}
@@ -1031,7 +961,7 @@ export function RegistroView({
                   <td className="px-3 py-3 text-right text-[14px] font-bold tabular-nums text-ink-900">
                     {formatCents(shownTotalCents)}
                   </td>
-                  <td colSpan={2} />
+                  <td />
                 </tr>
               </tfoot>
             )}

@@ -307,7 +307,7 @@ export const strings = {
     },
 
     kpi_total_due: { es: "Total a Pagar", en: "Total to Pay" },
-    kpi_cash: { es: "Pago en Efectivo", en: "Cash Payment" },
+    kpi_loan_installments: { es: "Cuotas de préstamos y descuentos", en: "Loan & deduction installments" },
     kpi_decimo: { es: "Décimo del período", en: "13th month, this period" },
     kpi_deductions: { es: "Descuentos del período", en: "Deductions, this period" },
     kpi_next_pay: { es: "Próximo pago", en: "Next pay date" },
@@ -421,8 +421,6 @@ export const strings = {
     pdf_generated: { es: "Generado el", en: "Generated on" },
     pdf_col_loan: { es: "Cuota préstamo", en: "Loan repayment" },
     pdf_col_net: { es: "Neto a pagar", en: "Net pay" },
-    pdf_by_method: { es: "Por método de pago", en: "By payment method" },
-    pdf_count: { es: "Empleados", en: "Employees" },
     pdf_yes: { es: "Sí", en: "Yes" },
     pdf_page: { es: "Página", en: "Page" },
     mr_title: { es: "Solicitudes de dinero", en: "Money requests" },
@@ -515,15 +513,10 @@ export const strings = {
     col_decimo: { es: "Décimo", en: "13th Month" },
     col_vacacion: { es: "Vacación", en: "Vacation" },
     col_prima: { es: "Prima Antigüedad", en: "Seniority Premium" },
-    col_metodo: { es: "Método", en: "Method" },
     col_pagado: { es: "Pagado", en: "Paid" },
     col_total: { es: "Total", en: "Total" },
     total_quincena: { es: "Total quincena", en: "Period total" },
 
-    pm_efectivo: { es: "Efectivo", en: "Cash" },
-    pm_transferencia: { es: "Transferencia", en: "Transfer" },
-    pm_yappy: { es: "Yappy", en: "Yappy" },
-    pm_cheque: { es: "Cheque", en: "Check" },
 
     empty_registro: {
       es: "Agrega al menos un empleado para empezar a registrar pagos.",
