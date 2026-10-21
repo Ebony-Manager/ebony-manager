@@ -63,31 +63,22 @@ import {
 } from "@/lib/planilla/saved-view";
 import toast from "react-hot-toast";
 
-const LEGEND_CATEGORIES: PayrollCategoryKey[] = [
-  "salario",
-  "decimo",
-  "bonos",
-  "descuentos",
-  "descuentoPrestamos",
-  "prestamos",
-];
+const LEGEND_CATEGORIES: PayrollCategoryKey[] = ["salario", "bonos", "descuentos", "descuentoPrestamos", "decimo"];
 
 const GROUP_CATEGORY: Record<string, PayrollCategoryKey> = {
   salarios: "salario",
   prestaciones: "decimo",
   bonificaciones: "bonos",
   descuentos: "descuentos",
-  prestamos_otros: "prestamos",
   descuento_prestamos: "descuentoPrestamos",
 };
 
 const GROUP_DEFS: { key: string; labelKey: keyof typeof strings.planilla }[] = [
   { key: "salarios", labelKey: "grp_salarios" },
-  { key: "prestaciones", labelKey: "grp_prestaciones" },
   { key: "bonificaciones", labelKey: "grp_bonificaciones" },
   { key: "descuentos", labelKey: "grp_descuentos" },
-  { key: "prestamos_otros", labelKey: "grp_prestamos_otros" },
   { key: "descuento_prestamos", labelKey: "grp_descuento_prestamos" },
+  { key: "prestaciones", labelKey: "grp_prestaciones" },
 ];
 
 // Memoria de sesión (sobrevive a cambiar de pestaña, no a recargar). Lo

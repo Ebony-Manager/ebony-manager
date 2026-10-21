@@ -12,14 +12,7 @@ export type Densidad = "comprimida" | "expandida";
 export type NivelDetalle = "macro" | "quincenal" | "concepto" | "micro";
 export type StatusFilter = "todos" | "activo" | "inactivo";
 
-export const GROUP_KEYS = [
-  "salarios",
-  "prestaciones",
-  "bonificaciones",
-  "descuentos",
-  "prestamos_otros",
-  "descuento_prestamos",
-] as const;
+export const GROUP_KEYS = ["salarios", "bonificaciones", "descuentos", "descuento_prestamos", "prestaciones"] as const;
 
 export interface AuditoriaSavedView {
   palette: PayrollPalette;

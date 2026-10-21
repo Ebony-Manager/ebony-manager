@@ -469,17 +469,11 @@ export const strings = {
       es: "Las filas en gris son descuentos ya programados que todavía no llegan.",
       en: "Grey rows are scheduled deductions that haven't happened yet.",
     },
-    vista_menu_modo: { es: "Vista", en: "Layout" },
     vista_menu_colores: { es: "Colores", en: "Colors" },
     vista_menu_secciones: { es: "Secciones", en: "Sections" },
-    vista_menu_columnas: { es: "Columnas", en: "Columns" },
     vista_menu_opciones: { es: "Opciones", en: "Options" },
     vista_menu_nivel: { es: "Nivel de detalle", en: "Detail level" },
     vista_menu_densidad: { es: "Densidad", en: "Density" },
-    vista_menu_simple_hint: {
-      es: "En la vista Simple las columnas son fijas; cambia a Expandida para elegirlas.",
-      en: "Simple view has fixed columns; switch to Expanded to choose them.",
-    },
     vista_guardar: { es: "Guardar como mi vista", en: "Save as my view" },
     vista_restablecer: { es: "Restablecer vista original", en: "Reset to original view" },
     vista_guardada: { es: "Vista guardada: se abrirá así por defecto.", en: "View saved: it will open like this by default." },
@@ -496,8 +490,6 @@ export const strings = {
     emp_number_title: { es: "N.º de empleado", en: "Employee no." },
     period_year_label: { es: "Año", en: "Year" },
     period_pick_label: { es: "Ir a la quincena", en: "Go to period" },
-    col_bonificaciones: { es: "Bonificaciones", en: "Bonuses" },
-    col_descuentos_simple: { es: "Descuentos", en: "Deductions" },
     col_prestaciones_simple: { es: "Prestaciones", en: "Benefits" },
     col_extra_hours: { es: "Horas Extra", en: "Overtime Hours" },
     col_extra_days: { es: "Días Extra", en: "Extra Days" },
@@ -506,7 +498,19 @@ export const strings = {
     col_horas_desc: { es: "Horas Descontadas", en: "Docked Hours" },
     col_dias_desc: { es: "Días Descontados", en: "Docked Days" },
     col_prestamos_desc: { es: "Préstamos y descuentos", en: "Loans & deductions" },
-    col_prestamos_desc_hint: { es: "Clic para ver o agregar en Préstamos y descuentos", en: "Click to view or add in Loans & deductions" },
+    // Quincena como recibo + ventana para editar la quincena de una persona.
+    qe_extras: { es: "Extras", en: "Extras" },
+    qe_asistencia: { es: "Asistencia", en: "Attendance" },
+    qe_asistencia_hint: {
+      es: "Horas y días descontados: normalmente llegan solos desde la pestaña Asistencia.",
+      en: "Docked hours and days: they usually come in on their own from the Attendance tab.",
+    },
+    qe_loans_open: { es: "Ver o agregar", en: "View or add" },
+    qe_loans_none: { es: "Nada que descontar esta quincena.", en: "Nothing to deduct this pay period." },
+    qe_net: { es: "Neto", en: "Net" },
+    qe_save: { es: "Guardar", en: "Save" },
+    qe_saved: { es: "Quincena guardada", en: "Pay period saved" },
+    qe_row_hint: { es: "Clic para editar la quincena", en: "Click to edit the pay period" },
     col_decimo: { es: "Décimo", en: "13th Month" },
     col_vacacion: { es: "Vacación", en: "Vacation" },
     col_prima: { es: "Prima Antigüedad", en: "Seniority Premium" },
@@ -605,32 +609,9 @@ export const strings = {
     loan_edit_amount_hint: { es: "Déjalo en 0 para saltar esta cuota.", en: "Leave it at 0 to skip this installment." },
     loan_edit_saved: { es: "Cuota actualizada", en: "Installment updated" },
 
-    movimientos_title: { es: "Herramientas, daños y otros movimientos", en: "Tools, damages & other movements" },
-    movimiento_add: { es: "Agregar movimiento", en: "Add movement" },
-    movimientos_empty: { es: "Sin movimientos registrados.", en: "No movements on record." },
-    mov_dlg_title: { es: "Agregar movimiento", en: "Add movement" },
-    mov_dlg_desc: {
-      es: "Herramienta, daño u otro cargo/abono — préstamos y adelantos se registran aparte, con su calendario de cuotas.",
-      en: "Tool, damage or other charge/credit — loans and advances are recorded separately, with their installment schedule.",
-    },
     mov_f_category: { es: "Categoría", en: "Category" },
-    mov_f_type: { es: "Tipo", en: "Type" },
-    mov_type_debt: { es: "Otorgado (el empleado lo debe)", en: "Charged (employee owes it)" },
-    mov_type_payment: { es: "Abono (el empleado pagó)", en: "Credit (employee paid)" },
-    mov_f_amount: { es: "Monto", en: "Amount" },
     mov_f_date: { es: "Fecha", en: "Date" },
-    mov_f_apply_period: { es: "Aplicar a la quincena (opcional)", en: "Apply to period (optional)" },
-    mov_period_none: { es: "Ninguna — no aplica a una quincena específica", en: "None — not tied to a period" },
-    mov_period_hint: {
-      es: "Un abono solo se descuenta del total de esa quincena si se aplica a una.",
-      en: "A credit only reduces a period's total if it is applied to one.",
-    },
     mov_f_notes: { es: "Notas", en: "Notes" },
-    mov_col_date: { es: "Fecha", en: "Date" },
-    mov_col_category: { es: "Categoría", en: "Category" },
-    mov_col_period: { es: "Quincena", en: "Period" },
-    mov_col_amount: { es: "Monto", en: "Amount" },
-    mov_col_notes: { es: "Notas", en: "Notes" },
     mov_delete_title: { es: "Eliminar movimiento", en: "Delete movement" },
 
     ledger_cat_prestamo: { es: "Préstamo", en: "Loan" },
@@ -754,7 +735,6 @@ export const strings = {
     },
     ledger_cat_interes: { es: "Intereses", en: "Interest" },
     li_interes: { es: "Intereses", en: "Interest" },
-    li_desc_interes: { es: "Intereses", en: "Interest" },
     lo_kpi_interest: { es: "Intereses (ganancia)", en: "Interest (income)" },
     lo_kpi_interest_of: { es: "cobrado de", en: "collected of" },
     lo_interest_short: { es: "intereses", en: "interest" },
@@ -783,7 +763,6 @@ export const strings = {
     loan_edit_no_change: { es: "Sin cambios en las demás cuotas.", en: "No change to the other installments." },
 
     // Otros movimientos (pestaña de herramientas y daños)
-    other_mov_title: { es: "Otros descuentos (seguro social, carnet…)", en: "Other deductions (social security, ID card…)" },
 
     // InDrive
 
@@ -910,12 +889,11 @@ export const strings = {
     total_planilla: { es: "Total Planilla", en: "Payroll Total" },
     total_general: { es: "Total General", en: "Grand Total" },
     quincena_base: { es: "Quincena Base", en: "Base Period" },
-    grp_salarios: { es: "Salarios", en: "Salaries" },
+    grp_salarios: { es: "Salario base", en: "Base salary" },
     grp_prestaciones: { es: "Prestaciones", en: "Benefits" },
-    grp_bonificaciones: { es: "Bonificaciones & Extras", en: "Bonuses & Extras" },
-    grp_descuentos: { es: "Descuentos", en: "Deductions" },
-    grp_prestamos_otros: { es: "Préstamos & Otros", en: "Loans & Others" },
-    grp_descuento_prestamos: { es: "Descuento a Préstamos", en: "Loan Deductions" },
+    grp_bonificaciones: { es: "Extras", en: "Extras" },
+    grp_descuentos: { es: "Asistencia", en: "Attendance" },
+    grp_descuento_prestamos: { es: "Préstamos y descuentos", en: "Loans & deductions" },
     li_quincena_base: { es: "Quincena Base", en: "Base Period" },
     li_dias_libres: { es: "Días Libres", en: "Paid Days Off" },
     li_decimo: { es: "Décimo", en: "13th Month" },
@@ -935,11 +913,6 @@ export const strings = {
     li_danos: { es: "Daños", en: "Damages" },
     li_indrive: { es: "InDrive", en: "InDrive" },
     li_otros: { es: "Otros", en: "Other" },
-    li_desc_prestamos: { es: "Descuento a Préstamos", en: "Loan Deduction" },
-    li_desc_adelantos: { es: "Descuento a Adelantos", en: "Advance Deduction" },
-    li_desc_herramientas: { es: "Descuento a Herramientas", en: "Tool Deduction" },
-    li_desc_danos: { es: "Descuento por Daños", en: "Damage Deduction" },
-    li_desc_indrive: { es: "Descuento de InDrive", en: "InDrive Deduction" },
 
     // Sueldo / Aumentos
     base_readonly_hint: {
@@ -1155,12 +1128,6 @@ export const strings = {
     // Bonificaciones / Descuentos / Prestaciones / Total / Pagado /
     // Método — solo lectura salvo Método y Pagado. Para capturar Horas
     // Extra, Bonos, Días Libres, Décimo y demás hay que pasar a Expandida.
-    registro_view_simple: { es: "Simple", en: "Simple" },
-    registro_view_expanded: { es: "Expandida", en: "Expanded" },
-    registro_view_toggle_hint: {
-      es: "Simple muestra solo lo esencial — para Horas Extra, Bonos y demás columnas, pasa a Expandida.",
-      en: "Simple shows only the essentials — switch to Expanded for Overtime, Bonuses and the rest.",
-    },
     compact_col_bonif: { es: "Total bonificaciones", en: "Total bonuses" },
     compact_col_desc: { es: "Total descuentos", en: "Total deductions" },
     compact_col_prestaciones: { es: "Total prestaciones", en: "Total benefits" },

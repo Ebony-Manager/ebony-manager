@@ -16,7 +16,7 @@ import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { AUDITORIA_VIEW_KEY, readSavedView, REGISTRO_VIEW_KEY } from "@/lib/planilla/saved-view";
+import { AUDITORIA_VIEW_KEY, readSavedView } from "@/lib/planilla/saved-view";
 import { AsistenciaView } from "../../planilla/asistencia-view";
 import { RegistroView } from "../../planilla/registro-view";
 import { AuditoriaView } from "../../planilla/auditoria-view";
@@ -25,7 +25,7 @@ import { EmployeeDetailSheet } from "../../planilla/employee-detail-sheet";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
 import { AddChargeDialog, type ChargePerson } from "../../planilla/add-charge-dialog";
 import { ChargeTypeChips, type ChargeTypeFilter } from "../../planilla/employee-charges-tab";
-import { type CategoriaFilter, defaultVisibleColumns, sanitizeRegistroView } from "../../planilla/registro-columns";
+import type { CategoriaFilter } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
 import { ChargesListView } from "./charges-list-view";
@@ -118,7 +118,6 @@ export function PagosClient({
   // Sube cada vez que algo cambia lo que muestra la Quincena (o Préstamos).
   const [registroReload, setRegistroReload] = React.useState(0);
   const reload = () => setRegistroReload((n) => n + 1);
-  const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
   const [registroCategoria, setRegistroCategoria] = React.useState<CategoriaFilter>("todos");
   const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
   const [loansFilter, setLoansFilter] = React.useState<LoansFilter>(canEmployees ? "todos" : "contratistas");
@@ -140,11 +139,6 @@ export function PagosClient({
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
-    const registro = readSavedView(REGISTRO_VIEW_KEY, sanitizeRegistroView);
-    if (registro) {
-      setVisibleColumns(registro.visibleColumns);
-      setRegistroCategoria(registro.categoria);
-    }
     const auditoria = readSavedView(AUDITORIA_VIEW_KEY, sanitizeAuditoriaView);
     if (auditoria) setAuditoriaCategoria(auditoria.categoria);
   }, []);
@@ -224,10 +218,6 @@ export function PagosClient({
               <TabsContent value="quincena" className="pt-0">
                 <RegistroView
                   employees={byCategoria(employees, registroCategoria)}
-                  visibleColumns={visibleColumns}
-                  onVisibleColumnsChange={setVisibleColumns}
-                  categoria={registroCategoria}
-                  onCategoriaChange={setRegistroCategoria}
                   onViewDetail={(id, initialTab) => {
                     setDetailTab(initialTab ?? "resumen");
                     setDetailEmployeeId(id);

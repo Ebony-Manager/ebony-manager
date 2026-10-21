@@ -302,16 +302,14 @@ function ledgerAmountsByQuincena(
   return periods;
 }
 
-const LEDGER_GROUPS: { key: string; labelKey: string; descLabelKey: string; category: string; debtOnly?: boolean }[] = [
-  { key: "prestamo", labelKey: "li_prestamos", descLabelKey: "li_desc_prestamos", category: "prestamo" },
-  { key: "adelanto", labelKey: "li_adelantos", descLabelKey: "li_desc_adelantos", category: "adelanto" },
-  { key: "herramienta", labelKey: "li_herramientas", descLabelKey: "li_desc_herramientas", category: "herramienta" },
-  { key: "dano", labelKey: "li_danos", descLabelKey: "li_desc_danos", category: "dano" },
-  { key: "indrive", labelKey: "li_indrive", descLabelKey: "li_desc_indrive", category: "indrive" },
-  { key: "otro", labelKey: "li_otros", descLabelKey: "li_otros_descuentos", category: "otro" },
-  // Los intereses de un préstamo se cobran dentro de sus cuotas (categoría del
-  // préstamo): solo tienen línea de "otorgado", no de descuento propio.
-  { key: "interes", labelKey: "li_interes", descLabelKey: "li_desc_interes", category: "interes", debtOnly: true },
+/** Las cuotas que se descuentan, por tipo (grupo "Préstamos y descuentos"). */
+const LEDGER_GROUPS: { key: string; labelKey: string; category: string }[] = [
+  { key: "prestamo", labelKey: "li_prestamos", category: "prestamo" },
+  { key: "adelanto", labelKey: "li_adelantos", category: "adelanto" },
+  { key: "herramienta", labelKey: "li_herramientas", category: "herramienta" },
+  { key: "dano", labelKey: "li_danos", category: "dano" },
+  { key: "indrive", labelKey: "li_indrive", category: "indrive" },
+  { key: "otro", labelKey: "li_otros", category: "otro" },
 ];
 
 /** Una fila de Auditoría (6 grupos de concepto a granularidad de 24
@@ -330,10 +328,11 @@ export function computeAuditoriaRow(
 
   const basePeriods = pick((r) => r.entry?.basePayCents ?? 0);
 
-  const salarios = makeGroup("salarios", "grp_salarios", [
-    makeLineItem("base", "li_quincena_base", basePeriods),
-    makeLineItem("dias_libres", "li_dias_libres", pick((r) => r.entry?.diasLibresCents ?? 0)),
-  ]);
+  // Mismos conceptos y orden que el recibo de la Quincena: Salario base +
+  // Extras − Asistencia − Préstamos y descuentos + Prestaciones. Lo que se le
+  // ENTREGÓ a la persona (préstamos otorgados) no es parte del pago: vive en
+  // Préstamos y descuentos, no acá.
+  const salarios = makeGroup("salarios", "grp_salarios", [makeLineItem("base", "li_quincena_base", basePeriods)]);
 
   const prestaciones = makeGroup("prestaciones", "grp_prestaciones", [
     makeLineItem("decimo", "li_decimo", pick((r) => r.entry?.decimoPaidCents ?? 0), {
@@ -358,6 +357,7 @@ export function computeAuditoriaRow(
     makeLineItem("dias_extra", "li_dias_extra", pick((r) => r.entry?.extraDaysCents ?? 0)),
     makeLineItem("viaticos", "li_viaticos", pick((r) => r.entry?.viaticosCents ?? 0)),
     makeLineItem("bonos", "li_bonos", pick((r) => r.entry?.bonusCents ?? 0)),
+    makeLineItem("dias_libres", "li_dias_libres", pick((r) => r.entry?.diasLibresCents ?? 0)),
   ]);
 
   const descuentos = makeGroup("descuentos", "grp_descuentos", [
@@ -365,27 +365,19 @@ export function computeAuditoriaRow(
     makeLineItem("dias_descontados", "li_dias_descontados", pick((r) => -(r.entry?.diasDescontadosCents ?? 0))),
   ]);
 
-  const prestamosOtros = makeGroup(
-    "prestamos_otros",
-    "grp_prestamos_otros",
-    LEDGER_GROUPS.map((g) =>
-      makeLineItem(g.key, g.labelKey, ledgerAmountsByQuincena(history.ledger, year, entryPeriod, g.category, "debt"))
-    )
-  );
-
   const descuentoPrestamos = makeGroup(
     "descuento_prestamos",
     "grp_descuento_prestamos",
-    LEDGER_GROUPS.filter((g) => !g.debtOnly).map((g) =>
+    LEDGER_GROUPS.map((g) =>
       makeLineItem(
         `descuento_${g.key}`,
-        g.descLabelKey,
+        g.labelKey,
         ledgerAmountsByQuincena(history.ledger, year, entryPeriod, g.category, "payment").map((v) => -v)
       )
     )
   );
 
-  const groups = [salarios, prestaciones, bonificaciones, descuentos, prestamosOtros, descuentoPrestamos];
+  const groups = [salarios, bonificaciones, descuentos, descuentoPrestamos, prestaciones];
   const periods = detail.map((r) => r.totalCents);
   const totalCents = sumAll(periods);
 
