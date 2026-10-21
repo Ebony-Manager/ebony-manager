@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
+import { ChevronDown, Pencil, SkipForward, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { LoanCategory, PayrollLoanInstallment, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/planilla/payroll-period";
+import { isSingleInstallment } from "@/lib/planilla/payroll-loans";
 import { formatDate, monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -18,13 +19,6 @@ import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 function ordinalOf(p: { year: number; month: number; half: 1 | 2 }): number {
   return p.year * 24 + (p.month - 1) * 2 + (p.half - 1);
 }
-
-const NEW_LABEL_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
-  prestamo: "loan_new_prestamo",
-  adelanto: "loan_new_adelanto",
-  herramienta: "loan_new_herramienta",
-  dano: "loan_new_dano",
-};
 
 function LoanCard({
   loan,
@@ -50,7 +44,7 @@ function LoanCard({
   const pending = sorted.filter((i) => !i.paid);
   const nextPending = pending[0];
   const last = sorted[sorted.length - 1];
-  const isAdelanto = loan.category === "adelanto";
+  const isAdelanto = isSingleInstallment(loan.category);
   const isCancelled = loan.status === "cancelled";
   const canCancel = !isCancelled && Boolean(nextPending);
   const canEdit = !isCancelled && paidCount === 0;
@@ -292,9 +286,10 @@ function LoanCard({
 }
 
 /**
- * Panel de una familia de financiamientos: "Préstamos y adelantos" o
- * "Herramientas y daños". Arriba lo vigente (con saldo y tiempo que falta) y
- * abajo, plegable, el historial (cancelados y ya pagados por completo).
+ * Lista de préstamos y descuentos de un empleado (los tipos de `categories`):
+ * arriba lo vigente (con saldo y tiempo que falta) y abajo, plegable, el
+ * historial (cancelados y ya pagados por completo). Agregar va por
+ * `AddChargeDialog`, en el encabezado de la pestaña.
  */
 export function LoansPanel({
   employeeId,
@@ -309,7 +304,6 @@ export function LoansPanel({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const [dialogCategory, setDialogCategory] = React.useState<LoanCategory | null>(null);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
   const mine = (loans ?? []).filter((l) => categories.includes(l.category));
@@ -329,14 +323,6 @@ export function LoansPanel({
           {tt("loans_balance")}:{" "}
           <span className="font-medium text-foreground">{loans === null ? "…" : formatCents(owedCents)}</span>
         </p>
-        <div className="flex gap-2">
-          {categories.map((c) => (
-            <Button key={c} variant="outline" size="sm" onClick={() => setDialogCategory(c)}>
-              <Plus className="size-3.5" />
-              {tt(NEW_LABEL_KEY[c])}
-            </Button>
-          ))}
-        </div>
       </div>
 
       {loans === null ? (
@@ -382,15 +368,6 @@ export function LoansPanel({
           )}
         </>
       )}
-
-      <LoanDialog
-        employeeId={employeeId}
-        categories={categories}
-        defaultCategory={dialogCategory ?? categories[0]}
-        open={dialogCategory !== null}
-        onOpenChange={(next) => !next && setDialogCategory(null)}
-        onSaved={onChanged}
-      />
     </div>
   );
 }

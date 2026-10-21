@@ -21,6 +21,7 @@ import {
   computeLoanInterestCents,
   computeLoanSchedule,
   defaultLoanStartPeriod,
+  isSingleInstallment,
   loanPayoffPeriod,
 } from "@/lib/planilla/payroll-loans";
 import { periodLabel, shortPeriodLabel } from "@/lib/planilla/format";
@@ -57,6 +58,7 @@ const CATEGORY_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_type_adelanto",
   herramienta: "loan_type_herramienta",
   dano: "loan_type_dano",
+  indrive: "loan_type_indrive",
 };
 
 const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -64,6 +66,7 @@ const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_dlg_adelanto_title",
   herramienta: "loan_dlg_herramienta_title",
   dano: "loan_dlg_dano_title",
+  indrive: "loan_dlg_indrive_title",
 };
 
 const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -71,6 +74,7 @@ const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_submit_adelanto",
   herramienta: "loan_submit_herramienta",
   dano: "loan_submit_dano",
+  indrive: "loan_submit_indrive",
 };
 
 /** Reparte `total` en `n` partes (el sobrante de la división va a la última). */
@@ -88,7 +92,8 @@ const parseCents = (s: string) => {
 };
 
 /**
- * Alta (o edición) de un préstamo, adelanto, herramienta o daño. Tiene dos
+ * Alta (o edición) de un préstamo, adelanto, herramienta, daño o viaje de
+ * InDrive (una cuota, en la quincena del viaje). Tiene dos
  * formas de pago: cuota fija (partes iguales) y cuota variable (el monto de
  * cada quincena se escribe a mano y debe sumar el total). Al editar se rehace
  * el calendario completo (solo si no hay cuotas pagadas).
@@ -198,14 +203,15 @@ export function LoanDialog({
     if (!open || editing) return;
     const def = defaultLoanStartPeriod(category, requestDate);
     if (def) setStartPeriodKey(periodKeyOf(def));
-    if (category === "adelanto") {
+    if (isSingleInstallment(category)) {
       setNumInstallments("1");
       setScheme("cuota_fija");
     }
   }, [open, editing, category, requestDate]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const isAdelanto = category === "adelanto";
+  // Adelanto e InDrive: una sola cuota, en la quincena de la fecha.
+  const isAdelanto = isSingleInstallment(category);
   const n = isAdelanto ? 1 : Math.max(1, Math.min(60, parseInt(numInstallments || "1", 10) || 1));
   const amountCents = parseCents(amount);
   const startPeriod = periods.find((p) => periodKeyOf(p) === startPeriodKey) ?? periods[2];
@@ -306,9 +312,11 @@ export function LoanDialog({
           ? tt("loan_dlg_edit_desc")
           : isItem
             ? tt("loan_dlg_item_desc")
-            : isAdelanto
-              ? tt("loan_dlg_adelanto_desc")
-              : tt("loan_dlg_prestamo_desc")
+            : category === "indrive"
+              ? tt("loan_dlg_indrive_desc")
+              : isAdelanto
+                ? tt("loan_dlg_adelanto_desc")
+                : tt("loan_dlg_prestamo_desc")
       }
       onSubmit={onSubmit}
       submitting={submitting}
@@ -337,7 +345,7 @@ export function LoanDialog({
         <Field label={tt("loan_f_amount")}>
           <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
         </Field>
-        <Field label={tt("loan_f_request_date")}>
+        <Field label={category === "indrive" ? tt("loan_f_ride_date") : tt("loan_f_request_date")}>
           <Input type="date" value={requestDate} onChange={(e) => setRequestDate(e.target.value)} />
         </Field>
       </div>

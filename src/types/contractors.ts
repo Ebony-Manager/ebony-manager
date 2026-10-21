@@ -91,7 +91,10 @@ export type ContractorLedgerCategory =
   | "adelanto"
   | "material"
   | "gasto_operativo"
-  | "ajuste";
+  | "ajuste"
+  | "herramienta"
+  | "dano"
+  | "indrive";
 
 /** `a_favor` sube el saldo (Ebony le debe más al contratista); `reduce`
  *  lo baja. */

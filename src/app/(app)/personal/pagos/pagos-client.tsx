@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Tags } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Tags } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
 import type { Contractor, LaborRate, Project } from "@/types/contractors";
@@ -23,6 +24,8 @@ import { LoansOverviewView } from "../../planilla/loans-overview-view";
 import { MoneyRequestInbox } from "../../planilla/money-request-inbox";
 import { EmployeeDetailSheet } from "../../planilla/employee-detail-sheet";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
+import { AddChargeDialog, type ChargePerson } from "../../planilla/add-charge-dialog";
+import { ChargeTypeChips, type ChargeTypeFilter } from "../../planilla/employee-charges-tab";
 import { type CategoriaFilter, defaultVisibleColumns, sanitizeRegistroView } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
@@ -121,6 +124,20 @@ export function PagosClient({
   const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
   const [loansFilter, setLoansFilter] = React.useState<LoansFilter>(canEmployees ? "todos" : "contratistas");
   const [ratesOpen, setRatesOpen] = React.useState(false);
+  const [chargeType, setChargeType] = React.useState<ChargeTypeFilter>("all");
+  const [addChargeOpen, setAddChargeOpen] = React.useState(false);
+  const router = useRouter();
+  // A quiénes se les puede agregar un préstamo o descuento: los activos.
+  const chargePeople = React.useMemo<ChargePerson[]>(
+    () =>
+      [
+        ...employees.filter((e) => e.status === "ACTIVE").map((e) => ({ kind: "employee" as const, id: e.id, name: e.name })),
+        ...(contractorsDashboard?.contractors ?? [])
+          .filter((c) => c.status === "ACTIVE")
+          .map((c) => ({ kind: "contractor" as const, id: c.id, name: c.name })),
+      ].sort((a, b) => a.name.localeCompare(b.name, "es")),
+    [employees, contractorsDashboard]
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
@@ -230,6 +247,13 @@ export function PagosClient({
             </>
           )}
           <TabsContent value="prestamos" className="pt-0">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <ChargeTypeChips value={chargeType} onChange={setChargeType} />
+              <Button size="sm" onClick={() => setAddChargeOpen(true)}>
+                <Plus className="size-3.5" />
+                {tg("add")}
+              </Button>
+            </div>
             <MoneyRequestInbox
               requests={moneyRequests}
               employees={employees}
@@ -243,6 +267,7 @@ export function PagosClient({
                   {showContractorLoans && <h2 className="text-sm font-semibold text-foreground">{tg("loans_employees_title")}</h2>}
                   <LoansOverviewView
                     employees={byCategoria(employees, loansCategoria)}
+                    typeFilter={chargeType}
                     reloadSignal={registroReload}
                     onOpenEmployee={(id, initialTab) => {
                       setDetailTab(initialTab);
@@ -254,7 +279,7 @@ export function PagosClient({
               {showContractorLoans && contractorsDashboard && (
                 <section className="flex flex-col gap-3">
                   {showEmployeeLoans && <h2 className="text-sm font-semibold text-foreground">{tg("cl_title")}</h2>}
-                  <ContractorLoansView input={contractorsDashboard} />
+                  <ContractorLoansView input={contractorsDashboard} typeFilter={chargeType} />
                 </section>
               )}
             </div>
@@ -279,6 +304,15 @@ export function PagosClient({
           )}
         </Tabs>
 
+        <AddChargeDialog
+          open={addChargeOpen}
+          onOpenChange={setAddChargeOpen}
+          people={chargePeople}
+          onSaved={() => {
+            reload();
+            router.refresh();
+          }}
+        />
         {canEmployees && (
           <EmployeeDetailSheet
             employee={detailEmployee}

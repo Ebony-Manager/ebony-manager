@@ -108,10 +108,20 @@ export function computeLoanSchedule(
  * pago. Ambos son overrides editables en el diálogo, nunca forzados.
  */
 export function defaultLoanStartPeriod(category: LoanCategory, requestDate: string): Period | null {
-  const d = new Date(requestDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const requestPeriod: Period = { year: d.getFullYear(), month: d.getMonth() + 1, half: d.getDate() <= 15 ? 1 : 2 };
-  return category === "adelanto" ? requestPeriod : nextPeriod(requestPeriod);
+  // "YYYY-MM-DD" leído a mano: `new Date()` lo toma como UTC y en Panamá el
+  // día 16 a medianoche UTC todavía es el 15 (caía en la quincena anterior).
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(requestDate);
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const requestPeriod: Period = { year, month, half: day <= 15 ? 1 : 2 };
+  return isSingleInstallment(category) ? requestPeriod : nextPeriod(requestPeriod);
+}
+
+/** Adelanto e InDrive se descuentan completos en una sola quincena: la que
+ *  contiene la fecha (de la solicitud o del viaje). */
+export function isSingleInstallment(category: LoanCategory): boolean {
+  return category === "adelanto" || category === "indrive";
 }
 
 /** La última quincena que toca el calendario de un préstamo — "fecha

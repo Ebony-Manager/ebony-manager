@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CheckCircle2, HandCoins, Hourglass, ListChecks, Percent } from "lucide-react";
 
-import type { LoanCategory, LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
+import type { LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDate, shortPeriodLabel } from "@/lib/planilla/format";
@@ -13,33 +13,33 @@ import { getLoansOverviewAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { PayrollKpiCard } from "./payroll-kpi-card";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
+import type { ChargeTypeFilter } from "./employee-charges-tab";
 
-type Filter = "all" | "money" | "items";
-
-const MONEY: LoanCategory[] = ["prestamo", "adelanto"];
 
 /**
- * Vista general de préstamos: todo lo que la empresa le ha prestado a sus
- * empleados (y las herramientas / daños a cuotas), con el avance de cada uno
+ * Vista general de préstamos y descuentos: todo lo que la empresa le ha
+ * prestado a sus empleados (y herramientas, daños e InDrive), con el avance de cada uno
  * — "1 de 3" cuotas pagadas — lo que ya se cobró y lo que falta. Por defecto
  * solo lo vigente; el historial (pagados y cancelados) se abre con un
  * interruptor. Clic en una fila abre el detalle de ese empleado.
  */
 export function LoansOverviewView({
   employees,
+  typeFilter,
   reloadSignal,
   onOpenEmployee,
 }: {
   employees: PayrollEmployee[];
+  /** Tipo a mostrar (los chips viven arriba, en la pestaña). */
+  typeFilter: ChargeTypeFilter;
   reloadSignal: number;
-  onOpenEmployee: (employeeId: string, tab: "prestamos" | "herramientas") => void;
+  onOpenEmployee: (employeeId: string, tab: "prestamos") => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [rows, setRows] = React.useState<LoanOverviewRow[] | null>(null);
   const [failed, setFailed] = React.useState(false);
-  const [filter, setFilter] = React.useState<Filter>("all");
   const [history, setHistory] = React.useState(false);
 
   const load = React.useCallback(() => {
@@ -63,7 +63,7 @@ export function LoansOverviewView({
   const isDone = (r: LoanOverviewRow) => r.status === "cancelled" || (r.installmentCount > 0 && r.pendingCents === 0);
 
   // Solo los empleados que el filtro de categoría de la pantalla deja pasar.
-  const scoped = (rows ?? []).filter((r) => byId.has(r.employeeId));
+  const scoped = (rows ?? []).filter((r) => byId.has(r.employeeId) && (typeFilter === "all" || r.category === typeFilter));
   const active = scoped.filter((r) => !isDone(r));
   const kpiLent = active.reduce((s, r) => s + r.principalCents, 0);
   const kpiPending = active.reduce((s, r) => s + r.pendingCents, 0);
@@ -79,18 +79,12 @@ export function LoansOverviewView({
 
   const shown = scoped
     .filter((r) => (history ? true : !isDone(r)))
-    .filter((r) => (filter === "all" ? true : filter === "money" ? MONEY.includes(r.category) : !MONEY.includes(r.category)))
     .sort((a, b) => {
       const ea = byId.get(a.employeeId)?.name ?? "";
       const eb = byId.get(b.employeeId)?.name ?? "";
       return Number(isDone(a)) - Number(isDone(b)) || ea.localeCompare(eb) || a.requestDate.localeCompare(b.requestDate);
     });
 
-  const filters: { key: Filter; label: string }[] = [
-    { key: "all", label: tt("lo_filter_all") },
-    { key: "money", label: tt("lo_filter_money") },
-    { key: "items", label: tt("lo_filter_items") },
-  ];
   const th = "px-3 py-2 font-medium whitespace-nowrap";
 
   return (
@@ -108,19 +102,7 @@ export function LoansOverviewView({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
-          {filters.map((f) => (
-            <Button
-              key={f.key}
-              size="sm"
-              variant={filter === f.key ? "secondary" : "ghost"}
-              onClick={() => setFilter(f.key)}
-            >
-              {f.label}
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={history} onChange={(e) => setHistory(e.target.checked)} />
           {tt("lo_show_history")}
@@ -165,7 +147,7 @@ export function LoansOverviewView({
                     key={r.loanId}
                     className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/30 ${done ? "text-muted-foreground" : ""}`}
                     title={tt("lo_open_hint")}
-                    onClick={() => onOpenEmployee(emp.id, MONEY.includes(r.category) ? "prestamos" : "herramientas")}
+                    onClick={() => onOpenEmployee(emp.id, "prestamos")}
                   >
                     <td className="px-3 py-2">
                       <span className="flex items-center gap-2 whitespace-nowrap">

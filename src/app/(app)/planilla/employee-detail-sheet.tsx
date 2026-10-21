@@ -13,9 +13,7 @@ import { t, strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployeeAnnualDetailAction, getLedgerEntriesAction, getLoansAction } from "./actions";
-import { LoansPanel } from "./loans-panel";
-import { OtherMovementsPanel } from "./other-movements-panel";
-import { IndrivePanel } from "./indrive-panel";
+import { EmployeeChargesTab } from "./employee-charges-tab";
 import type { LedgerPeriodOption } from "./ledger-entry-dialog";
 import { employeeProfilePath } from "@/lib/personal/paths";
 
@@ -92,7 +90,7 @@ export function EmployeeDetailSheet({
     loadFinancing();
   }, [loadFinancing]);
 
-  /** Algo de préstamos / herramientas / InDrive cambió: se vuelve a leer lo de
+  /** Algo de préstamos y descuentos cambió: se vuelve a leer lo de
    *  esta ventana y se avisa a Registro (sus totales dependen de esto). */
   const handleChanged = React.useCallback(() => {
     loadFinancing();
@@ -254,12 +252,6 @@ export function EmployeeDetailSheet({
               </TabsTrigger>
               <TabsTrigger value="prestamos" className={tabClass}>
                 {tt("tab_prestamos")}
-              </TabsTrigger>
-              <TabsTrigger value="herramientas" className={tabClass}>
-                {tt("tab_herramientas")}
-              </TabsTrigger>
-              <TabsTrigger value="indrive" className={tabClass}>
-                {tt("tab_indrive")}
               </TabsTrigger>
             </TabsList>
 
@@ -471,39 +463,15 @@ export function EmployeeDetailSheet({
             </TabsContent>
 
             <TabsContent value="prestamos" className="mt-0">
-              {employeeId && (
-                <LoansPanel
-                  employeeId={employeeId}
-                  categories={["prestamo", "adelanto"]}
+              {employee && (
+                <EmployeeChargesTab
+                  employee={employee}
                   loans={loans}
+                  ledger={ledger}
+                  periodOptions={periodOptions}
                   onChanged={handleChanged}
                 />
               )}
-            </TabsContent>
-
-            <TabsContent value="herramientas" className="mt-0 flex flex-col gap-5">
-              {employeeId && (
-                <>
-                  <LoansPanel
-                    employeeId={employeeId}
-                    categories={["herramienta", "dano"]}
-                    loans={loans}
-                    onChanged={handleChanged}
-                  />
-                  <div className="border-t border-border pt-3">
-                    <OtherMovementsPanel
-                      employeeId={employeeId}
-                      entries={ledger}
-                      periodOptions={periodOptions}
-                      onChanged={handleChanged}
-                    />
-                  </div>
-                </>
-              )}
-            </TabsContent>
-
-            <TabsContent value="indrive" className="mt-0">
-              {employeeId && <IndrivePanel employeeId={employeeId} onChanged={handleChanged} />}
             </TabsContent>
           </Tabs>
         </div>

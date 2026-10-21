@@ -14,7 +14,8 @@ export const LEDGER_CATEGORY_LABEL_KEY: Record<LedgerCategory, string> = {
   interes: "ledger_cat_interes",
 };
 
-/** Categorías que ofrece el diálogo genérico "Agregar movimiento" —
- *  préstamo/adelanto quedan fuera a propósito: van por LoanDialog, que
- *  arma su calendario de cuotas. */
-export const GENERIC_LEDGER_CATEGORIES: LedgerCategory[] = ["herramienta", "dano", "seguro_social", "carnet", "otro"];
+/** Categorías que ofrece el diálogo genérico "Agregar movimiento" (otros
+ *  descuentos). Préstamo, adelanto, herramienta, daño e InDrive quedan fuera
+ *  a propósito: van por "Agregar préstamo o descuento" (LoanDialog), que arma
+ *  su calendario de cuotas. */
+export const GENERIC_LEDGER_CATEGORIES: LedgerCategory[] = ["seguro_social", "carnet", "otro"];

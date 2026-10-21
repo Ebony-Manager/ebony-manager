@@ -194,7 +194,7 @@ export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
 
 /** Lo que se financia a cuotas: dinero (préstamo/adelanto) o una compra
  *  (herramienta) / un cobro (daño). */
-export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano";
+export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive";
 
 /** Cómo se calculó el interés de un préstamo. */
 export type LoanInterestMode = "monthly_pct" | "total_pct" | "fixed";
@@ -342,21 +342,6 @@ export interface UpcomingObligations {
   vacacionPendingCents: number;
   prestamosPendingCents: number;
   employeesWithLoanBalance: number;
-}
-
-/** Un viaje de InDrive (transporte) del empleado. */
-export interface IndriveRide {
-  id: string;
-  employeeId: string;
-  rideDate: string;
-  amountCents: number;
-  /** ¿Se le cobra al empleado? Siempre queda en el historial. */
-  charge: boolean;
-  notes: string | null;
-  /** Quincena del viaje (la que contiene su fecha). */
-  period: { year: number; month: number; half: 1 | 2 };
-  /** Cobrado y la quincena ya se pagó: ya no se puede cambiar el cobro. */
-  locked: boolean;
 }
 
 /** Una fila de la vista general de préstamos: un préstamo/adelanto/herramienta/

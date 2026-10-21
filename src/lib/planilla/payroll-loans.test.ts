@@ -63,6 +63,16 @@ describe("defaultLoanStartPeriod", () => {
     expect(defaultLoanStartPeriod("prestamo", "2026-08-20")).toEqual({ year: 2026, month: 9, half: 1 });
   });
 
+  it("un viaje de InDrive cae en la quincena de su fecha, y el 16 ya es 2a quincena", () => {
+    expect(defaultLoanStartPeriod("indrive", "2026-10-16")).toEqual({ year: 2026, month: 10, half: 2 });
+    expect(defaultLoanStartPeriod("indrive", "2026-10-15")).toEqual({ year: 2026, month: 10, half: 1 });
+  });
+
+  it("herramienta y daño empiezan en la quincena siguiente, como un préstamo", () => {
+    expect(defaultLoanStartPeriod("herramienta", "2026-12-20")).toEqual({ year: 2027, month: 1, half: 1 });
+    expect(defaultLoanStartPeriod("dano", "2026-10-01")).toEqual({ year: 2026, month: 10, half: 2 });
+  });
+
   it("devuelve null con una fecha inválida", () => {
     expect(defaultLoanStartPeriod("prestamo", "no-es-fecha")).toBeNull();
   });

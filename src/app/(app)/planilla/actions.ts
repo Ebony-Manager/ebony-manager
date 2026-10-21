@@ -159,7 +159,6 @@ function toSaveError(err: unknown): SaveResult {
   const migrationPending =
     message.includes("payroll_loans_category_check") ||
     message.includes("payroll_ledger_entries_category_check") ||
-    message.includes("payroll_indrive_rides") ||
     message.includes("interest_");
   return { ok: false, error: message, migrationPending };
 }
@@ -219,62 +218,6 @@ export async function reflowLoanInstallmentAction(input: {
 export async function getLoansOverviewAction() {
   await requireModule("planilla");
   return payroll.getLoansOverview();
-}
-
-// ── InDrive ────────────────────────────────────────────────────────────
-
-export async function getIndriveRidesAction(employeeId: string) {
-  await requireModule("planilla");
-  try {
-    return { rides: await payroll.getIndriveRides(employeeId), missingTable: false };
-  } catch (err) {
-    // La tabla nueva todavía no existe: falta correr la migración en Supabase.
-    if (err instanceof Error && err.message.includes("payroll_indrive_rides")) {
-      return { rides: [], missingTable: true };
-    }
-    throw err;
-  }
-}
-
-export async function createIndriveRideAction(input: {
-  employeeId: string;
-  rideDate: string;
-  amountCents: number;
-  charge: boolean;
-  notes: string | null;
-}): Promise<SaveResult> {
-  await requireModule("planilla");
-  try {
-    await payroll.createIndriveRide(input);
-    return { ok: true };
-  } catch (err) {
-    console.error("createIndriveRideAction", err);
-    return toSaveError(err);
-  }
-}
-
-export async function setIndriveRideChargeAction(id: string, charge: boolean): Promise<SaveResult> {
-  await requireModule("planilla");
-  try {
-    await payroll.setIndriveRideCharge(id, charge);
-    return { ok: true };
-  } catch (err) {
-    console.error("setIndriveRideChargeAction", err);
-    return toSaveError(err);
-  }
-}
-
-export async function updateIndriveRideAction(
-  id: string,
-  input: { rideDate: string; amountCents: number; notes: string | null }
-) {
-  await requireModule("planilla");
-  await payroll.updateIndriveRide(id, input);
-}
-
-export async function deleteIndriveRideAction(id: string) {
-  await requireModule("planilla");
-  await payroll.deleteIndriveRide(id);
 }
 
 // ── Sueldo / aumentos ─────────────────────────────────────────────────

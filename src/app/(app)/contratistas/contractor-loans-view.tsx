@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Banknote, HandCoins, Hourglass } from "lucide-react";
+import { HandCoins, Hourglass, ListChecks } from "lucide-react";
 
 import { computeContractorsDashboard } from "@/lib/contractors/dashboard";
 import { formatCents, currentPeriod } from "@/lib/planilla/payroll-period";
@@ -13,17 +13,20 @@ import { contractorProfilePath } from "@/lib/personal/paths";
 import { PayrollKpiCard } from "../planilla/payroll-kpi-card";
 import { ContractorAvatar } from "./contractor-avatar";
 import type { ContractorsDashboardInput } from "./contractors-dashboard-view";
+import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
+import type { ChargeTypeFilter } from "../planilla/employee-charges-tab";
 
-const LOAN_CATEGORIES = new Set(["prestamo", "adelanto"]);
+const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive"]);
 
 /**
- * Personal → Pagos → Préstamos, parte de contratistas: los préstamos y
- * adelantos de su estado de cuenta. No llevan cuotas (se descuentan del
+ * Personal → Pagos → Préstamos y descuentos, parte de contratistas: los
+ * préstamos, adelantos, herramientas, daños e InDrive de su estado de cuenta
+ * (filtrados por el tipo elegido arriba). No llevan cuotas (se descuentan del
  * saldo), así que en vez de avance se muestra el saldo de hoy de cada uno;
  * negativo = el contratista le debe a Ebony. Por defecto solo el año en
  * curso; "Ver años anteriores" abre todo. El nombre abre su estado de cuenta.
  */
-export function ContractorLoansView({ input }: { input: ContractorsDashboardInput }) {
+export function ContractorLoansView({ input, typeFilter }: { input: ContractorsDashboardInput; typeFilter: ChargeTypeFilter }) {
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
   const tc = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -38,14 +41,11 @@ export function ContractorLoansView({ input }: { input: ContractorsDashboardInpu
     };
   }, [input]);
 
-  const loans = input.entries
-    .filter((e) => LOAN_CATEGORIES.has(e.category) && e.direction === "reduce")
-    .filter((e) => showAll || e.entryDate.startsWith(`${year}-`))
-    .sort((a, b) => b.entryDate.localeCompare(a.entryDate));
-  const sum = (category: string) =>
-    input.entries
-      .filter((e) => e.category === category && e.direction === "reduce" && e.entryDate.startsWith(`${year}-`))
-      .reduce((s, e) => s + e.amountCents, 0);
+  const ofType = input.entries.filter(
+    (e) => CHARGE_CATEGORIES.has(e.category) && e.direction === "reduce" && (typeFilter === "all" || e.category === typeFilter)
+  );
+  const thisYear = ofType.filter((e) => e.entryDate.startsWith(`${year}-`));
+  const loans = (showAll ? ofType : thisYear).sort((a, b) => b.entryDate.localeCompare(a.entryDate));
   const owing = [...balances.values()].filter((b) => b < 0);
   const th = "px-3 py-2 font-medium whitespace-nowrap";
 
@@ -53,8 +53,12 @@ export function ContractorLoansView({ input }: { input: ContractorsDashboardInpu
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{tg("cl_hint")}</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <PayrollKpiCard icon={HandCoins} label={`${tg("cl_kpi_loans")} ${year}`} value={formatCents(sum("prestamo"))} />
-        <PayrollKpiCard icon={Banknote} label={`${tg("cl_kpi_advances")} ${year}`} value={formatCents(sum("adelanto"))} />
+        <PayrollKpiCard
+          icon={HandCoins}
+          label={`${tg("cl_kpi_total")} ${year}`}
+          value={formatCents(thisYear.reduce((s, e) => s + e.amountCents, 0))}
+        />
+        <PayrollKpiCard icon={ListChecks} label={`${tg("cl_kpi_count")} ${year}`} value={String(thisYear.length)} />
         <PayrollKpiCard
           icon={Hourglass}
           label={tg("cl_kpi_owing")}
@@ -96,7 +100,9 @@ export function ContractorLoansView({ input }: { input: ContractorsDashboardInpu
                         </Link>
                       </span>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{tc(e.category === "prestamo" ? "cat_prestamo" : "cat_adelanto")}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {tc(CONTRACTOR_CATEGORY_LABEL_KEY[e.category] as keyof typeof strings.contratistas)}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap text-xs">{formatDate(lang, e.entryDate)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatCents(e.amountCents)}</td>
                     <td className={`px-3 py-2 text-right font-medium tabular-nums ${balance < 0 ? "text-destructive" : "text-foreground"}`}>

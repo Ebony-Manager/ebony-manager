@@ -29,6 +29,9 @@ export const CONTRACTOR_LEDGER_CATEGORIES: ContractorLedgerCategory[] = [
   "material",
   "gasto_operativo",
   "ajuste",
+  "herramienta",
+  "dano",
+  "indrive",
 ];
 
 /** Categorías cuya dirección es fija. `ajuste` NO está: ahí el usuario
@@ -42,6 +45,9 @@ const FIXED_DIRECTION: Partial<Record<ContractorLedgerCategory, ContractorLedger
   adelanto: "reduce",
   material: "reduce",
   gasto_operativo: "reduce",
+  herramienta: "reduce",
+  dano: "reduce",
+  indrive: "reduce",
 };
 
 /** La dirección que fija la categoría, o `null` cuando la elige el
