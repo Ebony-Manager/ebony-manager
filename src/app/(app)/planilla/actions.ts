@@ -65,12 +65,34 @@ export async function clearPeriodHoursAction(year: number, month: number, half: 
 // Asistencia: ponchadas guardadas (reloj por archivo, Jotform por webhook).
 export async function getAttendanceAction(from: string, to: string) {
   await requireModule("planilla", "asistencia");
-  const [punches, links, status] = await Promise.all([
+  const [punches, links, status, resolutions] = await Promise.all([
     attendance.getPunches(from, to),
     attendance.getNameLinks(),
     attendance.getAttendanceStatus(),
+    attendance.getResolutions(from, to),
   ]);
-  return { punches, links, status };
+  return { punches, links, status, resolutions };
+}
+
+/** Revisar un día: hora real de entrada y/o salida (null y null = no vino). */
+export async function resolveAttendanceDayAction(input: {
+  employeeId: string;
+  date: string;
+  arrival: number | null;
+  departure: number | null;
+  note: string | null;
+}) {
+  const profile = await requireModule("planilla", "asistencia");
+  const okMinutes = (m: number | null) => m === null || (Number.isInteger(m) && m >= 0 && m < 1440);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !okMinutes(input.arrival) || !okMinutes(input.departure)) {
+    throw new Error("Datos inválidos");
+  }
+  await attendance.setResolution(input, profile.id);
+}
+
+export async function unresolveAttendanceDayAction(employeeId: string, date: string) {
+  await requireModule("planilla", "asistencia");
+  await attendance.deleteResolution(employeeId, date);
 }
 
 export async function importPunchesAction(punches: RawPunch[]) {

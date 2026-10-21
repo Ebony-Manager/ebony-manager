@@ -65,6 +65,44 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_day_resolutions: {
+        Row: {
+          arrival_minutes: number | null
+          created_at: string
+          created_by: string | null
+          day: string
+          departure_minutes: number | null
+          employee_id: string
+          note: string | null
+        }
+        Insert: {
+          arrival_minutes?: number | null
+          created_at?: string
+          created_by?: string | null
+          day: string
+          departure_minutes?: number | null
+          employee_id: string
+          note?: string | null
+        }
+        Update: {
+          arrival_minutes?: number | null
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          departure_minutes?: number | null
+          employee_id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_day_resolutions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_name_links: {
         Row: {
           created_at: string

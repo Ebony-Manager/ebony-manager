@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import { punchKey } from "@/lib/attendance/jotform-punch";
-import type { RawPunch } from "@/lib/attendance/types";
+import type { DayResolution, RawPunch } from "@/lib/attendance/types";
 
 /**
  * Ponchadas guardadas (`attendance_punches`): las del reloj entran al subir
@@ -111,5 +111,47 @@ export async function setNameLink(nameKey: string, employeeId: string | null, us
   const { error } = await supabase
     .from("attendance_name_links")
     .upsert({ name_key: nameKey, employee_id: employeeId, created_by: userId }, { onConflict: "name_key" });
+  if (error) throw new Error(error.message);
+}
+
+export type StoredResolution = DayResolution & { employeeId: string; date: string };
+
+/** Días revisados a mano entre dos fechas. */
+export async function getResolutions(from: string, to: string): Promise<StoredResolution[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendance_day_resolutions")
+    .select("employee_id, day, arrival_minutes, departure_minutes, note")
+    .gte("day", from)
+    .lte("day", to);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    employeeId: r.employee_id,
+    date: r.day,
+    arrival: r.arrival_minutes,
+    departure: r.departure_minutes,
+    note: r.note,
+  }));
+}
+
+export async function setResolution(r: StoredResolution, userId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("attendance_day_resolutions").upsert(
+    {
+      employee_id: r.employeeId,
+      day: r.date,
+      arrival_minutes: r.arrival,
+      departure_minutes: r.departure,
+      note: r.note?.trim() || null,
+      created_by: userId,
+    },
+    { onConflict: "employee_id,day" }
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteResolution(employeeId: string, date: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("attendance_day_resolutions").delete().eq("employee_id", employeeId).eq("day", date);
   if (error) throw new Error(error.message);
 }

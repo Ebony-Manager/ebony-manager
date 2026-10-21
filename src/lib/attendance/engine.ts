@@ -4,19 +4,26 @@
  *
  * Reglas (las dictó Ebony):
  *  - Horario: lunes a viernes 7:30 a 5:00 pm; sábado 8:00 am a 1:30 pm.
- *  - Sin tolerancia: llegar después de la hora de entrada se descuenta, minuto a minuto.
+ *  - Ante la duda, a favor de la empresa.
+ *  - Sin tolerancia: llegar después de la hora de entrada se descuenta, minuto a minuto;
+ *    salir antes de la hora de salida, también.
  *  - Las horas extra NO salen de las marcaciones: solo cuenta lo que pasa la jefa de taller.
- *    Las marcaciones sirven para confirmar que entraron y salieron a tiempo.
- *  - Falta la salida: se asume la hora normal de salida, pero el día queda en la lista de revisión.
- *  - Sin ninguna marcación en un día laborable: no vino (se descuenta), también a revisión.
+ *    Ponchar a las 5:15 (cambiándose de ropa) no paga nada.
+ *  - Falta la entrada o la salida (o la marcación es dudosa): no se supone nada; el día
+ *    bloquea a la persona hasta que alguien lo revise y anote la hora real (`DayResolution`).
+ *  - Sin ninguna marcación en un día laborable: no vino (se descuenta el día). Si sí vino,
+ *    se revisa el día y se anotan sus horas.
+ *  - El día de hoy está en curso: no cuenta como falta ni le falta la salida todavía.
  *  - Reloj y Jotform se juntan: la mayoría entra al taller y sale desde el proyecto.
  *  - Recargo nocturno (solo quien lo tiene, hoy José Salcedo): minutos después de las 6 pm.
  *
  * Todo en minutos enteros; las horas decimales se calculan al final.
  */
 import {
+  BLOCKING_FLAGS,
   DEFAULT_SCHEDULE,
   type DayFlag,
+  type DayResolution,
   type DayResult,
   type EmployeeAttendance,
   type RawPunch,
@@ -44,7 +51,12 @@ const NOON = 12 * 60;
 /** Dos marcaciones a menos de esto no son "entrada y salida" de verdad (ej. 08:13 y 08:13). */
 const MIN_SHIFT = 120;
 
-export function analyzeDay(date: string, punches: RawPunch[], schedule: Schedule = DEFAULT_SCHEDULE): DayResult {
+export function analyzeDay(
+  date: string,
+  punches: RawPunch[],
+  schedule: Schedule = DEFAULT_SCHEDULE,
+  opts: { resolution?: DayResolution; inProgress?: boolean } = {}
+): DayResult {
   const weekday = weekdayOf(date);
   const isSaturday = weekday === 6;
   const start = isSaturday ? schedule.saturdayStart : schedule.weekdayStart;
@@ -69,26 +81,42 @@ export function analyzeDay(date: string, punches: RawPunch[], schedule: Schedule
     if (times.length > 0) flags.push("sunday_punch");
     return result;
   }
+
   if (times.length === 0) {
-    flags.push("absent");
-    return result;
+    // Hoy todavía puede llegar.
+    if (!opts.inProgress) flags.push("absent");
+  } else {
+    const first = times[0];
+    const last = times[times.length - 1];
+    if (first >= NOON) {
+      // Todas las marcaciones son de tarde: marcó al irse y no se sabe cuándo llegó.
+      result.departure = last;
+      flags.push("missing_in");
+      if (times.length === 1 || last - first < MIN_SHIFT) flags.push("unclear");
+    } else if (times.length === 1 || last - first < MIN_SHIFT) {
+      // Una sola marcación de mañana (o dos casi iguales, ej. 08:13 y 08:13): la entrada; falta la salida.
+      result.arrival = first;
+      if (times.length > 1) flags.push("unclear");
+      // Hoy todavía no se ha ido.
+      if (!opts.inProgress) flags.push("missing_out");
+    } else {
+      result.arrival = first;
+      result.departure = last;
+    }
   }
 
-  const first = times[0];
-  const last = times[times.length - 1];
-  if (first >= NOON) {
-    // Todas las marcaciones son de tarde: no sabemos cuándo llegó (marcó al irse), no se descuenta tardanza.
-    result.departure = last;
-    flags.push("missing_in");
-    if (times.length === 1 || last - first < MIN_SHIFT) flags.push("unclear");
-  } else if (times.length === 1 || last - first < MIN_SHIFT) {
-    // Una sola marcación de mañana (o dos casi iguales, ej. 08:13 y 08:13): la entrada; falta la salida.
-    result.arrival = first;
-    if (times.length > 1) flags.push("unclear");
-    flags.push("missing_out");
-  } else {
-    result.arrival = first;
-    result.departure = last;
+  // Revisado a mano: manda la hora anotada y se quitan las dudas (y la falta).
+  const r = opts.resolution;
+  if (r) {
+    result.resolution = r;
+    if (r.arrival !== null) result.arrival = r.arrival;
+    if (r.departure !== null) result.departure = r.departure;
+    for (const f of ["absent", "missing_in", "missing_out", "unclear"] as DayFlag[]) {
+      const i = flags.indexOf(f);
+      if (i >= 0) flags.splice(i, 1);
+    }
+    // Revisado sin ninguna hora (ej. "no vino"): sigue siendo falta.
+    if (result.arrival === null && result.departure === null) flags.push("absent");
   }
 
   if (result.arrival !== null) result.lateMinutes = Math.max(0, result.arrival - start);
@@ -107,7 +135,13 @@ export function analyzePeriod(
   punches: RawPunch[],
   schedule: Schedule = DEFAULT_SCHEDULE,
   /** Días en que la persona trabaja en la empresa (ingreso / salida): fuera de ahí no hay ausencias. */
-  employment: { startDate?: string | null; endDate?: string | null } = {}
+  employment: { startDate?: string | null; endDate?: string | null } = {},
+  opts: {
+    /** Días revisados a mano, por fecha. */
+    resolutions?: ReadonlyMap<string, DayResolution>;
+    /** Hoy (`YYYY-MM-DD`): los días que vienen no se analizan y hoy está en curso. */
+    today?: string;
+  } = {}
 ): EmployeeAttendance {
   const byDate = new Map<string, RawPunch[]>();
   for (const p of punches) {
@@ -117,7 +151,10 @@ export function analyzePeriod(
   }
   const days = datesBetween(from, to)
     .filter((d) => !(employment.startDate && d < employment.startDate) && !(employment.endDate && d > employment.endDate))
-    .map((d) => analyzeDay(d, byDate.get(d) ?? [], schedule));
+    .filter((d) => !opts.today || d <= opts.today)
+    .map((d) =>
+      analyzeDay(d, byDate.get(d) ?? [], schedule, { resolution: opts.resolutions?.get(d), inProgress: d === opts.today })
+    );
   const review = days.filter((d) => d.flags.some((f) => f !== "early_leave" && f !== "sunday_punch")).map((d) => ({ date: d.date, flags: d.flags }));
   return {
     days,
@@ -127,6 +164,7 @@ export function analyzePeriod(
     earlyLeaveMinutes: days.reduce((s, d) => s + d.earlyLeaveMinutes, 0),
     nightMinutes: days.reduce((s, d) => s + d.nightMinutes, 0),
     review,
+    blockingDays: days.filter((d) => d.flags.some((f) => BLOCKING_FLAGS.includes(f))).length,
   };
 }
 

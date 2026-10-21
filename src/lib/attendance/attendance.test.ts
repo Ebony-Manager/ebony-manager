@@ -29,7 +29,7 @@ describe("analyzeDay", () => {
     expect(d.earlyLeaveMinutes).toBe(0);
   });
 
-  it("sin salida: se asume la hora normal y el día queda en revisión", () => {
+  it("sin salida: no se supone nada, el día queda por revisar", () => {
     const d = analyzeDay("2026-10-06", [punch("2026-10-06", "07:38")]);
     expect(d.flags).toContain("missing_out");
     expect(d.lateMinutes).toBe(8);
@@ -63,6 +63,30 @@ describe("analyzeDay", () => {
     expect(analyzeDay("2026-10-04", [punch("2026-10-04", "09:00"), punch("2026-10-04", "15:00")]).flags).toContain("sunday_punch");
   });
 
+  it("salir antes de la hora también cuenta, minuto a minuto", () => {
+    const d = analyzeDay("2026-10-06", [punch("2026-10-06", "07:30"), punch("2026-10-06", "16:40")]);
+    expect(d.earlyLeaveMinutes).toBe(20);
+    expect(d.flags).toEqual(["early_leave"]);
+  });
+
+  it("un día revisado a mano: manda la hora anotada y se quitan las dudas", () => {
+    const d = analyzeDay("2026-10-06", [punch("2026-10-06", "07:38")], undefined, {
+      resolution: { arrival: null, departure: t("16:30"), note: "se fue al médico" },
+    });
+    expect(d.flags).toEqual(["early_leave"]);
+    expect(d).toMatchObject({ arrival: t("07:38"), departure: t("16:30"), lateMinutes: 8, earlyLeaveMinutes: 30 });
+    // Sí vino aunque no marcó nada.
+    const absent = analyzeDay("2026-10-06", [], undefined, { resolution: { arrival: t("07:30"), departure: t("17:00"), note: null } });
+    expect(absent.flags).toEqual([]);
+    // Revisado sin horas: confirmado que no vino.
+    expect(analyzeDay("2026-10-06", [], undefined, { resolution: { arrival: null, departure: null, note: "no vino" } }).flags).toEqual(["absent"]);
+  });
+
+  it("hoy está en curso: sin marcar no es falta y sin salida no es duda", () => {
+    expect(analyzeDay("2026-10-06", [], undefined, { inProgress: true }).flags).toEqual([]);
+    expect(analyzeDay("2026-10-06", [punch("2026-10-06", "07:35")], undefined, { inProgress: true }).flags).toEqual([]);
+  });
+
   it("minutos después de las 6 pm (recargo nocturno)", () => {
     const d = analyzeDay("2026-10-05", [punch("2026-10-05", "08:22"), punch("2026-10-05", "20:06")]);
     expect(d.nightMinutes).toBe(126);
@@ -76,6 +100,17 @@ describe("analyzePeriod", () => {
     expect(r.days.find((d) => d.date === "2026-10-06")).toMatchObject({ arrival: t("07:40"), departure: t("17:02"), lateMinutes: 10 });
     expect(r.absentWeekdays).toBe(1); // el lunes 5 no tiene nada
     expect(r.review.map((x) => x.date)).toEqual(["2026-10-05"]);
+  });
+  it("los días sin entrada o sin salida bloquean hasta revisarlos; lo que viene después de hoy no se mira", () => {
+    const punches = [punch("2026-10-05", "07:30"), punch("2026-10-06", "07:30"), punch("2026-10-06", "17:00")];
+    const r = analyzePeriod("2026-10-05", "2026-10-09", punches, undefined, {}, { today: "2026-10-07" });
+    expect(r.days.map((d) => d.date)).toEqual(["2026-10-05", "2026-10-06", "2026-10-07"]);
+    expect(r.blockingDays).toBe(1);
+    expect(r.absentWeekdays).toBe(0); // el 7 es hoy
+    const fixed = analyzePeriod("2026-10-05", "2026-10-06", punches, undefined, {}, {
+      resolutions: new Map([["2026-10-05", { arrival: null, departure: t("17:00"), note: null }]]),
+    });
+    expect(fixed.blockingDays).toBe(0);
   });
   it("antes del ingreso o después de la salida no hay ausencias", () => {
     const r = analyzePeriod("2026-10-05", "2026-10-09", [punch("2026-10-08", "07:35")], undefined, {
@@ -211,6 +246,17 @@ describe("buildProposal", () => {
     expect(proposals).toHaveLength(1);
     expect(proposals[0].lateMinutes).toBe(20);
     expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0.33, diasDescontados: 1, extraHours: 1.23, nightSurchargeCents: 0 });
+  });
+
+  it("horas descontadas = llegadas tarde + salidas temprano; los días sin salida se cuentan", () => {
+    const { proposals } = buildProposal({
+      from: "2026-10-05",
+      to: "2026-10-06",
+      employees: [emp("1", "Mario Loaiza")],
+      punches: [p("Mario Loaiza", "2026-10-05", "07:45"), p("Mario Loaiza", "2026-10-05", "16:45"), p("Mario Loaiza", "2026-10-06", "07:30")],
+    });
+    expect(proposals[0].suggested.horasDescontadas).toBe(0.5);
+    expect(proposals[0].blockingDays).toBe(1);
   });
 
   it("un sábado sin marcar vale un día completo (no 5.5 horas)", () => {

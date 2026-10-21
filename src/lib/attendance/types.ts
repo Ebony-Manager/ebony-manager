@@ -49,6 +49,21 @@ export type DayFlag =
   /** Marcó en domingo. */
   | "sunday_punch";
 
+/** Lo que falta saber de un día: hasta que alguien lo revise, la persona no pasa a la Quincena. */
+export const BLOCKING_FLAGS: readonly DayFlag[] = ["missing_in", "missing_out", "unclear"];
+
+/**
+ * Revisión de un día hecha a mano en Pagos → Asistencia: la hora real de
+ * entrada y/o salida (lo que dice la persona, la jefa de taller…). Manda
+ * sobre las marcaciones de ese día y quita las dudas (y la falta, si se
+ * anota que sí vino).
+ */
+export interface DayResolution {
+  arrival: number | null;
+  departure: number | null;
+  note: string | null;
+}
+
 export interface DayResult {
   date: string;
   /** 1 = lunes … 6 = sábado, 0 = domingo. */
@@ -61,6 +76,8 @@ export interface DayResult {
   nightMinutes: number;
   flags: DayFlag[];
   sources: ("reloj" | "jotform")[];
+  /** El día se revisó a mano (ver `DayResolution`). */
+  resolution?: DayResolution;
 }
 
 export interface EmployeeAttendance {
@@ -71,4 +88,6 @@ export interface EmployeeAttendance {
   earlyLeaveMinutes: number;
   nightMinutes: number;
   review: { date: string; flags: DayFlag[] }[];
+  /** Días con algo por saber (`BLOCKING_FLAGS`) sin revisar todavía. */
+  blockingDays: number;
 }

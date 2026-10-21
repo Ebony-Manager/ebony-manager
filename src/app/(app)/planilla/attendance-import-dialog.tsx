@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 
 import type { getRegistroAction } from "./actions";
 import type { DayFlag, RawPunch } from "@/lib/attendance/types";
+import type { StoredResolution } from "@/services/attendance";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,6 +58,7 @@ export function AttendanceImportDialog({
   rows,
   punches,
   links,
+  resolutions,
   onApplied,
 }: {
   open: boolean;
@@ -66,10 +69,13 @@ export function AttendanceImportDialog({
   punches: RawPunch[];
   /** Vínculos nombre → empleado (ver `matchEmployees`). */
   links: ReadonlyMap<string, string | null>;
+  /** Días revisados a mano. */
+  resolutions: StoredResolution[];
   onApplied: () => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
   const range = React.useMemo(() => periodDateRange(period.year, period.month, period.half), [period]);
 
   const [overtime, setOvertime] = React.useState<OvertimeAuthorization[]>([]);
@@ -109,12 +115,12 @@ export function AttendanceImportDialog({
   const rowById = React.useMemo(() => new Map(rows.map((r) => [r.employee.id, r])), [rows]);
 
   const { proposals, unmatched } = React.useMemo(
-    () => buildProposal({ from: range.from, to: range.to, punches, employees, overtime, links }),
-    [range, punches, employees, overtime, links]
+    () => buildProposal({ from: range.from, to: range.to, punches, employees, overtime, links, resolutions, today: todayInPanama() }),
+    [range, punches, employees, overtime, links, resolutions]
   );
 
   // Cada vez que cambia la propuesta se re-siembran los campos editables y se marcan todos.
-  const proposalKey = proposals.map((p) => `${p.employeeId}:${p.suggested.horasDescontadas}:${p.suggested.diasDescontados}:${p.suggested.extraHours}`).join("|");
+  const proposalKey = proposals.map((p) => `${p.employeeId}:${p.suggested.horasDescontadas}:${p.suggested.diasDescontados}:${p.suggested.extraHours}:${p.blockingDays}`).join("|");
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al cambiar la propuesta. */
   React.useEffect(() => {
     setEdits(
@@ -125,7 +131,8 @@ export function AttendanceImportDialog({
         ])
       )
     );
-    setSelected(new Set(proposals.map((p) => p.employeeId)));
+    // Quien tiene días sin revisar no se puede aplicar.
+    setSelected(new Set(proposals.filter((p) => p.blockingDays === 0).map((p) => p.employeeId)));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- depende de la clave resumida.
   }, [proposalKey]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -180,7 +187,7 @@ export function AttendanceImportDialog({
     let ok = 0;
     try {
       for (const p of proposals) {
-        if (!selected.has(p.employeeId)) continue;
+        if (!selected.has(p.employeeId) || p.blockingDays > 0) continue;
         const row = rowById.get(p.employeeId);
         if (!row) continue;
         const e = edits[p.employeeId];
@@ -298,7 +305,7 @@ export function AttendanceImportDialog({
                   <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className={th} />
                     <th className={th}>{tt("col_empleado")}</th>
-                    <th className={`${th} text-right`}>{tt("att_col_late")}</th>
+                    <th className={`${th} text-right`}>{tg("att_col_late_early")}</th>
                     <th className={`${th} text-right`}>{tt("att_col_absent")}</th>
                     <th className={`${th} text-right`}>{tt("att_col_review")}</th>
                     <th className={`${th} text-right`}>{tt("col_horas_desc")}</th>
@@ -320,6 +327,8 @@ export function AttendanceImportDialog({
                           <td className="px-2 py-1.5">
                             <input
                               type="checkbox"
+                              disabled={p.blockingDays > 0}
+                              title={p.blockingDays > 0 ? tg("att_blocked_hint") : undefined}
                               checked={selected.has(p.employeeId)}
                               onChange={(ev) =>
                                 setSelected((prev) => {
@@ -333,13 +342,18 @@ export function AttendanceImportDialog({
                           </td>
                           <td className="px-2 py-1.5 whitespace-nowrap font-medium text-foreground">
                             {p.name}
+                            {p.blockingDays > 0 && (
+                              <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                                {p.blockingDays} {tg("att_blocked_days")}
+                              </span>
+                            )}
                             {p.suggested.nightSurchargeCents > 0 && (
                               <span className="ml-2 text-xs font-normal text-muted-foreground">
                                 {tt("att_night")}: {hm(p.nightMinutes)} → {formatCents(p.suggested.nightSurchargeCents)}
                               </span>
                             )}
                           </td>
-                          <td className="px-2 py-1.5 text-right tabular-nums">{hm(p.lateMinutes)}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums">{hm(p.lateMinutes + p.earlyLeaveMinutes)}</td>
                           <td className="px-2 py-1.5 text-right tabular-nums">
                             {p.absentWeekdays}
                             {p.absentSaturdays > 0 && <span className="text-xs text-muted-foreground"> +{p.absentSaturdays} {tt("att_sat")}</span>}

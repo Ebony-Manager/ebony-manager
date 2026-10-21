@@ -1,21 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Smartphone, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { DayFlag, RawPunch } from "@/lib/attendance/types";
-import type { AttendanceStatus } from "@/services/attendance";
+import { BLOCKING_FLAGS, type DayFlag, type DayResult, type RawPunch } from "@/lib/attendance/types";
+import type { AttendanceStatus, StoredResolution } from "@/services/attendance";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { parseClockReport, parseJotformPunches } from "@/lib/attendance/parse";
 import { buildProposal, periodDateRange, type EmployeeProposal, type ProposalEmployee } from "@/lib/attendance/proposal";
 import { currentPeriod, monthLabel, nextPeriod, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { getAttendanceAction, getRegistroAction, importPunchesAction, linkAttendanceNameAction } from "./actions";
+import { getAttendanceAction, getRegistroAction, importPunchesAction, linkAttendanceNameAction, unresolveAttendanceDayAction } from "./actions";
 import { AttendanceImportDialog } from "./attendance-import-dialog";
+import { AttendanceDayDialog } from "./attendance-day-dialog";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
@@ -24,6 +26,7 @@ interface Loaded {
   punches: RawPunch[];
   links: Record<string, string | null>;
   status: AttendanceStatus;
+  resolutions: StoredResolution[];
 }
 
 const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
@@ -54,8 +57,10 @@ async function readRows(file: File): Promise<string[][]> {
  * Jotform "Punch In/Out" llegan solas (webhook) y las del reloj del taller se
  * suben con su archivo (subirlo dos veces no duplica). Por quincena se ve,
  * persona por persona, sus llegadas tarde, faltas y días a revisar, y al
- * abrirla el detalle día por día con cada marcación. "Pasar a la Quincena"
- * abre la propuesta (`AttendanceImportDialog`) para aplicarla.
+ * abrirla el detalle día por día con cada marcación. Un día al que le falta
+ * la entrada o la salida se revisa a mano (`AttendanceDayDialog`): mientras
+ * no, esa persona no pasa a la Quincena. "Pasar a la Quincena" abre la
+ * propuesta (`AttendanceImportDialog`) para aplicarla.
  */
 export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const { lang } = useLang();
@@ -67,6 +72,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const [applyOpen, setApplyOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [uploading, setUploading] = React.useState(false);
+  const [reviewing, setReviewing] = React.useState<{ employee: { id: string; name: string }; day: DayResult } | null>(null);
   const [pending, startTransition] = React.useTransition();
 
   const load = React.useCallback(() => {
@@ -99,7 +105,10 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
     [loaded]
   );
   const { proposals, unmatched } = React.useMemo(
-    () => (ready ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links }) : { proposals: [], unmatched: [] }),
+    () =>
+      ready
+        ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links, resolutions: loaded.resolutions, today: todayInPanama() })
+        : { proposals: [], unmatched: [] },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- range sale de `period`, que ya define `ready`.
     [ready, loaded, employees, links]
   );
@@ -136,6 +145,16 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       load();
     } catch (err) {
       console.error("Asistencia: no se pudo vincular el nombre", err);
+      toast.error(tp("save_failed"));
+    }
+  }
+
+  async function unresolve(employeeId: string, date: string) {
+    try {
+      await unresolveAttendanceDayAction(employeeId, date);
+      load();
+    } catch (err) {
+      console.error("Asistencia: no se pudo deshacer la revisión", err);
       toast.error(tp("save_failed"));
     }
   }
@@ -234,13 +253,14 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">{tg("att_no_punches")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-sm">
+            <table className="w-full min-w-[840px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className={th}>{tp("col_empleado")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_days")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_late_count")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_late")}</th>
+                  <th className={`${th} text-right`}>{tg("att_col_early")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_absent")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_review")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_in_quincena")}</th>
@@ -271,16 +291,21 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                         <td className="px-3 py-2 text-right tabular-nums">{daysWithPunches}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{lateDays || "–"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{p.lateMinutes ? hm(p.lateMinutes) : "–"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{p.earlyLeaveMinutes ? hm(p.earlyLeaveMinutes) : "–"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{absent || "–"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {p.review.length ? <span className="text-amber-600 dark:text-amber-400">{p.review.length}</span> : "–"}
+                          {p.blockingDays ? <span className="font-medium text-amber-600 dark:text-amber-400">{p.blockingDays}</span> : "–"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>
                       </tr>
                       {isOpen && (
                         <tr className="border-b border-border bg-muted/20">
-                          <td colSpan={7} className="px-3 py-2">
-                            <DayTable proposal={p} />
+                          <td colSpan={8} className="px-3 py-2">
+                            <DayTable
+                              proposal={p}
+                              onReview={(day) => setReviewing({ employee: { id: p.employeeId, name: p.name }, day })}
+                              onUnresolve={(date) => void unresolve(p.employeeId, date)}
+                            />
                           </td>
                         </tr>
                       )}
@@ -302,19 +327,36 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
           rows={loaded.rows}
           punches={loaded.punches}
           links={links}
+          resolutions={loaded.resolutions}
           onApplied={() => {
             load();
             onApplied();
           }}
         />
       )}
+      {reviewing && (
+        <AttendanceDayDialog
+          open={reviewing !== null}
+          onOpenChange={(o) => !o && setReviewing(null)}
+          employee={reviewing.employee}
+          day={reviewing.day}
+          onSaved={load}
+        />
+      )}
     </div>
   );
-
 }
 
 /** Detalle día por día de una persona: entrada, salida, tardanza, cada marcación (reloj o Jotform) y observaciones. */
-function DayTable({ proposal }: { proposal: EmployeeProposal }) {
+function DayTable({
+  proposal,
+  onReview,
+  onUnresolve,
+}: {
+  proposal: EmployeeProposal;
+  onReview: (day: DayResult) => void;
+  onUnresolve: (date: string) => void;
+}) {
   const { lang } = useLang();
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
@@ -329,8 +371,10 @@ function DayTable({ proposal }: { proposal: EmployeeProposal }) {
           <th className={`${dth} text-right`}>{tg("att_in")}</th>
           <th className={`${dth} text-right`}>{tg("att_out")}</th>
           <th className={`${dth} text-right`}>{tg("att_late")}</th>
+          <th className={`${dth} text-right`}>{tg("att_early")}</th>
           <th className={dth}>{tg("att_punches_col")}</th>
           <th className={dth}>{tg("att_notes")}</th>
+          <th className={dth} />
         </tr>
       </thead>
       <tbody>
@@ -338,6 +382,7 @@ function DayTable({ proposal }: { proposal: EmployeeProposal }) {
           const punches = (byDate.get(d.date) ?? []).sort((a, b) => a.minutes - b.minutes);
           const flags = d.flags.map((f) => tp(FLAG_KEY[f]));
           const sunday = d.weekday === 0;
+          const blocking = d.flags.some((f) => BLOCKING_FLAGS.includes(f));
           if (sunday && punches.length === 0) return null;
           return (
             <tr key={d.date} className="border-t border-border/60">
@@ -348,6 +393,7 @@ function DayTable({ proposal }: { proposal: EmployeeProposal }) {
               <td className="px-2 py-1 text-right tabular-nums">{d.arrival !== null ? hm(d.arrival) : "–"}</td>
               <td className="px-2 py-1 text-right tabular-nums">{d.departure !== null ? hm(d.departure) : "–"}</td>
               <td className={`px-2 py-1 text-right tabular-nums ${d.lateMinutes ? "text-destructive" : ""}`}>{d.lateMinutes ? hm(d.lateMinutes) : "–"}</td>
+              <td className={`px-2 py-1 text-right tabular-nums ${d.earlyLeaveMinutes ? "text-destructive" : ""}`}>{d.earlyLeaveMinutes ? hm(d.earlyLeaveMinutes) : "–"}</td>
               <td className="px-2 py-1">
                 <span className="flex flex-wrap gap-1">
                   {punches.map((x, i) => (
@@ -368,8 +414,20 @@ function DayTable({ proposal }: { proposal: EmployeeProposal }) {
                   ))}
                 </span>
               </td>
-              <td className={`px-2 py-1 ${d.flags.some((f) => f !== "early_leave") ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
-                {flags.join(", ")}
+              <td className={`px-2 py-1 ${blocking ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
+                {[...flags, ...(d.resolution ? [`${tg("att_day_reviewed")}${d.resolution.note ? `: ${d.resolution.note}` : ""}`] : [])].join(", ")}
+              </td>
+              <td className="whitespace-nowrap px-2 py-1 text-right">
+                {d.resolution ? (
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-muted-foreground" title={tg("att_day_undo")} onClick={() => onUnresolve(d.date)}>
+                    <Undo2 className="size-3" />
+                    {tg("att_day_undo")}
+                  </Button>
+                ) : blocking || d.flags.includes("absent") ? (
+                  <Button size="sm" variant={blocking ? "default" : "outline"} className="h-6 px-2 text-[11px]" onClick={() => onReview(d)}>
+                    {tg("att_day_review")}
+                  </Button>
+                ) : null}
               </td>
             </tr>
           );
