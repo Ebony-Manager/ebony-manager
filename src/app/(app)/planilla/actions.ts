@@ -74,6 +74,12 @@ export async function getAttendanceAction(from: string, to: string) {
   return { punches, links, status, resolutions };
 }
 
+/** Deshace un vínculo nombre → empleado (vuelve a salir como "sin vincular"). */
+export async function unlinkAttendanceNameAction(nameKey: string) {
+  await requireModule("planilla", "asistencia");
+  await attendance.deleteNameLink(nameKey);
+}
+
 /** Revisar un día: hora real de entrada y/o salida (null y null = no vino). */
 export async function resolveAttendanceDayAction(input: {
   employeeId: string;

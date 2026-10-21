@@ -33,6 +33,8 @@ import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
 import { IdDocumentFile } from "@/components/shared/id-document-file";
+import { jotformDocumentUrlFromNotes } from "@/lib/personal/jotform-intake";
+import { importJotformDocumentAction } from "@/app/(app)/personal/staff/actions";
 import { countryName } from "@/lib/countries";
 import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
@@ -263,6 +265,9 @@ export function EmployeeProfileView({
                     initialPath={employee.idDocumentPath}
                     initialUrl={documentUrl}
                     savePath={(path) => updateEmployeeAction(employee.id, { idDocumentPath: path })}
+                    importFromJotform={
+                      jotformDocumentUrlFromNotes(employee.notes) ? () => importJotformDocumentAction("employee", employee.id) : undefined
+                    }
                   />
                 </>
               }

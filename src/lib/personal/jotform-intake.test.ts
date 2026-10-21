@@ -152,3 +152,24 @@ describe("intakePatch", () => {
     expect(patch.notes).toBe("Buen ebanista\nDocumento (JotForm): https://www.jotform.com/uploads/ebonypanama/232606019835052/1/doc.jpg");
   });
 });
+
+import { jotformDocumentUrlFromNotes, notesWithoutJotformDocument } from "./jotform-intake";
+import { sniffDocumentExt } from "./staff-documents";
+
+describe("documento de JotForm en las notas", () => {
+  const url = "https://www.jotform.com/uploads/ebonypanama/232606019835052/1/doc.jpeg";
+  it("encuentra el enlace y lo quita sin tocar el resto", () => {
+    const notes = `Turno de tarde\nDocumento (JotForm): ${url}`;
+    expect(jotformDocumentUrlFromNotes(notes)).toBe(url);
+    expect(notesWithoutJotformDocument(notes)).toBe("Turno de tarde");
+    expect(notesWithoutJotformDocument(`Documento (JotForm): ${url}`)).toBeNull();
+    expect(jotformDocumentUrlFromNotes("sin enlace")).toBeNull();
+  });
+  it("reconoce el archivo por sus bytes, no por el content-type", () => {
+    expect(sniffDocumentExt(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe("jpg");
+    expect(sniffDocumentExt(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))).toBe("png");
+    expect(sniffDocumentExt(new TextEncoder().encode("%PDF-1.7"))).toBe("pdf");
+    expect(sniffDocumentExt(new TextEncoder().encode("RIFF1234WEBPVP8"))).toBe("webp");
+    expect(sniffDocumentExt(new TextEncoder().encode("<!DOCTYPE html>"))).toBeNull();
+  });
+});

@@ -93,6 +93,8 @@ import { ContractorAvatar } from "./contractor-avatar";
 import { ContractorFormDialog } from "./contractor-form-dialog";
 import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
 import { IdDocumentFile } from "@/components/shared/id-document-file";
+import { jotformDocumentUrlFromNotes } from "@/lib/personal/jotform-intake";
+import { importJotformDocumentAction } from "@/app/(app)/personal/staff/actions";
 import { countryName } from "@/lib/countries";
 import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
@@ -524,6 +526,9 @@ export function ContractorProfileView({
                   initialPath={contractor.idDocumentPath}
                   initialUrl={documentUrl}
                   savePath={(path) => updateContractorAction(contractor.id, { idDocumentPath: path })}
+                  importFromJotform={
+                    jotformDocumentUrlFromNotes(contractor.notes) ? () => importJotformDocumentAction("contractor", contractor.id) : undefined
+                  }
                 />
               </>
             }

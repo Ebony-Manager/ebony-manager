@@ -284,6 +284,22 @@ export function idDocumentNote(url: string): string {
   return `Documento (JotForm): ${url}`;
 }
 
+/** El enlace de JotForm que quedó en las notas de una ficha (si el documento no se pudo copiar). */
+export function jotformDocumentUrlFromNotes(notes: string | null | undefined): string | null {
+  const m = /Documento \(JotForm\): (https:\/\/\S+)/.exec(notes ?? "");
+  return m ? m[1] : null;
+}
+
+/** Las notas sin la línea del enlace de JotForm (ya está el documento en la ficha). null si quedan vacías. */
+export function notesWithoutJotformDocument(notes: string | null | undefined): string | null {
+  const rest = (notes ?? "")
+    .split("\n")
+    .filter((line) => !/^Documento \(JotForm\): https:\/\//.test(line.trim()))
+    .join("\n")
+    .trim();
+  return rest || null;
+}
+
 /**
  * Completar a alguien que ya existe con su registro: solo se llenan los
  * campos VACÍOS (nunca se cambia un dato que ya estaba). La cuenta de banco

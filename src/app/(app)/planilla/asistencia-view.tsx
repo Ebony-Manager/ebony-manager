@@ -15,7 +15,14 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { getAttendanceAction, getRegistroAction, importPunchesAction, linkAttendanceNameAction, unresolveAttendanceDayAction } from "./actions";
+import {
+  getAttendanceAction,
+  getRegistroAction,
+  importPunchesAction,
+  linkAttendanceNameAction,
+  unlinkAttendanceNameAction,
+  unresolveAttendanceDayAction,
+} from "./actions";
 import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { AttendanceDayDialog } from "./attendance-day-dialog";
 
@@ -31,6 +38,11 @@ interface Loaded {
 
 const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 const IGNORE = "__ignore__";
+const withoutKey = <T,>(obj: Record<string, T>, key: string): Record<string, T> => {
+  const next = { ...obj };
+  delete next[key];
+  return next;
+};
 
 const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
   absent: "att_flag_absent",
@@ -72,6 +84,8 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const [applyOpen, setApplyOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [uploading, setUploading] = React.useState(false);
+  // Nombre sin vincular → a quién se eligió, esperando la confirmación (un error acá cambiaría las horas de alguien).
+  const [pendingLinks, setPendingLinks] = React.useState<Record<string, string>>({});
   const [reviewing, setReviewing] = React.useState<{ employee: { id: string; name: string }; day: DayResult } | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -142,9 +156,21 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
     try {
       await linkAttendanceNameAction(name, value === IGNORE ? null : value);
       toast.success(tg("att_linked"));
+      setPendingLinks((prev) => withoutKey(prev, name));
       load();
     } catch (err) {
       console.error("Asistencia: no se pudo vincular el nombre", err);
+      toast.error(tp("save_failed"));
+    }
+  }
+
+  async function unlink(nameKey: string) {
+    try {
+      await unlinkAttendanceNameAction(nameKey);
+      toast.success(tg("att_unlinked"));
+      load();
+    } catch (err) {
+      console.error("Asistencia: no se pudo deshacer el vínculo", err);
       toast.error(tp("save_failed"));
     }
   }
@@ -225,7 +251,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                 <span className="text-xs text-muted-foreground">
                   {punchCount(name)} {tp("att_punches")}
                 </span>
-                <Select onValueChange={(v) => void link(name, v)}>
+                <Select value={pendingLinks[name] ?? ""} onValueChange={(v) => setPendingLinks((prev) => ({ ...prev, [name]: v }))}>
                   <SelectTrigger className="h-8 w-60">
                     <SelectValue placeholder={tg("att_link_to")} />
                   </SelectTrigger>
@@ -240,10 +266,50 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                       ))}
                   </SelectContent>
                 </Select>
+                {pendingLinks[name] && (
+                  <span className="flex items-center gap-1">
+                    <Button size="sm" className="h-8" onClick={() => void link(name, pendingLinks[name])}>
+                      {tg("att_link_confirm")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() => setPendingLinks((prev) => withoutKey(prev, name))}
+                    >
+                      {tp("action_cancel")}
+                    </Button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
         </div>
+      )}
+
+      {ready && Object.keys(loaded.links).length > 0 && (
+        <details className="rounded-lg border border-border px-4 py-2 text-sm">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            {tg("att_links_title")} ({Object.keys(loaded.links).length})
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1">
+            {Object.entries(loaded.links)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, employeeId]) => (
+                <li key={key} className="flex flex-wrap items-center gap-2 border-b border-border/60 py-1 last:border-0">
+                  <span className="min-w-40 capitalize text-foreground">{key}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="text-foreground">
+                    {employeeId ? (employees.find((e) => e.id === employeeId)?.name ?? "—") : tg("att_not_employee")}
+                  </span>
+                  <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs text-muted-foreground" onClick={() => void unlink(key)}>
+                    <Undo2 className="size-3" />
+                    {tg("att_day_undo")}
+                  </Button>
+                </li>
+              ))}
+          </ul>
+        </details>
       )}
 
       <div className="rounded-lg border border-border bg-card">

@@ -107,8 +107,8 @@ export const strings = {
     intake_dismiss_confirm: { es: "¿Descartar este registro?", en: "Dismiss this sign-up?" },
     intake_dismissed: { es: "Registro descartado.", en: "Sign-up dismissed." },
     intake_doc_not_copied: {
-      es: "No se pudo traer el documento desde JotForm (¿falta la API key?). El enlace quedó en las notas; puedes subirlo desde la ficha.",
-      en: "Couldn't fetch the ID from JotForm (missing API key?). The link is in the notes; you can upload it from the profile.",
+      es: "No se pudo traer el documento desde JotForm. En la ficha, \"Traer de JotForm\" lo reintenta y dice el motivo.",
+      en: "Couldn't fetch the ID from JotForm. On the profile, \"Fetch from JotForm\" retries and shows why.",
     },
   },
 
@@ -195,12 +195,15 @@ export const strings = {
     att_never: { es: "ninguna todavía", en: "none yet" },
     att_unmatched_title: { es: "Nombres sin vincular", en: "Unlinked names" },
     att_unmatched_hint: {
-      es: "Estas ponchadas no coinciden con ningún empleado. Elige a quién corresponden (se recuerda para siempre) o márcalas como \"no es empleado\".",
-      en: "These punches match no employee. Pick who they belong to (it is remembered) or mark them as \"not an employee\".",
+      es: "Estas ponchadas no coinciden con ningún empleado. Elige a quién corresponden y confirma con \"Vincular\" (se recuerda; se puede deshacer abajo, en \"Nombres vinculados a mano\").",
+      en: "These punches match no employee. Pick who they belong to and confirm with \"Link\" (it is remembered; it can be undone below, under \"Manually linked names\").",
     },
     att_link_to: { es: "¿Quién es?", en: "Who is it?" },
     att_not_employee: { es: "No es empleado (ignorar)", en: "Not an employee (ignore)" },
     att_linked: { es: "Nombre vinculado", en: "Name linked" },
+    att_link_confirm: { es: "Vincular", en: "Link" },
+    att_unlinked: { es: "Vínculo deshecho", en: "Link undone" },
+    att_links_title: { es: "Nombres vinculados a mano", en: "Manually linked names" },
     att_no_punches: {
       es: "No hay ponchadas guardadas en esta quincena. Las del Jotform llegan solas; las del reloj, sube su archivo.",
       en: "No punches saved for this pay period. Jotform ones arrive on their own; for the clock, upload its file.",
@@ -1980,6 +1983,21 @@ export const strings = {
     doc_saved: { es: "Documento guardado.", en: "Document saved." },
     doc_removed: { es: "Documento quitado.", en: "Document removed." },
     doc_error: { es: "No se pudo guardar el documento. Intenta de nuevo.", en: "Couldn't save the document. Try again." },
+    doc_import: { es: "Traer de JotForm", en: "Fetch from JotForm" },
+    doc_import_no_key: {
+      es: "La app no tiene la API key de JotForm (JOTFORM_API_KEY en Vercel, y volver a desplegar).",
+      en: "The app has no JotForm API key (JOTFORM_API_KEY in Vercel, then redeploy).",
+    },
+    doc_import_http: {
+      es: "JotForm rechazó la descarga: revisa que la API key sea de la cuenta del formulario y tenga permiso de lectura",
+      en: "JotForm refused the download: check the API key belongs to the form's account and has read access",
+    },
+    doc_import_not_document: {
+      es: "JotForm devolvió una página en vez del archivo: la API key no tiene acceso a los archivos subidos.",
+      en: "JotForm returned a page instead of the file: the API key can't access uploaded files.",
+    },
+    doc_import_too_big: { es: "El archivo pesa más de 10 MB.", en: "The file is larger than 10 MB." },
+    doc_import_failed: { es: "No se pudo traer el documento de JotForm.", en: "Couldn't fetch the document from JotForm." },
     // Foto de perfil (empleados y contratistas): se toca el avatar.
     photo_add: { es: "Agregar foto", en: "Add photo" },
     photo_change: { es: "Cambiar foto", en: "Change photo" },

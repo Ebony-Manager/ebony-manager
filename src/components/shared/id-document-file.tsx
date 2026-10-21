@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ExternalLink, FileText, IdCard, Loader2, MoreHorizontal, Trash2, Upload } from "lucide-react";
+import { CloudDownload, ExternalLink, FileText, IdCard, Loader2, MoreHorizontal, Trash2, Upload } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -26,7 +26,8 @@ import { prepareDocument } from "@/lib/personal/prepare-document";
  * Archivo del documento (foto o PDF de la cédula / pasaporte), en chiquito
  * dentro del dato "Documento" de la ficha (empleado o contratista): una
  * miniatura que se abre en grande en otra pestaña y un menú para cambiarlo o
- * quitarlo; sin archivo, un enlace "Subir foto". Sube al bucket privado
+ * quitarlo; sin archivo, un enlace "Subir foto" (y "Traer de JotForm" si
+ * el enlace del formulario quedó en las notas). Sube al bucket privado
  * con la sesión del usuario (la RLS de storage pide el módulo), guarda la
  * ruta con `savePath` y borra el archivo anterior.
  */
@@ -36,6 +37,7 @@ export function IdDocumentFile({
   initialPath,
   initialUrl,
   savePath,
+  importFromJotform,
 }: {
   kind: StaffDocumentKind;
   ownerId: string;
@@ -43,6 +45,8 @@ export function IdDocumentFile({
   /** URL firmada (1 h) que ya trae el servidor. */
   initialUrl: string | null;
   savePath: (path: string | null) => Promise<unknown>;
+  /** Solo si hay un enlace de JotForm en las notas: trae ese archivo a la ficha. */
+  importFromJotform?: () => Promise<{ ok: true; path: string; url: string | null } | { ok: false; error: string; status?: number }>;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.common) => t(lang, strings.common[k]);
@@ -76,6 +80,39 @@ export function IdDocumentFile({
     }
   }
 
+  async function onImport() {
+    if (!importFromJotform) return;
+    setBusy(true);
+    try {
+      const res = await importFromJotform();
+      if (res.ok) {
+        setPath(res.path);
+        setUrl(res.url);
+        toast.success(tt("doc_saved"));
+      } else {
+        toast.error(importErrorText(res.error, res.status), { duration: 10000 });
+      }
+    } catch (err) {
+      console.error("No se pudo traer el documento de JotForm", err);
+      toast.error(tt("doc_import_failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function importErrorText(error: string, status?: number): string {
+    const key = (
+      {
+        no_key: "doc_import_no_key",
+        http: "doc_import_http",
+        not_document: "doc_import_not_document",
+        too_big: "doc_import_too_big",
+      } as Record<string, keyof typeof strings.common>
+    )[error];
+    const text = tt(key ?? "doc_import_failed");
+    return status ? `${text} (${status})` : text;
+  }
+
   async function onRemove() {
     setBusy(true);
     try {
@@ -101,10 +138,18 @@ export function IdDocumentFile({
       {busy ? (
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
       ) : !path ? (
-        <button type="button" onClick={pick} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-          <Upload className="size-3.5" />
-          {tt("doc_upload_photo")}
-        </button>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <button type="button" onClick={pick} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            <Upload className="size-3.5" />
+            {tt("doc_upload_photo")}
+          </button>
+          {importFromJotform && (
+            <button type="button" onClick={() => void onImport()} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              <CloudDownload className="size-3.5" />
+              {tt("doc_import")}
+            </button>
+          )}
+        </div>
       ) : (
         <>
           {url && !pdf ? (

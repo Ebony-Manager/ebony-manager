@@ -26,6 +26,21 @@ export function documentExt(contentType: string): DocumentExt | null {
   return null;
 }
 
+/**
+ * Tipo de archivo por sus primeros bytes (JPEG, PNG, WebP o PDF), para no
+ * depender del content-type que mande el servidor (a veces es genérico, ej.
+ * "application/octet-stream"). null si no es ninguno — p. ej. una página HTML.
+ */
+export function sniffDocumentExt(bytes: Uint8Array): DocumentExt | null {
+  const b = (i: number) => bytes[i];
+  if (b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) return "jpg";
+  if (b(0) === 0x89 && b(1) === 0x50 && b(2) === 0x4e && b(3) === 0x47) return "png";
+  if (b(0) === 0x25 && b(1) === 0x50 && b(2) === 0x44 && b(3) === 0x46) return "pdf";
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.slice(from, to));
+  if (bytes.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "webp";
+  return null;
+}
+
 /** Ruta nueva para el documento de una persona (con fecha, para no pisar el anterior en caché). */
 export function documentPath(kind: StaffDocumentKind, ownerId: string, ext: DocumentExt, now = Date.now()): string {
   return `${documentFolder(kind)}/${ownerId}/${now}.${ext}`;

@@ -106,6 +106,12 @@ export async function getNameLinks(): Promise<Record<string, string | null>> {
   return Object.fromEntries((data ?? []).map((r) => [r.name_key, r.employee_id]));
 }
 
+export async function deleteNameLink(nameKey: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("attendance_name_links").delete().eq("name_key", nameKey);
+  if (error) throw new Error(error.message);
+}
+
 export async function setNameLink(nameKey: string, employeeId: string | null, userId: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
