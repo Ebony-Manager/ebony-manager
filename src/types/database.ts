@@ -65,6 +65,80 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_name_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string | null
+          name_key: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          name_key: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          name_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_name_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_punches: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          id: string
+          kind: string
+          location: string | null
+          punch_date: string
+          punch_minutes: number
+          raw_name: string
+          source: string
+          submission_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          dedupe_key: string
+          id?: string
+          kind?: string
+          location?: string | null
+          punch_date: string
+          punch_minutes: number
+          raw_name: string
+          source: string
+          submission_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string
+          id?: string
+          kind?: string
+          location?: string | null
+          punch_date?: string
+          punch_minutes?: number
+          raw_name?: string
+          source?: string
+          submission_id?: string | null
+        }
+        Relationships: []
+      }
       contractor_ledger_entries: {
         Row: {
           amount_cents: number
@@ -1590,6 +1664,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ingest_attendance_punch: {
+        Args: { p_token: string; p_data: Json }
+        Returns: string | null
+      }
       ingest_money_request: {
         Args: { p_token: string; p_data: Json }
         Returns: string | null

@@ -10,15 +10,18 @@ import {
   type AnswersByName,
 } from "@/lib/personal/jotform-intake";
 import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from "@/lib/personal/jotform-money";
+import { PUNCH_FORM_ID, normalizePunch, punchKey } from "@/lib/attendance/jotform-punch";
 
 /**
- * Webhook de JotForm (una sola dirección, `?token=...`) para dos formularios:
+ * Webhook de JotForm (una sola dirección, `?token=...`) para tres formularios:
  *
  * - "Registro Empleado" → bandeja "Nuevos registros" de Personal
  *   (`public.staff_intake`).
  * - "Solicitud Dinero" → bandeja "Solicitudes de dinero" de Pagos →
  *   Préstamos (`public.money_requests`). Este va en la rama APROBADA del
  *   workflow de JotForm: lo que llega ya está aprobado.
+ * - "Punch In/Out" → ponchadas de la gente en proyectos, en Pagos →
+ *   Asistencia (`public.attendance_punches`).
  *
  * Acepta POST (webhook del formulario: multipart con `rawRequest`) y GET o
  * POST con parámetros sueltos (paso "Webhook" del workflow, que manda solo
@@ -35,7 +38,7 @@ import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from 
 export const dynamic = "force-dynamic";
 
 const JOTFORM_API = process.env.JOTFORM_API_URL ?? "https://api.jotform.com";
-const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID]);
+const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID, PUNCH_FORM_ID]);
 
 /** Respuestas de un envío, desde la API de JotForm. null si no hay API key o falla. */
 async function answersFromJotformApi(submissionId: string, formId: string): Promise<AnswersByName | null> {
@@ -186,12 +189,32 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     return Response.json({ ok: true, ignored: "no amount" });
   }
 
+  // Una ponchada sin fecha, hora o persona (el TEST, o un envío incompleto): no se guarda.
+  const punch = formId === PUNCH_FORM_ID ? normalizePunch(answers) : null;
+  if (formId === PUNCH_FORM_ID && !punch) {
+    console.warn("JotForm webhook: ponchada sin fecha, hora o persona; campos:", Object.keys(answers).join(", "));
+    return Response.json({ ok: true, ignored: "no punch" });
+  }
+
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const common = { form_id: formId, submission_id: submissionId, submitted_at: new Date().toISOString(), raw: answers as Json };
-  const { error } =
-    formId === MONEY_FORM_ID
+  const { error } = punch
+    ? await supabase.rpc("ingest_attendance_punch", {
+        p_token: token,
+        p_data: {
+          dedupe_key: punchKey(punch),
+          raw_name: punch.name,
+          code: punch.code ?? "",
+          punch_date: punch.date,
+          punch_minutes: punch.minutes,
+          kind: punch.kind,
+          location: punch.location ?? "",
+          submission_id: submissionId,
+        },
+      })
+    : formId === MONEY_FORM_ID
       ? await supabase.rpc("ingest_money_request", { p_token: token, p_data: { ...common, ...moneyData(answers) } })
       : await supabase.rpc("ingest_staff_intake", { p_token: token, p_data: { ...common, ...intakeData(answers) } });
   if (error) {

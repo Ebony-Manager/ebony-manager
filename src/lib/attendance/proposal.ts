@@ -6,7 +6,7 @@
  */
 import { analyzePeriod, datesBetween, minutesToHours, nightSurchargeCents } from "./engine";
 import { matchEmployees, type MatchableEmployee } from "./parse";
-import type { DayFlag, RawPunch, Schedule } from "./types";
+import type { DayFlag, DayResult, RawPunch, Schedule } from "./types";
 
 export interface ProposalEmployee extends MatchableEmployee {
   status: "ACTIVE" | "INACTIVE";
@@ -36,6 +36,10 @@ export interface EmployeeProposal {
   overtimeMinutes: number;
   nightMinutes: number;
   review: { date: string; flags: DayFlag[] }[];
+  /** Día por día de la quincena (para ver el detalle). */
+  days: DayResult[];
+  /** Sus marcaciones de la quincena, de las dos fuentes. */
+  punches: RawPunch[];
   /** Lo que se sugiere escribir en Registro. */
   suggested: {
     /** Horas decimales (3.38 = 3 h 23 min): solo las llegadas tarde, minuto a minuto. */
@@ -69,10 +73,12 @@ export function buildProposal(input: {
   employees: readonly ProposalEmployee[];
   overtime?: readonly OvertimeAuthorization[];
   schedule?: Schedule;
+  /** Vínculos nombre → empleado guardados en la app (ver `matchEmployees`). */
+  links?: ReadonlyMap<string, string | null>;
 }): { proposals: EmployeeProposal[]; unmatched: string[] } {
   const { from, to, employees } = input;
   const inRange = input.punches.filter((p) => p.date >= from && p.date <= to);
-  const { matched, unmatched } = matchEmployees(inRange.map((p) => p.name), employees);
+  const { matched, unmatched } = matchEmployees(inRange.map((p) => p.name), employees, input.links);
 
   const byEmployee = new Map<string, RawPunch[]>();
   for (const p of inRange) {
@@ -110,6 +116,8 @@ export function buildProposal(input: {
       overtimeMinutes,
       nightMinutes: hasNight ? a.nightMinutes : 0,
       review: a.review,
+      days: a.days,
+      punches,
       suggested: {
         horasDescontadas: Math.round(lateHours * 100) / 100,
         diasDescontados: punches.length > 0 ? a.absentWeekdays + a.absentSaturdays : 0,

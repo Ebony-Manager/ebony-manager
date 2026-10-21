@@ -154,6 +154,18 @@ describe("matchEmployees", () => {
     expect(r.matched.get("Mario Loaiza")?.id).toBe("3");
     expect(r.unmatched).toEqual(["Jose Padilla"]);
   });
+  it("los vínculos guardados en la app mandan; null = no es empleado", () => {
+    const links = new Map<string, string | null>([
+      ["jose padilla", "3"],
+      ["douglas serna", null],
+      ["mario loaiza", "1"],
+    ]);
+    const r = matchEmployees(["Jose Padilla", "Douglas Serna", "Mario Loaiza"], emps, links);
+    expect(r.matched.get("Jose Padilla")?.id).toBe("3");
+    expect(r.matched.get("Mario Loaiza")?.id).toBe("1");
+    expect(r.matched.has("Douglas Serna")).toBe(false);
+    expect(r.unmatched).toEqual([]);
+  });
 });
 
 import { buildProposal, periodDateRange, type ProposalEmployee } from "./proposal";

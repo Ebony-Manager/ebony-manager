@@ -9,6 +9,8 @@ export interface RawPunch {
   /** Lo que dice el archivo; no se confía en él (a veces marcan "entrada" al salir). */
   kind: "in" | "out" | "unknown";
   source: "reloj" | "jotform";
+  /** Ubicación que detectó el Jotform (enlace de Google Maps), si la hay. */
+  location?: string;
 }
 
 export interface Schedule {

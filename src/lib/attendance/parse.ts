@@ -83,7 +83,8 @@ export function parseJotformPunches(rows: string[][]): RawPunch[] {
   return out;
 }
 
-const fold = (s: string) =>
+/** Nombre para comparar: minúsculas, sin acentos ni signos (también la clave de `attendance_name_links`). */
+export const foldName = (s: string) =>
   s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -114,23 +115,34 @@ export const NAME_ALIASES: Record<string, string> = {
 
 /**
  * Empareja los nombres de las marcaciones con los empleados de la app: primero
- * el alias conocido, luego el nombre igual, luego el nombre contenido en el otro
- * (solo si es único). Lo que no se pueda emparejar con certeza queda sin resolver.
+ * el vínculo guardado en la app (`links`: nombre → empleado, o null = no es
+ * empleado y se ignora), luego el alias conocido, luego el nombre igual, luego
+ * el nombre contenido en el otro (solo si es único). Lo que no se pueda
+ * emparejar con certeza queda sin resolver.
  */
 export function matchEmployees(
   names: readonly string[],
-  employees: readonly MatchableEmployee[]
+  employees: readonly MatchableEmployee[],
+  links: ReadonlyMap<string, string | null> = new Map()
 ): { matched: Map<string, MatchableEmployee>; unmatched: string[] } {
-  const byFolded = new Map(employees.map((e) => [fold(e.name), e]));
+  const byFolded = new Map(employees.map((e) => [foldName(e.name), e]));
+  const byId = new Map(employees.map((e) => [e.id, e]));
   const matched = new Map<string, MatchableEmployee>();
   const unmatched: string[] = [];
   for (const name of new Set(names)) {
-    const f = fold(name);
+    const f = foldName(name);
+    if (links.has(f)) {
+      const linked = links.get(f);
+      const e = linked ? byId.get(linked) : undefined;
+      if (e) matched.set(name, e);
+      // Vinculado a alguien que ya no está en la lista (o "ignorar"): no se reclama.
+      continue;
+    }
     const alias = NAME_ALIASES[f];
-    let hit = (alias ? byFolded.get(fold(alias)) : undefined) ?? byFolded.get(f);
+    let hit = (alias ? byFolded.get(foldName(alias)) : undefined) ?? byFolded.get(f);
     if (!hit) {
       const candidates = employees.filter((e) => {
-        const ef = fold(e.name);
+        const ef = foldName(e.name);
         return ef.includes(f) || f.includes(ef);
       });
       if (candidates.length === 1) hit = candidates[0];

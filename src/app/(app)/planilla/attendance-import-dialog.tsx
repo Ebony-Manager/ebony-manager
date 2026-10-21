@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ClipboardCopy, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ClipboardCopy, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { getRegistroAction } from "./actions";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { parseClockReport, parseJotformPunches } from "@/lib/attendance/parse";
 import { buildProposal, periodDateRange, type OvertimeAuthorization, type ProposalEmployee } from "@/lib/attendance/proposal";
 import { dailyRateCents, hourlyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
 import { formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
@@ -36,16 +35,6 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
   sunday_punch: "att_flag_sunday",
 };
 
-/** Texto de un archivo de marcaciones a filas: CSV simple o la primera hoja de un xlsx. */
-async function readRows(file: File): Promise<string[][]> {
-  if (/\.xlsx?$/i.test(file.name)) {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.read(await file.arrayBuffer());
-    return XLSX.utils.sheet_to_json<string[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, blankrows: false }) as string[][];
-  }
-  return (await file.text()).split(/\r?\n/).map((l) => l.split(","));
-}
-
 interface Edit {
   horas: string;
   dias: string;
@@ -53,34 +42,36 @@ interface Edit {
 }
 
 /**
- * Importar asistencia: se suben el reporte del reloj (CSV) y el Jotform de la gente
- * en proyectos (xlsx) de la quincena que está abierta en Registro. Se muestra qué se
- * sugiere escribir en "Horas descontadas", "Días descontados" y "Horas extra" y, al
- * lado, lo que hay hoy en la app, para compararlo con la planilla de Google Sheets
- * antes de aplicar nada. Las horas extra solo salen de los formularios firmados por
- * la jefa de taller: se anotan acá (empleado, fecha, de qué hora a qué hora).
+ * Pasar la asistencia a la Quincena: con las ponchadas guardadas de la quincena
+ * (reloj y Jotform, ver Pagos → Asistencia) se muestra qué se sugiere escribir en
+ * "Horas descontadas", "Días descontados" y "Horas extra" y, al lado, lo que hay
+ * hoy en la app, antes de aplicar nada. Las horas extra solo salen de los
+ * formularios firmados por la jefa de taller: se anotan acá (empleado, fecha, de
+ * qué hora a qué hora).
  */
 export function AttendanceImportDialog({
   open,
   onOpenChange,
   period,
   rows,
+  punches,
+  links,
   onApplied,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   period: Period;
   rows: RegistroRow[];
+  /** Ponchadas guardadas de la quincena. */
+  punches: RawPunch[];
+  /** Vínculos nombre → empleado (ver `matchEmployees`). */
+  links: ReadonlyMap<string, string | null>;
   onApplied: () => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const range = React.useMemo(() => periodDateRange(period.year, period.month, period.half), [period]);
 
-  const [clockPunches, setClockPunches] = React.useState<RawPunch[]>([]);
-  const [jotPunches, setJotPunches] = React.useState<RawPunch[]>([]);
-  const [clockName, setClockName] = React.useState("");
-  const [jotName, setJotName] = React.useState("");
   const [overtime, setOvertime] = React.useState<OvertimeAuthorization[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [edits, setEdits] = React.useState<Record<string, Edit>>({});
@@ -94,10 +85,6 @@ export function AttendanceImportDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir o cambiar de quincena. */
   React.useEffect(() => {
     if (!open) return;
-    setClockPunches([]);
-    setJotPunches([]);
-    setClockName("");
-    setJotName("");
     setOvertime([]);
     setSelected(new Set());
     setEdits({});
@@ -122,8 +109,8 @@ export function AttendanceImportDialog({
   const rowById = React.useMemo(() => new Map(rows.map((r) => [r.employee.id, r])), [rows]);
 
   const { proposals, unmatched } = React.useMemo(
-    () => buildProposal({ from: range.from, to: range.to, punches: [...clockPunches, ...jotPunches], employees, overtime }),
-    [range, clockPunches, jotPunches, employees, overtime]
+    () => buildProposal({ from: range.from, to: range.to, punches, employees, overtime, links }),
+    [range, punches, employees, overtime, links]
   );
 
   // Cada vez que cambia la propuesta se re-siembran los campos editables y se marcan todos.
@@ -142,28 +129,6 @@ export function AttendanceImportDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- depende de la clave resumida.
   }, [proposalKey]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  async function onFile(kind: "clock" | "jot", file: File | undefined) {
-    if (!file) return;
-    try {
-      const data = await readRows(file);
-      const punches = kind === "clock" ? parseClockReport(data) : parseJotformPunches(data);
-      if (punches.length === 0) {
-        toast.error(tt("att_file_empty"));
-        return;
-      }
-      if (kind === "clock") {
-        setClockPunches(punches);
-        setClockName(file.name);
-      } else {
-        setJotPunches(punches);
-        setJotName(file.name);
-      }
-    } catch (err) {
-      console.error("Asistencia: no se pudo leer el archivo", err);
-      toast.error(tt("att_file_error"));
-    }
-  }
 
   function addOvertime() {
     const from = parseHM(otFrom);
@@ -255,7 +220,7 @@ export function AttendanceImportDialog({
     }
   }
 
-  const hasFiles = clockPunches.length > 0 || jotPunches.length > 0;
+  const hasFiles = punches.length > 0;
   const th = "px-2 py-2 font-medium whitespace-nowrap";
   const diffClass = (a: string, current: number) => (Math.abs((parseFloat(a || "0") || 0) - current) > 0.004 ? "bg-amber-50 dark:bg-amber-950/30" : "");
   const quincenaLabel = `${period.half === 1 ? "1Q" : "2Q"} ${monthLabel(lang, period.month)} ${period.year}`;
@@ -269,24 +234,6 @@ export function AttendanceImportDialog({
           </DialogTitle>
           <DialogDescription>{tt("att_desc")}</DialogDescription>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {([
-            { kind: "clock" as const, label: tt("att_clock_file"), accept: ".csv", name: clockName, count: clockPunches.length },
-            { kind: "jot" as const, label: tt("att_jotform_file"), accept: ".xlsx,.xls", name: jotName, count: jotPunches.length },
-          ]).map((f) => (
-            <label key={f.kind} className="flex cursor-pointer items-center gap-3 border border-dashed border-border px-3 py-3 text-sm hover:bg-muted/30">
-              <Upload className="size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium text-foreground">{f.label}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {f.name ? `${f.name} · ${f.count} ${tt("att_punches")}` : tt("att_choose_file")}
-                </span>
-              </span>
-              <input type="file" accept={f.accept} className="sr-only" onChange={(e) => void onFile(f.kind, e.target.files?.[0])} />
-            </label>
-          ))}
-        </div>
 
         <details className="border border-border">
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-foreground">

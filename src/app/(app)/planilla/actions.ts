@@ -6,8 +6,11 @@ import { requireModule } from "@/lib/auth/dal";
 import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
+import * as attendance from "@/services/attendance";
 import * as salary from "@/services/payroll-salary";
 import * as positions from "@/services/payroll-positions";
+import type { RawPunch } from "@/lib/attendance/types";
+import { foldName } from "@/lib/attendance/parse";
 import type { LedgerCategory, LedgerDirection, LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 
 // Planilla es para quien tiene el módulo `planilla` (el admin siempre):
@@ -57,6 +60,28 @@ export async function upsertPayrollEntryAction(input: payroll.UpsertEntryInput) 
 export async function clearPeriodHoursAction(year: number, month: number, half: 1 | 2) {
   await requireModule("planilla", "asistencia");
   return { cleared: await payroll.clearPeriodHours(year, month, half) };
+}
+
+// Asistencia: ponchadas guardadas (reloj por archivo, Jotform por webhook).
+export async function getAttendanceAction(from: string, to: string) {
+  await requireModule("planilla", "asistencia");
+  const [punches, links, status] = await Promise.all([
+    attendance.getPunches(from, to),
+    attendance.getNameLinks(),
+    attendance.getAttendanceStatus(),
+  ]);
+  return { punches, links, status };
+}
+
+export async function importPunchesAction(punches: RawPunch[]) {
+  const profile = await requireModule("planilla", "asistencia");
+  return attendance.importPunches(punches, profile.id);
+}
+
+/** Vincula un nombre de las ponchadas a un empleado (null = no es empleado, se ignora). */
+export async function linkAttendanceNameAction(name: string, employeeId: string | null) {
+  const profile = await requireModule("planilla", "asistencia");
+  await attendance.setNameLink(foldName(name), employeeId, profile.id);
 }
 
 export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
