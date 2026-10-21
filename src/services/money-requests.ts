@@ -5,7 +5,7 @@ import type { Database } from "@/types/database";
 import type { MoneyRequest } from "@/types/money-requests";
 
 /**
- * Bandeja "Solicitudes de dinero" (Planilla → Préstamos): lo que llega del
+ * Bandeja "Solicitudes de dinero" (Personal → Pagos → Préstamos): lo que llega del
  * workflow de JotForm ya aprobado. Se lee y se resuelve con la sesión del
  * usuario (la RLS pide Planilla o Contratistas); nunca se inserta desde acá —
  * eso lo hace solo `ingest_money_request`.

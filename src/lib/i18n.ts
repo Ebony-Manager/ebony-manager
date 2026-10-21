@@ -23,14 +23,13 @@ export const strings = {
     planilla: { es: "Planilla", en: "Payroll" },
     contratistas: { es: "Contratistas", en: "Contractors" },
     // Panel "Personal": la gente de Ebony y lo que se le paga — Resumen,
-    // Staff (empleados + contratistas juntos), Planilla y Contratistas.
+    // Personal (empleados + contratistas juntos) y Pagos (planilla,
+    // contratistas, préstamos, asistencia…).
     personal: { es: "Personal", en: "People" },
     staff: { es: "Personal", en: "Staff" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
-    // El filtro Todos/Taller/Administrativo que ya vive DENTRO del módulo
-    // es lo que distingue ahora — el nombre del menú no necesita cargarlo.
-    taller: { es: "Planilla", en: "Payroll" },
-    // Resumen global de Personal (lo pagado por mes: Planilla + Contratistas).
+    pagos: { es: "Pagos", en: "Payments" },
+    // Resumen único de Personal, con filtro Todos / Empleados / Contratistas.
     // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
     resumenPersonal: { es: "Resumen", en: "Summary" },
     proximamente: { es: "Pronto", en: "Soon" },
@@ -152,6 +151,42 @@ export const strings = {
     rank_contractors: { es: "Contratistas", en: "Contractors" },
     rank_empty: { es: "Sin pagos en este período.", en: "No payments in this period." },
     scope_year: { es: "Año", en: "Year" },
+    // Filtro del Resumen único.
+    view_all: { es: "Todos", en: "Everyone" },
+    view_employees: { es: "Empleados", en: "Employees" },
+    view_contractors: { es: "Contratistas", en: "Contractors" },
+  },
+
+  // Personal → Pagos: todo lo que se le paga al personal, en pestañas.
+  pagos: {
+    title: { es: "Pagos", en: "Payments" },
+    tab_asistencia: { es: "Asistencia", en: "Attendance" },
+    tab_quincena: { es: "Quincena", en: "Pay period" },
+    tab_contratistas: { es: "Contratistas", en: "Contractors" },
+    tab_prestamos: { es: "Préstamos", en: "Loans" },
+    tab_historial: { es: "Historial", en: "History" },
+    tab_contratos: { es: "Contratos", en: "Contracts" },
+    sub_asistencia: {
+      es: "Ponchadas del reloj y del Jotform → descuentos por tardanza y faltas de la quincena",
+      en: "Clock and Jotform punches → late and absence deductions for the pay period",
+    },
+    sub_quincena: { es: "La planilla de empleados de cada quincena", en: "The employee payroll for each pay period" },
+    sub_contratistas: {
+      es: "Cuánto se le ha facturado y pagado a cada contratista, y cuánto se le debe",
+      en: "What each contractor has billed and been paid, and what is owed",
+    },
+    sub_prestamos: { es: "Préstamos y adelantos, con sus cuotas", en: "Loans and advances, with their installments" },
+    sub_historial: { es: "Todas las quincenas del año, rubro por rubro", en: "Every pay period of the year, item by item" },
+    sub_contratos: { es: "Proyectos contratados a ebanistas y pintores", en: "Projects contracted to cabinetmakers and painters" },
+    rates: { es: "Tarifas", en: "Rates" },
+    rates_title: { es: "Tarifas de mano de obra", en: "Labor rates" },
+    att_import: { es: "Importar reloj y Jotform", en: "Import clock and Jotform" },
+    att_how: {
+      es: "Sube el reporte del reloj (CSV) y el Jotform de proyectos (xlsx) de la quincena: la app calcula las tardanzas, las faltas y las horas extra autorizadas, y las pasas a la Quincena con un clic.",
+      en: "Upload the clock report (CSV) and the projects Jotform (xlsx) for the pay period: the app works out late time, absences and authorized overtime, and you send them to the Pay period in one click.",
+    },
+    att_current: { es: "Lo que tiene hoy la quincena", en: "What the pay period has now" },
+    att_none: { es: "Ningún empleado tiene horas o días descontados ni horas extra en esta quincena.", en: "No employee has docked hours, docked days or overtime in this pay period." },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -813,7 +848,7 @@ export const strings = {
     reference_suffix: { es: "referencia", en: "reference" },
 
     // Auditoría
-    auditoria_title: { es: "Auditoría de Planilla", en: "Payroll Audit" },
+    auditoria_title: { es: "Historial de quincenas", en: "Pay period history" },
     auditoria_subtitle: {
       es: "Vista anual detallada por quincena, para verificación y control de datos.",
       en: "Detailed annual view per period, for data verification and control.",
@@ -911,7 +946,6 @@ export const strings = {
     ach_text_decimo: { es: "Pago de Decimo", en: "Pago de Decimo" },
     ach_text_vacacion: { es: "Pago de Vacaciones", en: "Pago de Vacaciones" },
     ach_text_prima: { es: "Pago de Prima Antiguedad", en: "Pago de Prima Antiguedad" },
-    att_menu: { es: "Importar asistencia", en: "Import attendance" },
     att_title: { es: "Importar asistencia", en: "Import attendance" },
     att_desc: {
       es: "Sube el reporte del reloj y el Jotform de la quincena. Se compara con lo que ya está en la app antes de aplicar nada.",
@@ -953,9 +987,9 @@ export const strings = {
       en: "This sets docked hours/days and overtime to 0 for ALL employees in this period (and the night surcharge). It does not touch salaries, loans or benefits. Continue?",
     },
     att_cleared: { es: "Filas limpiadas", en: "Rows cleared" },
-    att_apply: { es: "Aplicar a Registro", en: "Apply to Register" },
+    att_apply: { es: "Aplicar a la Quincena", en: "Apply to Pay period" },
     att_applied: { es: "Empleados actualizados", en: "Employees updated" },
-    att_apply_error: { es: "No se pudo aplicar todo; revisa Registro.", en: "Could not apply everything; check Register." },
+    att_apply_error: { es: "No se pudo aplicar todo; revisa la Quincena.", en: "Could not apply everything; check the Pay period." },
     att_flag_absent: { es: "sin ninguna marcación", en: "no punches" },
     att_flag_missing_out: { es: "sin salida (se asume la hora normal)", en: "no clock-out (normal time assumed)" },
     att_flag_missing_in: { es: "sin entrada", en: "no clock-in" },
@@ -1072,8 +1106,8 @@ export const strings = {
     // pestaña global "Resumen Anual", ahora por empleado.
     hist_title: { es: "Historial", en: "History" },
     hist_subtitle: {
-      es: "Detalle de quincenas, de solo lectura. Para editar, usa Registro.",
-      en: "Period detail, read-only. To edit, use Registro.",
+      es: "Detalle de quincenas, de solo lectura. Para editar, usa Quincena.",
+      en: "Period detail, read-only. To edit, use Pay period.",
     },
     hist_overview_toggle: { es: "Panorama anual", en: "Annual overview" },
     hist_total_paid: { es: "Total pagado", en: "Total paid" },
@@ -1363,7 +1397,10 @@ export const strings = {
     cd_rank_empty: { es: "Sin datos en este período.", en: "No data in this period." },
     cd_projects_unit: { es: "proyectos", en: "projects" },
     cd_table_title: { es: "Detalle por contratista", en: "Detail by contractor" },
-    cd_table_hint: { es: "Haz clic en una fila para ver los proyectos que lleva.", en: "Click a row to see the projects they carry." },
+    cd_table_hint: {
+      es: "Clic en la fila para ver sus proyectos; en el nombre, para abrir su estado de cuenta.",
+      en: "Click a row to see their projects; the name opens their statement.",
+    },
     cd_col_contractor: { es: "Contratista", en: "Contractor" },
     cd_col_projects: { es: "Proyectos", en: "Projects" },
     cd_col_billed: { es: "Facturado", en: "Billed" },
@@ -1882,8 +1919,8 @@ export const strings = {
       en: "Directory, projects, statements and rates.",
     },
     dashboard_note: {
-      es: "El Resumen de Personal aparece a quien tenga Planilla y Contratistas; la lista de Personal, a quien tenga cualquiera de los dos.",
-      en: "The People summary shows for users with both Payroll and Contractors; Staff, for users with either.",
+      es: "Resumen, Personal y Pagos aparecen a quien tenga Planilla o Contratistas; adentro, cada uno ve solo lo de sus módulos (la vista \"Todos\" del Resumen pide los dos).",
+      en: "Summary, Staff and Payments show for users with Payroll or Contractors; inside, each sees only their modules (the Summary's \"Everyone\" view needs both).",
     },
   },
 

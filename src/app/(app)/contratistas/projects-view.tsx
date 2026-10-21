@@ -20,12 +20,19 @@ function hasContract(p: Project): boolean {
 }
 
 /**
- * Pestaña "Proyectos" del módulo Contratistas — lista (nombre, cliente,
+ * Personal → Pagos → Contratos (antes "Proyectos" de Contratistas) — lista (nombre, cliente,
  * estado). Click en una fila abre la FICHA DE CONTRATO del proyecto
  * (`ProjectDetailSheet`); desde ahí se edita / borra. Borrar un proyecto
  * NO borra movimientos (el FK del ledger es `on delete set null`).
  */
-export function ProjectsView({ projects }: { projects: Project[] }) {
+export function ProjectsView({
+  projects,
+  actions,
+}: {
+  projects: Project[];
+  /** Botones extra junto a "Agregar" (ej. Tarifas). */
+  actions?: React.ReactNode;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
@@ -64,10 +71,13 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
             className="pl-8"
           />
         </div>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="size-3.5" />
-          {tt("add_project")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {actions}
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3.5" />
+            {tt("add_project")}
+          </Button>
+        </div>
       </div>
 
       {projects.length === 0 ? (

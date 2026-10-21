@@ -1,4 +1,4 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Users, Hammer, Layers, UserCog, Briefcase, Settings, Contact, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Wallet, Layers, UserCog, Briefcase, Settings, Contact, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -25,7 +25,7 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 
 /**
  * Compartido entre `sidebar.tsx` (los renderiza) y `breadcrumbFor` (lo
- * pinta cada pantalla: "Personal / Planilla") — una sola lista, así
+ * pinta cada pantalla: "Personal / Pagos") — una sola lista, así
  * nunca quedan desincronizados.
  */
 
@@ -51,18 +51,18 @@ export interface NavPanel {
   items: NavItem[];
 }
 
-// Personal — en el rail, debajo de los módulos de trabajo: Resumen (lo
-// pagado por mes, Planilla + Contratistas), Staff (todos juntos), Planilla
-// y Contratistas.
+// Personal — en el rail, debajo de los módulos de trabajo: Resumen (uno
+// solo, con filtro Todos / Empleados / Contratistas), Personal (todos
+// juntos) y Pagos (asistencia, quincena, contratistas, préstamos…). Cada
+// pestaña de adentro pide su propio módulo.
 export const PERSONAL_PANEL: NavPanel = {
   key: "personal",
   icon: Briefcase,
   title: strings.nav.personal,
   items: [
-    { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, modules: ["planilla", "contratistas"], exact: true },
+    { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, anyModules: ["planilla", "contratistas"], exact: true },
     { href: "/personal/staff", icon: Contact, label: strings.nav.staff, anyModules: ["planilla", "contratistas"] },
-    { href: "/planilla", icon: Users, label: strings.nav.taller, modules: ["planilla"] },
-    { href: "/contratistas", icon: Hammer, label: strings.nav.contratistas, modules: ["contratistas"] },
+    { href: "/personal/pagos", icon: Wallet, label: strings.nav.pagos, anyModules: ["planilla", "contratistas"] },
   ],
 };
 
@@ -81,10 +81,10 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 }
 
 /**
- * "Personal / Planilla" o "Settings / Usuarios" — un ítem de panel da
+ * "Personal / Pagos" o "Settings / Usuarios" — un ítem de panel da
  * dos crumbs; uno del rail (sin panel) da uno solo ("Cronograma"). Sin match
  * (ej. `/`, fuera de (app)) no rinde nada. Lo pinta cada pantalla dentro de
- * su propio contenido (ver planilla-client.tsx).
+ * su propio contenido (ver pagos-client.tsx).
  */
 export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
   for (const panel of NAV_PANELS) {

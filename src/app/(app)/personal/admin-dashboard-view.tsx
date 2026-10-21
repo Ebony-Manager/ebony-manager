@@ -87,7 +87,7 @@ export function AdminDashboardView() {
   const centsOf = (k: AdminSeriesKey) => (!m ? 0 : k === "taller" ? m.tallerCents : k === "admin" ? m.adminCents : m.contractorsCents);
 
   return (
-    <div className="flex flex-col gap-4 px-7 pt-6 pb-10">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[19px] font-bold text-ink-900">{tt("title")}</h1>

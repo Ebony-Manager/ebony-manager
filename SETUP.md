@@ -119,7 +119,7 @@ y la migración `20261020210000_staff_intake_jotform.sql`.
    uno nuevo, guardar su SHA-256 (hex) en esa fila y actualizar la URL.
 2. **Solicitud Dinero** (id `240054334404848`, dentro de un *workflow* de
    aprobación): la misma URL del webhook va en la **rama aprobada** del
-   workflow, no en el formulario. Lo que llega cae en **Planilla →
+   workflow, no en el formulario. Lo que llega cae en **Personal → Pagos →
    Préstamos → Solicitudes de dinero** para registrarlo (empleado: préstamo
    o adelanto con sus cuotas; contratista: movimiento en su estado de
    cuenta) o descartarlo. Si el webhook se pusiera en el formulario,

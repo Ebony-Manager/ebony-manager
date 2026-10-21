@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
-import { STAFF_PATH } from "@/lib/personal/paths";
+import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as contractors from "@/services/contractors";
 
 // Contratistas es para quien tiene el módulo `contratistas` (el admin
@@ -11,7 +11,7 @@ import * as contractors from "@/services/contractors";
 // (además de la RLS de las tablas). Un usuario sin el módulo que llame a un
 // action a mano igual rebota.
 
-const PATH = "/contratistas";
+const PATH = PAGOS_PATH;
 
 // La lista y la ficha del contratista viven en Personal → Staff
 // (`/personal/staff/contratistas/[id]`): un cambio afecta al Dashboard de

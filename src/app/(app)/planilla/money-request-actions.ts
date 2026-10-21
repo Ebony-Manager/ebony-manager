@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import * as requests from "@/services/money-requests";
 import { createLedgerEntry } from "@/services/contractors";
+import { PAGOS_PATH } from "@/lib/personal/paths";
 
-// Bandeja "Solicitudes de dinero" (Planilla → Préstamos). Registrar a un
+// Bandeja "Solicitudes de dinero" (Personal → Pagos → Préstamos). Registrar a un
 // EMPLEADO pide Planilla (el préstamo se crea con el formulario de siempre,
 // createLoanAction); a un CONTRATISTA, Contratistas. Devuelven el error como
 // dato: en producción Next oculta el mensaje de un error lanzado.
@@ -18,7 +19,7 @@ function message(err: unknown): string {
 }
 
 function revalidate() {
-  revalidatePath("/planilla");
+  revalidatePath(PAGOS_PATH);
   revalidatePath("/", "layout");
 }
 
@@ -61,7 +62,6 @@ export async function registerContractorMoneyRequestAction(id: string, contracto
   } catch (err) {
     return { ok: false, error: message(err) };
   }
-  revalidatePath("/contratistas");
   revalidatePath("/personal/staff", "layout");
   revalidate();
   return { ok: true };

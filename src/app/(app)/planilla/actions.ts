@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
-import { STAFF_PATH } from "@/lib/personal/paths";
+import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as salary from "@/services/payroll-salary";
@@ -15,7 +15,7 @@ import type { LedgerCategory, LedgerDirection, LoanCategory, LoanPaymentMethod }
 // RLS `private.has_module('planilla')` de las tablas). Un usuario sin el
 // módulo que llame a un action a mano igual rebota.
 
-const PATH = "/planilla";
+const PATH = PAGOS_PATH;
 
 // Los empleados se listan y se editan en Personal → Staff (la lista y la
 // ficha `/personal/staff/empleados/[id]`): se revalida Planilla y todo Staff.

@@ -1,6 +1,6 @@
 /**
  * Definición de columnas para el toggle "Columnas" de Registro. Vive
- * fuera de registro-view.tsx para que planilla-client.tsx pueda ser
+ * fuera de registro-view.tsx para que pagos-client.tsx pueda ser
  * dueño del estado `visibleColumns` (y persistirlo) sin duplicar esta
  * lista — así la elección sobrevive a cambiar de tab y volver.
  *

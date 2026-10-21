@@ -14,8 +14,7 @@ export const APP_MODULES = ["cotizacion", "costos", "planilla", "asistencia", "c
 export type AppModule = (typeof APP_MODULES)[number];
 
 /**
- * Sub-permisos: `asistencia` vive dentro de Planilla (Registro → Importar
- * asistencia) y `costos` dentro del Cotizador (precios y catálogo), así que
+ * Sub-permisos: `asistencia` vive dentro de Planilla (Pagos → Asistencia) y `costos` dentro del Cotizador (precios y catálogo), así que
  * sin el módulo padre no hay forma de llegar a ellos.
  */
 export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
@@ -71,7 +70,6 @@ export function hasAnyModule(subject: AccessSubject | null | undefined, modules:
  */
 export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "cotizacion")) return "/cotizacion";
-  if (hasModule(subject, "planilla")) return "/planilla";
-  if (hasModule(subject, "contratistas")) return "/contratistas";
+  if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
   return "/dashboard";
 }

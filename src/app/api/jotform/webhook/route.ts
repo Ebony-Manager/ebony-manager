@@ -16,7 +16,7 @@ import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from 
  *
  * - "Registro Empleado" → bandeja "Nuevos registros" de Personal
  *   (`public.staff_intake`).
- * - "Solicitud Dinero" → bandeja "Solicitudes de dinero" de Planilla →
+ * - "Solicitud Dinero" → bandeja "Solicitudes de dinero" de Pagos →
  *   Préstamos (`public.money_requests`). Este va en la rama APROBADA del
  *   workflow de JotForm: lo que llega ya está aprobado.
  *

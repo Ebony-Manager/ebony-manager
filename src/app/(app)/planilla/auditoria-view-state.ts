@@ -1,7 +1,7 @@
 /**
  * Estado "de vista" de Auditoría (lo que guarda "Guardar como mi vista") y
  * sus valores de fábrica. Vive aparte de auditoria-view.tsx para que
- * planilla-client pueda leer el tipo de empleado guardado sin importar
+ * pagos-client pueda leer el tipo de empleado guardado sin importar
  * toda la pantalla.
  */
 import type { PayrollPalette } from "@/lib/planilla/payroll-colors";

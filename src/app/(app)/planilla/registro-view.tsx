@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Copy,
   SlidersHorizontal,
-  FileUp,
   MoreHorizontal,
   Download,
   FileText,
@@ -51,7 +50,6 @@ import {
 import { computeRegistroSimpleTotals } from "@/lib/planilla/payroll-registro-totals";
 import { matchesEmployeeQuery, numberEmployees } from "@/lib/planilla/employee-search";
 import { useLang } from "@/context/language-context";
-import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import {
   getRegistroAction,
@@ -79,7 +77,6 @@ import {
 import { RegistroKpiCard } from "./registro-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
 import { BankExportDialog } from "./bank-export-dialog";
-import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { downloadQuincenaPdf } from "./quincena-pdf";
 import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
@@ -114,7 +111,7 @@ const SIMPLE_COLUMNS: {
 // Memoria de sesión de la paleta y la vista Simple/Expandida: sobrevive a
 // cambiar de pestaña dentro de Planilla pero no a recargar la página (al
 // recargar se abre "mi vista" guardada, o la original). Las columnas y el
-// tipo de empleado viven en planilla-client por la misma razón.
+// tipo de empleado viven en pagos-client por la misma razón.
 const SESSION_KEY = "registro-sesion";
 type RegistroSession = { palette: PayrollPalette; view: RegistroViewMode };
 
@@ -123,7 +120,7 @@ type RegistroSession = { palette: PayrollPalette; view: RegistroViewMode };
  * quincena, inputs de cantidad con monto calculado automático, y
  * "duplicar quincena anterior". Portado de Atlas.
  *
- * `visibleColumns` es propiedad de planilla-client (persistido en
+ * `visibleColumns` es propiedad de pagos-client (persistido en
  * localStorage allá), no de este componente, para que la elección
  * sobreviva a cambiar de tab y volver — esta vista se desmonta cuando
  * su TabsContent queda inactivo y resetearía a los defaults al remontar.
@@ -147,7 +144,6 @@ export function RegistroView({
   reloadSignal?: number;
 }) {
   const { lang } = useLang();
-  const { can } = useAuth();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
   const [period, setPeriod] = React.useState(() => currentPeriod());
@@ -161,7 +157,6 @@ export function RegistroView({
   const [pending, startTransition] = React.useTransition();
   const [duplicating, setDuplicating] = React.useState(false);
   const [bankOpen, setBankOpen] = React.useState(false);
-  const [attendanceOpen, setAttendanceOpen] = React.useState(false);
   // Buscador de empleado: la tabla se queda solo con quien coincida.
   const [query, setQuery] = React.useState("");
 
@@ -664,13 +659,6 @@ export function RegistroView({
               <Copy className="size-3.5" />
               {tt("duplicate_prev")}
             </DropdownMenuItem>
-            {/* Importar asistencia pide además el permiso `asistencia`. */}
-            {can("asistencia") && (
-              <DropdownMenuItem onSelect={() => setAttendanceOpen(true)}>
-                <FileUp className="size-3.5" />
-                {tt("att_menu")}
-              </DropdownMenuItem>
-            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -1058,13 +1046,6 @@ export function RegistroView({
       )}
 
       <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={fullRows} />
-      <AttendanceImportDialog
-        open={attendanceOpen}
-        onOpenChange={setAttendanceOpen}
-        period={dataPeriod}
-        rows={fullRows}
-        onApplied={load}
-      />
 
       {(pending || visibleRows === null) && (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
