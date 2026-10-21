@@ -81,11 +81,6 @@ export interface ContractorHelper {
   notes: string | null;
 }
 
-/** Contratista + su saldo actual calculado (para la lista de Staff). */
-export interface ContractorWithBalance extends Contractor {
-  balanceCents: number;
-}
-
 /** Las 9 categorías de la tabla `contractor_ledger_entries`. */
 export type ContractorLedgerCategory =
   | "trabajo"

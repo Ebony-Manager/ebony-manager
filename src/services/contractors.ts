@@ -14,14 +14,12 @@ import type {
   ContractorLedgerEntryItem,
   ContractorStatus,
   ContractorType,
-  ContractorWithBalance,
   LaborRate,
   LaborRatePhase,
   LaborRateUnit,
   Project,
   ProjectStatus,
 } from "@/types/contractors";
-import { contractorBalanceCents } from "@/lib/contractors/contractor-ledger";
 
 /**
  * Capa de datos del módulo Contratistas (tablas `contractors`,
@@ -159,56 +157,12 @@ export async function getContractorPhotoUrls(contractors: readonly Contractor[])
   return signedPhotoUrls("contractor-photos", contractors);
 }
 
-/** Contratistas sin saldo (para emparejar solicitudes de dinero en Planilla). */
+/** Contratistas (para la lista de Personal y para emparejar solicitudes de dinero). */
 export async function getContractors(): Promise<Contractor[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("contractors").select("*").order("sort_order").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapContractor);
-}
-
-/** Personal → Staff: contratistas (activos primero) + su saldo actual. Dos
- *  queries (contratistas + resumen de movimientos), el saldo se computa
- *  en memoria. */
-export async function getContractorsWithBalance(): Promise<ContractorWithBalance[]> {
-  const supabase = await createClient();
-  // Los movimientos van PAGINADOS: un select simple corta en 1,000 filas y
-  // los saldos salían mal en silencio al crecer el historial.
-  const [contractorsRes, ledgerRows] = await Promise.all([
-    supabase
-      .from("contractors")
-      .select("*")
-      .order("status", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true }),
-    selectAllRows((from, to) =>
-      supabase
-        .from("contractor_ledger_entries")
-        .select("id, contractor_id, direction, amount_cents, ebony_absorbs_material")
-        .order("id")
-        .range(from, to)
-    ),
-  ]);
-  if (contractorsRes.error) throw new Error(contractorsRes.error.message);
-
-  const byContractor = new Map<
-    string,
-    { direction: ContractorLedgerDirection; amountCents: number; ebonyAbsorbsMaterial: boolean }[]
-  >();
-  for (const l of ledgerRows) {
-    const list = byContractor.get(l.contractor_id) ?? [];
-    list.push({
-      direction: l.direction === "a_favor" ? "a_favor" : "reduce",
-      amountCents: l.amount_cents,
-      ebonyAbsorbsMaterial: l.ebony_absorbs_material,
-    });
-    byContractor.set(l.contractor_id, list);
-  }
-
-  return (contractorsRes.data ?? []).map((r) => ({
-    ...mapContractor(r),
-    balanceCents: contractorBalanceCents(byContractor.get(r.id) ?? []),
-  }));
 }
 
 /** Datos crudos del dashboard de Contratistas: contratistas, TODOS sus

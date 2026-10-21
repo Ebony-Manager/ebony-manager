@@ -40,9 +40,11 @@ describe("employeeToMember / contractorToMember", () => {
     expect(contractorToMember(contractor({})).href).toBe("/personal/staff/contratistas/c1");
   });
 
-  it("lleva el saldo solo en contratistas", () => {
-    expect(employeeToMember(employee({})).balanceCents).toBeNull();
-    expect(contractorToMember({ ...contractor({}), balanceCents: -500 }).balanceCents).toBe(-500);
+  it("pone a cada quien en su departamento", () => {
+    expect(employeeToMember(employee({})).department).toBe("taller");
+    expect(employeeToMember(employee({ categoria: "administrativo" })).department).toBe("administrativo");
+    expect(contractorToMember(contractor({})).department).toBe("pintura");
+    expect(contractorToMember(contractor({ contractorType: "ebanista" })).department).toBe("taller");
   });
 
   it("marca inactivos y conserva grupo y puesto", () => {

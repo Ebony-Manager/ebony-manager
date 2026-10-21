@@ -19,9 +19,6 @@ import { breadcrumbFor } from "@/components/layout/nav-items";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { formatDateCompact } from "@/lib/planilla/format";
-import { formatCents } from "@/lib/planilla/payroll-period";
-import { balanceTone, toneTextStyle } from "@/lib/contractors/contractor-colors";
 import { filterTeam, type TeamFilter, type TeamMember } from "@/lib/personal/team";
 import { EmployeeAvatar } from "../../planilla/employee-avatar";
 import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
@@ -226,7 +223,7 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_20px]";
+const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_20px]";
 
 function TeamList({
   members,
@@ -246,8 +243,8 @@ function TeamList({
       <div className={cn("hidden gap-4 border-b border-border px-4 py-2.5 text-xs text-muted-foreground md:grid", GRID)}>
         <span>{tt("col_person")}</span>
         <span>{tt("col_type")}</span>
+        <span>{tt("col_department")}</span>
         <span>{tt("col_position")}</span>
-        <span>{tt("col_since")}</span>
         <span />
       </div>
       <ul className="divide-y divide-border">
@@ -279,52 +276,23 @@ function TeamList({
 
               <ChevronRight className="col-start-2 row-start-1 size-4 text-muted-foreground md:col-start-5" />
 
-              <div className="col-span-2 flex flex-wrap items-center gap-1.5 md:col-span-1 md:col-start-2 md:row-start-1">
-                <Badge variant={m.kind === "employee" ? "secondary" : "outline"}>
-                  {tt(m.kind === "employee" ? "kind_employee" : "kind_contractor")}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{tt(`group_${m.group}`)}</span>
-              </div>
-
-              {/* Puesto del empleado, o el saldo del contratista con Ebony. Sin
-                  dato: "—" en la columna de escritorio; en el celular la línea no aparece. */}
-              <div
-                className={cn(
-                  "col-span-2 truncate text-sm text-foreground md:col-span-1 md:col-start-3 md:row-start-1",
-                  !m.position && !m.balanceCents && "hidden md:block"
-                )}
-              >
-                {m.position ?? (m.balanceCents ? <ContractorBalance cents={m.balanceCents} /> : <span className="text-muted-foreground">—</span>)}
-              </div>
-
-              <div
-                className={cn(
-                  "col-span-2 text-xs text-muted-foreground md:col-span-1 md:col-start-4 md:row-start-1",
-                  !m.startDate && "hidden md:block"
-                )}
-              >
-                {m.startDate ? formatDateCompact(lang, m.startDate) : "—"}
+              {/* En el celular, tipo · departamento · puesto van en una sola línea bajo el nombre. */}
+              <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+                <div className="md:col-start-2 md:row-start-1">
+                  <Badge variant={m.kind === "employee" ? "secondary" : "outline"}>
+                    {tt(m.kind === "employee" ? "kind_employee" : "kind_contractor")}
+                  </Badge>
+                </div>
+                <div className="text-sm text-foreground md:col-start-3 md:row-start-1">{tt(`dept_${m.department}`)}</div>
+                <div className="min-w-0 truncate text-sm text-muted-foreground md:col-start-4 md:row-start-1 md:text-foreground">
+                  {/* Los contratistas no tienen puesto: va su oficio (Ebanista / Pintor). */}
+                  {m.position ?? (m.kind === "contractor" ? tt(`group_${m.group}`) : "—")}
+                </div>
               </div>
             </Link>
           </li>
         ))}
       </ul>
     </div>
-  );
-}
-
-/** Saldo del contratista: verde si Ebony le debe, rojo si él le debe a Ebony. */
-function ContractorBalance({ cents }: { cents: number }) {
-  const { lang } = useLang();
-  const tone = balanceTone(cents);
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="font-semibold tabular-nums" style={toneTextStyle(tone)}>
-        {formatCents(Math.abs(cents))}
-      </span>
-      <span className="text-xs text-muted-foreground">
-        {t(lang, strings.staff[tone === "a_favor" ? "balance_ebony_owes" : "balance_owes_ebony"])}
-      </span>
-    </span>
   );
 }

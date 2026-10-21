@@ -2,7 +2,7 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { contractorToMember, employeeToMember, sortTeam } from "@/lib/personal/team";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getContractorPhotoUrls, getContractorsWithBalance } from "@/services/contractors";
+import { getContractorPhotoUrls, getContractors } from "@/services/contractors";
 import { getPayrollPositions } from "@/services/payroll-positions";
 import { getPendingIntake } from "@/services/staff-intake";
 import type { MatchCandidate } from "@/lib/personal/jotform-intake";
@@ -22,7 +22,7 @@ export default async function StaffPage() {
 
   const [employees, contractors, positions, intakes] = await Promise.all([
     canEmployees ? getPayrollEmployees() : Promise.resolve([]),
-    canContractors ? getContractorsWithBalance() : Promise.resolve([]),
+    canContractors ? getContractors() : Promise.resolve([]),
     canEmployees ? getPayrollPositions() : Promise.resolve([]),
     getPendingIntake(),
   ]);

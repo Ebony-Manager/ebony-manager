@@ -14,18 +14,21 @@ export type TeamMemberKind = "employee" | "contractor";
 /** Taller / Administrativo para empleados; Ebanista / Pintor para contratistas. */
 export type TeamGroup = PayrollEmployee["categoria"] | Contractor["contractorType"];
 
+/** Departamento: los empleados según su categoría; los contratistas
+ *  ebanistas van a Taller y los pintores a Pintura. */
+export type TeamDepartment = "taller" | "pintura" | "administrativo";
+
 export interface TeamMember {
   kind: TeamMemberKind;
   id: string;
   name: string;
   group: TeamGroup;
-  /** Puesto del empleado; los contratistas no tienen. */
+  department: TeamDepartment;
+  /** Puesto del empleado; los contratistas no tienen (se muestra su oficio). */
   position: string | null;
   phone: string | null;
   startDate: string | null;
   active: boolean;
-  /** Saldo del contratista con Ebony (positivo = Ebony le debe); null en empleados. */
-  balanceCents: number | null;
   /** Ficha de la persona, donde se edita. */
   href: string;
   /** Orden propio de su sección — el color del avatar de un empleado sale de acá. */
@@ -40,27 +43,27 @@ export function employeeToMember(e: PayrollEmployee): TeamMember {
     id: e.id,
     name: e.name,
     group: e.categoria,
+    department: e.categoria,
     position: e.position,
     phone: e.phone,
     startDate: e.startDate,
     active: e.status === "ACTIVE",
-    balanceCents: null,
     href: employeeProfilePath(e.id),
     sortOrder: e.sortOrder,
   };
 }
 
-export function contractorToMember(c: Contractor & { balanceCents?: number }): TeamMember {
+export function contractorToMember(c: Contractor): TeamMember {
   return {
     kind: "contractor",
     id: c.id,
     name: c.name,
     group: c.contractorType,
+    department: c.contractorType === "pintor" ? "pintura" : "taller",
     position: null,
     phone: c.phone,
     startDate: c.startDate,
     active: c.status === "ACTIVE",
-    balanceCents: c.balanceCents ?? null,
     href: contractorProfilePath(c.id),
     sortOrder: c.sortOrder,
   };
