@@ -82,9 +82,9 @@ describe("analyzeDay", () => {
     expect(analyzeDay("2026-10-06", [], undefined, { resolution: { arrival: null, departure: null, note: "no vino" } }).flags).toEqual(["absent"]);
   });
 
-  it("hoy está en curso: sin marcar no es falta y sin salida no es duda", () => {
-    expect(analyzeDay("2026-10-06", [], undefined, { inProgress: true }).flags).toEqual([]);
+  it("hoy (día de pago) está en curso: sin salida no es duda, pero sin ninguna ponchada es falta", () => {
     expect(analyzeDay("2026-10-06", [punch("2026-10-06", "07:35")], undefined, { inProgress: true }).flags).toEqual([]);
+    expect(analyzeDay("2026-10-06", [], undefined, { inProgress: true }).flags).toEqual(["absent"]);
   });
 
   it("minutos después de las 6 pm (recargo nocturno)", () => {
@@ -106,7 +106,7 @@ describe("analyzePeriod", () => {
     const r = analyzePeriod("2026-10-05", "2026-10-09", punches, undefined, {}, { today: "2026-10-07" });
     expect(r.days.map((d) => d.date)).toEqual(["2026-10-05", "2026-10-06", "2026-10-07"]);
     expect(r.blockingDays).toBe(1);
-    expect(r.absentWeekdays).toBe(0); // el 7 es hoy
+    expect(r.absentWeekdays).toBe(1); // el 7 es hoy y no ponchó: falta
     const fixed = analyzePeriod("2026-10-05", "2026-10-06", punches, undefined, {}, {
       resolutions: new Map([["2026-10-05", { arrival: null, departure: t("17:00"), note: null }]]),
     });

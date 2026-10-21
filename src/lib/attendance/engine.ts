@@ -13,7 +13,9 @@
  *    bloquea a la persona hasta que alguien lo revise y anote la hora real (`DayResolution`).
  *  - Sin ninguna marcación en un día laborable: no vino (se descuenta el día). Si sí vino,
  *    se revisa el día y se anotan sus horas.
- *  - El día de hoy está en curso: no cuenta como falta ni le falta la salida todavía.
+ *  - El día de hoy (el de pago, que se procesa en la tarde) está en curso: se asume
+ *    que trabaja hasta la hora de salida, así que no le falta la salida todavía. Pero
+ *    si no hay ninguna ponchada de entrada, no vino: es falta.
  *  - Reloj y Jotform se juntan: la mayoría entra al taller y sale desde el proyecto.
  *  - Recargo nocturno (solo quien lo tiene, hoy José Salcedo): minutos después de las 6 pm.
  *
@@ -83,8 +85,8 @@ export function analyzeDay(
   }
 
   if (times.length === 0) {
-    // Hoy todavía puede llegar.
-    if (!opts.inProgress) flags.push("absent");
+    // También hoy: a la hora de procesar, sin ninguna ponchada es que no vino.
+    flags.push("absent");
   } else {
     const first = times[0];
     const last = times[times.length - 1];
