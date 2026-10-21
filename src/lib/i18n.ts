@@ -202,11 +202,23 @@ export const strings = {
     loans_employees_title: { es: "Empleados", en: "Employees" },
     cl_title: { es: "Contratistas", en: "Contractors" },
     cl_hint: {
-      es: "A los contratistas no se les cobra en cuotas: todo se descuenta de su estado de cuenta. Un saldo negativo es lo que el contratista le debe a Ebony.",
-      en: "Contractors don't repay in installments: everything comes off their statement. A negative balance is what the contractor owes Ebony.",
+      es: "Se descuenta de su estado de cuenta: cada cuota baja el saldo al empezar su quincena. Un saldo negativo es lo que el contratista le debe a Ebony.",
+      en: "It comes off their statement: each installment lowers the balance when its pay period starts. A negative balance is what the contractor owes Ebony.",
     },
     cl_kpi_total: { es: "Total", en: "Total" },
     cl_kpi_count: { es: "Registros", en: "Entries" },
+    cl_kpi_pending: { es: "Por descontar", en: "Still to deduct" },
+    cl_kpi_pending_sub: { es: "cuotas programadas", en: "scheduled installments" },
+    cl_col_pending: { es: "Pendiente", en: "Pending" },
+    cl_cancel: { es: "Cancelar las cuotas que faltan", en: "Cancel remaining installments" },
+    cl_cancel_confirm: {
+      es: "¿Cancelar las cuotas que todavía no llegan? Las ya descontadas se quedan.",
+      en: "Cancel the installments still to come? Those already deducted stay.",
+    },
+    cl_cancelled: { es: "Cuotas pendientes canceladas", en: "Pending installments cancelled" },
+    cl_delete: { es: "Borrar", en: "Delete" },
+    cl_delete_confirm: { es: "¿Borrar este registro y todas sus cuotas?", en: "Delete this record and all its installments?" },
+    cl_deleted: { es: "Borrado", en: "Deleted" },
     cl_kpi_owing: { es: "Lo deben contratistas", en: "Owed by contractors" },
     cl_kpi_owing_sub: { es: "con saldo en contra", en: "with a negative balance" },
     cl_show_all: { es: "Ver años anteriores", en: "Show earlier years" },
@@ -239,17 +251,6 @@ export const strings = {
     add_hint_herramienta: { es: "Compra de herramienta; en cuotas sin interés.", en: "Tool purchase; installments, no interest." },
     add_hint_dano: { es: "Daño o reposición; en cuotas sin interés.", en: "Damage or replacement; installments, no interest." },
     add_hint_indrive: { es: "Viaje pagado por Ebony; se descuenta en la quincena del viaje.", en: "Ride paid by Ebony; deducted in the ride's pay period." },
-    // Contratistas: se anota en su estado de cuenta.
-    cc_desc: {
-      es: "Se anota en su estado de cuenta y baja lo que Ebony le debe. A los contratistas no se les cobra en cuotas.",
-      en: "It goes on their statement and lowers what Ebony owes them. Contractors don't repay in installments.",
-    },
-    cc_amount: { es: "Monto a descontar", en: "Amount to deduct" },
-    cc_date: { es: "Fecha", en: "Date" },
-    cc_note: { es: "Detalle (opcional)", en: "Detail (optional)" },
-    cc_save: { es: "Registrar", en: "Register" },
-    cc_saved: { es: "Registrado en su estado de cuenta", en: "Added to their statement" },
-    cc_amount_required: { es: "Escribe un monto mayor que cero.", en: "Enter an amount greater than zero." },
   },
 
   // Módulo Planilla (Fase 2). Solo-admin. Portado de Atlas — todo el
@@ -455,9 +456,7 @@ export const strings = {
     mr_pick_person: { es: "¿Quién es?", en: "Who is it?" },
     mr_register_employee: { es: "Registrar en planilla", en: "Register in payroll" },
     mr_register_contractor: { es: "Registrar en estado de cuenta", en: "Register in account" },
-    mr_contractor_confirm: { es: "Se anota en su estado de cuenta, descontando", en: "It will be recorded in their account, deducting" },
     mr_register: { es: "Registrar", en: "Register" },
-    mr_registered: { es: "Solicitud registrada.", en: "Request registered." },
     mr_loan_note: { es: "Solicitud aprobada por JotForm", en: "Request approved via JotForm" },
     mr_dismiss: { es: "Descartar", en: "Dismiss" },
     mr_dismiss_confirm: { es: "¿Descartar esta solicitud?", en: "Dismiss this request?" },
@@ -760,6 +759,10 @@ export const strings = {
     },
     loan_submit_indrive: { es: "Registrar InDrive", en: "Register InDrive" },
     loan_f_ride_date: { es: "Fecha del viaje", en: "Ride date" },
+    loan_dlg_contractor_desc: {
+      es: "Se descuenta de su estado de cuenta: cada cuota baja su saldo al empezar su quincena (el 1 o el 16). Hasta entonces se ve como programada.",
+      en: "It comes off their statement: each installment lowers their balance when its pay period starts (the 1st or 16th). Until then it shows as scheduled.",
+    },
     loan_scheme_variable: { es: "Cuota variable (monto por quincena)", en: "Variable installment (amount per period)" },
     loan_interest_charge: { es: "Cobrar intereses", en: "Charge interest" },
     loan_interest_how: { es: "Cómo se calcula", en: "How it is calculated" },
@@ -1355,6 +1358,7 @@ export const strings = {
     cat_herramienta: { es: "Herramienta", en: "Tool" },
     cat_dano: { es: "Daño", en: "Damage" },
     cat_indrive: { es: "InDrive", en: "InDrive" },
+    scheduled: { es: "Programada", en: "Scheduled" },
 
     // KPIs de la ficha del contratista (arriba del estado de cuenta).
     kpi_balance: { es: "Saldo pendiente", en: "Outstanding balance" },

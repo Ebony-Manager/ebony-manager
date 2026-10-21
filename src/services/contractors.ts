@@ -4,6 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
+import { installmentDate, isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import {
+  computeLoanInterestCents,
+  computeLoanSchedule,
+  defaultLoanStartPeriod,
+  isSingleInstallment,
+  type LoanInterestInput,
+} from "@/lib/planilla/payroll-loans";
+import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 import type { Database } from "@/types/database";
 import type {
   Contractor,
@@ -12,6 +21,7 @@ import type {
   ContractorLedgerEntry,
   ContractorHelper,
   ContractorLedgerEntryItem,
+  ContractorLoanSummary,
   ContractorStatus,
   ContractorType,
   LaborRate,
@@ -105,6 +115,7 @@ function mapLedger(
     description: r.description,
     notes: r.notes,
     itemsSummary,
+    loanId: r.loan_id,
   };
 }
 
@@ -170,6 +181,7 @@ export async function getContractors(): Promise<Contractor[]> {
  *  cálculo (`computeContractorsDashboard`) se hace en el cliente, así cambiar
  *  de año es instantáneo y no vuelve a pedir nada al servidor. */
 export async function getContractorsDashboardInput(): Promise<{
+  loans: ContractorLoanSummary[];
   contractors: DashboardContractor[];
   entries: DashboardEntry[];
   projectNames: [string, string][];
@@ -180,7 +192,7 @@ export async function getContractorsDashboardInput(): Promise<{
     selectAllRows((from, to) =>
       supabase
         .from("contractor_ledger_entries")
-        .select("contractor_id, entry_date, category, direction, amount_cents, project_id, client_text, mt2, ebony_absorbs_material")
+        .select("contractor_id, entry_date, category, direction, amount_cents, project_id, client_text, mt2, ebony_absorbs_material, loan_id")
         .order("id")
         .range(from, to)
     ),
@@ -188,14 +200,19 @@ export async function getContractorsDashboardInput(): Promise<{
   ]);
   if (contractorsRes.error) throw new Error(contractorsRes.error.message);
   if (projectsRes.error) throw new Error(projectsRes.error.message);
+  const loans = await getContractorLoanSummaries(rows);
+  // Las cuotas programadas (fecha futura) todavía no cuentan: ni en saldos ni en resúmenes.
+  const today = todayInPanama();
+  const due = rows.filter((r) => !isScheduled({ loanId: r.loan_id, entryDate: r.entry_date }, today));
   return {
+    loans,
     contractors: (contractorsRes.data ?? []).map((c) => ({
       id: c.id,
       name: c.name,
       contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
       status: c.status,
     })),
-    entries: rows.map((r) => ({
+    entries: due.map((r) => ({
       contractorId: r.contractor_id,
       entryDate: r.entry_date,
       category: r.category as DashboardEntry["category"],
@@ -205,6 +222,7 @@ export async function getContractorsDashboardInput(): Promise<{
       clientText: r.client_text,
       mt2: r.mt2 === null ? null : Number(r.mt2),
       ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+      loanId: r.loan_id,
     })),
     projectNames: (projectsRes.data ?? []).map((p) => [p.id, p.name] as [string, string]),
   };
@@ -712,4 +730,154 @@ export async function deleteContractorHelper(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("contractor_helpers").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// Préstamos y descuentos en cuotas (igual que a empleados). Cada cuota es un
+// movimiento `reduce` del estado de cuenta con loan_id, fechado al inicio de
+// su quincena (ver lib/contractors/contractor-loans.ts).
+// ============================================================================
+
+export interface ContractorLoanInput {
+  contractorId: string;
+  category: LoanCategory;
+  principalCents: number;
+  paymentMethod?: LoanPaymentMethod;
+  requestDate: string;
+  numInstallments: number;
+  startPeriod?: { year: number; month: number; half: 1 | 2 };
+  installmentAmountsCents?: number[];
+  interest?: LoanInterestInput | null;
+  notes?: string | null;
+}
+
+const LOAN_LABEL: Record<LoanCategory, string> = {
+  prestamo: "Préstamo",
+  adelanto: "Adelanto",
+  herramienta: "Herramienta",
+  dano: "Daño",
+  indrive: "InDrive",
+};
+
+export async function createContractorLoan(input: ContractorLoanInput): Promise<void> {
+  if (!(input.principalCents > 0)) throw new Error("El monto debe ser mayor que cero");
+  const supabase = await createClient();
+  const paymentMethod = input.paymentMethod ?? "cuota_fija";
+  const numInstallments = isSingleInstallment(input.category) ? 1 : input.numInstallments;
+  const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
+  if (!startPeriod) throw new Error("Fecha de solicitud inválida");
+  const interestCents = computeLoanInterestCents(input.principalCents, numInstallments, input.interest);
+  const schedule = computeLoanSchedule(
+    input.principalCents + interestCents,
+    numInstallments,
+    startPeriod,
+    paymentMethod,
+    input.installmentAmountsCents
+  );
+
+  const { data: loan, error } = await supabase
+    .from("contractor_loans")
+    .insert({
+      contractor_id: input.contractorId,
+      category: input.category,
+      principal_cents: input.principalCents,
+      interest_cents: interestCents,
+      interest_mode: interestCents > 0 && input.interest ? input.interest.mode : null,
+      interest_rate_pct:
+        interestCents > 0 && input.interest && input.interest.mode !== "fixed" ? (input.interest.ratePct ?? null) : null,
+      payment_method: paymentMethod,
+      num_installments: numInstallments,
+      request_date: input.requestDate,
+      start_period_year: startPeriod.year,
+      start_period_month: startPeriod.month,
+      start_period_half: startPeriod.half,
+      notes: input.notes ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const label = LOAN_LABEL[input.category];
+  const { error: e2 } = await supabase.from("contractor_ledger_entries").insert(
+    schedule.map((cuota, i) => ({
+      contractor_id: input.contractorId,
+      loan_id: loan.id,
+      entry_date: installmentDate(cuota.period, input.requestDate),
+      category: input.category,
+      direction: "reduce",
+      amount_cents: cuota.amountCents,
+      description: numInstallments > 1 ? `${label} · cuota ${i + 1} de ${numInstallments}` : label,
+      notes: i === 0 ? (input.notes ?? null) : null,
+    }))
+  );
+  if (e2) {
+    // Sin cuotas el préstamo no sirve: se deshace (borra en cascada lo que haya entrado).
+    await supabase.from("contractor_loans").delete().eq("id", loan.id);
+    throw new Error(e2.message);
+  }
+}
+
+/** Cancela un préstamo: borra las cuotas que todavía no llegan. Las ya
+ *  descontadas quedan. */
+export async function cancelContractorLoan(loanId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("contractor_ledger_entries")
+    .delete()
+    .eq("loan_id", loanId)
+    .gt("entry_date", todayInPanama());
+  if (error) throw new Error(error.message);
+  const { error: e2 } = await supabase.from("contractor_loans").update({ status: "cancelled" }).eq("id", loanId);
+  if (e2) throw new Error(e2.message);
+}
+
+/** Borra un préstamo y todas sus cuotas — solo si ninguna se descontó todavía. */
+export async function deleteContractorLoan(loanId: string): Promise<void> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("contractor_ledger_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("loan_id", loanId)
+    .lte("entry_date", todayInPanama());
+  if (error) throw new Error(error.message);
+  if ((count ?? 0) > 0) throw new Error("Ya hay cuotas descontadas: cancélalo en vez de borrarlo.");
+  const { error: e2 } = await supabase.from("contractor_loans").delete().eq("id", loanId);
+  if (e2) throw new Error(e2.message);
+}
+
+/** Cada préstamo con el avance de sus cuotas, a partir de los movimientos ya leídos. */
+async function getContractorLoanSummaries(
+  rows: { loan_id: string | null; entry_date: string; amount_cents: number }[]
+): Promise<ContractorLoanSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("contractor_loans").select("*").order("request_date", { ascending: false });
+  if (error) throw new Error(error.message);
+  const today = todayInPanama();
+  const byLoan = new Map<string, { entry_date: string; amount_cents: number }[]>();
+  for (const r of rows) {
+    if (!r.loan_id) continue;
+    const list = byLoan.get(r.loan_id) ?? [];
+    list.push(r);
+    byLoan.set(r.loan_id, list);
+  }
+  return (data ?? []).map((l) => {
+    const cuotas = (byLoan.get(l.id) ?? []).sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+    const due = cuotas.filter((c) => c.entry_date <= today);
+    const pending = cuotas.filter((c) => c.entry_date > today);
+    return {
+      id: l.id,
+      contractorId: l.contractor_id,
+      category: l.category as ContractorLoanSummary["category"],
+      requestDate: l.request_date,
+      principalCents: l.principal_cents,
+      interestCents: l.interest_cents,
+      status: l.status === "cancelled" ? "cancelled" : "active",
+      notes: l.notes,
+      installmentCount: cuotas.length,
+      dueCount: due.length,
+      dueCents: due.reduce((s, c) => s + c.amount_cents, 0),
+      pendingCents: pending.reduce((s, c) => s + c.amount_cents, 0),
+      next: pending[0] ? { date: pending[0].entry_date, amountCents: pending[0].amount_cents } : null,
+    };
+  });
 }

@@ -1,19 +1,15 @@
 "use client";
 
 import * as React from "react";
-import toast from "react-hot-toast";
 import { Banknote, Car, ChevronDown, HandCoins, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 import type { LoanCategory } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { createLedgerEntryAction } from "../contratistas/actions";
 import { FormDialog, Field } from "./form-dialog";
 import { LoanDialog } from "./loan-dialog";
 
@@ -40,17 +36,12 @@ const TYPE_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   indrive: "loan_new_indrive",
 };
 
-const toCents = (s: string) => {
-  const v = Math.round(parseFloat(s || "0") * 100);
-  return Number.isFinite(v) ? v : 0;
-};
-
 /**
  * "Agregar" de préstamos y descuentos: una sola ventana para préstamo,
  * adelanto, herramienta, daño e InDrive. Primero se elige el tipo y la
- * persona (o viene fija, desde su ficha); después, a un empleado se le abre
- * el formulario de cuotas (`LoanDialog`) y a un contratista uno corto que lo
- * anota en su estado de cuenta (sin cuotas).
+ * persona (o viene fija, desde su ficha); después se abre el formulario de
+ * cuotas (`LoanDialog`), igual para los dos: a un empleado las cuotas se le
+ * descuentan en la planilla, a un contratista en su estado de cuenta.
  */
 export function AddChargeDialog({
   open,
@@ -173,9 +164,10 @@ export function AddChargeDialog({
         )}
       </FormDialog>
 
-      {form?.person.kind === "employee" && (
+      {form && (
         <LoanDialog
-          employeeId={form.person.id}
+          key={`${form.person.kind}-${form.person.id}-${form.type}`}
+          {...(form.person.kind === "employee" ? { employeeId: form.person.id } : { contractorId: form.person.id })}
           categories={[form.type]}
           defaultCategory={form.type}
           open
@@ -183,89 +175,6 @@ export function AddChargeDialog({
           onSaved={onSaved}
         />
       )}
-      {form?.person.kind === "contractor" && (
-        <ContractorChargeDialog
-          type={form.type}
-          person={form.person}
-          onClose={() => setForm(null)}
-          onSaved={onSaved}
-        />
-      )}
     </>
-  );
-}
-
-/** Contratista: monto, fecha y detalle; se anota en su estado de cuenta como
- *  movimiento que reduce su saldo. */
-function ContractorChargeDialog({
-  type,
-  person,
-  onClose,
-  onSaved,
-}: {
-  type: LoanCategory;
-  person: ChargePerson;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const { lang } = useLang();
-  const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
-  const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const [amount, setAmount] = React.useState("");
-  const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
-  const [note, setNote] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  async function submit() {
-    const amountCents = toCents(amount);
-    if (amountCents <= 0) {
-      setError(tg("cc_amount_required"));
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      await createLedgerEntryAction({
-        contractorId: person.id,
-        entryDate: date,
-        category: type,
-        direction: "reduce",
-        amountCents,
-        description: note.trim() || tp(TYPE_LABEL[type]),
-      });
-      toast.success(tg("cc_saved"));
-      onClose();
-      onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <FormDialog
-      open
-      onOpenChange={(o) => !o && onClose()}
-      title={`${tp(TYPE_LABEL[type])} · ${person.name}`}
-      description={tg("cc_desc")}
-      onSubmit={submit}
-      submitting={submitting}
-      submitLabel={tg("cc_save")}
-      error={error}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={tg("cc_amount")}>
-          <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
-        </Field>
-        <Field label={type === "indrive" ? tp("loan_f_ride_date") : tg("cc_date")}>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-      </div>
-      <Field label={tg("cc_note")}>
-        <Input value={note} onChange={(e) => setNote(e.target.value)} />
-      </Field>
-    </FormDialog>
   );
 }

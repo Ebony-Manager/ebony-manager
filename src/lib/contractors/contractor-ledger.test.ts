@@ -27,6 +27,7 @@ function entry(over: Partial<ContractorLedgerEntry>): ContractorLedgerEntry {
     description: null,
     notes: null,
     itemsSummary: null,
+    loanId: null,
     ...over,
   };
 }

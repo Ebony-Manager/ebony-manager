@@ -78,6 +78,7 @@ export type Database = {
           ebony_absorbs_material: boolean
           entry_date: string
           id: string
+          loan_id: string | null
           mt2: number | null
           notes: string | null
           project_id: string | null
@@ -95,6 +96,7 @@ export type Database = {
           ebony_absorbs_material?: boolean
           entry_date: string
           id?: string
+          loan_id?: string | null
           mt2?: number | null
           notes?: string | null
           project_id?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           ebony_absorbs_material?: boolean
           entry_date?: string
           id?: string
+          loan_id?: string | null
           mt2?: number | null
           notes?: string | null
           project_id?: string | null
@@ -126,10 +129,85 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contractor_ledger_entries_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_loans"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contractor_ledger_entries_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_loans: {
+        Row: {
+          category: string
+          contractor_id: string
+          created_at: string
+          id: string
+          interest_cents: number
+          interest_mode: string | null
+          interest_rate_pct: number | null
+          notes: string | null
+          num_installments: number
+          payment_method: string
+          principal_cents: number
+          request_date: string
+          start_period_half: number
+          start_period_month: number
+          start_period_year: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          interest_cents?: number
+          interest_mode?: string | null
+          interest_rate_pct?: number | null
+          notes?: string | null
+          num_installments: number
+          payment_method?: string
+          principal_cents: number
+          request_date: string
+          start_period_half: number
+          start_period_month: number
+          start_period_year: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          interest_cents?: number
+          interest_mode?: string | null
+          interest_rate_pct?: number | null
+          notes?: string | null
+          num_installments?: number
+          payment_method?: string
+          principal_cents?: number
+          request_date?: string
+          start_period_half?: number
+          start_period_month?: number
+          start_period_year?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_loans_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
             referencedColumns: ["id"]
           },
         ]

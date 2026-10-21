@@ -39,6 +39,8 @@ export interface DashboardEntry {
   clientText: string | null;
   mt2: number | null;
   ebonyAbsorbsMaterial: boolean;
+  /** Cuota de un préstamo en cuotas (los préstamos se listan aparte). */
+  loanId?: string | null;
 }
 
 export type DashboardPeriod = number | "all";

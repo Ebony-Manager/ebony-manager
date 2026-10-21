@@ -55,6 +55,7 @@ import {
   contractorBalanceCents,
   withRunningBalance,
 } from "@/lib/contractors/contractor-ledger";
+import { isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
 import {
   balanceTone,
   categoryDotStyle,
@@ -286,7 +287,10 @@ export function ContractorProfileView({
 
   // Saldo corrido sobre la HISTORIA COMPLETA — nunca por período/filtro.
   const allRows = React.useMemo(() => withRunningBalance(entries), [entries]);
-  const balanceCents = contractorBalanceCents(entries);
+  // Las cuotas programadas (préstamos en cuotas, fecha futura) se ven en el
+  // estado de cuenta pero todavía no cuentan en el saldo de hoy.
+  const today = React.useMemo(() => todayInPanama(), []);
+  const balanceCents = contractorBalanceCents(entries.filter((e) => !isScheduled(e, today)));
   const balTone = balanceTone(balanceCents);
 
   // KPIs — totales de toda la historia del contratista.
@@ -896,6 +900,11 @@ export function ContractorProfileView({
                           className="max-w-56 truncate px-3 py-2 text-muted-foreground"
                           title={row.itemsSummary ?? row.description ?? undefined}
                         >
+                          {isScheduled(row, today) && (
+                            <span className="mr-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {tt("scheduled")}
+                            </span>
+                          )}
                           {row.itemsSummary ?? row.description ?? "—"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">

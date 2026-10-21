@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import * as requests from "@/services/money-requests";
-import { createLedgerEntry } from "@/services/contractors";
 import { PAGOS_PATH } from "@/lib/personal/paths";
 
-// Bandeja "Solicitudes de dinero" (Personal → Pagos → Préstamos). Registrar a un
-// EMPLEADO pide Planilla (el préstamo se crea con el formulario de siempre,
-// createLoanAction); a un CONTRATISTA, Contratistas. Devuelven el error como
+// Bandeja "Solicitudes de dinero" (Personal → Pagos → Préstamos). El préstamo
+// o adelanto se crea con el formulario de cuotas de siempre (LoanDialog) y
+// acá solo se cierra la solicitud: a un EMPLEADO pide Planilla; a un
+// CONTRATISTA, Contratistas. Devuelven el error como
 // dato: en producción Next oculta el mensaje de un error lanzado.
 
 export type MoneyRequestResult = { ok: true } | { ok: false; error: string };
@@ -35,29 +35,10 @@ export async function markMoneyRequestRegisteredAction(id: string, employeeId: s
   return { ok: true };
 }
 
-/**
- * Contratista: se anota en su estado de cuenta como Adelanto o Préstamo que
- * reduce lo que Ebony le debe, por el monto a descontar (con el 20% si es
- * préstamo), con la fecha de la solicitud.
- */
-export async function registerContractorMoneyRequestAction(id: string, contractorId: string): Promise<MoneyRequestResult> {
+/** El préstamo/adelanto del contratista ya se creó en su estado de cuenta: se cierra la solicitud. */
+export async function markContractorMoneyRequestRegisteredAction(id: string, contractorId: string): Promise<MoneyRequestResult> {
   const me = await requireModule("contratistas");
   try {
-    const req = await requests.getMoneyRequest(id);
-    if (!req) throw new Error("Esa solicitud ya no existe");
-    if (!req.type || !req.deductCents) throw new Error("La solicitud no trae tipo o monto");
-    await createLedgerEntry({
-      contractorId,
-      entryDate: req.receivedAt.slice(0, 10),
-      category: req.type,
-      direction: "reduce",
-      amountCents: req.deductCents,
-      description: req.type === "prestamo" ? "Préstamo solicitado por JotForm" : "Adelanto solicitado por JotForm",
-      notes:
-        req.type === "prestamo" && req.amountCents
-          ? `Entregado $${(req.amountCents / 100).toFixed(2)} + 20% de recargo`
-          : null,
-    });
     await requests.resolveMoneyRequest(id, { status: "registered", kind: "contractor", personId: contractorId }, me.id);
   } catch (err) {
     return { ok: false, error: message(err) };

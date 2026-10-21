@@ -28,6 +28,7 @@ import { periodLabel, shortPeriodLabel } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createLoanAction, replaceLoanAction } from "./actions";
+import { createContractorLoanAction } from "../contratistas/actions";
 import { FormDialog, Field } from "./form-dialog";
 
 function periodKeyOf(p: Period): string {
@@ -110,6 +111,7 @@ export interface LoanPrefill {
 
 export function LoanDialog({
   employeeId,
+  contractorId,
   categories,
   defaultCategory,
   editing,
@@ -118,7 +120,10 @@ export function LoanDialog({
   onSaved,
   prefill,
 }: {
-  employeeId: string;
+  /** A quién: un empleado (cuotas en la planilla) o un contratista (cuotas en
+   *  su estado de cuenta, una al inicio de cada quincena). Uno de los dos. */
+  employeeId?: string;
+  contractorId?: string;
   /** Tipos que se pueden elegir en este diálogo. */
   categories: LoanCategory[];
   defaultCategory: LoanCategory;
@@ -274,7 +279,6 @@ export function LoanDialog({
     setError(null);
     try {
       const input = {
-        employeeId,
         category,
         principalCents: amountCents,
         paymentMethod: (isVariable ? "cuota_variable" : "cuota_fija") as LoanPaymentMethod,
@@ -285,9 +289,13 @@ export function LoanDialog({
         interest: interestInput,
         notes: notes.trim() || null,
       };
-      const result = editing ? await replaceLoanAction(editing.id, input) : await createLoanAction(input);
+      const result = contractorId
+        ? await createContractorLoanAction({ ...input, contractorId })
+        : editing
+          ? await replaceLoanAction(editing.id, { ...input, employeeId: employeeId ?? "" })
+          : await createLoanAction({ ...input, employeeId: employeeId ?? "" });
       if (!result.ok) {
-        setError(result.migrationPending ? tt("migration_pending") : result.error);
+        setError("migrationPending" in result && result.migrationPending ? tt("migration_pending") : result.error);
         return;
       }
       toast.success(editing ? tt("loan_updated") : tt(SUBMIT_KEY[category]));
@@ -308,15 +316,17 @@ export function LoanDialog({
       onOpenChange={onOpenChange}
       title={editing ? tt("loan_dlg_edit_title") : tt(TITLE_KEY[category])}
       description={
-        editing
-          ? tt("loan_dlg_edit_desc")
-          : isItem
-            ? tt("loan_dlg_item_desc")
-            : category === "indrive"
-              ? tt("loan_dlg_indrive_desc")
-              : isAdelanto
-                ? tt("loan_dlg_adelanto_desc")
-                : tt("loan_dlg_prestamo_desc")
+        contractorId
+          ? tt("loan_dlg_contractor_desc")
+          : editing
+            ? tt("loan_dlg_edit_desc")
+            : isItem
+              ? tt("loan_dlg_item_desc")
+              : category === "indrive"
+                ? tt("loan_dlg_indrive_desc")
+                : isAdelanto
+                  ? tt("loan_dlg_adelanto_desc")
+                  : tt("loan_dlg_prestamo_desc")
       }
       onSubmit={onSubmit}
       submitting={submitting}

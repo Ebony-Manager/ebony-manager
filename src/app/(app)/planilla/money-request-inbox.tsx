@@ -22,15 +22,15 @@ import { LoanDialog, type LoanPrefill } from "./loan-dialog";
 import {
   dismissMoneyRequestAction,
   markMoneyRequestRegisteredAction,
-  registerContractorMoneyRequestAction,
+  markContractorMoneyRequestRegisteredAction,
   type MoneyRequestResult,
 } from "./money-request-actions";
 
 /**
  * "Solicitudes de dinero": adelantos y préstamos que llegaron ya aprobados
- * del workflow de JotForm. Cada una se registra —a un empleado, con el
- * formulario de préstamo ya lleno para elegir cuotas y quincena; a un
- * contratista, como movimiento en su estado de cuenta— o se descarta.
+ * del workflow de JotForm. Cada una se registra con el formulario de cuotas
+ * ya lleno (a un empleado, en su planilla; a un contratista, en su estado de
+ * cuenta) o se descarta.
  */
 export function MoneyRequestInbox({
   requests,
@@ -50,7 +50,7 @@ export function MoneyRequestInbox({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const router = useRouter();
-  const [registering, setRegistering] = React.useState<{ request: MoneyRequest; employeeId: string } | null>(null);
+  const [registering, setRegistering] = React.useState<{ request: MoneyRequest; person: MatchCandidate } | null>(null);
 
   const candidates = React.useMemo<MatchCandidate[]>(
     () => [
@@ -79,7 +79,11 @@ export function MoneyRequestInbox({
 
   async function afterLoanSaved() {
     if (!registering) return;
-    const res = await markMoneyRequestRegisteredAction(registering.request.id, registering.employeeId);
+    const { request, person } = registering;
+    const res =
+      person.kind === "employee"
+        ? await markMoneyRequestRegisteredAction(request.id, person.id)
+        : await markContractorMoneyRequestRegisteredAction(request.id, person.id);
     if (!res.ok) toast.error(res.error);
     setRegistering(null);
     onChanged();
@@ -105,7 +109,7 @@ export function MoneyRequestInbox({
             request={r}
             candidates={candidates}
             canContractors={canContractors}
-            onRegisterEmployee={(employeeId) => setRegistering({ request: r, employeeId })}
+            onRegister={(person) => setRegistering({ request: r, person })}
             onDone={() => {
               onChanged();
               router.refresh();
@@ -116,7 +120,9 @@ export function MoneyRequestInbox({
 
       {registering && (
         <LoanDialog
-          employeeId={registering.employeeId}
+          {...(registering.person.kind === "employee"
+            ? { employeeId: registering.person.id }
+            : { contractorId: registering.person.id })}
           categories={["prestamo", "adelanto"]}
           defaultCategory={registering.request.type ?? "adelanto"}
           open
@@ -133,13 +139,14 @@ function RequestCard({
   request,
   candidates,
   canContractors,
-  onRegisterEmployee,
+  onRegister,
   onDone,
 }: {
   request: MoneyRequest;
   candidates: MatchCandidate[];
   canContractors: boolean;
-  onRegisterEmployee: (employeeId: string) => void;
+  /** Abre el formulario de cuotas (empleado o contratista) ya lleno. */
+  onRegister: (person: MatchCandidate) => void;
   onDone: () => void;
 }) {
   const { lang } = useLang();
@@ -147,7 +154,7 @@ function RequestCard({
   const ts = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
   const [person, setPerson] = React.useState<MatchCandidate | null>(() => findStaffMatch({ ...request, phone: null }, candidates));
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [confirm, setConfirm] = React.useState<"contractor" | "dismiss" | null>(null);
+  const [confirmDismiss, setConfirmDismiss] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   const name = [request.firstName, request.lastName].filter(Boolean).join(" ") || request.email || "—";
@@ -158,7 +165,7 @@ function RequestCard({
     setBusy(true);
     const res = await action();
     setBusy(false);
-    setConfirm(null);
+    setConfirmDismiss(false);
     if (!res.ok) {
       toast.error(res.error);
       return;
@@ -213,7 +220,7 @@ function RequestCard({
                     onSelect={() => {
                       setPerson(p);
                       setPickerOpen(false);
-                      setConfirm(null);
+                      setConfirmDismiss(false);
                     }}
                   >
                     <span className="truncate">{p.name}</span>
@@ -228,64 +235,41 @@ function RequestCard({
         </Popover>
       </div>
 
-      {confirm === "contractor" && person && request.deductCents !== null ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/60 px-3 py-2 text-xs">
-          <span className="text-foreground">
-            {tt("mr_contractor_confirm")} <strong>{formatCents(request.deductCents)}</strong> ({typeLabel}) · {person.name}
-          </span>
-          <div className="ml-auto flex items-center gap-1">
-            <Button
-              size="sm"
-              className="h-7 text-xs"
-              disabled={busy}
-              onClick={() => run(() => registerContractorMoneyRequestAction(request.id, person.id), tt("mr_registered"))}
-            >
-              {tt("mr_register")}
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirm(null)}>
-              <X className="size-3.5" />
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            disabled={busy || !canRegister}
-            onClick={() => {
-              if (!person) return;
-              if (person.kind === "employee") onRegisterEmployee(person.id);
-              else setConfirm("contractor");
-            }}
-          >
-            <Banknote className="size-3.5" />
-            {person?.kind === "contractor" ? tt("mr_register_contractor") : tt("mr_register_employee")}
-          </Button>
-          <div className="ml-auto">
-            {confirm === "dismiss" ? (
-              <span className="flex items-center gap-1.5 text-xs">
-                {tt("mr_dismiss_confirm")}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="h-7 text-xs"
-                  disabled={busy}
-                  onClick={() => run(() => dismissMoneyRequestAction(request.id), tt("mr_dismissed"))}
-                >
-                  {tt("mr_dismiss")}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirm(null)}>
-                  <X className="size-3.5" />
-                </Button>
-              </span>
-            ) : (
-              <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={busy} onClick={() => setConfirm("dismiss")}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          disabled={busy || !canRegister}
+          onClick={() => {
+            if (person) onRegister(person);
+          }}
+        >
+          <Banknote className="size-3.5" />
+          {person?.kind === "contractor" ? tt("mr_register_contractor") : tt("mr_register_employee")}
+        </Button>
+        <div className="ml-auto">
+          {confirmDismiss ? (
+            <span className="flex items-center gap-1.5 text-xs">
+              {tt("mr_dismiss_confirm")}
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-7 text-xs"
+                disabled={busy}
+                onClick={() => run(() => dismissMoneyRequestAction(request.id), tt("mr_dismissed"))}
+              >
                 {tt("mr_dismiss")}
               </Button>
-            )}
-          </div>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirmDismiss(false)}>
+                <X className="size-3.5" />
+              </Button>
+            </span>
+          ) : (
+            <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={busy} onClick={() => setConfirmDismiss(true)}>
+              {tt("mr_dismiss")}
+            </Button>
+          )}
         </div>
-      )}
+      </div>
     </li>
   );
 }

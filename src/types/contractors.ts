@@ -129,6 +129,30 @@ export interface ContractorLedgerEntry {
    *  null cuando el movimiento no tiene ítems. Solo para mostrar en la
    *  tabla del estado de cuenta sin tener que abrir el movimiento. */
   itemsSummary: string | null;
+  /** Cuota de un préstamo/descuento en cuotas (`contractor_loans`); null en
+   *  un movimiento suelto. Con fecha futura está programada y no cuenta en
+   *  el saldo de hoy. */
+  loanId: string | null;
+}
+
+/** Préstamo, adelanto, herramienta, daño o InDrive de un contratista, con
+ *  el avance de sus cuotas (cada cuota es un movimiento con `loanId`). */
+export interface ContractorLoanSummary {
+  id: string;
+  contractorId: string;
+  category: "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive";
+  requestDate: string;
+  principalCents: number;
+  interestCents: number;
+  status: "active" | "cancelled";
+  notes: string | null;
+  installmentCount: number;
+  /** Cuotas cuya fecha ya llegó (ya se descontaron del saldo). */
+  dueCount: number;
+  dueCents: number;
+  /** Lo que falta por descontar (cuotas programadas). */
+  pendingCents: number;
+  next: { date: string; amountCents: number } | null;
 }
 
 /** Una fila del estado de cuenta con el saldo corrido justo después de

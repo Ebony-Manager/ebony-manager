@@ -12,6 +12,7 @@ import {
   type DashboardPeriod,
 } from "@/lib/contractors/dashboard";
 import { formatCents } from "@/lib/planilla/payroll-period";
+import type { ContractorLoanSummary } from "@/types/contractors";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { PayrollKpiCard } from "@/app/(app)/planilla/payroll-kpi-card";
 import { useLang } from "@/context/language-context";
@@ -20,6 +21,8 @@ import { ContractorsMonthlyChart } from "./contractors-monthly-chart";
 import { contractorProfilePath } from "@/lib/personal/paths";
 
 export interface ContractorsDashboardInput {
+  /** Préstamos en cuotas con su avance (Pagos → Préstamos y descuentos). */
+  loans?: ContractorLoanSummary[];
   contractors: DashboardContractor[];
   entries: DashboardEntry[];
   projectNames: [string, string][];

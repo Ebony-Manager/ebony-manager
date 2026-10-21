@@ -145,3 +145,33 @@ export async function deleteContractorHelperAction(id: string) {
   await requireModule("contratistas");
   await contractors.deleteContractorHelper(id);
 }
+
+// ── Préstamos y descuentos en cuotas ───────────────────────────────────
+// Devuelven el error como dato: en producción Next oculta el mensaje de un
+// error lanzado desde una acción.
+
+export type ContractorLoanResult = { ok: true } | { ok: false; error: string };
+
+async function loanResult(fn: () => Promise<void>): Promise<ContractorLoanResult> {
+  await requireModule("contratistas");
+  try {
+    await fn();
+  } catch (err) {
+    console.error("Contratistas: préstamo", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
+  revalidateContractors();
+  return { ok: true };
+}
+
+export async function createContractorLoanAction(input: contractors.ContractorLoanInput) {
+  return loanResult(() => contractors.createContractorLoan(input));
+}
+
+export async function cancelContractorLoanAction(loanId: string) {
+  return loanResult(() => contractors.cancelContractorLoan(loanId));
+}
+
+export async function deleteContractorLoanAction(loanId: string) {
+  return loanResult(() => contractors.deleteContractorLoan(loanId));
+}
