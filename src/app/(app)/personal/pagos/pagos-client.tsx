@@ -26,11 +26,14 @@ import { EmployeePhotosProvider } from "../../planilla/employee-photos-context";
 import { type CategoriaFilter, defaultVisibleColumns, sanitizeRegistroView } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
+import { ContractorLoansView } from "../../contratistas/contractor-loans-view";
 import { ProjectsView } from "../../contratistas/projects-view";
 import { LaborRatesView } from "../../contratistas/labor-rates-view";
 import type { ContractorsDashboardInput } from "../../contratistas/contractors-dashboard-view";
 
 type PagosTab = "asistencia" | "quincena" | "contratistas" | "prestamos" | "historial" | "contratos";
+/** Préstamos: además de Taller / Administrativo, los de contratistas. */
+type LoansFilter = CategoriaFilter | "contratistas";
 
 /** Nombres de pestaña de la vieja Planilla, que pueden venir en enlaces guardados. */
 const LEGACY_TABS: Record<string, PagosTab> = { registro: "quincena", auditoria: "historial" };
@@ -47,7 +50,8 @@ const LEGACY_TABS: Record<string, PagosTab> = { registro: "quincena", auditoria:
  * La pestaña vive en la URL (`?tab=`) para que "Volver" desde una ficha
  * regrese a la misma. El filtro Todos / Taller / Administrativo es por
  * pestaña de empleados: Quincena e Historial guardan el suyo en "mi vista";
- * Préstamos usa un tercero. `year` (Historial y la ventana del empleado) y
+ * Préstamos usa un tercero, que además ofrece "Contratistas" (sus préstamos
+ * y adelantos salen del estado de cuenta, sin cuotas). `year` (Historial y la ventana del empleado) y
  * las columnas de Quincena viven acá para sobrevivir al cambio de pestaña.
  */
 export function PagosClient({
@@ -85,7 +89,7 @@ export function PagosClient({
       { value: "asistencia", show: canEmployees && canAttendance },
       { value: "quincena", show: canEmployees },
       { value: "contratistas", show: canContractors },
-      { value: "prestamos", show: canEmployees },
+      { value: "prestamos", show: true },
       { value: "historial", show: canEmployees },
       { value: "contratos", show: canContractors },
     ] as const
@@ -115,7 +119,7 @@ export function PagosClient({
   const [visibleColumns, setVisibleColumns] = React.useState(defaultVisibleColumns);
   const [registroCategoria, setRegistroCategoria] = React.useState<CategoriaFilter>("todos");
   const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
-  const [loansCategoria, setLoansCategoria] = React.useState<CategoriaFilter>("todos");
+  const [loansFilter, setLoansFilter] = React.useState<LoansFilter>(canEmployees ? "todos" : "contratistas");
   const [ratesOpen, setRatesOpen] = React.useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
@@ -134,20 +138,20 @@ export function PagosClient({
   const byCategoria = (list: PayrollEmployee[], c: CategoriaFilter) =>
     c === "todos" ? list : list.filter((e) => e.categoria === c);
 
-  // El selector Todos / Taller / Administrativo solo en las pestañas de empleados.
-  const categoria =
-    tab === "quincena"
-      ? { value: registroCategoria, set: setRegistroCategoria }
-      : tab === "historial"
-        ? { value: auditoriaCategoria, set: setAuditoriaCategoria }
-        : tab === "prestamos"
-          ? { value: loansCategoria, set: setLoansCategoria }
-          : null;
+  // El selector Todos / Taller / Administrativo en las pestañas de
+  // empleados; en Préstamos suma "Contratistas".
   const CATEGORIA_FILTERS: Array<{ value: CategoriaFilter; label: string }> = [
     { value: "todos", label: tp("categoria_filter_all") },
     { value: "taller", label: tp("categoria_taller") },
     { value: "administrativo", label: tp("categoria_administrativo") },
   ];
+  const LOANS_FILTERS: Array<{ value: LoansFilter; label: string }> = [
+    ...(canEmployees ? CATEGORIA_FILTERS : []),
+    ...(canContractors ? [{ value: "contratistas" as const, label: tg("loans_contractors") }] : []),
+  ];
+  const showEmployeeLoans = canEmployees && loansFilter !== "contratistas";
+  const showContractorLoans = canContractors && (loansFilter === "contratistas" || loansFilter === "todos");
+  const loansCategoria: CategoriaFilter = loansFilter === "contratistas" ? "todos" : loansFilter;
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrls}>
@@ -182,7 +186,15 @@ export function PagosClient({
             <h1 className="text-[19px] font-bold text-ink-900">{tg(`tab_${tab}`)}</h1>
             <p className="text-xs text-muted-foreground">{tg(`sub_${tab}`)}</p>
           </div>
-          {categoria && <SegmentedFilter value={categoria.value} options={CATEGORIA_FILTERS} onChange={categoria.set} />}
+          {tab === "quincena" && (
+            <SegmentedFilter value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />
+          )}
+          {tab === "historial" && (
+            <SegmentedFilter value={auditoriaCategoria} options={CATEGORIA_FILTERS} onChange={setAuditoriaCategoria} />
+          )}
+          {tab === "prestamos" && LOANS_FILTERS.length > 1 && (
+            <SegmentedFilter value={loansFilter} options={LOANS_FILTERS} onChange={setLoansFilter} />
+          )}
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as PagosTab)}>
@@ -207,23 +219,6 @@ export function PagosClient({
                   reloadSignal={registroReload}
                 />
               </TabsContent>
-              <TabsContent value="prestamos" className="pt-0">
-                <MoneyRequestInbox
-                  requests={moneyRequests}
-                  employees={employees}
-                  contractors={contractors}
-                  canContractors={canContractors}
-                  onChanged={reload}
-                />
-                <LoansOverviewView
-                  employees={byCategoria(employees, loansCategoria)}
-                  reloadSignal={registroReload}
-                  onOpenEmployee={(id, initialTab) => {
-                    setDetailTab(initialTab);
-                    setDetailEmployeeId(id);
-                  }}
-                />
-              </TabsContent>
               <TabsContent value="historial" className="pt-0">
                 <AuditoriaView
                   year={year}
@@ -234,6 +229,36 @@ export function PagosClient({
               </TabsContent>
             </>
           )}
+          <TabsContent value="prestamos" className="pt-0">
+            <MoneyRequestInbox
+              requests={moneyRequests}
+              employees={employees}
+              contractors={contractors}
+              canContractors={canContractors}
+              onChanged={reload}
+            />
+            <div className="flex flex-col gap-8">
+              {showEmployeeLoans && (
+                <section className="flex flex-col gap-3">
+                  {showContractorLoans && <h2 className="text-sm font-semibold text-foreground">{tg("loans_employees_title")}</h2>}
+                  <LoansOverviewView
+                    employees={byCategoria(employees, loansCategoria)}
+                    reloadSignal={registroReload}
+                    onOpenEmployee={(id, initialTab) => {
+                      setDetailTab(initialTab);
+                      setDetailEmployeeId(id);
+                    }}
+                  />
+                </section>
+              )}
+              {showContractorLoans && contractorsDashboard && (
+                <section className="flex flex-col gap-3">
+                  {showEmployeeLoans && <h2 className="text-sm font-semibold text-foreground">{tg("cl_title")}</h2>}
+                  <ContractorLoansView input={contractorsDashboard} />
+                </section>
+              )}
+            </div>
+          </TabsContent>
           {canContractors && (
             <>
               <TabsContent value="contratistas" className="pt-0">

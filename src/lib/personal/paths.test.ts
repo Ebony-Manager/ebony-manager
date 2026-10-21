@@ -31,5 +31,6 @@ describe("rutas de las fichas del staff", () => {
     expect(contractorBackPath()).toBe("/personal/staff");
     expect(contractorBackPath("contratistas")).toBe("/personal?ver=contratistas");
     expect(contractorBackPath("pagos")).toBe("/personal/pagos?tab=contratistas");
+    expect(contractorBackPath("prestamos")).toBe("/personal/pagos?tab=prestamos");
   });
 });

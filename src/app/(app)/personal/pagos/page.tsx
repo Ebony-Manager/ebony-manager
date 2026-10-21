@@ -22,9 +22,9 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
 
   const [employees, moneyRequests, contractors, projects, laborRates, contractorsDashboard] = await Promise.all([
     canEmployees ? getPayrollEmployees() : none([]),
-    canEmployees ? getPendingMoneyRequests() : none([]),
+    getPendingMoneyRequests(),
     // Para la bandeja de solicitudes de dinero (Préstamos).
-    canEmployees && canContractors ? getContractors() : none([]),
+    canContractors ? getContractors() : none([]),
     canContractors ? getProjects() : none([]),
     canContractors ? getLaborRates() : none([]),
     canContractors ? getContractorsDashboardInput() : none(null),

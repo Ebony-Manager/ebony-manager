@@ -19,7 +19,7 @@ export const EMPLOYEE_FROM = ["dashboard", "registro", "auditoria", "prestamos",
 export type EmployeeFrom = (typeof EMPLOYEE_FROM)[number];
 
 /** Pantallas fuera de Staff que abren la ficha de un contratista ("contratistas" = su Resumen). */
-export const CONTRACTOR_FROM = ["contratistas", "pagos", "resumen"] as const;
+export const CONTRACTOR_FROM = ["contratistas", "pagos", "prestamos", "resumen"] as const;
 export type ContractorFrom = (typeof CONTRACTOR_FROM)[number];
 
 const withFrom = (path: string, from?: string) => (from ? `${path}?from=${from}` : path);
@@ -52,6 +52,7 @@ const CONTRACTOR_BACK: Record<ContractorFrom, string> = {
   resumen: RESUMEN_PATH,
   contratistas: `${RESUMEN_PATH}?ver=contratistas`,
   pagos: `${PAGOS_PATH}?tab=contratistas`,
+  prestamos: `${PAGOS_PATH}?tab=prestamos`,
 };
 
 /** A dónde vuelve la ficha del empleado. */

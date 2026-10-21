@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Building2, CalendarClock, ChevronLeft, ChevronRight, FolderKanban, HandCoins, Hammer, Users, Wallet } from "lucide-react";
+import { Building2, CalendarClock, ChevronLeft, ChevronRight, HandCoins, Hammer, Receipt, Users, Wallet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -136,7 +136,7 @@ export function AdminDashboardView() {
             <PayrollKpiCard icon={Users} label={tt("ad_series_taller")} value={formatCents(m.tallerCents)} sublabel={pctOf(m.tallerCents, m.totalCents)} category="salario" />
             <PayrollKpiCard icon={Building2} label={tt("ad_series_admin")} value={formatCents(m.adminCents)} sublabel={pctOf(m.adminCents, m.totalCents)} category="bonos" />
             <PayrollKpiCard icon={Hammer} label={tt("ad_series_contractors")} value={formatCents(m.contractorsCents)} sublabel={pctOf(m.contractorsCents, m.totalCents)} category="decimo" />
-            <PayrollKpiCard icon={FolderKanban} label={tt("kpi_projects")} value={String(m.projects)} sublabel={tt("kpi_projects_hint")} />
+            <PayrollKpiCard icon={Receipt} label={tt("kpi_owed")} value={formatCents(data.contractorsOwedCents)} sublabel={tt("kpi_owed_hint")} />
             <PayrollKpiCard
               icon={Users}
               label={tt("kpi_people_paid")}
@@ -144,7 +144,12 @@ export function AdminDashboardView() {
               sublabel={`${m.employeesPaid} ${tt("employees_word")} · ${m.contractorsPaid} ${tt("contractors_word")}`}
             />
             <PayrollKpiCard icon={Wallet} label={`${tt("kpi_ytd")} ${year}`} value={formatCents(dash.ytd.totalCents)} sublabel={tt("kpi_ytd_hint")} />
-            <PayrollKpiCard icon={HandCoins} label={tt("kpi_loans")} value={formatCents(data.loansReceivableCents)} sublabel={tt("kpi_loans_hint")} />
+            <PayrollKpiCard
+              icon={HandCoins}
+              label={tt("kpi_loans")}
+              value={formatCents(data.loansReceivableCents + data.contractorsOwingCents)}
+              sublabel={`${formatCents(data.loansReceivableCents)} ${tt("employees_word")} · ${formatCents(data.contractorsOwingCents)} ${tt("contractors_word")}`}
+            />
           </div>
 
           <AdminMonthlyChart months={dash.months} year={year} selectedMonth={month} onSelectMonth={setMonth} />
