@@ -165,7 +165,7 @@ export async function getContractors(): Promise<Contractor[]> {
   return (data ?? []).map(mapContractor);
 }
 
-/** Datos crudos del dashboard de Contratistas: contratistas, TODOS sus
+/** Datos crudos del dashboard de Contratistas: los contratistas ACTIVOS, TODOS sus
  *  movimientos (paginados, ver select-all.ts) y los nombres de proyecto. El
  *  cálculo (`computeContractorsDashboard`) se hace en el cliente, así cambiar
  *  de año es instantáneo y no vuelve a pedir nada al servidor. */
@@ -176,7 +176,9 @@ export async function getContractorsDashboardInput(): Promise<{
 }> {
   const supabase = await createClient();
   const [contractorsRes, rows, projectsRes] = await Promise.all([
-    supabase.from("contractors").select("id, name, contractor_type, status").order("name"),
+    // Solo activos: un contratista inactivo no entra en resúmenes, saldos
+    // ni préstamos (sigue en la lista de Personal, en "Inactivos").
+    supabase.from("contractors").select("id, name, contractor_type, status").eq("status", "ACTIVE").order("name"),
     selectAllRows((from, to) =>
       supabase
         .from("contractor_ledger_entries")
@@ -188,6 +190,7 @@ export async function getContractorsDashboardInput(): Promise<{
   ]);
   if (contractorsRes.error) throw new Error(contractorsRes.error.message);
   if (projectsRes.error) throw new Error(projectsRes.error.message);
+  const activeIds = new Set((contractorsRes.data ?? []).map((c) => c.id));
   return {
     contractors: (contractorsRes.data ?? []).map((c) => ({
       id: c.id,
@@ -195,17 +198,19 @@ export async function getContractorsDashboardInput(): Promise<{
       contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
       status: c.status,
     })),
-    entries: rows.map((r) => ({
-      contractorId: r.contractor_id,
-      entryDate: r.entry_date,
-      category: r.category as DashboardEntry["category"],
-      direction: r.direction === "a_favor" ? "a_favor" : "reduce",
-      amountCents: r.amount_cents,
-      projectId: r.project_id,
-      clientText: r.client_text,
-      mt2: r.mt2 === null ? null : Number(r.mt2),
-      ebonyAbsorbsMaterial: r.ebony_absorbs_material,
-    })),
+    entries: rows
+      .filter((r) => activeIds.has(r.contractor_id))
+      .map((r) => ({
+        contractorId: r.contractor_id,
+        entryDate: r.entry_date,
+        category: r.category as DashboardEntry["category"],
+        direction: r.direction === "a_favor" ? "a_favor" : "reduce",
+        amountCents: r.amount_cents,
+        projectId: r.project_id,
+        clientText: r.client_text,
+        mt2: r.mt2 === null ? null : Number(r.mt2),
+        ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+      })),
     projectNames: (projectsRes.data ?? []).map((p) => [p.id, p.name] as [string, string]),
   };
 }
