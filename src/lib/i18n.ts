@@ -167,6 +167,8 @@ export const strings = {
     tab_prestamos: { es: "Préstamos y descuentos", en: "Loans & deductions" },
     tab_historial: { es: "Historial", en: "History" },
     tab_contratos: { es: "Contratos", en: "Contracts" },
+    sub_tab_closing: { es: "Cierre de quincena", en: "Pay-period close" },
+    sub_tab_balances: { es: "Saldos", en: "Balances" },
     sub_asistencia: {
       es: "Ponchadas del reloj y del Jotform → descuentos por tardanza y faltas de la quincena",
       en: "Clock and Jotform punches → late and absence deductions for the pay period",
@@ -1625,6 +1627,36 @@ export const strings = {
     pay_err_empty: { es: "Pon al menos un abono.", en: "Enter at least one payment." },
     pay_submit: { es: "Registrar pago", en: "Record payment" },
     pay_saved: { es: "Pago registrado", en: "Payment recorded" },
+
+    // Cierre quincenal de contratistas.
+    cl_half_1: { es: "1.ª quincena de", en: "1st half of" },
+    cl_half_2: { es: "2.ª quincena de", en: "2nd half of" },
+    cl_pay_date: { es: "Fecha de pago", en: "Pay date" },
+    cl_status_draft: { es: "Borrador", en: "Draft" },
+    cl_status_paid: { es: "Pagada", en: "Paid" },
+    cl_empty: { es: "Nadie tiene contratos con algo por pagar.", en: "No one has contracts with anything left to pay." },
+    cl_paid_empty: { es: "En esta quincena no se le pagó a ningún contratista.", en: "No contractor was paid in this period." },
+    cl_col_pending: { es: "Falta en contratos", en: "Left on contracts" },
+    cl_col_deducted: { es: "Descuentos", en: "Deductions" },
+    cl_col_cash: { es: "Neto a entregar", en: "Net to hand over" },
+    cl_total: { es: "Total", en: "Total" },
+    cl_open_profile: { es: "Abrir ficha", en: "Open profile" },
+    cl_list: { es: "Lista para la administradora", en: "List for the administrator" },
+    cl_list_title: { es: "Pagos a contratistas", en: "Contractor payments" },
+    cl_copy: { es: "Copiar", en: "Copy" },
+    cl_copied: { es: "Copiado", en: "Copied" },
+    cl_mark_paid: { es: "Marcar pagada", en: "Mark as paid" },
+    cl_confirm_paid: {
+      es: "¿Marcar esta quincena como pagada? Se registra el pago de cada contratista (con sus descuentos) y cada contrato avanza.",
+      en: "Mark this period as paid? Each contractor's payment (with deductions) is recorded and each contract advances.",
+    },
+    cl_paid_done: { es: "Quincena pagada", en: "Period paid" },
+    cl_reopen: { es: "Reabrir", en: "Reopen" },
+    cl_confirm_reopen: {
+      es: "¿Reabrir esta quincena? Se borran los pagos que registró y vuelve a borrador, con los mismos abonos.",
+      en: "Reopen this period? The payments it recorded are removed and it goes back to draft, with the same amounts.",
+    },
+    cl_reopened: { es: "Quincena reabierta", en: "Period reopened" },
 
     // Movimiento — contrato.
     mov_f_contract: { es: "Contrato", en: "Contract" },

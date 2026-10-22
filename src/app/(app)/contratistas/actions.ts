@@ -168,6 +168,34 @@ export async function registerContractorPaymentAction(input: contractors.Registe
   return contractResult(() => contractors.registerContractorPayment(input));
 }
 
+// ── Cierre quincenal de contratistas ───────────────────────────────────
+
+export async function getContractorClosingAction(year: number, month: number, half: 1 | 2) {
+  await requireModule("contratistas");
+  return contractors.getContractorClosing(year, month, half);
+}
+
+// El borrador no mueve nada: sin revalidar (la pantalla lleva su propio estado).
+export async function setContractorPayLineAction(
+  input: Parameters<typeof contractors.setContractorPayLine>[0]
+): Promise<ContractResult> {
+  await requireModule("contratistas");
+  try {
+    await contractors.setContractorPayLine(input);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
+}
+
+export async function closeContractorPayPeriodAction(periodId: string) {
+  return contractResult(() => contractors.closeContractorPayPeriod(periodId));
+}
+
+export async function reopenContractorPayPeriodAction(periodId: string) {
+  return contractResult(() => contractors.reopenContractorPayPeriod(periodId));
+}
+
 // ── Tarifas de mano de obra ─────────────────────────────────────────────
 
 export async function getLaborRatesAction() {

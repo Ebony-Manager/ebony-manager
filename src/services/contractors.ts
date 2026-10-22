@@ -929,6 +929,199 @@ export async function registerContractorPayment(input: RegisterPaymentInput): Pr
 }
 
 // ============================================================================
+// Cierre quincenal de contratistas: borrador de abonos por contrato →
+// marcar pagada (registra todos los pagos en una transacción) → reabrir.
+// ============================================================================
+
+export interface ContractorPayPeriod {
+  id: string;
+  year: number;
+  month: number;
+  half: 1 | 2;
+  payDate: string;
+  status: "draft" | "paid";
+  paidAt: string | null;
+}
+
+export interface ContractorPayLine {
+  contractorId: string;
+  /** null = abono a lo acreditado sin contrato. */
+  contractId: string | null;
+  amountCents: number;
+}
+
+export interface ContractorPayResult {
+  contractorId: string;
+  abonosCents: number;
+  deductedCents: number;
+  cashCents: number;
+}
+
+/** Lo mínimo de cada movimiento para calcular lo que está a cuenta y lo
+ *  que se debe sin contrato. */
+export type ClosingEntry = Pick<
+  ContractorLedgerEntry,
+  "id" | "contractorId" | "entryDate" | "category" | "direction" | "amountCents" | "contractId" | "ebonyAbsorbsMaterial" | "description" | "loanId"
+>;
+
+export interface ContractorClosingData {
+  period: ContractorPayPeriod | null;
+  payDate: string;
+  lines: ContractorPayLine[];
+  results: ContractorPayResult[];
+  contractors: { id: string; name: string; contractorType: ContractorType; status: ContractorStatus }[];
+  contracts: ContractorContract[];
+  entries: ClosingEntry[];
+  allocations: (ContractorAllocation & { contractorId: string })[];
+}
+
+/** Fecha de pago de la quincena: el 15 o el último día del mes. */
+export function contractorPayDate(year: number, month: number, half: 1 | 2): string {
+  const day = half === 1 ? 15 : new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export async function getContractorClosing(year: number, month: number, half: 1 | 2): Promise<ContractorClosingData> {
+  const supabase = await createClient();
+  const { data: periodRow, error: pErr } = await supabase
+    .from("contractor_pay_periods")
+    .select("*")
+    .eq("year", year)
+    .eq("month", month)
+    .eq("half", half)
+    .maybeSingle();
+  if (pErr) throw new Error(pErr.message);
+
+  const [contractorsRes, contracts, entryRows, allocRows, linesRes, resultsRes] = await Promise.all([
+    supabase.from("contractors").select("id, name, contractor_type, status").order("sort_order").order("name"),
+    getContracts(),
+    selectAllRows((from, to) =>
+      supabase
+        .from("contractor_ledger_entries")
+        .select("id, contractor_id, entry_date, category, direction, amount_cents, contract_id, ebony_absorbs_material, description, loan_id, created_at")
+        .order("entry_date")
+        .order("created_at")
+        .order("id")
+        .range(from, to)
+    ),
+    selectAllRows((from, to) =>
+      supabase.from("contractor_payment_allocations").select("*").order("id").range(from, to)
+    ),
+    periodRow
+      ? supabase.from("contractor_pay_lines").select("contractor_id, contract_id, amount_cents").eq("period_id", periodRow.id)
+      : Promise.resolve({ data: [], error: null }),
+    periodRow
+      ? supabase.from("contractor_pay_results").select("*").eq("period_id", periodRow.id)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (contractorsRes.error) throw new Error(contractorsRes.error.message);
+  if (linesRes.error) throw new Error(linesRes.error.message);
+  if (resultsRes.error) throw new Error(resultsRes.error.message);
+
+  return {
+    period: periodRow
+      ? {
+          id: periodRow.id,
+          year: periodRow.year,
+          month: periodRow.month,
+          half: periodRow.half === 2 ? 2 : 1,
+          payDate: periodRow.pay_date,
+          status: periodRow.status === "paid" ? "paid" : "draft",
+          paidAt: periodRow.paid_at,
+        }
+      : null,
+    payDate: periodRow?.pay_date ?? contractorPayDate(year, month, half),
+    lines: (linesRes.data ?? []).map((l) => ({ contractorId: l.contractor_id, contractId: l.contract_id, amountCents: l.amount_cents })),
+    results: (resultsRes.data ?? []).map((r) => ({
+      contractorId: r.contractor_id,
+      abonosCents: r.abonos_cents,
+      deductedCents: r.deducted_cents,
+      cashCents: r.cash_cents,
+    })),
+    contractors: (contractorsRes.data ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
+      status: c.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+    })),
+    contracts,
+    entries: entryRows.map((r) => ({
+      id: r.id,
+      contractorId: r.contractor_id,
+      entryDate: r.entry_date,
+      category: r.category as ContractorLedgerCategory,
+      direction: r.direction === "a_favor" ? "a_favor" : "reduce",
+      amountCents: r.amount_cents,
+      contractId: r.contract_id,
+      ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+      description: r.description,
+      loanId: r.loan_id,
+    })),
+    allocations: allocRows.map((r) => ({ ...mapAllocation(r), contractorId: r.contractor_id })),
+  };
+}
+
+/** Guarda (o borra, con 0) el abono de un contrato en el borrador de la quincena. */
+export async function setContractorPayLine(input: {
+  year: number;
+  month: number;
+  half: 1 | 2;
+  contractorId: string;
+  contractId: string | null;
+  amountCents: number;
+}): Promise<void> {
+  const supabase = await createClient();
+  let { data: period, error } = await supabase
+    .from("contractor_pay_periods")
+    .select("id, status")
+    .eq("year", input.year)
+    .eq("month", input.month)
+    .eq("half", input.half)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!period) {
+    if (input.amountCents <= 0) return;
+    ({ data: period, error } = await supabase
+      .from("contractor_pay_periods")
+      .insert({
+        year: input.year,
+        month: input.month,
+        half: input.half,
+        pay_date: contractorPayDate(input.year, input.month, input.half),
+      })
+      .select("id, status")
+      .single());
+    if (error || !period) throw new Error(error?.message ?? "No se pudo crear la quincena");
+  }
+  if (period.status === "paid") throw new Error("Esta quincena ya está pagada: reábrela para cambiarla.");
+
+  let del = supabase.from("contractor_pay_lines").delete().eq("period_id", period.id).eq("contractor_id", input.contractorId);
+  del = input.contractId ? del.eq("contract_id", input.contractId) : del.is("contract_id", null);
+  const { error: delErr } = await del;
+  if (delErr) throw new Error(delErr.message);
+  if (input.amountCents <= 0) return;
+  const { error: insErr } = await supabase.from("contractor_pay_lines").insert({
+    period_id: period.id,
+    contractor_id: input.contractorId,
+    contract_id: input.contractId,
+    amount_cents: input.amountCents,
+  });
+  if (insErr) throw new Error(insErr.message);
+}
+
+export async function closeContractorPayPeriod(periodId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("close_contractor_pay_period", { p_period: periodId });
+  if (error) throw new Error(error.message);
+}
+
+export async function reopenContractorPayPeriod(periodId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reopen_contractor_pay_period", { p_period: periodId });
+  if (error) throw new Error(error.message);
+}
+
+// ============================================================================
 // Tarifas de mano de obra — catálogo de precios (tabla `labor_rates`).
 // No se borran registros (trazabilidad histórica): se inactivan con
 // `activo = false`.

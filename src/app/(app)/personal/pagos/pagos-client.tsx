@@ -7,7 +7,7 @@ import { Plus, Tags } from "lucide-react";
 import type { PayrollEmployee } from "@/types/planilla";
 import type { Contractor, ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { MoneyRequest } from "@/types/money-requests";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageBreadcrumb, SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -28,6 +28,7 @@ import { ChargeTypeChips, type ChargeTypeFilter } from "../../planilla/employee-
 import type { CategoriaFilter } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
+import { ContractorClosingView } from "../../contratistas/contractor-closing-view";
 import { ChargesListView } from "./charges-list-view";
 import { ContractsView } from "../../contratistas/contracts-view";
 import { LaborRatesView } from "../../contratistas/labor-rates-view";
@@ -268,7 +269,23 @@ export function PagosClient({
           {canContractors && (
             <>
               <TabsContent value="contratistas" className="pt-0">
-                {contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />}
+                {/* Cierre de la quincena (como la Quincena de empleados) y los saldos. */}
+                <Tabs defaultValue="cierre" className="gap-4">
+                  <TabsList className="h-8 self-start">
+                    <TabsTrigger value="cierre" className="px-3 text-xs">
+                      {tg("sub_tab_closing")}
+                    </TabsTrigger>
+                    <TabsTrigger value="saldos" className="px-3 text-xs">
+                      {tg("sub_tab_balances")}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="cierre" className="pt-0">
+                    <ContractorClosingView />
+                  </TabsContent>
+                  <TabsContent value="saldos" className="pt-0">
+                    {contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />}
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
               <TabsContent value="contratos" className="pt-0">
                 <ContractsView

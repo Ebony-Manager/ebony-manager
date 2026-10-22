@@ -334,6 +334,99 @@ export type Database = {
           },
         ]
       }
+      contractor_pay_lines: {
+        Row: {
+          amount_cents: number
+          contract_id: string | null
+          contractor_id: string
+          created_at: string
+          id: string
+          period_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          contract_id?: string | null
+          contractor_id: string
+          created_at?: string
+          id?: string
+          period_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          contract_id?: string | null
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          period_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contractor_pay_periods: {
+        Row: {
+          created_at: string
+          half: number
+          id: string
+          month: number
+          paid_at: string | null
+          pay_date: string
+          status: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          half: number
+          id?: string
+          month: number
+          paid_at?: string | null
+          pay_date: string
+          status?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          half?: number
+          id?: string
+          month?: number
+          paid_at?: string | null
+          pay_date?: string
+          status?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      contractor_pay_results: {
+        Row: {
+          abonos_cents: number
+          cash_cents: number
+          contractor_id: string
+          deducted_cents: number
+          payment_entry_id: string | null
+          period_id: string
+        }
+        Insert: {
+          abonos_cents: number
+          cash_cents: number
+          contractor_id: string
+          deducted_cents: number
+          payment_entry_id?: string | null
+          period_id: string
+        }
+        Update: {
+          abonos_cents?: number
+          cash_cents?: number
+          contractor_id?: string
+          deducted_cents?: number
+          payment_entry_id?: string | null
+          period_id?: string
+        }
+        Relationships: []
+      }
       contractor_payment_allocations: {
         Row: {
           amount_cents: number
@@ -342,6 +435,7 @@ export type Database = {
           created_at: string
           credit_entry_id: string | null
           id: string
+          pay_period_id: string | null
           source_entry_id: string
         }
         Insert: {
@@ -351,6 +445,7 @@ export type Database = {
           created_at?: string
           credit_entry_id?: string | null
           id?: string
+          pay_period_id?: string | null
           source_entry_id: string
         }
         Update: {
@@ -360,6 +455,7 @@ export type Database = {
           created_at?: string
           credit_entry_id?: string | null
           id?: string
+          pay_period_id?: string | null
           source_entry_id?: string
         }
         Relationships: [
@@ -1821,6 +1917,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      close_contractor_pay_period: {
+        Args: { p_period: string }
+        Returns: Json
+      }
+      reopen_contractor_pay_period: {
+        Args: { p_period: string }
+        Returns: undefined
+      }
       contractor_contract_pending_cents: {
         Args: { p_contract: string }
         Returns: number
