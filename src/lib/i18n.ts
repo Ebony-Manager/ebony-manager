@@ -1661,14 +1661,6 @@ export const strings = {
     pay_submit: { es: "Registrar pago", en: "Record payment" },
     pay_saved: { es: "Pago registrado", en: "Payment recorded" },
 
-    // Corte: saldo en cero para arrancar "al sol de hoy".
-    corte_menu: { es: "Corte: dejar saldo en cero", en: "Cut-off: set balance to zero" },
-    corte_confirm: {
-      es: "¿Dejar el saldo de este contratista en cero? Se registra un ajuste por la diferencia y todos sus contratos quedan terminados. Hazlo ANTES de crear sus contratos actuales.",
-      en: "Set this contractor's balance to zero? An adjustment is recorded for the difference and all their contracts are closed. Do it BEFORE creating their current contracts.",
-    },
-    corte_note: { es: "Corte para arrancar en la app", en: "Cut-off to start in the app" },
-    corte_done: { es: "Saldo en cero", en: "Balance set to zero" },
     ct_f_prepaid: { es: "Ya abonado (antes de la app)", en: "Already paid (before the app)" },
     ct_f_prepaid_hint: {
       es: "Lo que ya se le pagó de este contrato antes de registrarlo acá: es el avance con que arranca.",
@@ -1772,10 +1764,25 @@ export const strings = {
     liq_f_end_date_required: { es: "La fecha de salida es obligatoria.", en: "End date is required." },
     liq_f_notes: { es: "Notas de salida / liquidación", en: "Exit / settlement notes" },
     liq_balance_warning_title: { es: "Saldo pendiente", en: "Outstanding balance" },
-    liq_balance_warning: {
-      es: "Este contratista tiene un saldo distinto de cero. Inactivar NO salda la cuenta — registra primero el pago o el ajuste si corresponde.",
-      en: "This contractor has a non-zero balance. Deactivating does NOT settle the account — record the payment or adjustment first if needed.",
+    liq_balance_question: {
+      es: "¿Qué hacemos con el saldo?",
+      en: "What should happen to the balance?",
     },
+    liq_balance_keep: { es: "Dejarlo pendiente", en: "Keep it pending" },
+    liq_balance_keep_desc: {
+      es: "Queda como está para pagarlo o cobrarlo después.",
+      en: "It stays as is, to be paid or collected later.",
+    },
+    liq_balance_zero: { es: "Cerrarlo en cero", en: "Close it at zero" },
+    liq_balance_zero_desc: {
+      es: "Se registra un ajuste por la diferencia a la fecha de salida (sin pago ni cobro), se salda su retención y sus contratos quedan terminados.",
+      en: "An adjustment for the difference is recorded on the end date (no payment or collection), retention is settled and contracts are closed.",
+    },
+    liq_balance_required: {
+      es: "Elige qué hacer con el saldo.",
+      en: "Choose what to do with the balance.",
+    },
+    liq_zero_note: { es: "Cierre de saldo al inactivar", en: "Balance closed on deactivation" },
     liq_done: { es: "Contratista inactivado", en: "Contractor deactivated" },
     reactivate_done: { es: "Contratista reactivado", en: "Contractor reactivated" },
 
