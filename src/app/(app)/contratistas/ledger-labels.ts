@@ -16,4 +16,5 @@ export const CONTRACTOR_CATEGORY_LABEL_KEY: Record<ContractorLedgerCategory, str
   dano: "cat_dano",
   indrive: "cat_indrive",
   otro: "cat_otro",
+  retencion: "cat_retencion",
 };

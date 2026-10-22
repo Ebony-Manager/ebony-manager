@@ -129,6 +129,7 @@ function mapLedger(
     loanId: r.loan_id,
     contractId: r.contract_id,
     contractName,
+    retentionOfEntryId: r.retention_of_entry_id,
   };
 }
 
@@ -850,6 +851,54 @@ export async function zeroContractorBalance(contractorId: string, date: string, 
     p_contractor_id: contractorId,
     p_date: date,
     p_note: note ?? "",
+  });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}
+
+/** Lo retenido a cada contratista en un proyecto (retención de garantía). */
+export interface ProjectRetention {
+  contractorId: string;
+  contractorName: string;
+  heldCents: number;
+  releasedCents: number;
+  pendingCents: number;
+}
+
+export async function getProjectRetention(projectId: string): Promise<ProjectRetention[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_ledger_entries")
+    .select("contractor_id, direction, amount_cents, contractors(name)")
+    .eq("category", "retencion")
+    .eq("project_id", projectId);
+  if (error) throw new Error(error.message);
+  const map = new Map<string, ProjectRetention>();
+  for (const r of data ?? []) {
+    const name = (r.contractors as { name: string } | null)?.name ?? "";
+    const cur = map.get(r.contractor_id) ?? {
+      contractorId: r.contractor_id,
+      contractorName: name,
+      heldCents: 0,
+      releasedCents: 0,
+      pendingCents: 0,
+    };
+    if (r.direction === "reduce") cur.heldCents += r.amount_cents;
+    else cur.releasedCents += r.amount_cents;
+    cur.pendingCents = cur.heldCents - cur.releasedCents;
+    map.set(r.contractor_id, cur);
+  }
+  return [...map.values()].sort((a, b) => a.contractorName.localeCompare(b.contractorName));
+}
+
+/** Devuelve lo retenido de un proyecto entregado (null = sin proyecto):
+ *  queda a favor del contratista y se paga en el próximo cierre. */
+export async function releaseContractorRetention(contractorId: string, projectId: string | null): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("release_contractor_retention", {
+    p_contractor_id: contractorId,
+    p_project_id: projectId,
+    p_date: todayInPanama(),
   });
   if (error) throw new Error(error.message);
   return data ?? 0;

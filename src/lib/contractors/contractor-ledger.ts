@@ -33,6 +33,7 @@ export const CONTRACTOR_LEDGER_CATEGORIES: ContractorLedgerCategory[] = [
   "dano",
   "indrive",
   "otro",
+  "retencion",
 ];
 
 /** Categorías cuya dirección es fija. `ajuste` NO está: ahí el usuario

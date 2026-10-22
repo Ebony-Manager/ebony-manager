@@ -195,6 +195,7 @@ export type Database = {
           mt2: number | null
           notes: string | null
           project_id: string | null
+          retention_of_entry_id: string | null
           updated_at: string
         }
         Insert: {
@@ -214,6 +215,7 @@ export type Database = {
           mt2?: number | null
           notes?: string | null
           project_id?: string | null
+          retention_of_entry_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -233,6 +235,7 @@ export type Database = {
           mt2?: number | null
           notes?: string | null
           project_id?: string | null
+          retention_of_entry_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1923,6 +1926,14 @@ export type Database = {
       }
       zero_contractor_balance: {
         Args: { p_contractor_id: string; p_date: string; p_note: string }
+        Returns: number
+      }
+      release_contractor_retention: {
+        Args: { p_contractor_id: string; p_project_id: string | null; p_date: string }
+        Returns: number
+      }
+      contractor_retention_held_cents: {
+        Args: { p_contractor_id: string; p_project_id: string | null }
         Returns: number
       }
       reopen_contractor_pay_period: {

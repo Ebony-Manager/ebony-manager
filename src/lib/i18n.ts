@@ -1374,6 +1374,33 @@ export const strings = {
     cat_indrive: { es: "InDrive", en: "InDrive" },
     cat_otro: { es: "Otro descuento", en: "Other deduction" },
     cat_tercero: { es: "Descuento a terceros", en: "Third-party deduction" },
+    cat_retencion: { es: "Retención", en: "Retention" },
+
+    // Retención de garantía (pintores).
+    ret_title: { es: "Retención de garantía", en: "Warranty retention" },
+    ret_desc: {
+      es: "Se retiene de cada trabajo y se devuelve cuando se entrega el proyecto.",
+      en: "Held from each job and returned when the project is delivered.",
+    },
+    ret_col_held: { es: "Retenido", en: "Held" },
+    ret_col_released: { es: "Devuelto", en: "Returned" },
+    ret_col_pending: { es: "Por devolver", en: "To return" },
+    ret_release: { es: "Devolver", en: "Return" },
+    ret_release_confirm: {
+      es: "¿Devolver la retención de este proyecto? Queda a su favor y se le paga en el próximo cierre.",
+      en: "Return this project's retention? It is credited and paid in the next closing.",
+    },
+    ret_released: { es: "Retención devuelta", en: "Retention returned" },
+    ret_not_delivered: {
+      es: "Se devuelve cuando el proyecto esté terminado (entregado).",
+      en: "Returned once the project is completed (delivered).",
+    },
+    ret_auto: { es: "Automática", en: "Automatic" },
+    ret_auto_hint: {
+      es: "Retención automática: cambia o se borra sola con el trabajo del que sale.",
+      en: "Automatic retention: it follows the job it comes from.",
+    },
+    ret_empty: { es: "Sin retención todavía.", en: "No retention yet." },
     scheduled: { es: "Programada", en: "Scheduled" },
 
     // KPIs de la ficha del contratista (arriba del estado de cuenta).
