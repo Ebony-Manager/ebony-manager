@@ -152,6 +152,9 @@ const CAT_ALL = "all";
 const PROJ_ALL = "all";
 const PROJ_NONE = "__none__";
 
+// La vista de período del estado de cuenta se recuerda por navegador.
+const PERIOD_STORAGE_KEY = "contratistas:ledger-period";
+
 // La elección de paleta ("full" / "sober") se recuerda por navegador.
 const PALETTE_STORAGE_KEY = "contratistas:ledger-palette";
 function readStoredPalette(): LedgerPalette | null {
@@ -245,9 +248,28 @@ export function ContractorProfileView({
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
   const [photoPath, setPhotoPath] = React.useState<string | null>(contractor.photoPath);
 
-  // Vista de período — "Mes" por defecto. El ancla arranca en el mes del
-  // último movimiento (o el mes actual si no hay ninguno).
-  const [periodView, setPeriodView] = React.useState<LedgerPeriodView>("month");
+  // Vista de período — "Últimos 15 movimientos" por defecto (con "Mes", un
+  // abono a inicio de mes se veía solo, sin el trabajo que paga). La
+  // elección se recuerda por navegador. El ancla de las vistas por
+  // calendario arranca en el mes del último movimiento.
+  const [periodView, setPeriodView] = React.useState<LedgerPeriodView>("last15");
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(PERIOD_STORAGE_KEY);
+      if (v && (LEDGER_PERIOD_VIEWS as readonly string[]).includes(v)) setPeriodView(v as LedgerPeriodView);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PERIOD_STORAGE_KEY, periodView);
+    } catch {
+      /* ignore */
+    }
+  }, [periodView]);
   const [anchor, setAnchor] = React.useState(() => {
     const last = initialEntries[initialEntries.length - 1];
     const d = last ? last.entryDate : new Date().toISOString().slice(0, 10);
