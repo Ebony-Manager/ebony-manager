@@ -1302,7 +1302,7 @@ export const strings = {
     bal_settled: { es: "Al día", en: "Settled up" },
 
     ledger_title: { es: "Estado de cuenta", en: "Account statement" },
-    ledger_add: { es: "Agregar movimiento", en: "Add movement" },
+    ledger_add: { es: "Otro movimiento", en: "Other movement" },
     ledger_empty: { es: "Sin movimientos todavía.", en: "No movements yet." },
     col_date: { es: "Fecha", en: "Date" },
     col_category: { es: "Categoría", en: "Category" },
@@ -1315,7 +1315,7 @@ export const strings = {
     col_balance: { es: "Saldo", en: "Balance" },
     absorbed_note: { es: "Ebony asume — no afecta el saldo", en: "Ebony absorbs — no effect on balance" },
 
-    mov_add_title: { es: "Agregar movimiento", en: "Add movement" },
+    mov_add_title: { es: "Otro movimiento", en: "Other movement" },
     mov_edit_title: { es: "Editar movimiento", en: "Edit movement" },
     mov_desc: {
       es: "La categoría define sola si suma o resta al saldo. Solo en “Ajuste” lo eliges tú.",

@@ -798,9 +798,11 @@ export function ContractorProfileView({
               <HandCoins className="size-3.5" />
               {tt("ledger_add_charge")}
             </Button>
+            {/* Lo ocasional (material, gasto, extra, ajuste): más discreto. */}
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
+              className="text-muted-foreground"
               onClick={() => {
                 setEditing(null);
                 setDialogOpen(true);
