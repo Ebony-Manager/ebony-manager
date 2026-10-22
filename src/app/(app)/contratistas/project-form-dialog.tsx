@@ -161,67 +161,6 @@ export function ProjectFormDialog({
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
 
-          {/* Contrato — todo opcional. */}
-          <div className="flex flex-col gap-4 border-t border-border pt-4">
-            <div>
-              <h3 className="text-sm font-medium text-foreground">{tt("proj_contract_section")}</h3>
-              <p className="text-xs text-muted-foreground">{tt("proj_contract_hint")}</p>
-            </div>
-
-            <Field label={tt("proj_f_scope")}>
-              <Textarea
-                rows={2}
-                value={scope}
-                onChange={(e) => setScope(e.target.value)}
-                placeholder={tt("f_optional")}
-              />
-            </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("proj_f_furniture_type")}>
-                <Input
-                  value={furnitureType}
-                  onChange={(e) => setFurnitureType(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("proj_f_material_color")}>
-                <Input
-                  value={materialColor}
-                  onChange={(e) => setMaterialColor(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-            </div>
-            <Field label={tt("proj_f_specs")}>
-              <Textarea
-                rows={2}
-                value={specs}
-                onChange={(e) => setSpecs(e.target.value)}
-                placeholder={tt("f_optional")}
-              />
-            </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("proj_f_payment_terms")}>
-                <Textarea
-                  rows={2}
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("proj_f_total_mt2")}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={totalMt2}
-                  onChange={(e) => setTotalMt2(e.target.value)}
-                  placeholder="0.00"
-                />
-              </Field>
-            </div>
-          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

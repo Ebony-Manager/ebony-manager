@@ -13,12 +13,6 @@ import { ProjectFormDialog } from "./project-form-dialog";
 import { ProjectDetailSheet } from "./project-detail-sheet";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 
-function hasContract(p: Project): boolean {
-  return Boolean(
-    p.scope || p.furnitureType || p.materialColor || p.specs || p.paymentTerms || p.totalMt2 != null
-  );
-}
-
 /**
  * Personal → Pagos → Contratos (antes "Proyectos" de Contratistas) — lista (nombre, cliente,
  * estado). Click en una fila abre la FICHA DE CONTRATO del proyecto
@@ -181,11 +175,6 @@ function ProjectTable({
             >
               <td className="px-3 py-2 font-medium text-foreground">
                 {p.name}
-                {hasContract(p) && (
-                  <span className="ml-2 align-middle text-[10px] font-normal text-muted-foreground">
-                    {tt("proj_contract_section")}
-                  </span>
-                )}
               </td>
               <td className="px-3 py-2 text-muted-foreground">{p.clientName || "—"}</td>
               <td className="px-3 py-2">

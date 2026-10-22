@@ -23,6 +23,9 @@ import type {
   ContractorLedgerEntryItem,
   ContractorLoanSummary,
   ContractorStatus,
+  ContractorAllocation,
+  ContractorContract,
+  ContractStatus,
   ContractorType,
   LaborRate,
   LaborRatePhase,
@@ -49,6 +52,13 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type LaborRateRow = Database["public"]["Tables"]["labor_rates"]["Row"];
 type HelperRow = Database["public"]["Tables"]["contractor_helpers"]["Row"];
 type LedgerEntryItemRow = Database["public"]["Tables"]["contractor_ledger_entry_items"]["Row"];
+type ContractRow = Database["public"]["Tables"]["contractor_contracts"]["Row"];
+type AllocationRow = Database["public"]["Tables"]["contractor_payment_allocations"]["Row"];
+
+/** `contractor_ledger_entries` ↔ `contractor_contracts` tiene dos caminos
+ *  (el FK directo y la tabla de abonos): los embeds llevan el FK explícito. */
+const LEDGER_SELECT = "*, projects(name), contractor_contracts!contractor_ledger_entries_contract_id_fkey(name)";
+type LedgerJoined = LedgerRow & { projects: { name: string } | null; contractor_contracts: { name: string } | null };
 
 /** `numeric` de Postgres vuelve como string por PostgREST — se
  *  normaliza a number (o null). */
@@ -97,7 +107,8 @@ function buildItemsSummary(items: { descripcion: string; detalle: string | null 
 function mapLedger(
   r: LedgerRow,
   projectName: string | null = null,
-  itemsSummary: string | null = null
+  itemsSummary: string | null = null,
+  contractName: string | null = null
 ): ContractorLedgerEntry {
   return {
     id: r.id,
@@ -116,6 +127,8 @@ function mapLedger(
     notes: r.notes,
     itemsSummary,
     loanId: r.loan_id,
+    contractId: r.contract_id,
+    contractName,
   };
 }
 
@@ -242,17 +255,21 @@ export async function getContractorLedger(contractorId: string): Promise<Contrac
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .select("*, projects(name), contractor_ledger_entry_items(descripcion, detalle)")
+    .select(`${LEDGER_SELECT}, contractor_ledger_entry_items(descripcion, detalle)`)
     .eq("contractor_id", contractorId)
     .order("entry_date", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => {
-    const { projects, contractor_ledger_entry_items, ...row } = r as LedgerRow & {
-      projects: { name: string } | null;
+    const { projects, contractor_contracts, contractor_ledger_entry_items, ...row } = r as unknown as LedgerJoined & {
       contractor_ledger_entry_items: { descripcion: string; detalle: string | null }[];
     };
-    return mapLedger(row, projects?.name ?? null, buildItemsSummary(contractor_ledger_entry_items));
+    return mapLedger(
+      row,
+      projects?.name ?? null,
+      buildItemsSummary(contractor_ledger_entry_items),
+      contractor_contracts?.name ?? null
+    );
   });
 }
 
@@ -344,6 +361,7 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
 export async function deleteProject(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error?.code === "23503") throw new Error("Este proyecto tiene contratos: bórralos o muévelos a otro proyecto primero.");
   if (error) throw new Error(error.message);
 }
 
@@ -471,8 +489,15 @@ export interface LedgerEntryItemInput {
 
 export interface UpsertLedgerEntryInput {
   contractorId: string;
-  /** Proyecto enganchado (C2). null = sin proyecto. */
+  /** Proyecto enganchado (C2). null = sin proyecto. Si viene `contractId`,
+   *  manda el proyecto del contrato. */
   projectId?: string | null;
+  /** Contrato del que el movimiento es parte del VALOR (trabajo, extra,
+   *  bono, ajuste). Si se omite, no se toca. */
+  contractId?: string | null;
+  /** Solo para lo que baja el saldo (material, gasto…): abonarlo a este
+   *  contrato (hasta lo que le falte). */
+  allocateToContractId?: string | null;
   entryDate: string;
   category: ContractorLedgerCategory;
   direction: ContractorLedgerDirection;
@@ -496,6 +521,7 @@ export interface UpsertLedgerEntryInput {
 function ledgerFields(input: Omit<UpsertLedgerEntryInput, "contractorId">) {
   const isMaterial = input.category === "material";
   return {
+    ...(input.contractId !== undefined ? { contract_id: input.contractId } : {}),
     project_id: input.projectId ?? null,
     entry_date: input.entryDate,
     category: input.category,
@@ -548,40 +574,358 @@ export async function getLedgerEntryItems(ledgerEntryId: string): Promise<Contra
   return (data ?? []).map(mapLedgerEntryItem);
 }
 
+/** Con contrato, el proyecto del movimiento es el del contrato. */
+async function withContractProject<T extends { contractId?: string | null; projectId?: string | null }>(input: T): Promise<T> {
+  if (!input.contractId) return input;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_contracts")
+    .select("project_id")
+    .eq("id", input.contractId)
+    .single();
+  if (error) throw new Error(error.message);
+  return { ...input, projectId: data.project_id };
+}
+
+function mapLedgerJoined(data: unknown): ContractorLedgerEntry {
+  const { projects, contractor_contracts, ...row } = data as LedgerJoined;
+  return mapLedger(row, projects?.name ?? null, null, contractor_contracts?.name ?? null);
+}
+
 export async function createLedgerEntry(input: UpsertLedgerEntryInput): Promise<ContractorLedgerEntry> {
+  const full = await withContractProject(input);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .insert({ contractor_id: input.contractorId, ...ledgerFields(input) })
-    .select("*, projects(name)")
+    .insert({ contractor_id: full.contractorId, ...ledgerFields(full) })
+    .select(LEDGER_SELECT)
     .single();
   if (error) throw new Error(error.message);
-  if (input.items !== undefined) await replaceLedgerEntryItems(data.id, input.items);
-  const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
-  return mapLedger(row, projects?.name ?? null);
+  if (full.items !== undefined) await replaceLedgerEntryItems(data.id, full.items);
+  const entry = mapLedgerJoined(data);
+  if (full.allocateToContractId) await allocateEntryToContract(entry, full.allocateToContractId);
+  return entry;
 }
 
 export async function updateLedgerEntry(
   id: string,
   input: Omit<UpsertLedgerEntryInput, "contractorId">
 ): Promise<ContractorLedgerEntry> {
+  const full = await withContractProject(input);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contractor_ledger_entries")
-    .update(ledgerFields(input))
+    .update(ledgerFields(full))
     .eq("id", id)
-    .select("*, projects(name)")
+    .select(LEDGER_SELECT)
     .single();
   if (error) throw new Error(error.message);
-  if (input.items !== undefined) await replaceLedgerEntryItems(id, input.items);
-  const { projects, ...row } = data as LedgerRow & { projects: { name: string } | null };
-  return mapLedger(row, projects?.name ?? null);
+  if (full.items !== undefined) await replaceLedgerEntryItems(id, full.items);
+  const entry = mapLedgerJoined(data);
+  if (full.allocateToContractId !== undefined) {
+    // Se rehace el abono de este movimiento al contrato elegido (o se quita).
+    const { error: delErr } = await supabase.from("contractor_payment_allocations").delete().eq("source_entry_id", id);
+    if (delErr) throw new Error(delErr.message);
+    if (full.allocateToContractId) await allocateEntryToContract(entry, full.allocateToContractId);
+  }
+  return entry;
+}
+
+/** Abona un movimiento que baja el saldo (material, gasto…) a un contrato,
+ *  hasta lo que le falte. Lo que no quepa queda a cuenta. */
+async function allocateEntryToContract(entry: ContractorLedgerEntry, contractId: string): Promise<void> {
+  if (entry.direction !== "reduce" || entry.contractId || entry.ebonyAbsorbsMaterial) return;
+  const supabase = await createClient();
+  const { data: pending, error } = await supabase.rpc("contractor_contract_pending_cents", { p_contract: contractId });
+  if (error) throw new Error(error.message);
+  const amount = Math.min(entry.amountCents, Math.max(0, pending ?? 0));
+  if (amount <= 0) return;
+  const { error: insErr } = await supabase.from("contractor_payment_allocations").insert({
+    contractor_id: entry.contractorId,
+    source_entry_id: entry.id,
+    contract_id: contractId,
+    amount_cents: amount,
+  });
+  if (insErr) throw new Error(insErr.message);
 }
 
 export async function deleteLedgerEntry(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("contractor_ledger_entries").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ============================================================================
+// Contratos — un contratista + un proyecto + lo acordado. El valor son sus
+// movimientos (`contract_id`); lo abonado, `contractor_payment_allocations`.
+// ============================================================================
+
+function mapAllocation(r: AllocationRow): ContractorAllocation {
+  return {
+    id: r.id,
+    sourceEntryId: r.source_entry_id,
+    contractId: r.contract_id,
+    creditEntryId: r.credit_entry_id,
+    amountCents: r.amount_cents,
+  };
+}
+
+const CONTRACT_SELECT =
+  "*, projects!contractor_contracts_project_id_fkey(name), contractors!contractor_contracts_contractor_id_fkey(name)";
+
+/** Contratos (de un contratista, o todos) con su valor y lo abonado. */
+export async function getContracts(filter: { contractorId?: string } = {}): Promise<ContractorContract[]> {
+  const supabase = await createClient();
+  let contractsQuery = supabase.from("contractor_contracts").select(CONTRACT_SELECT);
+  if (filter.contractorId) contractsQuery = contractsQuery.eq("contractor_id", filter.contractorId);
+  const [contractsRes, valueRows, allocRows] = await Promise.all([
+    contractsQuery,
+    selectAllRows((from, to) => {
+      let q = supabase
+        .from("contractor_ledger_entries")
+        .select("contract_id, direction, amount_cents, ebony_absorbs_material")
+        .not("contract_id", "is", null);
+      if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
+      return q.order("id").range(from, to);
+    }),
+    selectAllRows((from, to) => {
+      let q = supabase
+        .from("contractor_payment_allocations")
+        .select("contract_id, amount_cents")
+        .not("contract_id", "is", null);
+      if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
+      return q.order("id").range(from, to);
+    }),
+  ]);
+  if (contractsRes.error) throw new Error(contractsRes.error.message);
+
+  const value = new Map<string, number>();
+  for (const r of valueRows) {
+    if (!r.contract_id || r.ebony_absorbs_material) continue;
+    value.set(r.contract_id, (value.get(r.contract_id) ?? 0) + (r.direction === "a_favor" ? r.amount_cents : -r.amount_cents));
+  }
+  const allocated = new Map<string, number>();
+  for (const r of allocRows) {
+    if (r.contract_id) allocated.set(r.contract_id, (allocated.get(r.contract_id) ?? 0) + r.amount_cents);
+  }
+
+  return (contractsRes.data ?? []).map((raw) => {
+    const r = raw as unknown as ContractRow & { projects: { name: string } | null; contractors: { name: string } | null };
+    return {
+      id: r.id,
+      contractorId: r.contractor_id,
+      contractorName: r.contractors?.name ?? "—",
+      projectId: r.project_id,
+      projectName: r.projects?.name ?? "—",
+      name: r.name,
+      contractDate: r.contract_date,
+      status: (r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE") as ContractStatus,
+      scope: r.scope,
+      paymentTerms: r.payment_terms,
+      notes: r.notes,
+      valueCents: value.get(r.id) ?? 0,
+      allocatedCents: allocated.get(r.id) ?? 0,
+    };
+  });
+}
+
+/** Los abonos de un contratista (qué movimiento se abonó a qué). */
+export async function getContractorAllocations(contractorId: string): Promise<ContractorAllocation[]> {
+  const supabase = await createClient();
+  const rows = await selectAllRows((from, to) =>
+    supabase
+      .from("contractor_payment_allocations")
+      .select("*")
+      .eq("contractor_id", contractorId)
+      .order("created_at")
+      .range(from, to)
+  );
+  return rows.map(mapAllocation);
+}
+
+/** Lo que forma el valor de un contrato: sus movimientos (con piezas). */
+export async function getContractWork(contractId: string): Promise<ContractorLedgerEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_ledger_entries")
+    .select(`${LEDGER_SELECT}, contractor_ledger_entry_items(descripcion, detalle)`)
+    .eq("contract_id", contractId)
+    .order("entry_date")
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => {
+    const { projects, contractor_contracts, contractor_ledger_entry_items, ...row } = r as unknown as LedgerJoined & {
+      contractor_ledger_entry_items: { descripcion: string; detalle: string | null }[];
+    };
+    return mapLedger(row, projects?.name ?? null, buildItemsSummary(contractor_ledger_entry_items), contractor_contracts?.name ?? null);
+  });
+}
+
+export interface ContractHeaderInput {
+  projectId: string;
+  name: string;
+  contractDate: string;
+  status?: ContractStatus;
+  scope?: string | null;
+  paymentTerms?: string | null;
+  notes?: string | null;
+}
+
+/** El valor del contrato cuando se carga con piezas (o un monto fijo). */
+export interface ContractWorkInput {
+  amountCents: number;
+  mt2?: number | null;
+  costPerMt2Cents?: number | null;
+  items: LedgerEntryItemInput[];
+}
+
+export interface CreateContractInput extends ContractHeaderInput {
+  contractorId: string;
+  work: ContractWorkInput | null;
+}
+
+function contractColumns(input: ContractHeaderInput) {
+  return {
+    project_id: input.projectId,
+    name: input.name.trim(),
+    contract_date: input.contractDate,
+    ...(input.status ? { status: input.status } : {}),
+    scope: input.scope ?? null,
+    payment_terms: input.paymentTerms ?? null,
+    notes: input.notes ?? null,
+  };
+}
+
+export async function createContract(input: CreateContractInput): Promise<string> {
+  if (!input.name.trim()) throw new Error("El nombre del contrato es obligatorio");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_contracts")
+    .insert({ contractor_id: input.contractorId, ...contractColumns(input) })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  if (input.work && input.work.amountCents > 0) {
+    try {
+      await createLedgerEntry({
+        contractorId: input.contractorId,
+        contractId: data.id,
+        entryDate: input.contractDate,
+        category: "trabajo",
+        direction: "a_favor",
+        amountCents: input.work.amountCents,
+        mt2: input.work.mt2 ?? null,
+        costPerMt2Cents: input.work.costPerMt2Cents ?? null,
+        description: input.name.trim(),
+        items: input.work.items,
+      });
+    } catch (err) {
+      await supabase.from("contractor_contracts").delete().eq("id", data.id);
+      throw err;
+    }
+  }
+  return data.id;
+}
+
+/**
+ * Edita el contrato en cualquier momento, aunque ya tenga abonos. Si viene
+ * `work`, reemplaza las piezas de `workEntryId` (o crea su movimiento de
+ * trabajo si todavía no tiene). Si el valor baja de lo ya abonado, la base
+ * recorta los abonos y lo recortado queda a cuenta para el próximo pago.
+ */
+export async function updateContract(
+  id: string,
+  input: ContractHeaderInput & { work?: ContractWorkInput | null; workEntryId?: string | null }
+): Promise<void> {
+  if (!input.name.trim()) throw new Error("El nombre del contrato es obligatorio");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contractor_contracts")
+    .update(contractColumns(input))
+    .eq("id", id)
+    .select("contractor_id")
+    .single();
+  if (error) throw new Error(error.message);
+  // El proyecto de sus movimientos sigue al del contrato.
+  const { error: projErr } = await supabase
+    .from("contractor_ledger_entries")
+    .update({ project_id: input.projectId })
+    .eq("contract_id", id);
+  if (projErr) throw new Error(projErr.message);
+
+  if (input.work) {
+    const fields = {
+      contractId: id,
+      category: "trabajo" as const,
+      direction: "a_favor" as const,
+      amountCents: input.work.amountCents,
+      mt2: input.work.mt2 ?? null,
+      costPerMt2Cents: input.work.costPerMt2Cents ?? null,
+      description: input.name.trim(),
+      items: input.work.items,
+    };
+    if (input.workEntryId) {
+      if (input.work.amountCents > 0) {
+        const { data: current, error: curErr } = await supabase
+          .from("contractor_ledger_entries")
+          .select("entry_date, notes, client_text")
+          .eq("id", input.workEntryId)
+          .single();
+        if (curErr) throw new Error(curErr.message);
+        await updateLedgerEntry(input.workEntryId, {
+          ...fields,
+          entryDate: current.entry_date,
+          notes: current.notes,
+          clientText: current.client_text,
+        });
+      } else {
+        await deleteLedgerEntry(input.workEntryId);
+      }
+    } else if (input.work.amountCents > 0) {
+      await createLedgerEntry({ contractorId: data.contractor_id, entryDate: input.contractDate, ...fields });
+    }
+  }
+}
+
+export async function setContractStatus(id: string, status: ContractStatus): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("contractor_contracts").update({ status }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Borra el contrato y su valor (sus movimientos de trabajo). Lo que se le
+ *  había abonado queda a cuenta para el próximo pago. */
+export async function deleteContract(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error: e1 } = await supabase.from("contractor_ledger_entries").delete().eq("contract_id", id);
+  if (e1) throw new Error(e1.message);
+  const { error: e2 } = await supabase.from("contractor_contracts").delete().eq("id", id);
+  if (e2) throw new Error(e2.message);
+}
+
+export interface RegisterPaymentInput {
+  contractorId: string;
+  date: string;
+  lines: { contractId: string; amountCents: number }[];
+  /** Abono a lo acreditado sin contrato. */
+  looseCents: number;
+  notes?: string | null;
+}
+
+/** Pago repartido entre contratos: primero se usa lo que está a cuenta
+ *  (cuotas, adelantos, material…), el resto sale como un "pago". */
+export async function registerContractorPayment(input: RegisterPaymentInput): Promise<{ cashCents: number; deductedCents: number }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("register_contractor_payment", {
+    p_contractor_id: input.contractorId,
+    p_date: input.date,
+    p_lines: input.lines.map((l) => ({ contract_id: l.contractId, amount_cents: l.amountCents })),
+    p_loose_cents: input.looseCents,
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const out = (data ?? {}) as { cash_cents?: number; deducted_cents?: number };
+  return { cashCents: out.cash_cents ?? 0, deductedCents: out.deducted_cents ?? 0 };
 }
 
 // ============================================================================

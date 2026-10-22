@@ -1,7 +1,7 @@
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getContractors, getContractorsDashboardInput, getLaborRates, getProjects } from "@/services/contractors";
+import { getContracts, getContractors, getContractorsDashboardInput, getLaborRates, getProjects } from "@/services/contractors";
 import { getPendingMoneyRequests } from "@/services/money-requests";
 import { PagosClient } from "./pagos-client";
 
@@ -20,11 +20,12 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
   const canAttendance = hasModule(profile, "asistencia");
   const { tab } = await searchParams;
 
-  const [employees, moneyRequests, contractors, projects, laborRates, contractorsDashboard] = await Promise.all([
+  const [employees, moneyRequests, contractors, contracts, projects, laborRates, contractorsDashboard] = await Promise.all([
     canEmployees ? getPayrollEmployees() : none([]),
     getPendingMoneyRequests(),
     // Para la bandeja de solicitudes de dinero (Préstamos).
     canContractors ? getContractors() : none([]),
+    canContractors ? getContracts() : none([]),
     canContractors ? getProjects() : none([]),
     canContractors ? getLaborRates() : none([]),
     canContractors ? getContractorsDashboardInput() : none(null),
@@ -41,6 +42,7 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
       photoUrls={photoUrls}
       moneyRequests={moneyRequests}
       contractors={contractors}
+      contracts={contracts}
       projects={projects}
       laborRates={laborRates}
       contractorsDashboard={contractorsDashboard}

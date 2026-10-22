@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Tags } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
-import type { Contractor, LaborRate, Project } from "@/types/contractors";
+import type { Contractor, ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { MoneyRequest } from "@/types/money-requests";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import type { CategoriaFilter } from "../../planilla/registro-columns";
 import { sanitizeAuditoriaView } from "../../planilla/auditoria-view-state";
 import { ContractorBalancesView } from "../../contratistas/contractor-balances-view";
 import { ChargesListView } from "./charges-list-view";
-import { ProjectsView } from "../../contratistas/projects-view";
+import { ContractsView } from "../../contratistas/contracts-view";
 import { LaborRatesView } from "../../contratistas/labor-rates-view";
 import type { ContractorsDashboardInput } from "../../contratistas/contractors-dashboard-view";
 
@@ -65,6 +65,7 @@ export function PagosClient({
   photoUrls,
   moneyRequests,
   contractors,
+  contracts,
   projects,
   laborRates,
   contractorsDashboard,
@@ -78,6 +79,7 @@ export function PagosClient({
   /** Solicitudes de dinero de JotForm por registrar (pestaña Préstamos). */
   moneyRequests: MoneyRequest[];
   contractors: Contractor[];
+  contracts: ContractorContract[];
   projects: Project[];
   laborRates: LaborRate[];
   contractorsDashboard: ContractorsDashboardInput | null;
@@ -269,8 +271,11 @@ export function PagosClient({
                 {contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />}
               </TabsContent>
               <TabsContent value="contratos" className="pt-0">
-                <ProjectsView
+                <ContractsView
+                  contracts={contracts}
+                  contractors={contractors.map((c) => ({ id: c.id, name: c.name, contractorType: c.contractorType }))}
                   projects={projects}
+                  laborRates={laborRates}
                   actions={
                     <Button size="sm" variant="outline" onClick={() => setRatesOpen(true)}>
                       <Tags className="size-3.5" />

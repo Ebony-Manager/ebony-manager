@@ -62,10 +62,15 @@ export async function updateProjectAction(id: string, input: contractors.UpdateP
   return project;
 }
 
-export async function deleteProjectAction(id: string) {
+export async function deleteProjectAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireModule("contratistas");
-  await contractors.deleteProject(id);
+  try {
+    await contractors.deleteProject(id);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
   revalidateContractors();
+  return { ok: true };
 }
 
 export async function getContractorLedgerAction(contractorId: string) {
@@ -99,6 +104,68 @@ export async function deleteLedgerEntryAction(id: string) {
 export async function getLedgerEntryItemsAction(ledgerEntryId: string) {
   await requireModule("contratistas");
   return contractors.getLedgerEntryItems(ledgerEntryId);
+}
+
+// ── Contratos ──────────────────────────────────────────────────────────
+// Las que escriben devuelven el error como dato (en producción Next oculta
+// el mensaje de un error lanzado desde una acción).
+
+export type ContractResult = { ok: true } | { ok: false; error: string };
+
+async function contractResult(fn: () => Promise<unknown>): Promise<ContractResult> {
+  await requireModule("contratistas");
+  try {
+    await fn();
+  } catch (err) {
+    console.error("Contratistas: contrato", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
+  revalidateContractors();
+  return { ok: true };
+}
+
+export async function getContractsAction(filter: { contractorId?: string } = {}) {
+  await requireModule("contratistas");
+  return contractors.getContracts(filter);
+}
+
+export async function getContractorAllocationsAction(contractorId: string) {
+  await requireModule("contratistas");
+  return contractors.getContractorAllocations(contractorId);
+}
+
+export async function getContractWorkAction(contractId: string) {
+  await requireModule("contratistas");
+  return contractors.getContractWork(contractId);
+}
+
+export async function createContractAction(
+  input: contractors.CreateContractInput
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  let id = "";
+  const res = await contractResult(async () => {
+    id = await contractors.createContract(input);
+  });
+  return res.ok ? { ok: true, id } : res;
+}
+
+export async function updateContractAction(
+  id: string,
+  input: contractors.ContractHeaderInput & { work?: contractors.ContractWorkInput | null; workEntryId?: string | null }
+) {
+  return contractResult(() => contractors.updateContract(id, input));
+}
+
+export async function setContractStatusAction(id: string, status: "ACTIVE" | "COMPLETED") {
+  return contractResult(() => contractors.setContractStatus(id, status));
+}
+
+export async function deleteContractAction(id: string) {
+  return contractResult(() => contractors.deleteContract(id));
+}
+
+export async function registerContractorPaymentAction(input: contractors.RegisterPaymentInput) {
+  return contractResult(() => contractors.registerContractorPayment(input));
 }
 
 // ── Tarifas de mano de obra ─────────────────────────────────────────────

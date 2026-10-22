@@ -134,6 +134,44 @@ export interface ContractorLedgerEntry {
    *  un movimiento suelto. Con fecha futura está programada y no cuenta en
    *  el saldo de hoy. */
   loanId: string | null;
+  /** Contrato del que este movimiento es parte del VALOR (trabajo, extra,
+   *  bono o ajuste). null = fuera de un contrato. */
+  contractId: string | null;
+  /** Nombre del contrato, resuelto en el `select` — solo para mostrar. */
+  contractName: string | null;
+}
+
+/** Contrato: lo que se le encarga a un contratista dentro de un proyecto.
+ *  Su valor sale de los movimientos con `contractId`; lo abonado, de
+ *  `ContractorAllocation`. Ninguno de los dos se guarda: se calculan. */
+export type ContractStatus = "ACTIVE" | "COMPLETED";
+
+export interface ContractorContract {
+  id: string;
+  contractorId: string;
+  contractorName: string;
+  projectId: string;
+  projectName: string;
+  name: string;
+  contractDate: string;
+  status: ContractStatus;
+  scope: string | null;
+  paymentTerms: string | null;
+  notes: string | null;
+  /** Valor acordado: Σ de sus movimientos (con signo). */
+  valueCents: number;
+  /** Lo abonado: Σ de lo repartido a este contrato. */
+  allocatedCents: number;
+}
+
+/** Cuánto de un movimiento que baja el saldo (`sourceEntryId`) se abonó a
+ *  un contrato o a un crédito suelto (uno de los dos). */
+export interface ContractorAllocation {
+  id: string;
+  sourceEntryId: string;
+  contractId: string | null;
+  creditEntryId: string | null;
+  amountCents: number;
 }
 
 /** Préstamo, adelanto, herramienta, daño o InDrive de un contratista, con

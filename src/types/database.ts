@@ -182,6 +182,7 @@ export type Database = {
           amount_cents: number
           category: string
           client_text: string | null
+          contract_id: string | null
           contractor_id: string
           cost_per_mt2_cents: number | null
           created_at: string
@@ -200,6 +201,7 @@ export type Database = {
           amount_cents: number
           category: string
           client_text?: string | null
+          contract_id?: string | null
           contractor_id: string
           cost_per_mt2_cents?: number | null
           created_at?: string
@@ -218,6 +220,7 @@ export type Database = {
           amount_cents?: number
           category?: string
           client_text?: string | null
+          contract_id?: string | null
           contractor_id?: string
           cost_per_mt2_cents?: number | null
           created_at?: string
@@ -233,6 +236,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contractor_ledger_entries_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contractor_ledger_entries_contractor_id_fkey"
             columns: ["contractor_id"]
@@ -320,6 +330,115 @@ export type Database = {
             columns: ["contractor_id"]
             isOneToOne: false
             referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_payment_allocations: {
+        Row: {
+          amount_cents: number
+          contract_id: string | null
+          contractor_id: string
+          created_at: string
+          credit_entry_id: string | null
+          id: string
+          source_entry_id: string
+        }
+        Insert: {
+          amount_cents: number
+          contract_id?: string | null
+          contractor_id: string
+          created_at?: string
+          credit_entry_id?: string | null
+          id?: string
+          source_entry_id: string
+        }
+        Update: {
+          amount_cents?: number
+          contract_id?: string | null
+          contractor_id?: string
+          created_at?: string
+          credit_entry_id?: string | null
+          id?: string
+          source_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_payment_allocations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_payment_allocations_credit_entry_id_fkey"
+            columns: ["credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_payment_allocations_source_entry_id_fkey"
+            columns: ["source_entry_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_contracts: {
+        Row: {
+          contract_date: string
+          contractor_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          project_id: string
+          scope: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contract_date?: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id: string
+          scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contract_date?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string
+          scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_contracts_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1702,6 +1821,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      contractor_contract_pending_cents: {
+        Args: { p_contract: string }
+        Returns: number
+      }
+      contractor_contract_value_cents: {
+        Args: { p_contract: string }
+        Returns: number
+      }
       ingest_attendance_punch: {
         Args: { p_token: string; p_data: Json }
         Returns: string | null
@@ -1713,6 +1840,16 @@ export type Database = {
       ingest_staff_intake: {
         Args: { p_token: string; p_data: Json }
         Returns: string | null
+      }
+      register_contractor_payment: {
+        Args: {
+          p_contractor_id: string
+          p_date: string
+          p_lines: Json
+          p_loose_cents: number
+          p_notes: string | null
+        }
+        Returns: Json
       }
     }
     Enums: {

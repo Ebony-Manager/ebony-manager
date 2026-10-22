@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
 
 import { requireModule } from "@/lib/auth/dal";
-import { getContractor, getContractorLedger, getLaborRates, getProjects, getContractorPhotoUrls } from "@/services/contractors";
+import {
+  getContractor,
+  getContractorAllocations,
+  getContractorLedger,
+  getContractorPhotoUrls,
+  getContracts,
+  getLaborRates,
+  getProjects,
+} from "@/services/contractors";
 import { parseContractorFrom } from "@/lib/personal/paths";
 import { signedDocumentUrl } from "@/services/photos";
 import { ContractorProfileView } from "@/app/(app)/contratistas/contractor-profile-view";
@@ -27,12 +35,14 @@ export default async function ContractorDetailPage({
   const contractor = await getContractor(id);
   if (!contractor) notFound();
 
-  const [entries, projects, laborRates, photoUrls, documentUrl] = await Promise.all([
+  const [entries, projects, laborRates, photoUrls, documentUrl, contracts, allocations] = await Promise.all([
     getContractorLedger(id),
     getProjects(),
     getLaborRates(),
     getContractorPhotoUrls([contractor]),
     signedDocumentUrl(contractor.idDocumentPath),
+    getContracts({ contractorId: id }),
+    getContractorAllocations(id),
   ]);
 
   return (
@@ -42,6 +52,8 @@ export default async function ContractorDetailPage({
       documentUrl={documentUrl}
       initialEntries={entries}
       initialProjects={projects}
+      initialContracts={contracts}
+      initialAllocations={allocations}
       laborRates={laborRates}
       from={parseContractorFrom(from)}
     />

@@ -28,6 +28,8 @@ function entry(over: Partial<ContractorLedgerEntry>): ContractorLedgerEntry {
     notes: null,
     itemsSummary: null,
     loanId: null,
+    contractId: null,
+    contractName: null,
     ...over,
   };
 }

@@ -10,16 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 
-function ProfileField({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="whitespace-pre-wrap text-sm text-foreground">{value}</span>
-    </div>
-  );
-}
-
 /**
  * Ficha del proyecto (Etapa 2-A · Parte 1): datos básicos + la ficha de
  * CONTRATO (alcance, tipo de mueble, color, especificaciones, acuerdo de
@@ -46,15 +36,6 @@ export function ProjectDetailSheet({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
-  const hasContract = Boolean(
-    project &&
-      (project.scope ||
-        project.furnitureType ||
-        project.materialColor ||
-        project.specs ||
-        project.paymentTerms ||
-        project.totalMt2 != null)
-  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -86,32 +67,6 @@ export function ProjectDetailSheet({
               {project.notes}
             </div>
           )}
-
-          {/* Contrato */}
-          <div className="flex flex-col gap-3 border-t border-border pt-4">
-            <h3 className="text-sm font-medium text-foreground">{tt("proj_contract_section")}</h3>
-            {hasContract ? (
-              <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <ProfileField label={tt("proj_f_scope")} value={project?.scope} />
-                </div>
-                <ProfileField label={tt("proj_f_furniture_type")} value={project?.furnitureType} />
-                <ProfileField label={tt("proj_f_material_color")} value={project?.materialColor} />
-                <div className="sm:col-span-2">
-                  <ProfileField label={tt("proj_f_specs")} value={project?.specs} />
-                </div>
-                <ProfileField label={tt("proj_f_payment_terms")} value={project?.paymentTerms} />
-                <ProfileField
-                  label={tt("proj_f_total_mt2")}
-                  value={project?.totalMt2 != null ? `${project.totalMt2} m²` : null}
-                />
-              </div>
-            ) : (
-              <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
-                {tt("proj_contract_empty")}
-              </p>
-            )}
-          </div>
 
           {/* Zona de peligro */}
           <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">

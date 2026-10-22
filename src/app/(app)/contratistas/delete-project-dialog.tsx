@@ -44,7 +44,8 @@ export function DeleteProjectDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await deleteProjectAction(project.id);
+      const res = await deleteProjectAction(project.id);
+      if (!res.ok) throw new Error(res.error);
       toast.success(tt("proj_deleted"));
       onOpenChange(false);
       onDeleted?.();
