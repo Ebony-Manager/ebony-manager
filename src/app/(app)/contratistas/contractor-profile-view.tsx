@@ -102,7 +102,7 @@ import {
 } from "./actions";
 import { contractPendingCents, looseCredits, sortContracts, unallocatedSources } from "@/lib/contractors/contracts";
 import { ContractDialog } from "./contract-dialog";
-import { ContractsTable } from "./contracts-view";
+import { ContractsTable } from "./contracts-table";
 import { RegisterPaymentDialog } from "./register-payment-dialog";
 import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";

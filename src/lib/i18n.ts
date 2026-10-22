@@ -1600,6 +1600,11 @@ export const strings = {
     ct_empty: { es: "Todavía no hay contratos.", en: "No contracts yet." },
     ct_empty_contractor: { es: "Este contratista no tiene contratos todavía.", en: "This contractor has no contracts yet." },
     ct_no_active: { es: "No hay contratos activos.", en: "No active contracts." },
+    proj_contracts: { es: "Contratos", en: "Contracts" },
+    proj_no_contracts: {
+      es: "Este proyecto todavía no tiene contratos.",
+      en: "This project has no contracts yet.",
+    },
     kpi_contracts: { es: "Contratos", en: "Contracts" },
     kpi_contracts_active: { es: "activos", en: "active" },
     ledger_add_charge: { es: "Agregar descuento", en: "Add deduction" },

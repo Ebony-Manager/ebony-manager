@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCents } from "@/lib/planilla/payroll-period";
-import { contractPendingCents, contractProgressPct, sortContracts } from "@/lib/contractors/contracts";
+import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractDialog, type ContractPerson } from "./contract-dialog";
 import { ProjectsView } from "./projects-view";
+import { ContractsTable } from "./contracts-table";
 
 /**
  * Personal → Pagos → Contratos: todos los contratos (contratista + proyecto
@@ -44,6 +45,8 @@ export function ContractsView({
   const [showCompleted, setShowCompleted] = React.useState(false);
   const [editing, setEditing] = React.useState<ContractorContract | null>(null);
   const [adding, setAdding] = React.useState(false);
+  // Proyecto ya elegido al crear desde la ficha de un proyecto.
+  const [addingForProject, setAddingForProject] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -82,7 +85,13 @@ export function ContractsView({
         {view === "contracts" && (
           <div className="flex items-center gap-2">
             {actions}
-            <Button size="sm" onClick={() => setAdding(true)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setAddingForProject(null);
+                setAdding(true);
+              }}
+            >
               <Plus className="size-3.5" />
               {tt("ct_add")}
             </Button>
@@ -91,7 +100,15 @@ export function ContractsView({
       </div>
 
       {view === "projects" ? (
-        <ProjectsView projects={projects} />
+        <ProjectsView
+          projects={projects}
+          contracts={contracts}
+          onOpenContract={setEditing}
+          onAddContract={(projectId) => {
+            setAddingForProject(projectId);
+            setAdding(true);
+          }}
+        />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -145,83 +162,18 @@ export function ContractsView({
         onOpenChange={(o) => {
           if (!o) {
             setAdding(false);
+            setAddingForProject(null);
             setEditing(null);
           }
         }}
         contract={editing}
+        defaultProjectId={addingForProject}
         contractors={contractors}
         projects={projects}
         laborRates={laborRates}
         onSaved={() => router.refresh()}
         onProjectsChanged={() => router.refresh()}
       />
-    </div>
-  );
-}
-
-/** Tabla de contratos con su avance. La usa también la ficha del contratista. */
-export function ContractsTable({
-  contracts,
-  onOpen,
-  showContractor = false,
-}: {
-  contracts: ContractorContract[];
-  onOpen: (c: ContractorContract) => void;
-  showContractor?: boolean;
-}) {
-  const { lang } = useLang();
-  const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
-      <table className="w-full min-w-[720px] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
-            <th className="px-3 py-2 text-left font-medium">{tt("ct_col_contract")}</th>
-            {showContractor && <th className="px-3 py-2 text-left font-medium">{tt("ct_f_contractor")}</th>}
-            <th className="px-3 py-2 text-right font-medium">{tt("ct_col_value")}</th>
-            <th className="px-3 py-2 text-right font-medium">{tt("ct_col_paid")}</th>
-            <th className="px-3 py-2 text-right font-medium">{tt("ct_col_pending")}</th>
-            <th className="w-36 px-3 py-2 text-left font-medium">{tt("ct_col_progress")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contracts.map((c) => {
-            const pending = contractPendingCents(c);
-            const pct = contractProgressPct(c);
-            const muted = c.status !== "ACTIVE";
-            return (
-              <tr
-                key={c.id}
-                onClick={() => onOpen(c)}
-                className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40"
-              >
-                <td className="px-3 py-2">
-                  <span className={muted ? "text-muted-foreground" : "font-medium text-foreground"}>{c.name}</span>
-                  {c.projectName !== c.name && <span className="block text-xs text-muted-foreground">{c.projectName}</span>}
-                </td>
-                {showContractor && <td className="px-3 py-2 text-muted-foreground">{c.contractorName}</td>}
-                <td className="px-3 py-2 text-right tabular-nums text-foreground">{formatCents(c.valueCents)}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCents(c.allocatedCents)}</td>
-                <td
-                  className={`px-3 py-2 text-right tabular-nums ${pending < 0 ? "text-destructive" : pending > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                  title={pending < 0 ? tt("ct_overpaid") : undefined}
-                >
-                  {formatCents(pending)}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{pct}%</span>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }

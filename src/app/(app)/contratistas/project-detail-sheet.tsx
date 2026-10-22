@@ -1,33 +1,40 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 
-import type { Project } from "@/types/contractors";
+import type { ContractorContract, Project } from "@/types/contractors";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatCents } from "@/lib/planilla/payroll-period";
+import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { ContractsTable } from "./contracts-table";
 
 /**
- * Ficha del proyecto (Etapa 2-A · Parte 1): datos básicos + la ficha de
- * CONTRATO (alcance, tipo de mueble, color, especificaciones, acuerdo de
- * pago, m² totales) en modo lectura. Los campos vacíos no se muestran.
- * Editar abre `ProjectFormDialog`; borrar abre `DeleteProjectDialog` — la
- * lógica vive en el padre (`ProjectsView`).
- *
- * Las asignaciones de contratistas (fechas, m² por persona) llegan en la
- * Parte 2 y se agregan como una sección más de esta ficha.
+ * Ficha del proyecto: el resumen de sus contratos (valor, abonado,
+ * pendiente) y la lista de ellos — el proyecto es el padre, los contratos
+ * los hijos. Tocar un contrato lo abre; "Nuevo contrato" lo crea con este
+ * proyecto ya elegido. Editar abre `ProjectFormDialog`; borrar abre
+ * `DeleteProjectDialog` — la lógica vive en el padre (`ProjectsView`).
  */
 export function ProjectDetailSheet({
   project,
+  contracts,
+  onOpenContract,
+  onAddContract,
   open,
   onOpenChange,
   onEdit,
   onDelete,
 }: {
   project: Project | null;
+  /** Los contratos de este proyecto. */
+  contracts: ContractorContract[];
+  onOpenContract: (c: ContractorContract) => void;
+  onAddContract: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
@@ -36,10 +43,23 @@ export function ProjectDetailSheet({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
+  const [showCompleted, setShowCompleted] = React.useState(false);
+
+  const sorted = React.useMemo(() => sortContracts(contracts), [contracts]);
+  const active = sorted.filter((c) => c.status === "ACTIVE");
+  const completed = sorted.filter((c) => c.status !== "ACTIVE");
+  const totals = React.useMemo(
+    () => ({
+      value: contracts.reduce((s, c) => s + c.valueCents, 0),
+      paid: contracts.reduce((s, c) => s + c.allocatedCents, 0),
+      pending: contracts.reduce((s, c) => s + Math.max(0, contractPendingCents(c)), 0),
+    }),
+    [contracts]
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
+      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle className="flex flex-wrap items-center gap-2">
             {project?.name ?? ""}
@@ -68,6 +88,54 @@ export function ProjectDetailSheet({
             </div>
           )}
 
+          {/* Contratos del proyecto */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-medium text-foreground">{tt("proj_contracts")}</h3>
+              <Button size="sm" onClick={onAddContract} disabled={!project}>
+                <Plus className="size-3.5" />
+                {tt("ct_add")}
+              </Button>
+            </div>
+
+            {contracts.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-6 text-center text-sm text-muted-foreground">
+                {tt("proj_no_contracts")}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  <Stat label={tt("ct_col_value")} value={formatCents(totals.value)} />
+                  <Stat label={tt("ct_col_paid")} value={formatCents(totals.paid)} />
+                  <Stat label={tt("ct_col_pending")} value={formatCents(totals.pending)} strong />
+                </div>
+
+                {active.length > 0 ? (
+                  <ContractsTable contracts={active} onOpen={onOpenContract} showContractor />
+                ) : (
+                  <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-4 text-center text-sm text-muted-foreground">
+                    {tt("ct_no_active")}
+                  </div>
+                )}
+                {completed.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCompleted((v) => !v)}
+                      className="flex items-center gap-1.5 self-start text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      {showCompleted ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                      {tt("proj_completed_section")} ({completed.length})
+                    </button>
+                    {showCompleted && (
+                      <ContractsTable contracts={completed} onOpen={onOpenContract} showContractor />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {/* Zona de peligro */}
           <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <h3 className="text-sm font-medium text-destructive">{tt("proj_delete_title")}</h3>
@@ -86,5 +154,14 @@ export function ProjectDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function Stat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`tabular-nums ${strong ? "font-semibold text-foreground" : "text-foreground"}`}>{value}</p>
+    </div>
   );
 }

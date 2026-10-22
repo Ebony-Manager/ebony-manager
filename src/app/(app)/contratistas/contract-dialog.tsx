@@ -62,6 +62,7 @@ export function ContractDialog({
   contract,
   contractors,
   fixedContractor,
+  defaultProjectId,
   projects,
   laborRates,
   onSaved,
@@ -74,6 +75,8 @@ export function ContractDialog({
   /** Para elegir contratista al crear (si no viene `fixedContractor`). */
   contractors: ContractPerson[];
   fixedContractor?: ContractPerson;
+  /** Al crear desde la ficha de un proyecto: ese proyecto ya elegido. */
+  defaultProjectId?: string | null;
   projects: Project[];
   laborRates: LaborRate[];
   /** Al crear trae el id del contrato nuevo. */
@@ -107,7 +110,7 @@ export function ContractDialog({
     setError(null);
     setExtraProjects([]);
     setContractorId(contract?.contractorId ?? fixedContractor?.id ?? null);
-    setProjectId(contract?.projectId ?? null);
+    setProjectId(contract?.projectId ?? defaultProjectId ?? null);
     setName(contract?.name ?? "");
     setContractDate(contract?.contractDate ?? todayInPanama());
     setStatus(contract?.status ?? "ACTIVE");
@@ -117,7 +120,7 @@ export function ContractDialog({
     setPrepaid("");
     setWork(EMPTY_WORK);
     setValueEntries(contract ? null : []);
-  }, [open, contract, fixedContractor]);
+  }, [open, contract, fixedContractor, defaultProjectId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   React.useEffect(() => {

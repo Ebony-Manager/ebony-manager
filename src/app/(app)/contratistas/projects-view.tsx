@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronDown, ChevronRight, Plus, Search, Trash2 } from "lucide-react";
 
-import type { Project } from "@/types/contractors";
+import type { ContractorContract, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,17 +15,24 @@ import { DeleteProjectDialog } from "./delete-project-dialog";
 
 /**
  * Personal → Pagos → Contratos (antes "Proyectos" de Contratistas) — lista (nombre, cliente,
- * estado). Click en una fila abre la FICHA DE CONTRATO del proyecto
- * (`ProjectDetailSheet`); desde ahí se edita / borra. Borrar un proyecto
+ * estado). Click en una fila abre la ficha del proyecto
+ * (`ProjectDetailSheet`) con sus contratos; desde ahí se edita / borra. Borrar un proyecto
  * NO borra movimientos (el FK del ledger es `on delete set null`).
  * Arriba van los activos; los terminados quedan plegados al final (se
  * abren solos al buscar, para que la búsqueda los encuentre).
  */
 export function ProjectsView({
   projects,
+  contracts,
+  onOpenContract,
+  onAddContract,
   actions,
 }: {
   projects: Project[];
+  /** Todos los contratos; la ficha muestra los de cada proyecto. */
+  contracts: ContractorContract[];
+  onOpenContract: (c: ContractorContract) => void;
+  onAddContract: (projectId: string) => void;
   /** Botones extra junto a "Agregar" (ej. Tarifas). */
   actions?: React.ReactNode;
 }) {
@@ -117,6 +124,9 @@ export function ProjectsView({
 
       <ProjectDetailSheet
         project={viewing}
+        contracts={viewing ? contracts.filter((c) => c.projectId === viewing.id) : []}
+        onOpenContract={onOpenContract}
+        onAddContract={() => viewing && onAddContract(viewing.id)}
         open={viewing !== null}
         onOpenChange={(next) => !next && setViewing(null)}
         onEdit={() => setEditing(viewing)}
