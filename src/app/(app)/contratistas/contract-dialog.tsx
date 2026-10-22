@@ -91,6 +91,7 @@ export function ContractDialog({
   const [scope, setScope] = React.useState("");
   const [paymentTerms, setPaymentTerms] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [prepaid, setPrepaid] = React.useState("");
   const [work, setWork] = React.useState<WorkDraft>(EMPTY_WORK);
   // Al editar: sus movimientos de valor. Con uno solo (o ninguno) las
   // piezas se editan acá; con varios (historia vieja) se listan.
@@ -113,6 +114,7 @@ export function ContractDialog({
     setScope(contract?.scope ?? "");
     setPaymentTerms(contract?.paymentTerms ?? "");
     setNotes(contract?.notes ?? "");
+    setPrepaid("");
     setWork(EMPTY_WORK);
     setValueEntries(contract ? null : []);
   }, [open, contract, fixedContractor]);
@@ -168,6 +170,8 @@ export function ContractDialog({
     if (!projectId) return setError(tt("ct_err_project"));
     if (!name.trim()) return setError(tt("ct_err_name"));
     if (editableWork && work.items.length > 0 && workDraftHasEmptyItem(work)) return setError(tt("mov_item_qty_required"));
+    const prepaidCents = Math.round((parseFloat(prepaid || "0") || 0) * 100);
+    if (!contract && prepaidCents > workDraftCents(work)) return setError(tt("ct_err_prepaid"));
     setSubmitting(true);
     setError(null);
     const header = {
@@ -184,7 +188,7 @@ export function ContractDialog({
           status,
           ...(editableWork ? { work: workDraftToInput(work), workEntryId } : {}),
         })
-      : await createContractAction({ ...header, contractorId, work: workDraftToInput(work) });
+      : await createContractAction({ ...header, contractorId, work: workDraftToInput(work), prepaidCents });
     setSubmitting(false);
     if (!res.ok) return setError(res.error);
     toast.success(tt("ct_saved"));
@@ -310,6 +314,23 @@ export function ContractDialog({
                 </ul>
                 <p className="text-xs text-muted-foreground">{tt("ct_history_hint")}</p>
               </div>
+            )}
+
+            {/* Avance con que arranca: lo que ya se le abonó antes de registrarlo acá. */}
+            {!contract && (
+              <Field label={tt("ct_f_prepaid")}>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={prepaid}
+                  onChange={(e) => setPrepaid(e.target.value)}
+                  placeholder="0.00"
+                  className="max-w-48"
+                />
+                <p className="text-xs text-muted-foreground">{tt("ct_f_prepaid_hint")}</p>
+              </Field>
             )}
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">

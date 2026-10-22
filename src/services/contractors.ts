@@ -782,6 +782,9 @@ export interface ContractWorkInput {
 export interface CreateContractInput extends ContractHeaderInput {
   contractorId: string;
   work: ContractWorkInput | null;
+  /** Lo que ya se le había abonado antes de registrarlo en la app (el
+   *  avance con que arranca). Queda como un ajuste abonado al contrato. */
+  prepaidCents?: number;
 }
 
 function contractColumns(input: ContractHeaderInput) {
@@ -824,7 +827,32 @@ export async function createContract(input: CreateContractInput): Promise<string
       throw err;
     }
   }
+  if (input.prepaidCents && input.prepaidCents > 0) {
+    await createLedgerEntry({
+      contractorId: input.contractorId,
+      entryDate: input.contractDate,
+      category: "ajuste",
+      direction: "reduce",
+      amountCents: input.prepaidCents,
+      description: `Abonado antes de la app · ${input.name.trim()}`,
+      allocateToContractId: data.id,
+    });
+  }
   return data.id;
+}
+
+/** Corte: deja el saldo del contratista en cero (con un ajuste), reparte
+ *  todo lo pendiente y termina sus contratos. Para arrancar "al sol de
+ *  hoy": primero el corte, después se crean sus contratos actuales. */
+export async function zeroContractorBalance(contractorId: string, date: string, note: string | null): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("zero_contractor_balance", {
+    p_contractor_id: contractorId,
+    p_date: date,
+    p_note: note ?? "",
+  });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
 }
 
 /**

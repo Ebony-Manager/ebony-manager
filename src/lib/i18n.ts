@@ -1628,6 +1628,21 @@ export const strings = {
     pay_submit: { es: "Registrar pago", en: "Record payment" },
     pay_saved: { es: "Pago registrado", en: "Payment recorded" },
 
+    // Corte: saldo en cero para arrancar "al sol de hoy".
+    corte_menu: { es: "Corte: dejar saldo en cero", en: "Cut-off: set balance to zero" },
+    corte_confirm: {
+      es: "¿Dejar el saldo de este contratista en cero? Se registra un ajuste por la diferencia y todos sus contratos quedan terminados. Hazlo ANTES de crear sus contratos actuales.",
+      en: "Set this contractor's balance to zero? An adjustment is recorded for the difference and all their contracts are closed. Do it BEFORE creating their current contracts.",
+    },
+    corte_note: { es: "Corte para arrancar en la app", en: "Cut-off to start in the app" },
+    corte_done: { es: "Saldo en cero", en: "Balance set to zero" },
+    ct_f_prepaid: { es: "Ya abonado (antes de la app)", en: "Already paid (before the app)" },
+    ct_f_prepaid_hint: {
+      es: "Lo que ya se le pagó de este contrato antes de registrarlo acá: es el avance con que arranca.",
+      en: "What was already paid toward this contract before recording it here: its starting progress.",
+    },
+    ct_err_prepaid: { es: "Lo ya abonado no puede pasar el valor del contrato.", en: "Already paid can't exceed the contract value." },
+
     // Cierre quincenal de contratistas.
     cl_half_1: { es: "1.ª quincena de", en: "1st half of" },
     cl_half_2: { es: "2.ª quincena de", en: "2nd half of" },

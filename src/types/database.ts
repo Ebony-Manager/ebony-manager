@@ -1921,6 +1921,10 @@ export type Database = {
         Args: { p_period: string }
         Returns: Json
       }
+      zero_contractor_balance: {
+        Args: { p_contractor_id: string; p_date: string; p_note: string }
+        Returns: number
+      }
       reopen_contractor_pay_period: {
         Args: { p_period: string }
         Returns: undefined

@@ -156,6 +156,10 @@ export async function updateContractAction(
   return contractResult(() => contractors.updateContract(id, input));
 }
 
+export async function zeroContractorBalanceAction(contractorId: string, date: string, note: string | null) {
+  return contractResult(() => contractors.zeroContractorBalance(contractorId, date, note));
+}
+
 export async function setContractStatusAction(id: string, status: "ACTIVE" | "COMPLETED") {
   return contractResult(() => contractors.setContractStatus(id, status));
 }

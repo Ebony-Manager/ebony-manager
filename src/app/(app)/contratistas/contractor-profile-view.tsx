@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Receipt,
+  Scissors,
   Settings,
   Trash2,
   UserCheck,
@@ -97,6 +98,7 @@ import {
   getContractsAction,
   getProjectsAction,
   updateContractorAction,
+  zeroContractorBalanceAction,
 } from "./actions";
 import { contractPendingCents, looseCredits, sortContracts, unallocatedSources } from "@/lib/contractors/contracts";
 import { ContractDialog } from "./contract-dialog";
@@ -422,6 +424,14 @@ export function ContractorProfileView({
     }
   }
 
+  async function handleZeroBalance() {
+    if (!window.confirm(tt("corte_confirm"))) return;
+    const res = await zeroContractorBalanceAction(contractor.id, todayInPanama(), tt("corte_note"));
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(tt("corte_done"));
+    load();
+  }
+
   async function handleReactivate() {
     setReactivating(true);
     try {
@@ -502,6 +512,10 @@ export function ContractorProfileView({
                   {tt("reactivate")}
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onSelect={() => window.setTimeout(() => handleZeroBalance(), 0)}>
+                <Scissors className="size-3.5" />
+                {tt("corte_menu")}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
