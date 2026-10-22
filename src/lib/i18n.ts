@@ -1360,6 +1360,7 @@ export const strings = {
     // El valor guardado en la base sigue siendo 'trabajo' (enum sin
     // cambios); acá solo cambia la ETIQUETA visible a "Proyecto".
     cat_trabajo: { es: "Trabajo", en: "Work" },
+    cat_contrato: { es: "Contrato", en: "Contract" },
     cat_bono: { es: "Bono", en: "Bonus" },
     cat_extra: { es: "Extra", en: "Extra" },
     cat_pago: { es: "Pago", en: "Payment" },

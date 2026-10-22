@@ -965,7 +965,11 @@ export function ContractorProfileView({
                   {g.rows.map((row) => {
                     const absorbed = row.ebonyAbsorbsMaterial;
                     const hovered = hoveredId === row.id;
-                    const catText = label(CONTRACTOR_CATEGORY_LABEL_KEY[row.category]);
+                    // Lo que forma el valor de un contrato se lee "Contrato"; el
+                    // trabajo viejo suelto (sin contrato) sigue como "Trabajo".
+                    const catText = label(
+                      row.category === "trabajo" && row.contractId ? "cat_contrato" : CONTRACTOR_CATEGORY_LABEL_KEY[row.category]
+                    );
                     const catDot = categoryDotStyle(row.category);
                     // MISMO objeto de estilo para el <tr> y para la celda
                     // de Fecha congelada — un único color opaco por fila,
