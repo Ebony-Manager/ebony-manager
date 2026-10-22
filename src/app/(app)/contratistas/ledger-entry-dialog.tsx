@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type {
@@ -25,7 +25,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import {
   CONTRACTOR_LEDGER_CATEGORIES,
@@ -141,6 +151,7 @@ export function LedgerEntryDialog({
   // sin esperar a que el padre recargue.
   const [extraProjects, setExtraProjects] = React.useState<Project[]>([]);
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
+  const [projectPickerOpen, setProjectPickerOpen] = React.useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir; la entrada editada cambia entre aperturas. */
   React.useEffect(() => {
@@ -215,15 +226,19 @@ export function LedgerEntryDialog({
   const showMaterialToggle = isMaterialCategory(category);
 
   // Lista para el selector: proyectos del padre + los creados en línea,
-  // sin duplicar, ordenados con los activos primero y por nombre.
+  // sin duplicar, por nombre; los activos arriba y los terminados en su
+  // propio grupo (se encuentran buscando).
   const projectOptions = React.useMemo(() => {
     const byId = new Map<string, Project>();
     for (const p of [...projects, ...extraProjects]) byId.set(p.id, p);
-    return [...byId.values()].sort((a, b) => {
-      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    const all = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      active: all.filter((p) => p.status === "ACTIVE"),
+      completed: all.filter((p) => p.status !== "ACTIVE"),
+      byId,
+    };
   }, [projects, extraProjects]);
+  const selectedProject = projectId ? projectOptions.byId.get(projectId) ?? null : null;
 
   function onCategoryChange(next: ContractorLedgerCategory) {
     setCategory(next);
@@ -231,6 +246,7 @@ export function LedgerEntryDialog({
   }
 
   function onProjectSelect(value: string) {
+    setProjectPickerOpen(false);
     if (value === NEW_PROJECT) {
       setProjectDialogOpen(true);
       return;
@@ -402,23 +418,52 @@ export function LedgerEntryDialog({
 
               {/* Proyecto: el enganche real del movimiento. */}
               <Field label={tt("mov_f_project")} className="sm:col-span-2">
-                <Select value={projectId ?? NO_PROJECT} onValueChange={onProjectSelect}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_PROJECT}>{tt("mov_f_project_none")}</SelectItem>
-                    {projectOptions.length > 0 && <SelectSeparator />}
-                    {projectOptions.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                        {p.status === "COMPLETED" ? ` · ${tt("proj_status_completed")}` : ""}
-                      </SelectItem>
-                    ))}
-                    <SelectSeparator />
-                    <SelectItem value={NEW_PROJECT}>{tt("mov_f_project_new")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover modal open={projectPickerOpen} onOpenChange={setProjectPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                      <span className="truncate">
+                        {selectedProject
+                          ? `${selectedProject.name}${selectedProject.status === "ACTIVE" ? "" : ` · ${tt("proj_status_completed")}`}`
+                          : tt("mov_f_project_none")}
+                      </span>
+                      <ChevronDown className="size-4 opacity-60" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={tt("proj_search_short")} />
+                      <CommandList>
+                        <CommandEmpty>{tt("no_results")}</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem value={`${tt("mov_f_project_none")} ${NO_PROJECT}`} onSelect={() => onProjectSelect(NO_PROJECT)}>
+                            {tt("mov_f_project_none")}
+                          </CommandItem>
+                          {projectOptions.active.map((p) => (
+                            <CommandItem key={p.id} value={`${p.name} ${p.id}`} onSelect={() => onProjectSelect(p.id)}>
+                              <span className="truncate">{p.name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        {projectOptions.completed.length > 0 && (
+                          <CommandGroup heading={tt("proj_completed_section")}>
+                            {projectOptions.completed.map((p) => (
+                              <CommandItem key={p.id} value={`${p.name} ${p.id}`} onSelect={() => onProjectSelect(p.id)}>
+                                <span className="truncate text-muted-foreground">{p.name}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                        <CommandSeparator />
+                        <CommandGroup>
+                          <CommandItem value={`${tt("mov_f_project_new")} ${NEW_PROJECT}`} onSelect={() => onProjectSelect(NEW_PROJECT)}>
+                            <Plus className="size-3.5" />
+                            {tt("mov_f_project_new").replace(/^＋\s*/, "")}
+                          </CommandItem>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </Field>
             </div>
 
