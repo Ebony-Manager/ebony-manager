@@ -1038,7 +1038,6 @@ export const strings = {
     att_col_absent: { es: "Sin marcar L–V", en: "No punch Mon–Fri" },
     att_col_review: { es: "A revisar", en: "To review" },
     att_col_now: { es: "Hoy en la app", en: "In the app now" },
-    att_night: { es: "Recargo nocturno", en: "Night surcharge" },
     att_sat: { es: "sáb", en: "sat" },
     att_footnote: {
       es: "Horas descontadas = llegadas tarde y salidas antes de la hora, minuto a minuto (horario 7:30 a 5:00 de lunes a viernes y 8:00 a 1:30 el sábado). Días descontados = días sin ninguna marcación; un sábado vale un día completo. Un día sin entrada o sin salida no se supone: hay que revisarlo, y mientras tanto esa persona no pasa a la Quincena. Lo que se ponche después de la hora de salida no paga nada: las horas extra son solo las autorizadas. El día de hoy (el de pago) se da por trabajado hasta la hora de salida si ya ponchó la entrada; sin ninguna ponchada, es falta.",
@@ -1048,7 +1047,7 @@ export const strings = {
     att_copied: { es: "Lista copiada", en: "List copied" },
     att_clear: { es: "Limpiar horas de esta quincena", en: "Clear this period's hours" },
     att_clear_confirm: {
-      es: "Esto deja en 0 las horas y días descontados y las horas extra de TODOS los empleados de esta quincena (y el recargo nocturno de José Salcedo). No toca sueldos, préstamos ni prestaciones. ¿Continuar?",
+      es: "Esto deja en 0 las horas y días descontados y las horas extra de TODOS los empleados de esta quincena. No toca sueldos, préstamos ni prestaciones. ¿Continuar?",
       en: "This sets docked hours/days and overtime to 0 for ALL employees in this period (and the night surcharge). It does not touch salaries, loans or benefits. Continue?",
     },
     att_cleared: { es: "Filas limpiadas", en: "Rows cleared" },

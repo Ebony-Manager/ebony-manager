@@ -17,7 +17,7 @@
  *    que trabaja hasta la hora de salida, así que no le falta la salida todavía. Pero
  *    si no hay ninguna ponchada de entrada, no vino: es falta.
  *  - Reloj y Jotform se juntan: la mayoría entra al taller y sale desde el proyecto.
- *  - Recargo nocturno (solo quien lo tiene, hoy José Salcedo): minutos después de las 6 pm.
+ *  - Todos con las mismas reglas: nada se paga de más por lo que diga la ponchada.
  *
  * Todo en minutos enteros; las horas decimales se calculan al final.
  */
@@ -74,7 +74,6 @@ export function analyzeDay(
     departure: null,
     lateMinutes: 0,
     earlyLeaveMinutes: 0,
-    nightMinutes: 0,
     flags,
     sources,
   };
@@ -125,7 +124,6 @@ export function analyzeDay(
   if (result.departure !== null) {
     result.earlyLeaveMinutes = Math.max(0, end - result.departure);
     if (result.earlyLeaveMinutes > 0) flags.push("early_leave");
-    result.nightMinutes = Math.max(0, result.departure - schedule.nightFrom);
   }
   return result;
 }
@@ -164,7 +162,6 @@ export function analyzePeriod(
     absentWeekdays: days.filter((d) => d.flags.includes("absent") && d.weekday >= 1 && d.weekday <= 5).length,
     absentSaturdays: days.filter((d) => d.flags.includes("absent") && d.weekday === 6).length,
     earlyLeaveMinutes: days.reduce((s, d) => s + d.earlyLeaveMinutes, 0),
-    nightMinutes: days.reduce((s, d) => s + d.nightMinutes, 0),
     review,
     blockingDays: days.filter((d) => d.flags.some((f) => BLOCKING_FLAGS.includes(f))).length,
   };
@@ -173,12 +170,3 @@ export function analyzePeriod(
 /** Minutos a horas con 2 decimales (lo que se escribe en "Horas descontadas"). */
 export const minutesToHours = (m: number) => Math.round((m / 60) * 100) / 100;
 
-/**
- * Recargo nocturno de quien lo tiene: horas después de las 6 pm × 1.5 × valor
- * de la hora (sueldo mensual / 240). En centavos. Va en bonificación; las horas
- * mismas se pagan como extras con el formulario de la jefa de taller.
- */
-export function nightSurchargeCents(nightMinutes: number, monthlySalaryCents: number): number {
-  const hourly = monthlySalaryCents / 240;
-  return Math.round((nightMinutes / 60) * 1.5 * hourly);
-}

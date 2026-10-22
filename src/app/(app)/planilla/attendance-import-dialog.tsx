@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildProposal, periodDateRange, type OvertimeAuthorization, type ProposalEmployee } from "@/lib/attendance/proposal";
 import { dailyRateCents, hourlyRateCents, quantityToCents } from "@/lib/planilla/payroll-rates";
-import { formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
+import { monthLabel, type Period } from "@/lib/planilla/payroll-period";
 import { formatDate } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -209,9 +209,8 @@ export function AttendanceImportDialog({
           horasDescontadasCents: quantityToCents(horas, hourly),
           diasDescontados: dias,
           diasDescontadosCents: quantityToCents(dias, daily),
-          // Las horas extra solo se tocan si hay formularios; el recargo nocturno solo si lo tiene.
+          // Las horas extra solo se tocan si hay formularios.
           ...(p.overtimeMinutes > 0 ? { extraHours: extras, extraHoursCents: quantityToCents(extras, hourly) } : {}),
-          ...(p.suggested.nightSurchargeCents > 0 ? { bonusCents: p.suggested.nightSurchargeCents } : {}),
         });
         ok += 1;
       }
@@ -345,11 +344,6 @@ export function AttendanceImportDialog({
                             {p.blockingDays > 0 && (
                               <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
                                 {p.blockingDays} {tg("att_blocked_days")}
-                              </span>
-                            )}
-                            {p.suggested.nightSurchargeCents > 0 && (
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                {tt("att_night")}: {hm(p.nightMinutes)} → {formatCents(p.suggested.nightSurchargeCents)}
                               </span>
                             )}
                           </td>

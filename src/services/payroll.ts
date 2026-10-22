@@ -54,7 +54,6 @@ import {
   quincenaBaseCentsAt,
   type SalaryChange,
 } from "@/lib/planilla/salary-history";
-import { NIGHT_SURCHARGE_NAMES } from "@/lib/attendance/proposal";
 import { getPayrollEmployee, getPayrollEmployees } from "@/services/payroll-employees";
 import { getAllSalaryChanges, getSalaryChanges, toSalaryChanges } from "@/services/payroll-salary";
 
@@ -1171,8 +1170,8 @@ export async function getLoansOverview(): Promise<LoanOverviewRow[]> {
 // ============================================================================
 
 /** Deja en 0 las horas y días descontados y las horas extra de TODOS los empleados
- *  de la quincena, y el bono de quien tiene recargo nocturno automático. No toca
- *  nada más (base, viáticos, préstamos, prestaciones). Devuelve cuántas filas cambió. */
+ *  de la quincena. No toca nada más (base, bonos, viáticos, préstamos,
+ *  prestaciones). Devuelve cuántas filas cambió. */
 export async function clearPeriodHours(year: number, month: number, half: 1 | 2): Promise<number> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -1190,18 +1189,5 @@ export async function clearPeriodHours(year: number, month: number, half: 1 | 2)
     .eq("period_half", half)
     .select("id");
   if (error) throw new Error(error.message);
-
-  const fold = (n: string) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-  const night = (await getPayrollEmployees()).filter((e) => NIGHT_SURCHARGE_NAMES.includes(fold(e.name))).map((e) => e.id);
-  if (night.length > 0) {
-    const { error: e2 } = await supabase
-      .from("payroll_entries")
-      .update({ bonus_cents: 0 })
-      .in("employee_id", night)
-      .eq("period_year", year)
-      .eq("period_month", month)
-      .eq("period_half", half);
-    if (e2) throw new Error(e2.message);
-  }
   return data?.length ?? 0;
 }

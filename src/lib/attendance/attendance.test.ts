@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyzeDay, analyzePeriod, minutesToHours, nightSurchargeCents, weekdayOf } from "./engine";
+import { analyzeDay, analyzePeriod, minutesToHours, weekdayOf } from "./engine";
 import { matchEmployees, parseClockReport, parseJotformPunches } from "./parse";
 import type { RawPunch } from "./types";
 
@@ -86,11 +86,6 @@ describe("analyzeDay", () => {
     expect(analyzeDay("2026-10-06", [punch("2026-10-06", "07:35")], undefined, { inProgress: true }).flags).toEqual([]);
     expect(analyzeDay("2026-10-06", [], undefined, { inProgress: true }).flags).toEqual(["absent"]);
   });
-
-  it("minutos después de las 6 pm (recargo nocturno)", () => {
-    const d = analyzeDay("2026-10-05", [punch("2026-10-05", "08:22"), punch("2026-10-05", "20:06")]);
-    expect(d.nightMinutes).toBe(126);
-  });
 });
 
 describe("analyzePeriod", () => {
@@ -122,9 +117,6 @@ describe("analyzePeriod", () => {
   it("conversiones", () => {
     expect(minutesToHours(17)).toBe(0.28);
     expect(weekdayOf("2026-10-03")).toBe(6);
-    // El caso explicado por Ebony: 9.18 h de recargo × 1.5 × ($950 / 240 por hora = 3.96) ≈ 54.5
-    expect(nightSurchargeCents(Math.round(9.18 * 60), 95_000)).toBeGreaterThan(5_450);
-    expect(nightSurchargeCents(Math.round(9.18 * 60), 95_000)).toBeLessThan(5_460);
   });
 });
 
@@ -245,7 +237,7 @@ describe("buildProposal", () => {
     });
     expect(proposals).toHaveLength(1);
     expect(proposals[0].lateMinutes).toBe(20);
-    expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0.33, diasDescontados: 1, extraHours: 1.23, nightSurchargeCents: 0 });
+    expect(proposals[0].suggested).toMatchObject({ horasDescontadas: 0.33, diasDescontados: 1, extraHours: 1.23 });
   });
 
   it("horas descontadas = llegadas tarde + salidas temprano; los días sin salida se cuentan", () => {
@@ -274,18 +266,13 @@ describe("buildProposal", () => {
     expect(proposals).toEqual([]);
   });
 
-  it("recargo nocturno solo para quien lo tiene", () => {
-    const punches = [p("Jose Salcedo", "2026-10-05", "08:00"), p("Jose Salcedo", "2026-10-05", "20:06")];
+  it("todos con las mismas reglas: salir tarde no paga nada a nadie", () => {
     const { proposals } = buildProposal({
       from: "2026-10-05",
       to: "2026-10-05",
-      employees: [emp("1", "Jose Salcedo"), emp("2", "Otro Empleado")],
-      punches: [...punches, p("Otro Empleado", "2026-10-05", "08:00"), p("Otro Empleado", "2026-10-05", "20:06")],
+      employees: [emp("1", "Jose Salcedo")],
+      punches: [p("Jose Salcedo", "2026-10-05", "07:30"), p("Jose Salcedo", "2026-10-05", "20:06")],
     });
-    const jose = proposals.find((x) => x.employeeId === "1")!;
-    const otro = proposals.find((x) => x.employeeId === "2")!;
-    expect(jose.nightMinutes).toBe(126);
-    expect(jose.suggested.nightSurchargeCents).toBeGreaterThan(0);
-    expect(otro.suggested.nightSurchargeCents).toBe(0);
+    expect(proposals[0].suggested).toEqual({ horasDescontadas: 0, diasDescontados: 0, extraHours: 0 });
   });
 });

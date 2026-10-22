@@ -4,7 +4,7 @@
  * por la jefa de taller, y devuelve lo que se le sugeriría escribir en Registro.
  * Solo propone: quien llama decide qué aplicar.
  */
-import { analyzePeriod, datesBetween, minutesToHours, nightSurchargeCents } from "./engine";
+import { analyzePeriod, datesBetween, minutesToHours } from "./engine";
 import { matchEmployees, type MatchableEmployee } from "./parse";
 import type { DayFlag, DayResolution, DayResult, RawPunch, Schedule } from "./types";
 
@@ -34,7 +34,6 @@ export interface EmployeeProposal {
   absentSaturdays: number;
   earlyLeaveMinutes: number;
   overtimeMinutes: number;
-  nightMinutes: number;
   review: { date: string; flags: DayFlag[] }[];
   /** Días a los que les falta la entrada o la salida, sin revisar: mientras haya, no pasa a la Quincena. */
   blockingDays: number;
@@ -51,15 +50,8 @@ export interface EmployeeProposal {
     diasDescontados: number;
     /** Horas extra autorizadas. */
     extraHours: number;
-    /** Recargo nocturno en centavos (solo quien lo tiene). */
-    nightSurchargeCents: number;
   };
 }
-
-/** Quien tiene recargo nocturno automático (minúsculas, sin acentos). Hoy solo José Salcedo. */
-export const NIGHT_SURCHARGE_NAMES = ["jose salcedo"];
-
-const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 /** Primer y último día de una quincena (`YYYY-MM-DD`). */
 export function periodDateRange(year: number, month: number, half: 1 | 2): { from: string; to: string } {
@@ -120,7 +112,6 @@ export function buildProposal(input: {
       { startDate: e.startDate, endDate: e.status === "INACTIVE" ? e.endDate : null },
       { resolutions: resolutionsBy.get(e.id), today: input.today }
     );
-    const hasNight = NIGHT_SURCHARGE_NAMES.includes(fold(e.name));
     const lateHours = minutesToHours(a.lateMinutes + a.earlyLeaveMinutes);
     proposals.push({
       employeeId: e.id,
@@ -131,7 +122,6 @@ export function buildProposal(input: {
       absentSaturdays: a.absentSaturdays,
       earlyLeaveMinutes: a.earlyLeaveMinutes,
       overtimeMinutes,
-      nightMinutes: hasNight ? a.nightMinutes : 0,
       review: a.review,
       blockingDays: a.blockingDays,
       days: a.days,
@@ -140,7 +130,6 @@ export function buildProposal(input: {
         horasDescontadas: Math.round(lateHours * 100) / 100,
         diasDescontados: punches.length > 0 ? a.absentWeekdays + a.absentSaturdays : 0,
         extraHours: minutesToHours(overtimeMinutes),
-        nightSurchargeCents: hasNight ? nightSurchargeCents(a.nightMinutes, e.monthlySalaryCents) : 0,
       },
     });
   }

@@ -22,8 +22,6 @@ export interface Schedule {
   saturdayEnd: number;
   /** Si no hay marcación de salida se asume la hora normal de salida. */
   assumeMissingOut: boolean;
-  /** A partir de esta hora (minutos) se paga recargo nocturno a quien lo tenga (ej. José Salcedo). */
-  nightFrom: number;
 }
 
 export const DEFAULT_SCHEDULE: Schedule = {
@@ -32,7 +30,6 @@ export const DEFAULT_SCHEDULE: Schedule = {
   saturdayStart: 8 * 60,
   saturdayEnd: 13 * 60 + 30,
   assumeMissingOut: true,
-  nightFrom: 18 * 60,
 };
 
 export type DayFlag =
@@ -72,8 +69,6 @@ export interface DayResult {
   departure: number | null;
   lateMinutes: number;
   earlyLeaveMinutes: number;
-  /** Minutos trabajados después de `nightFrom` (solo cuenta con salida real). */
-  nightMinutes: number;
   flags: DayFlag[];
   sources: ("reloj" | "jotform")[];
   /** El día se revisó a mano (ver `DayResolution`). */
@@ -86,7 +81,6 @@ export interface EmployeeAttendance {
   absentWeekdays: number;
   absentSaturdays: number;
   earlyLeaveMinutes: number;
-  nightMinutes: number;
   review: { date: string; flags: DayFlag[] }[];
   /** Días con algo por saber (`BLOCKING_FLAGS`) sin revisar todavía. */
   blockingDays: number;
