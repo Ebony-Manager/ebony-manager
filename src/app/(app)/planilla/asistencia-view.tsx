@@ -8,7 +8,7 @@ import { BLOCKING_FLAGS, type DayFlag, type DayResult, type RawPunch } from "@/l
 import type { AttendanceStatus, StoredResolution } from "@/services/attendance";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { parseClockReport, parseJotformPunches } from "@/lib/attendance/parse";
+import { parseClockReport, parseCsv, parseJotformPunches } from "@/lib/attendance/parse";
 import { buildProposal, periodDateRange, type EmployeeProposal, type ProposalEmployee } from "@/lib/attendance/proposal";
 import { currentPeriod, monthLabel, nextPeriod, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
@@ -54,14 +54,14 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
 };
 const WEEKDAYS = { es: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"], en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] };
 
-/** Texto de un archivo de marcaciones a filas: CSV simple o la primera hoja de un xlsx. */
+/** Texto de un archivo de marcaciones a filas: CSV o la primera hoja de un xlsx. */
 async function readRows(file: File): Promise<string[][]> {
   if (/\.xlsx?$/i.test(file.name)) {
     const XLSX = await import("xlsx");
     const wb = XLSX.read(await file.arrayBuffer());
     return XLSX.utils.sheet_to_json<string[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, blankrows: false }) as string[][];
   }
-  return (await file.text()).split(/\r?\n/).map((l) => l.split(","));
+  return parseCsv(await file.text());
 }
 
 /**
