@@ -1,14 +1,9 @@
-import { requireAnyModule } from "@/lib/auth/dal";
-import { getStaffDirectory } from "@/services/staff-directory";
-import { DocumentosClient } from "./documentos-client";
+import { redirect } from "next/navigation";
 
-// Personal → Documentos: cédulas y contacto del personal, solo lectura y
-// sin dinero. Entra quien tiene "Documentos del personal", Planilla o
-// Contratistas; la base (`staff_directory()`) decide a quién ve cada uno.
-export const dynamic = "force-dynamic";
+import { STAFF_PATH } from "@/lib/personal/paths";
 
-export default async function DocumentosPage() {
-  await requireAnyModule("documentos", "planilla", "contratistas");
-  const people = await getStaffDirectory();
-  return <DocumentosClient people={people} />;
+// Los documentos del personal se descargan desde Personal → Staff. Esta
+// dirección queda para que no se rompan enlaces guardados.
+export default function DocumentosRedirect() {
+  redirect(STAFF_PATH);
 }

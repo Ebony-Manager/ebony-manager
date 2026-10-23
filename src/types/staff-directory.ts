@@ -9,6 +9,9 @@ export interface DirectoryPerson {
   /** Puesto del empleado; null en contratistas. */
   position: string | null;
   active: boolean;
+  startDate: string | null;
+  /** Orden en su lista (el color del avatar de un empleado sale de acá). */
+  sortOrder: number;
   idDocument: string | null;
   idDocumentType: "cedula" | "pasaporte" | null;
   /** URL firmada (1 h) de la foto o PDF del documento. */

@@ -1,4 +1,4 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Wallet, Layers, UserCog, Briefcase, Settings, Contact, IdCard, type LucideIcon } from "lucide-react";
+import { FileText, Folder, Calendar, DollarSign, BarChart2, Wallet, Layers, UserCog, Briefcase, Settings, Contact, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -61,9 +61,8 @@ export const PERSONAL_PANEL: NavPanel = {
   title: strings.nav.personal,
   items: [
     { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, anyModules: ["planilla", "contratistas"], exact: true },
-    { href: "/personal/staff", icon: Contact, label: strings.nav.staff, anyModules: ["planilla", "contratistas"] },
+    { href: "/personal/staff", icon: Contact, label: strings.nav.staff, modules: ["documentos"] },
     { href: "/personal/pagos", icon: Wallet, label: strings.nav.pagos, anyModules: ["planilla", "contratistas"] },
-    { href: "/personal/documentos", icon: IdCard, label: strings.nav.documentos, anyModules: ["documentos", "planilla", "contratistas"] },
   ],
 };
 

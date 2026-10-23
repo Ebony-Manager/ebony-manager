@@ -1939,7 +1939,7 @@ export type Database = {
         Args: { p_period: string }
         Returns: Json
       }
-      staff_directory: {
+      staff_people: {
         Args: Record<PropertyKey, never>
         Returns: {
           kind: string
@@ -1948,6 +1948,8 @@ export type Database = {
           group_key: string
           position: string | null
           active: boolean
+          start_date: string | null
+          sort_order: number
           id_document: string | null
           id_document_type: string | null
           id_document_path: string | null

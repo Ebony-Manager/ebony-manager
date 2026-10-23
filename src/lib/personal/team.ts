@@ -1,5 +1,6 @@
 import type { PayrollEmployee } from "@/types/planilla";
 import type { Contractor } from "@/types/contractors";
+import type { DirectoryPerson } from "@/types/staff-directory";
 import { matchesEmployeeQuery } from "@/lib/planilla/employee-search";
 import { contractorProfilePath, employeeProfilePath } from "./paths";
 
@@ -66,6 +67,24 @@ export function contractorToMember(c: Contractor): TeamMember {
     active: c.status === "ACTIVE",
     href: contractorProfilePath(c.id),
     sortOrder: c.sortOrder,
+  };
+}
+
+/** Desde la lista sin dinero (`staff_people()`): sirve para cualquier permiso de Personal. */
+export function directoryToMember(p: DirectoryPerson): TeamMember {
+  const group = p.group as TeamGroup;
+  return {
+    kind: p.kind,
+    id: p.id,
+    name: p.name,
+    group,
+    department: p.kind === "employee" ? (group as TeamDepartment) : group === "pintor" ? "pintura" : "taller",
+    position: p.position,
+    phone: p.phone,
+    startDate: p.startDate,
+    active: p.active,
+    href: p.kind === "employee" ? employeeProfilePath(p.id) : contractorProfilePath(p.id),
+    sortOrder: p.sortOrder,
   };
 }
 

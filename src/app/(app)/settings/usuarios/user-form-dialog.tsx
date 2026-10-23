@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { APP_MODULES, MODULE_PARENT, normalizeModules, type AppModule, type AppRole } from "@/lib/auth/modules";
+import { APP_MODULES, MODULE_PARENT, moduleAncestors, normalizeModules, type AppModule, type AppRole } from "@/lib/auth/modules";
 import type { AppUser } from "@/types/usuarios";
 import { inviteUserAction, updateUserAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
@@ -76,8 +76,7 @@ export function UserFormDialog({
       const next = new Set(prev);
       if (checked) {
         next.add(m);
-        const parent = MODULE_PARENT[m];
-        if (parent) next.add(parent);
+        for (const p of moduleAncestors(m)) next.add(p);
       } else {
         next.delete(m);
       }
@@ -210,13 +209,15 @@ export function UserFormDialog({
             <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
               {APP_MODULES.map((m) => {
                 const parent = MODULE_PARENT[m];
+                const depth = moduleAncestors(m).length;
                 const checked = isAdminRole || modules.includes(m);
                 return (
                   <label
                     key={m}
                     className={cn(
                       "flex items-start gap-2.5 px-3 py-2 text-sm",
-                      parent && "pl-8",
+                      depth === 1 && "pl-8",
+                      depth >= 2 && "pl-14",
                       isAdminRole ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-ink-900/5"
                     )}
                   >

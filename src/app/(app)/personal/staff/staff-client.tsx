@@ -3,10 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronRight, Hammer, Phone, Plus, Users } from "lucide-react";
+import toast from "react-hot-toast";
+import { ChevronDown, ChevronRight, Download, Hammer, IdCard, Loader2, Phone, Plus, Users, X } from "lucide-react";
 
 import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import type { Contractor } from "@/types/contractors";
+import type { DirectoryPerson } from "@/types/staff-directory";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +33,7 @@ import type { StaffIntake } from "@/types/staff-intake";
 import type { MatchCandidate } from "@/lib/personal/jotform-intake";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
+import { downloadStaffDocuments } from "./download-documents";
 
 /**
  * Personal → Staff: empleados y contratistas en una sola lista, con
@@ -40,9 +43,14 @@ import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog"
  * laboran van aparte, plegados. Arriba, si hay, los "Nuevos registros" que
  * llegaron del formulario de JotForm (ver intake-inbox.tsx). "Descargar PDF" baja la lista (todos, solo
  * empleados o solo contratistas) con su ficha, para imprimir.
+ *
+ * Con solo el permiso Personal es de lectura: sin agregar, sin registros de
+ * JotForm y sin exportar el listado. "Descargar documentos" (para todos)
+ * pone casillas en la lista y baja las cédulas marcadas en un solo PDF.
  */
 export function StaffClient({
   members,
+  people,
   employees,
   contractors,
   intakes,
@@ -54,6 +62,8 @@ export function StaffClient({
   canContractors,
 }: {
   members: TeamMember[];
+  /** Cada persona sin dinero, con su documento (para descargarlos). */
+  people: DirectoryPerson[];
   /** Fichas completas (para el PDF); vacías sin el módulo correspondiente. */
   employees: PayrollEmployee[];
   contractors: Contractor[];
@@ -78,7 +88,49 @@ export function StaffClient({
   const [showInactive, setShowInactive] = React.useState(false);
   const [addEmployeeOpen, setAddEmployeeOpen] = React.useState(false);
   const [addContractorOpen, setAddContractorOpen] = React.useState(false);
-  const showKindFilter = canEmployees && canContractors;
+  const showKindFilter = members.some((m) => m.kind === "employee") && members.some((m) => m.kind === "contractor");
+  const canEdit = canEmployees || canContractors;
+
+  // "Descargar documentos": modo con casillas.
+  const td = (k: keyof typeof strings.documentos) => t(lang, strings.documentos[k]);
+  const [selecting, setSelecting] = React.useState(false);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = React.useState(false);
+  const memberKey = (m: { kind: string; id: string }) => `${m.kind}:${m.id}`;
+  const personByKey = React.useMemo(() => new Map(people.map((p) => [memberKey(p), p])), [people]);
+  const hasDocument = (m: TeamMember) => !!personByKey.get(memberKey(m))?.documentUrl;
+  const toggleSelected = (m: TeamMember) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(memberKey(m))) next.delete(memberKey(m));
+      else next.add(memberKey(m));
+      return next;
+    });
+  const stopSelecting = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+
+  async function downloadDocuments() {
+    const chosen = [...selected].map((k) => personByKey.get(k)).filter((p): p is DirectoryPerson => !!p);
+    setDownloading(true);
+    try {
+      const { included, missing } = await downloadStaffDocuments(chosen, {
+        fileName: td("file_name"),
+        cedula: td("type_cedula"),
+        pasaporte: td("type_pasaporte"),
+      });
+      if (included > 0) toast.success(td("downloaded"));
+      if (missing.length > 0) toast(`${td("missing_docs")} ${missing.join(", ")}`, { duration: 8000 });
+      if (included > 0) stopSelecting();
+    } catch (err) {
+      console.error("Staff: no se pudo armar el PDF de documentos", err);
+      toast.error(td("download_failed"));
+    } finally {
+      setDownloading(false);
+    }
+  }
+  const selection = selecting ? { selected, isSelected: (m: TeamMember) => selected.has(memberKey(m)), onToggle: toggleSelected, hasDocument } : undefined;
 
   const visible = filterTeam(members, { kind, query });
   const active = visible.filter((m) => m.active);
@@ -118,7 +170,7 @@ export function StaffClient({
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{tt("subtitle")}</p>
           </div>
-          {canEmployees && canContractors ? (
+          {!canEdit ? null : canEmployees && canContractors ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm">
@@ -146,13 +198,15 @@ export function StaffClient({
           )}
         </div>
 
-        <IntakeInbox
-          intakes={intakes}
-          candidates={candidates}
-          positions={positions}
-          canEmployees={canEmployees}
-          canContractors={canContractors}
-        />
+        {canEdit && (
+          <IntakeInbox
+            intakes={intakes}
+            candidates={candidates}
+            positions={positions}
+            canEmployees={canEmployees}
+            canContractors={canContractors}
+          />
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="w-full max-w-xs" />
@@ -173,15 +227,44 @@ export function StaffClient({
               ))}
             </div>
           )}
-          <div className="ml-auto">
-            <StaffRosterExport
-              employees={employees}
-              contractors={contractors}
-              canEmployees={canEmployees}
-              canContractors={canContractors}
-            />
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant={selecting ? "secondary" : "outline"} onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>
+              {selecting ? <X className="size-3.5" /> : <IdCard className="size-3.5" />}
+              {selecting ? td("cancel_select") : td("download")}
+            </Button>
+            {canEdit && (
+              <StaffRosterExport
+                employees={employees}
+                contractors={contractors}
+                canEmployees={canEmployees}
+                canContractors={canContractors}
+              />
+            )}
           </div>
         </div>
+
+        {selecting && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">{td("select_hint")}</span>
+            <span className="font-medium text-foreground">
+              {selected.size} {td("selected_count")}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() =>
+                setSelected((cur) => new Set([...cur, ...visible.filter((m) => m.active && hasDocument(m)).map(memberKey)]))
+              }
+            >
+              {td("select_visible")}
+            </Button>
+            <Button size="sm" className="ml-auto" disabled={selected.size === 0 || downloading} onClick={() => void downloadDocuments()}>
+              {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+              {downloading ? td("downloading") : td("download_pdf")}
+            </Button>
+          </div>
+        )}
 
         {members.length === 0 ? (
           <EmptyBox>{tt("empty")}</EmptyBox>
@@ -189,7 +272,7 @@ export function StaffClient({
           <EmptyBox>{tt("no_results")}</EmptyBox>
         ) : (
           <>
-            {active.length > 0 && <TeamList members={active} contractorPhotoUrls={contractorPhotoUrls} />}
+            {active.length > 0 && <TeamList members={active} contractorPhotoUrls={contractorPhotoUrls} selection={selection} />}
 
             {inactive.length > 0 && (
               <div className="flex flex-col gap-3">
@@ -201,7 +284,7 @@ export function StaffClient({
                   {showInactive ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                   {tt("inactive_section")} ({inactive.length})
                 </button>
-                {showInactive && <TeamList members={inactive} contractorPhotoUrls={contractorPhotoUrls} muted />}
+                {showInactive && <TeamList members={inactive} contractorPhotoUrls={contractorPhotoUrls} selection={selection} muted />}
               </div>
             )}
           </>
@@ -226,17 +309,27 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 
 const GRID = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_20px]";
 
+interface TeamSelection {
+  isSelected: (m: TeamMember) => boolean;
+  onToggle: (m: TeamMember) => void;
+  hasDocument: (m: TeamMember) => boolean;
+}
+
 function TeamList({
   members,
   contractorPhotoUrls,
+  selection,
   muted = false,
 }: {
   members: TeamMember[];
   contractorPhotoUrls: Record<string, string>;
+  /** En "Descargar documentos": cada fila marca/desmarca en vez de abrir la ficha. */
+  selection?: TeamSelection;
   muted?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
+  const tdoc = (k: keyof typeof strings.documentos) => t(lang, strings.documentos[k]);
 
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border bg-card", muted && "opacity-70")}>
@@ -254,12 +347,30 @@ function TeamList({
           <li key={`${m.kind}-${m.id}`}>
             <Link
               href={m.href}
+              onClick={
+                selection
+                  ? (e) => {
+                      e.preventDefault();
+                      selection.onToggle(m);
+                    }
+                  : undefined
+              }
               className={cn(
                 "grid grid-cols-[minmax(0,1fr)_20px] items-center gap-x-4 gap-y-1.5 px-4 py-3 transition-colors hover:bg-muted/50",
                 GRID
               )}
             >
               <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-3">
+                {selection && (
+                  <input
+                    type="checkbox"
+                    readOnly
+                    tabIndex={-1}
+                    aria-label={m.name}
+                    checked={selection.isSelected(m)}
+                    className="size-4 shrink-0"
+                  />
+                )}
                 {m.kind === "employee" ? (
                   <EmployeeAvatar name={m.name} employeeId={m.id} sortOrder={m.sortOrder} size="md" />
                 ) : (
@@ -267,11 +378,15 @@ function TeamList({
                 )}
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-foreground">{m.name}</div>
-                  {m.phone && (
-                    <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                      <Phone className="size-3 shrink-0" />
-                      {m.phone}
-                    </div>
+                  {selection && !selection.hasDocument(m) ? (
+                    <div className="truncate text-xs text-muted-foreground/70">{tdoc("no_document")}</div>
+                  ) : (
+                    m.phone && (
+                      <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        <Phone className="size-3 shrink-0" />
+                        {m.phone}
+                      </div>
+                    )
                   )}
                 </div>
               </div>

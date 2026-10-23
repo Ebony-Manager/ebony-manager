@@ -3,13 +3,19 @@ import { hasAnyModule, hasModule, hasModules, homePathFor, normalizeModules } fr
 
 describe("normalizeModules", () => {
   it("quita repetidos y claves desconocidas, y ordena como APP_MODULES", () => {
-    expect(normalizeModules(["planilla", "x", "cotizacion", "planilla", 3])).toEqual(["cotizacion", "planilla"]);
+    expect(normalizeModules(["planilla", "x", "cotizacion", "documentos", "planilla", 3])).toEqual(["cotizacion", "documentos", "planilla"]);
   });
 
   it("descarta un sub-permiso sin su módulo padre", () => {
     expect(normalizeModules(["asistencia"])).toEqual([]);
-    expect(normalizeModules(["costos", "planilla"])).toEqual(["planilla"]);
-    expect(normalizeModules(["asistencia", "planilla"])).toEqual(["planilla", "asistencia"]);
+    expect(normalizeModules(["costos", "documentos", "planilla"])).toEqual(["documentos", "planilla"]);
+    expect(normalizeModules(["asistencia", "planilla", "documentos"])).toEqual(["documentos", "planilla", "asistencia"]);
+  });
+
+  it("Planilla y Contratistas viven dentro de Personal (y Asistencia dentro de Planilla)", () => {
+    expect(normalizeModules(["planilla", "contratistas"])).toEqual([]);
+    expect(normalizeModules(["asistencia", "planilla"])).toEqual([]);
+    expect(normalizeModules(["documentos", "contratistas"])).toEqual(["documentos", "contratistas"]);
   });
 });
 
@@ -30,13 +36,13 @@ describe("hasModule", () => {
   });
 
   it("hasModules pide todos", () => {
-    const u = { role: "vendedor", modules: ["planilla"] };
+    const u = { role: "vendedor", modules: ["documentos", "planilla"] };
     expect(hasModules(u, ["planilla"])).toBe(true);
     expect(hasModules(u, ["planilla", "contratistas"])).toBe(false);
   });
 
   it("hasAnyModule pide al menos uno", () => {
-    const u = { role: "vendedor", modules: ["contratistas"] };
+    const u = { role: "vendedor", modules: ["documentos", "contratistas"] };
     expect(hasAnyModule(u, ["planilla", "contratistas"])).toBe(true);
     expect(hasAnyModule(u, ["planilla", "cotizacion"])).toBe(false);
     expect(hasAnyModule({ role: "admin", modules: [] }, ["planilla"])).toBe(true);
@@ -46,8 +52,9 @@ describe("hasModule", () => {
 describe("homePathFor", () => {
   it("lleva al primer módulo disponible", () => {
     expect(homePathFor({ role: "admin", modules: [] })).toBe("/cotizacion");
-    expect(homePathFor({ role: "vendedor", modules: ["contratistas", "planilla"] })).toBe("/personal/pagos");
-    expect(homePathFor({ role: "vendedor", modules: ["contratistas"] })).toBe("/personal/pagos");
+    expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas", "planilla"] })).toBe("/personal/pagos");
+    expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
+    expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
   });
 
   it("sin módulos cae en una pantalla abierta a todos", () => {
