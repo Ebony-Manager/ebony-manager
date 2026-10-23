@@ -739,8 +739,6 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
       name: r.name,
       contractDate: r.contract_date,
       status: (r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE") as ContractStatus,
-      scope: r.scope,
-      paymentTerms: r.payment_terms,
       notes: r.notes,
       valueCents: value.get(r.id) ?? 0,
       allocatedCents: allocated.get(r.id) ?? 0,
@@ -790,8 +788,6 @@ export interface ContractHeaderInput {
   name: string;
   contractDate: string;
   status?: ContractStatus;
-  scope?: string | null;
-  paymentTerms?: string | null;
   notes?: string | null;
 }
 
@@ -817,8 +813,6 @@ function contractColumns(input: ContractHeaderInput) {
     name: input.name.trim(),
     contract_date: input.contractDate,
     ...(input.status ? { status: input.status } : {}),
-    scope: input.scope ?? null,
-    payment_terms: input.paymentTerms ?? null,
     notes: input.notes ?? null,
   };
 }

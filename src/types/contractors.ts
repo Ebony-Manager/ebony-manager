@@ -155,8 +155,6 @@ export interface ContractorContract {
   name: string;
   contractDate: string;
   status: ContractStatus;
-  scope: string | null;
-  paymentTerms: string | null;
   notes: string | null;
   /** Valor acordado: Σ de sus movimientos (con signo). */
   valueCents: number;

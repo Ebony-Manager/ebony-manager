@@ -511,9 +511,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
-          payment_terms: string | null
           project_id: string
-          scope: string | null
           status: string
           updated_at: string
         }
@@ -524,9 +522,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
-          payment_terms?: string | null
           project_id: string
-          scope?: string | null
           status?: string
           updated_at?: string
         }
@@ -537,9 +533,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
-          payment_terms?: string | null
           project_id?: string
-          scope?: string | null
           status?: string
           updated_at?: string
         }
