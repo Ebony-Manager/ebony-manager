@@ -8,8 +8,11 @@ import type { Database } from "@/types/database";
 /**
  * Resumen diario del Almacén por correo (Resend).
  *
- * - El cron de Vercel (vercel.json) lo llama cada mañana con
- *   `Authorization: Bearer CRON_SECRET` y se manda solo si hay algo que avisar.
+ * - El cron de Vercel lo llama cada mañana con `Authorization: Bearer
+ *   CRON_SECRET` y se manda solo si hay algo que avisar. PAUSADO hasta que se
+ *   empiece a usar el inventario: para reactivarlo, en vercel.json
+ *   `"crons": [{ "path": "/api/almacen/resumen-diario", "schedule": "0 12 * * 1-6" }]`
+ *   (lunes a sábado, 7:00 de Panamá).
  * - Un admin con sesión puede: `?activar=1` (una vez: guarda el hash del
  *   CRON_SECRET en la base, sin copiarlo a mano), `?ver=1` (ver el correo en
  *   el navegador) y `?enviar=1` (mandarlo ya, para probar).
