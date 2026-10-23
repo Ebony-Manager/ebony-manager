@@ -1573,7 +1573,6 @@ export const strings = {
     ct_f_name: { es: "Nombre del contrato", en: "Contract name" },
     ct_f_name_ph: { es: "Ej. Closets recámaras", en: "e.g. Bedroom closets" },
     ct_f_date: { es: "Fecha", en: "Date" },
-    ct_f_scope: { es: "Alcance / qué incluye", en: "Scope / what's included" },
     ct_pick_contractor: { es: "Elegir contratista…", en: "Pick a contractor…" },
     ct_pick_contractor_first: { es: "Elige primero el contratista para cargar las piezas.", en: "Pick the contractor first to add pieces." },
     ct_pick_project: { es: "Elegir proyecto…", en: "Pick a project…" },

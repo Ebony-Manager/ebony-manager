@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
@@ -91,8 +90,6 @@ export function ContractDialog({
   const [name, setName] = React.useState("");
   const [contractDate, setContractDate] = React.useState(todayInPanama());
   const [status, setStatus] = React.useState<"ACTIVE" | "COMPLETED">("ACTIVE");
-  const [scope, setScope] = React.useState("");
-  const [paymentTerms, setPaymentTerms] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [prepaid, setPrepaid] = React.useState("");
   const [work, setWork] = React.useState<WorkDraft>(EMPTY_WORK);
@@ -114,8 +111,6 @@ export function ContractDialog({
     setName(contract?.name ?? "");
     setContractDate(contract?.contractDate ?? todayInPanama());
     setStatus(contract?.status ?? "ACTIVE");
-    setScope(contract?.scope ?? "");
-    setPaymentTerms(contract?.paymentTerms ?? "");
     setNotes(contract?.notes ?? "");
     setPrepaid("");
     setWork(EMPTY_WORK);
@@ -181,8 +176,6 @@ export function ContractDialog({
       projectId,
       name: name.trim(),
       contractDate,
-      scope: scope.trim() || null,
-      paymentTerms: paymentTerms.trim() || null,
       notes: notes.trim() || null,
     };
     const res = contract
@@ -336,13 +329,7 @@ export function ContractDialog({
               </Field>
             )}
 
-            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
-              <Field label={tt("ct_f_scope")} className="sm:col-span-2">
-                <Textarea rows={2} value={scope} onChange={(e) => setScope(e.target.value)} placeholder={tt("f_optional")} />
-              </Field>
-              <Field label={tt("proj_f_payment_terms")}>
-                <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder={tt("f_optional")} />
-              </Field>
+            <div className="border-t border-border pt-4">
               <Field label={tt("mov_f_notes")}>
                 <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("f_optional")} />
               </Field>
