@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { EbonyMark } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
@@ -32,9 +32,10 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
 
   // Cada panel con solo los ítems que este usuario puede abrir.
   const visible = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
+  const almacenPanel = visible(ALMACEN_PANEL);
   const personalPanel = visible(PERSONAL_PANEL);
   const settingsPanel = visible(SETTINGS_PANEL);
-  const openPanel = [personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
+  const openPanel = [almacenPanel, personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
   // Qué ítem del panel lleva cada indicador.
   const pendingFor = (href: string) =>
     href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0;
@@ -101,6 +102,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
               );
             })}
 
+            {panelLink(almacenPanel)}
             {panelLink(personalPanel)}
           </nav>
 

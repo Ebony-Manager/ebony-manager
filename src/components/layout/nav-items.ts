@@ -1,4 +1,23 @@
-import { FileText, Folder, Calendar, DollarSign, BarChart2, Wallet, Layers, UserCog, Briefcase, Settings, Contact, type LucideIcon } from "lucide-react";
+import {
+  FileText,
+  Folder,
+  Calendar,
+  DollarSign,
+  BarChart2,
+  Wallet,
+  Layers,
+  UserCog,
+  Briefcase,
+  Settings,
+  Contact,
+  Warehouse,
+  Boxes,
+  PackageMinus,
+  ShoppingCart,
+  Truck,
+  ClipboardCheck,
+  type LucideIcon,
+} from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -45,7 +64,7 @@ export const RAIL_ITEMS: NavItem[] = [
  * verdad sigue siendo requireModule()/requireAdmin() en cada página + RLS.
  */
 export interface NavPanel {
-  key: "personal" | "settings";
+  key: "personal" | "almacen" | "settings";
   icon: LucideIcon;
   title: (typeof strings.nav)[keyof typeof strings.nav];
   items: NavItem[];
@@ -66,6 +85,22 @@ export const PERSONAL_PANEL: NavPanel = {
   ],
 };
 
+// Almacén — existencias, salidas, compras, proveedores y ajustes. Compras
+// lo ve cualquiera (para pedir lo que haga falta; quien no tiene Compras ve
+// solo sus solicitudes), así que todos ven el ícono.
+export const ALMACEN_PANEL: NavPanel = {
+  key: "almacen",
+  icon: Warehouse,
+  title: strings.nav.almacen,
+  items: [
+    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true },
+    { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
+    { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
+    { href: "/almacen/proveedores", icon: Truck, label: strings.nav.proveedores, modules: ["almacen"] },
+    { href: "/almacen/ajustes", icon: ClipboardCheck, label: strings.nav.ajustes, modules: ["almacen_ajustes"] },
+  ],
+};
+
 // Settings — el engranaje al pie del rail: configuración de la app.
 export const SETTINGS_PANEL: NavPanel = {
   key: "settings",
@@ -74,7 +109,7 @@ export const SETTINGS_PANEL: NavPanel = {
   items: [{ href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true }],
 };
 
-export const NAV_PANELS: NavPanel[] = [PERSONAL_PANEL, SETTINGS_PANEL];
+export const NAV_PANELS: NavPanel[] = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL];
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
   return pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`));

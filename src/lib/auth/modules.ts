@@ -12,21 +12,37 @@ export type AppRole = "admin" | "vendedor";
 // `documentos` es el permiso padre "Personal" (la clave quedó de cuando era
 // solo para documentos): ver la lista del personal, su contacto y sus
 // documentos. Planilla y Contratistas (el dinero) viven dentro de él.
-export const APP_MODULES = ["cotizacion", "costos", "proyectos", "documentos", "planilla", "asistencia", "contratistas"] as const;
+export const APP_MODULES = [
+  "cotizacion",
+  "costos",
+  "proyectos",
+  "documentos",
+  "planilla",
+  "asistencia",
+  "contratistas",
+  "almacen",
+  "almacen_compras",
+  "almacen_costos",
+  "almacen_ajustes",
+] as const;
 
 export type AppModule = (typeof APP_MODULES)[number];
 
 /**
  * Sub-permisos: `costos` vive dentro del Cotizador (precios y catálogo);
  * Planilla y Contratistas dentro de Personal (`documentos`), y `asistencia`
- * dentro de Planilla (Pagos → Asistencia). Sin el padre no hay forma de
- * llegar a ellos.
+ * dentro de Planilla (Pagos → Asistencia). Compras, Costos del almacén y
+ * Ajustes de inventario viven dentro de Almacén. Sin el padre no hay forma
+ * de llegar a ellos.
  */
 export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   costos: "cotizacion",
   planilla: "documentos",
   contratistas: "documentos",
   asistencia: "planilla",
+  almacen_compras: "almacen",
+  almacen_costos: "almacen",
+  almacen_ajustes: "almacen",
 };
 
 /** Los padres de un módulo, del más cercano al más lejano. */
@@ -83,5 +99,6 @@ export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
   if (hasModule(subject, "proyectos")) return "/proyectos";
   if (hasModule(subject, "documentos")) return "/personal/staff";
+  if (hasModule(subject, "almacen")) return "/almacen";
   return "/dashboard";
 }

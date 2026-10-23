@@ -1930,11 +1930,677 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_adjustments: {
+        Row: {
+          adjusted_on: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          notes: string | null
+          reason: string
+        }
+        Insert: {
+          adjusted_on?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          reason: string
+        }
+        Update: {
+          adjusted_on?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_categories: {
+        Row: {
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      inventory_costs: {
+        Row: {
+          purchase_line_id: string | null
+          unit_cost_cents: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          purchase_line_id?: string | null
+          unit_cost_cents: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          purchase_line_id?: string | null
+          unit_cost_cents?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_costs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: true
+            referencedRelation: "inventory_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_issues: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          internal_use: string | null
+          issued_on: string
+          notes: string | null
+          project_id: string | null
+          recipient_contractor_id: string | null
+          recipient_employee_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          internal_use?: string | null
+          issued_on?: string
+          notes?: string | null
+          project_id?: string | null
+          recipient_contractor_id?: string | null
+          recipient_employee_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          internal_use?: string | null
+          issued_on?: string
+          notes?: string | null
+          project_id?: string | null
+          recipient_contractor_id?: string | null
+          recipient_employee_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_issues_recipient_contractor_id_fkey"
+            columns: ["recipient_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_issues_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_item_suppliers: {
+        Row: {
+          is_primary: boolean
+          item_id: string
+          notes: string | null
+          pack_label: string | null
+          pack_qty: number | null
+          supplier_id: string
+          supplier_ref: string | null
+        }
+        Insert: {
+          is_primary?: boolean
+          item_id: string
+          notes?: string | null
+          pack_label?: string | null
+          pack_qty?: number | null
+          supplier_id: string
+          supplier_ref?: string | null
+        }
+        Update: {
+          is_primary?: boolean
+          item_id?: string
+          notes?: string | null
+          pack_label?: string | null
+          pack_qty?: number | null
+          supplier_id?: string
+          supplier_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_suppliers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          active: boolean
+          allows_decimals: boolean
+          category_id: string | null
+          created_at: string
+          id: string
+          jotform_pid: string | null
+          kind: string
+          name: string
+          notes: string | null
+          photo_path: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          allows_decimals?: boolean
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          jotform_pid?: string | null
+          kind?: string
+          name: string
+          notes?: string | null
+          photo_path?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          allows_decimals?: boolean
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          jotform_pid?: string | null
+          kind?: string
+          name?: string
+          notes?: string | null
+          photo_path?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          adjustment_id: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          issue_id: string | null
+          kind: string
+          moved_on: string
+          purchase_line_id: string | null
+          qty: number
+          stock_after: number
+          variant_id: string
+        }
+        Insert: {
+          adjustment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          issue_id?: string | null
+          kind: string
+          moved_on?: string
+          purchase_line_id?: string | null
+          qty: number
+          stock_after?: number
+          variant_id: string
+        }
+        Update: {
+          adjustment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          issue_id?: string | null
+          kind?: string
+          moved_on?: string
+          purchase_line_id?: string | null
+          qty?: number
+          stock_after?: number
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_adjustment_id_fkey"
+            columns: ["adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_purchase_line_id_fkey"
+            columns: ["purchase_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_variants: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          item_id: string
+          label: string
+          min_qty: number | null
+          reorder_qty: number | null
+          sort_order: number
+          stock_qty: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          item_id: string
+          label?: string
+          min_qty?: number | null
+          reorder_qty?: number | null
+          sort_order?: number
+          stock_qty?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          item_id?: string
+          label?: string
+          min_qty?: number | null
+          reorder_qty?: number | null
+          sort_order?: number
+          stock_qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_variants_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_line_costs: {
+        Row: {
+          line_id: string
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          line_id: string
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          line_id?: string
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_costs_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_lines: {
+        Row: {
+          description: string
+          id: string
+          order_id: string
+          qty: number
+          received_qty: number
+          sort_order: number
+          unit: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          description?: string
+          id?: string
+          order_id: string
+          qty: number
+          received_qty?: number
+          sort_order?: number
+          unit?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          description?: string
+          id?: string
+          order_id?: string
+          qty?: number
+          received_qty?: number
+          sort_order?: number
+          unit?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          invoice_ref: string | null
+          notes: string | null
+          ordered_on: string
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_ref?: string | null
+          notes?: string | null
+          ordered_on?: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_ref?: string | null
+          notes?: string | null
+          ordered_on?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requests: {
+        Row: {
+          auto: boolean
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          description: string
+          id: string
+          order_line_id: string | null
+          project_id: string | null
+          qty: number
+          reason: string | null
+          status: string
+          unit: string | null
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          auto?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string
+          id?: string
+          order_line_id?: string | null
+          project_id?: string | null
+          qty: number
+          reason?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          auto?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string
+          id?: string
+          order_line_id?: string | null
+          project_id?: string | null
+          qty?: number
+          reason?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          active: boolean
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      register_inventory_issue: {
+        Args: {
+          p_issued_on: string | null
+          p_employee_id: string | null
+          p_contractor_id: string | null
+          p_project_id: string | null
+          p_internal_use: string | null
+          p_notes: string | null
+          p_lines: Json
+        }
+        Returns: string
+      }
+      register_inventory_adjustment: {
+        Args: { p_reason: string; p_notes: string | null; p_counted: boolean; p_lines: Json }
+        Returns: string
+      }
+      create_purchase_order: {
+        Args: { p_supplier_id: string; p_request_ids: string[]; p_notes: string | null }
+        Returns: string
+      }
+      receive_purchase_order: {
+        Args: { p_order_id: string; p_received_on: string | null; p_lines: Json }
+        Returns: undefined
+      }
+      inventory_people: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          kind: string
+          id: string
+          name: string
+          active: boolean
+          contractor_type: string | null
+        }[]
+      }
       close_contractor_pay_period: {
         Args: { p_period: string }
         Returns: Json

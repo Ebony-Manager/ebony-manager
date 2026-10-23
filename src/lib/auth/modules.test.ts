@@ -17,6 +17,11 @@ describe("normalizeModules", () => {
     expect(normalizeModules(["asistencia", "planilla"])).toEqual([]);
     expect(normalizeModules(["documentos", "contratistas"])).toEqual(["documentos", "contratistas"]);
   });
+
+  it("Compras, Costos y Ajustes viven dentro de Almacén", () => {
+    expect(normalizeModules(["almacen_compras", "almacen_costos", "almacen_ajustes"])).toEqual([]);
+    expect(normalizeModules(["almacen_ajustes", "almacen"])).toEqual(["almacen", "almacen_ajustes"]);
+  });
 });
 
 describe("hasModule", () => {
@@ -55,6 +60,7 @@ describe("homePathFor", () => {
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas", "planilla"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
+    expect(homePathFor({ role: "vendedor", modules: ["almacen", "almacen_compras"] })).toBe("/almacen");
   });
 
   it("sin módulos cae en una pantalla abierta a todos", () => {
