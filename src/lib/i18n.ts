@@ -1068,6 +1068,7 @@ export const strings = {
       en: "Calculated on what is actually paid (after docked hours and days), not on base salary. Marking a payment restarts the accrual.",
     },
     benefits_off: { es: "Este empleado no lleva prestaciones.", en: "This employee has no benefits." },
+    benefits_enable: { es: "Habilitar", en: "Enable" },
     benefits_accrued: { es: "acumulado a hoy", en: "accrued to date" },
     benefits_next_pay: { es: "próxima cuota", en: "next payment" },
     benefits_last_paid: { es: "Último pago", en: "Last paid" },

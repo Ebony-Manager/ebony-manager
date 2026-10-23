@@ -91,8 +91,8 @@ export function EmployeeBenefitsSection({
   }, [employee.id, now.year]);
 
   React.useEffect(() => {
-    if (!rows) load();
-  }, [rows, load]);
+    if (!rows && enabled) load();
+  }, [rows, enabled, load]);
 
   const nowOrd = periodOrdinal(now.year, now.month, now.half);
   const current = rows?.find((r) => r.month === now.month && r.half === now.half) ?? null;
@@ -132,6 +132,21 @@ export function EmployeeBenefitsSection({
 
   const payingConcept = CONCEPTS.find((c) => c.key === paying) ?? null;
 
+  // Sin prestaciones (la mayoría): una sola línea, para no ocupar la ficha.
+  if (!enabled) {
+    return (
+      <section className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
+        <p className="text-sm">
+          <span className="font-semibold text-foreground">{tt("benefits_title")}</span>
+          <span className="text-muted-foreground"> · {tt("benefits_off")}</span>
+        </p>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => void toggleEnabled(true)}>
+          {tt("benefits_enable")}
+        </Button>
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -153,9 +168,7 @@ export function EmployeeBenefitsSection({
         </p>
       )}
 
-      {!enabled ? (
-        <p className="py-2 text-sm text-muted-foreground">{tt("benefits_off")}</p>
-      ) : rows === null ? (
+      {rows === null ? (
         <p className="py-2 text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
