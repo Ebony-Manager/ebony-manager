@@ -2,16 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireModule } from "@/lib/auth/dal";
+import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as contractors from "@/services/contractors";
 
 // Contratistas es para quien tiene el módulo `contratistas` (el admin
 // siempre): cada action verifica `requireModule("contratistas")` al entrar
 // (además de la RLS de las tablas). Un usuario sin el módulo que llame a un
-// action a mano igual rebota.
+// action a mano igual rebota. Los proyectos (crear, editar, borrar) los
+// maneja también quien tiene `proyectos`.
 
 const PATH = PAGOS_PATH;
+const PROJECTS_PATH = "/proyectos";
 
 // La lista y la ficha del contratista viven en Personal → Staff
 // (`/personal/staff/contratistas/[id]`): un cambio afecta al Dashboard de
@@ -19,6 +21,7 @@ const PATH = PAGOS_PATH;
 function revalidateContractors() {
   revalidatePath(PATH);
   revalidatePath(STAFF_PATH, "layout");
+  revalidatePath(PROJECTS_PATH, "layout");
 }
 
 export async function createContractorAction(input: contractors.CreateContractorInput) {
@@ -44,26 +47,26 @@ export async function deleteContractorAction(id: string) {
 // ── Proyectos ───────────────────────────────────────────────────────────
 
 export async function getProjectsAction() {
-  await requireModule("contratistas");
+  await requireAnyModule("proyectos", "contratistas");
   return contractors.getProjects();
 }
 
 export async function createProjectAction(input: contractors.CreateProjectInput) {
-  await requireModule("contratistas");
+  await requireAnyModule("proyectos", "contratistas");
   const project = await contractors.createProject(input);
   revalidateContractors();
   return project;
 }
 
 export async function updateProjectAction(id: string, input: contractors.UpdateProjectInput) {
-  await requireModule("contratistas");
+  await requireAnyModule("proyectos", "contratistas");
   const project = await contractors.updateProject(id, input);
   revalidateContractors();
   return project;
 }
 
 export async function deleteProjectAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireModule("contratistas");
+  await requireAnyModule("proyectos", "contratistas");
   try {
     await contractors.deleteProject(id);
   } catch (err) {

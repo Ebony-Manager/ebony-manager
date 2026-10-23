@@ -290,6 +290,14 @@ export async function getProjects(): Promise<Project[]> {
   return (data ?? []).map(mapProject);
 }
 
+/** Un proyecto, o null si no existe (o no se puede ver). */
+export async function getProject(id: string): Promise<Project | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapProject(data) : null;
+}
+
 /** Campos de "contrato" del proyecto (Etapa 2-A). Todos opcionales; se
  *  comparten entre crear y editar. */
 export interface ProjectContractInput {
@@ -675,10 +683,20 @@ const CONTRACT_SELECT =
   "*, projects!contractor_contracts_project_id_fkey(name, status), contractors!contractor_contracts_contractor_id_fkey(name, contractor_type)";
 
 /** Contratos (de un contratista, o todos) con su valor y lo abonado. */
-export async function getContracts(filter: { contractorId?: string } = {}): Promise<ContractorContract[]> {
+export async function getContracts(filter: { contractorId?: string; projectId?: string } = {}): Promise<ContractorContract[]> {
   const supabase = await createClient();
   let contractsQuery = supabase.from("contractor_contracts").select(CONTRACT_SELECT);
   if (filter.contractorId) contractsQuery = contractsQuery.eq("contractor_id", filter.contractorId);
+  if (filter.projectId) contractsQuery = contractsQuery.eq("project_id", filter.projectId);
+  // Los contratos de un proyecto: sus movimientos y abonos se piden solo
+  // para esos contratos.
+  let contractIds: string[] | null = null;
+  if (filter.projectId) {
+    const { data, error } = await supabase.from("contractor_contracts").select("id").eq("project_id", filter.projectId);
+    if (error) throw new Error(error.message);
+    contractIds = (data ?? []).map((r) => r.id);
+    if (contractIds.length === 0) return [];
+  }
   const [contractsRes, valueRows, allocRows, settingsRes] = await Promise.all([
     contractsQuery,
     selectAllRows((from, to) => {
@@ -687,6 +705,7 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
         .select("contract_id, category, direction, amount_cents, entry_date, ebony_absorbs_material")
         .not("contract_id", "is", null);
       if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
+      if (contractIds) q = q.in("contract_id", contractIds);
       return q.order("id").range(from, to);
     }),
     selectAllRows((from, to) => {
@@ -695,6 +714,7 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
         .select("contract_id, amount_cents")
         .not("contract_id", "is", null);
       if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
+      if (contractIds) q = q.in("contract_id", contractIds);
       return q.order("id").range(from, to);
     }),
     supabase.from("contractor_type_settings").select("contractor_type, retention_pct, retention_starts_on"),

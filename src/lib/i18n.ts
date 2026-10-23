@@ -2058,6 +2058,51 @@ export const strings = {
     in_def_delivery_days: { es: "Días de entrega", en: "Delivery days" },
   },
 
+  // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
+  proyectos: {
+    title: { es: "Proyectos", en: "Projects" },
+    subtitle: {
+      es: "Cada proyecto reúne todo lo de la obra: hoy sus contratos.",
+      en: "Each project gathers everything about the job: today, its contracts.",
+    },
+    add: { es: "Nuevo proyecto", en: "New project" },
+    search_ph: { es: "Buscar proyecto o cliente…", en: "Search project or client…" },
+    filter_active: { es: "Activos", en: "Active" },
+    filter_completed: { es: "Terminados", en: "Completed" },
+    filter_all: { es: "Todos", en: "All" },
+    col_project: { es: "Proyecto", en: "Project" },
+    col_status: { es: "Estado", en: "Status" },
+    col_contracts: { es: "Contratos", en: "Contracts" },
+    col_pending: { es: "Falta por pagar", en: "Left to pay" },
+    contracts_count: { es: "{active} activos de {total}", en: "{active} active of {total}" },
+    empty: { es: "Todavía no hay proyectos.", en: "No projects yet." },
+    no_results: { es: "Ningún proyecto coincide.", en: "No project matches." },
+    status_active: { es: "Activo", en: "Active" },
+    status_completed: { es: "Terminado", en: "Completed" },
+    back: { es: "Proyectos", en: "Projects" },
+    edit: { es: "Editar", en: "Edit" },
+    delete: { es: "Borrar proyecto", en: "Delete project" },
+    menu: { es: "Opciones del proyecto", en: "Project options" },
+    tab_resumen: { es: "Resumen", en: "Overview" },
+    tab_contratos: { es: "Contratos", en: "Contracts" },
+    info_title: { es: "Información general", en: "General information" },
+    f_client: { es: "Cliente", en: "Client" },
+    f_status: { es: "Estado", en: "Status" },
+    f_notes: { es: "Notas", en: "Notes" },
+    none: { es: "—", en: "—" },
+    money_title: { es: "Contratos del proyecto", en: "Project contracts" },
+    kpi_contracts: { es: "Contratos", en: "Contracts" },
+    kpi_value: { es: "Acordado", en: "Agreed" },
+    kpi_paid: { es: "Abonado", en: "Paid" },
+    kpi_pending: { es: "Falta por pagar", en: "Left to pay" },
+    kpi_retained: { es: "de eso, retenido", en: "of which retained" },
+    contractors_title: { es: "Contratistas en el proyecto", en: "Contractors on the project" },
+    no_contracts: { es: "Este proyecto todavía no tiene contratos.", en: "This project has no contracts yet." },
+    no_contracts_short: { es: "Sin contratos", en: "No contracts" },
+    completed_section: { es: "Terminados", en: "Completed" },
+    add_contract: { es: "Nuevo contrato", en: "New contract" },
+  },
+
   // Settings → Usuarios: quién entra a la app y a qué módulos.
   usuarios: {
     title: { es: "Usuarios", en: "Users" },
@@ -2129,6 +2174,11 @@ export const strings = {
     mod_costos_hint: {
       es: "Cambiar insumos, catálogo y precios para cotizar.",
       en: "Change inputs, catalog and quoting prices.",
+    },
+    mod_proyectos: { es: "Proyectos", en: "Projects" },
+    mod_proyectos_hint: {
+      es: "Ver y editar proyectos y su información. Los contratos y sus montos piden además Contratistas.",
+      en: "View and edit projects and their details. Contracts and amounts also need Contractors.",
     },
     mod_planilla: { es: "Planilla", en: "Payroll" },
     mod_planilla_hint: {

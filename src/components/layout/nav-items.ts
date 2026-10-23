@@ -32,7 +32,7 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 // Módulos de trabajo del día a día — links directos del rail, sin panel.
 export const RAIL_ITEMS: NavItem[] = [
   { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
-  { href: "/proyectos", icon: Folder, label: strings.nav.proyectos },
+  { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
   { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
   { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
