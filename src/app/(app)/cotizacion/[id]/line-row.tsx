@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Pencil, X } from "lucide-react";
+import { ArrowLeftRight, MousePointerClick, Pencil, X } from "lucide-react";
 
 import { formatMoney, lineAmount, lineQty } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,15 @@ export function LineRow({
   onRemove,
   selected = false,
   onSelect,
+  grouped = false,
+  assigning = false,
+  onAssign,
 }: {
+  /** Dentro de un grupo con subtítulo: no repite la categoría en el renglón. */
+  grouped?: boolean;
+  /** Modo asignar piezas en el dibujo (solo ítems leídos de plano). */
+  assigning?: boolean;
+  onAssign?: () => void;
   line: QuoteLine;
   /** Renglón seleccionado: sus piezas se resaltan en el dibujo del plano. */
   selected?: boolean;
@@ -73,7 +81,18 @@ export function LineRow({
       )}
     >
       <div className="flex basis-full items-center gap-2 text-[11px] tracking-[0.03em] text-muted-foreground">
-        <span>{tt(`cat_${line.category}`)}</span>
+        {!grouped && <span>{tt(`cat_${line.category}`)}</span>}
+        {onAssign && (
+          <button
+            type="button"
+            onClick={onAssign}
+            title={tt("line_assign_hint")}
+            className={cn("inline-flex items-center gap-1 rounded px-1", assigning ? "bg-primary text-primary-foreground" : "hover:bg-muted/60 hover:text-foreground")}
+          >
+            <MousePointerClick className="size-3" />
+            {assigning ? tt("line_assigning") : `${tt("line_assign")}${line.pieceIds.length ? ` (${line.pieceIds.length})` : ""}`}
+          </button>
+        )}
         {cornerMode && ON_WALL.includes(line.shape) && (
           <button
             type="button"

@@ -58,13 +58,14 @@ class Lines {
     for (const id of pieceIds) if (!cur.pieceIds.includes(id)) cur.pieceIds.push(id);
     this.map.set(code, cur);
   }
-  list(): GeneratedLine[] {
+  list(round = true): GeneratedLine[] {
     // m² y ML redondeados a 2 decimales, como se escriben en la cotización.
-    return [...this.map.values()].map((l) => ({ ...l, qty: Math.round((l.qty + Number.EPSILON) * 100) / 100 }));
+    return [...this.map.values()].map((l) => ({ ...l, qty: round ? Math.round((l.qty + Number.EPSILON) * 100) / 100 : l.qty }));
   }
 }
 
-export function piecesToLines(pieces: PlanPiece[], a: PlanAnswers): RulesResult {
+/** `round: false` deja las cantidades exactas (para sumar pieza por pieza sin acumular redondeos). */
+export function piecesToLines(pieces: PlanPiece[], a: PlanAnswers, { round = true } = {}): RulesResult {
   const out = new Lines();
   const excluded: RulesResult["excluded"] = [];
   const ext = FINISH_CODE[a.exteriorFinish];
@@ -143,7 +144,7 @@ export function piecesToLines(pieces: PlanPiece[], a: PlanAnswers): RulesResult 
 
   out.add("sb-led", a.ledMl);
   out.add("sb-est", a.metalMl);
-  return { lines: out.list(), excluded };
+  return { lines: out.list(round), excluded };
 }
 
 /** Descripción para el cliente, armada con las respuestas y lo excluido. */

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronRight, Plus } from "lucide-react";
 
-import { formatMoney, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
+import { formatMoney, lineAmount, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -21,14 +21,40 @@ import { LineRow } from "./line-row";
 
 type BlockKey = "eb" | "sb" | "ex" | "mg";
 
-// Cada bloque tiene su color de encabezado y un fondo muy tenue del mismo
-// tono, para saber de un vistazo en qué parte del ítem se está trabajando.
-const BLOCK_STYLE: Record<BlockKey, { head: string; body: string; rule: string }> = {
-  eb: { head: "bg-cream-100", body: "bg-[color-mix(in_srgb,var(--cream-100)_38%,white)]", rule: "border-[color-mix(in_srgb,var(--walnut)_22%,white)]" },
-  sb: { head: "bg-[color-mix(in_srgb,var(--status-ok)_16%,white)]", body: "bg-[color-mix(in_srgb,var(--status-ok)_5%,white)]", rule: "border-[color-mix(in_srgb,var(--status-ok)_24%,white)]" },
-  ex: { head: "bg-[color-mix(in_srgb,var(--status-error)_14%,white)]", body: "bg-[color-mix(in_srgb,var(--status-error)_4%,white)]", rule: "border-[color-mix(in_srgb,var(--status-error)_22%,white)]" },
-  mg: { head: "bg-stone-200", body: "bg-[color-mix(in_srgb,var(--stone-200)_32%,white)]", rule: "border-stone-400/60" },
+// Cada bloque tiene su color de encabezado y un fondo tenue del mismo tono,
+// para saber de un vistazo en qué parte del ítem se está trabajando. Los
+// tonos se mezclan con el color de tarjeta del tema (no con blanco), así se
+// ven bien también en modo oscuro. Renglones Ebony va en amarillo: es el
+// bloque principal y no debe confundirse con el azul del tema.
+// (Clases escritas completas: Tailwind no reconoce clases armadas con variables.)
+const BLOCK_STYLE: Record<BlockKey, { head: string; body: string; rule: string; group: string }> = {
+  eb: {
+    head: "bg-[color-mix(in_srgb,#e9b949_34%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,#e9b949_11%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,#e9b949_55%,var(--card))]",
+    group: "text-[color-mix(in_srgb,#b8860b_75%,var(--foreground))]",
+  },
+  sb: {
+    head: "bg-[color-mix(in_srgb,var(--status-ok)_22%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,var(--status-ok)_7%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,var(--status-ok)_35%,var(--card))]",
+    group: "text-[color-mix(in_srgb,var(--status-ok)_70%,var(--foreground))]",
+  },
+  ex: {
+    head: "bg-[color-mix(in_srgb,var(--status-error)_16%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,var(--status-error)_5%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,var(--status-error)_28%,var(--card))]",
+    group: "text-muted-foreground",
+  },
+  mg: {
+    head: "bg-[color-mix(in_srgb,var(--muted-foreground)_18%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,var(--muted-foreground)_6%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,var(--muted-foreground)_28%,var(--card))]",
+    group: "text-muted-foreground",
+  },
 };
+/** Orden de los grupos dentro de un bloque. */
+const GROUP_ORDER: CatalogCategory[] = ["modulos", "puertas", "gavetas", "tablillas", "revestimientos", "accesorios", "libre", "espejos", "vidrios", "metales", "tapiceria", "iluminacion"];
 
 /** El ítem con el que nace un renglón al pulsar "+ Revestimiento", etc. */
 const PREFERRED: Partial<Record<CatalogCategory, string>> = {
@@ -76,7 +102,13 @@ export function SectionEditor({
   onChange,
   selectedLineId = null,
   onSelectLine,
+  assigningLineId = null,
+  onAssign,
 }: {
+  /** Renglón al que se le están asignando piezas en el dibujo. */
+  assigningLineId?: string | null;
+  /** Solo en ítems leídos de plano: entra o sale del modo asignar piezas. */
+  onAssign?: (lineId: string | null) => void;
   section: QuoteSection;
   selectedLineId?: string | null;
   onSelectLine?: (id: string) => void;
@@ -125,8 +157,27 @@ export function SectionEditor({
       onRemove={() => removeLine(l.id)}
       selected={selectedLineId === l.id}
       onSelect={onSelectLine ? () => onSelectLine(l.id) : undefined}
+      grouped
+      assigning={assigningLineId === l.id}
+      onAssign={onAssign ? () => onAssign(assigningLineId === l.id ? null : l.id) : undefined}
     />
   );
+
+  // Renglones agrupados por categoría, cada grupo con su subtítulo.
+  const grouped = (list: QuoteLine[], key: BlockKey) =>
+    GROUP_ORDER.filter((c) => list.some((l) => l.category === c)).map((c) => {
+      const items = list.filter((l) => l.category === c);
+      return (
+        <div key={c} className="flex flex-col gap-1.5">
+          <p className={cn("mt-1 flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] uppercase", BLOCK_STYLE[key].group)}>
+            {tt(`grp_${c}`)}
+            <span className={cn("h-px flex-1", BLOCK_STYLE[key].rule, "border-t")} />
+            <span className="font-medium tracking-normal normal-case tabular-nums">{formatMoney(items.reduce((s, l) => s + lineAmount(l), 0))}</span>
+          </p>
+          {items.map(row)}
+        </div>
+      );
+    });
 
   const adder = (label: string, onClick: () => void) => (
     <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
@@ -214,7 +265,7 @@ export function SectionEditor({
           formatMoney(totals.ebony),
           <>
             {ebony.length === 0 && <p className="text-xs text-muted-foreground">{tt("block_ebony_empty")}</p>}
-            {ebony.map(row)}
+            {grouped(ebony, "eb")}
             <div className="mt-0.5 flex flex-wrap gap-1.5">
               {EBONY_ADDERS.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}
               {adder(tt("cat_libre"), () => setLines([...section.lines, newFreeLine(crypto.randomUUID())]))}
@@ -228,7 +279,7 @@ export function SectionEditor({
           formatMoney(totals.sub),
           <>
             {subs.length === 0 && <p className="text-xs text-muted-foreground">{tt("block_subs_empty")}</p>}
-            {subs.map(row)}
+            {grouped(subs, "sb")}
             <div className="mt-0.5 flex flex-wrap gap-1.5">{SUB_CATEGORIES.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}</div>
             <div className="mt-1 max-w-[330px]">
               {kv("sb", "subMarginPct", tt("f_sub_margin"), "%")}

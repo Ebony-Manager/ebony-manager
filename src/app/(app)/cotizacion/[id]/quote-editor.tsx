@@ -13,7 +13,9 @@ import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type CatalogItem, type Quote, type QuoteDefaults, type QuoteSection, type QuoteStatus } from "@/types/cotizador";
 import { createQuoteAction, duplicateQuoteAction, saveQuoteAction } from "../actions";
 import { NumField } from "../num-field";
+import { quoteMissing, togglePiece } from "@/lib/cotizador/plan-assign";
 import { ClientView } from "./client-view";
+import { MetrajePanel } from "./metraje-panel";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
 
@@ -55,6 +57,7 @@ export function QuoteEditor({
     initialQuote.sections.find((s) => s.id === initialSectionId)?.id ?? initialQuote.sections[0]?.id ?? null
   );
   const [selectedLineId, setSelectedLineId] = React.useState<string | null>(null);
+  const [assigningLineId, setAssigningLineId] = React.useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<"edit" | "client">("edit");
   const [open, setOpen] = React.useState<Record<BlockKey, boolean>>({ eb: true, sb: true, ex: false, mg: false });
@@ -144,14 +147,28 @@ export function QuoteEditor({
   const plan = section?.planId ? quote.plans.find((p) => p.id === section.planId) : undefined;
   const planView = React.useMemo(() => {
     if (!plan || !section) return undefined;
-    const selectedLine = section.lines.find((l) => l.id === selectedLineId);
+    const selectedLine = section.lines.find((l) => l.id === (assigningLineId ?? selectedLineId));
     return {
       pieces: plan.pieces,
       finish: plan.answers.exteriorFinish,
       selected: new Set(selectedLine?.pieceIds ?? []),
       covered: new Set(section.lines.flatMap((l) => l.pieceIds)),
     };
-  }, [plan, section, selectedLineId]);
+  }, [plan, section, selectedLineId, assigningLineId]);
+
+  // Clic en una pieza del dibujo: en modo asignar la suma o la quita del
+  // renglón; si no, selecciona el renglón que la cubre.
+  const onPickPiece = (pieceId: string) => {
+    if (!section || !plan) return;
+    if (assigningLineId) {
+      patchSection(section.id, (s) => togglePiece(s, assigningLineId, pieceId, plan, catalog));
+      return;
+    }
+    const covering = section.lines.filter((l) => l.pieceIds.includes(pieceId));
+    const main = covering.find((l) => l.category !== "accesorios") ?? covering[0];
+    setSelectedLineId(main ? main.id : null);
+  };
+  const assigningName = section?.lines.find((l) => l.id === assigningLineId)?.name ?? null;
 
   const setHeader = (p: Partial<Quote>) => change((q) => ({ ...q, ...p }));
   const setSection = (next: QuoteSection) => change((q) => ({ ...q, sections: q.sections.map((s) => (s.id === next.id ? next : s)) }));
@@ -346,6 +363,7 @@ export function QuoteEditor({
                       onClick={() => {
                         setCurrentId(s.id);
                         setSelectedLineId(null);
+                        setAssigningLineId(null);
                         setConfirmDelete(null);
                       }}
                       className={cn(
@@ -420,6 +438,15 @@ export function QuoteEditor({
                   onChange={setSection}
                   selectedLineId={selectedLineId}
                   onSelectLine={setSelectedLineId}
+                  assigningLineId={assigningLineId}
+                  onAssign={
+                    plan
+                      ? (id) => {
+                          setAssigningLineId(id);
+                          if (id) setSelectedLineId(id);
+                        }
+                      : undefined
+                  }
                 />
               </div>
             ) : (
@@ -432,6 +459,10 @@ export function QuoteEditor({
               <Viewer3D
                 section={section}
                 plan={planView}
+                onPickPiece={onPickPiece}
+                onQuoteMissing={plan ? () => patchSection(section.id, (s) => quoteMissing(s, plan, catalog, () => crypto.randomUUID())) : undefined}
+                assigning={assigningName}
+                onDoneAssigning={() => setAssigningLineId(null)}
                 onMoveLine={(lineId, wall, x, y) =>
                   patchSection(section.id, (s) => ({ ...s, lines: s.lines.map((l) => (l.id === lineId ? { ...l, wall, posX: x, posY: y } : l)) }))
                 }
@@ -484,6 +515,8 @@ export function QuoteEditor({
                 </dl>
               </div>
             )}
+
+            {section && <MetrajePanel section={section} plan={plan} />}
 
             <div className="border border-ink-900/8 bg-card">
               <h2 className={cn(panelTitle, "border-b border-ink-900/8 px-3.5 py-2.5")}>{tt("total_title")}</h2>

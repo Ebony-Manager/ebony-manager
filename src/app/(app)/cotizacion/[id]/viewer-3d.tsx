@@ -44,9 +44,20 @@ export function Viewer3D({
   onShape,
   onReset,
   plan,
+  onPickPiece,
+  onQuoteMissing,
+  assigning,
+  onDoneAssigning,
 }: {
   section: QuoteSection;
   plan?: PlanView;
+  /** Clic sobre una pieza del plano. */
+  onPickPiece?: (pieceId: string) => void;
+  /** Vuelve a cotizar con las reglas lo que ningún renglón cubre. */
+  onQuoteMissing?: () => void;
+  /** Nombre del renglón al que se están asignando piezas (modo asignar). */
+  assigning?: string | null;
+  onDoneAssigning?: () => void;
   onMoveLine: (lineId: string, wall: Wall, x: number, y: number) => void;
   onHostLine: (lineId: string, hostLineId: string) => void;
   onShape: (shape: WallShape, cornerAt: number | null) => void;
@@ -65,9 +76,9 @@ export function Viewer3D({
 
   // Los callbacks cambian en cada render; el motor se crea una sola vez y
   // siempre llama a los más recientes a través de esta referencia.
-  const handlers = React.useRef({ onMoveLine, onHostLine });
+  const handlers = React.useRef({ onMoveLine, onHostLine, onPickPiece });
   React.useEffect(() => {
-    handlers.current = { onMoveLine, onHostLine };
+    handlers.current = { onMoveLine, onHostLine, onPickPiece };
   });
 
   React.useEffect(() => {
@@ -80,6 +91,7 @@ export function Viewer3D({
         viewer = createViewer(T, canvasRef.current, {
           onMove: (id, wall, x, y) => handlers.current.onMoveLine(id, wall, x, y),
           onHost: (id, host) => handlers.current.onHostLine(id, host),
+          onPick: (id) => handlers.current.onPickPiece?.(id),
         });
         viewerRef.current = viewer;
         setReady(true);
@@ -153,6 +165,15 @@ export function Viewer3D({
               </button>
             ))}
           </div>
+          {cover && cover.missing.length > 0 && onQuoteMissing && (
+            <button
+              type="button"
+              onClick={onQuoteMissing}
+              className="ml-auto rounded-md border border-input bg-card px-2 py-0.5 text-[11px] font-medium hover:border-ink-700"
+            >
+              {tt("viewer_quote_missing")}
+            </button>
+          )}
           {cover && (
             <button
               type="button"
@@ -160,7 +181,8 @@ export function Viewer3D({
               onClick={() => setShowMissing((x) => !x)}
               title={tt("viewer_coverage_hint")}
               className={cn(
-                "ml-auto px-2 py-0.5 font-semibold tabular-nums",
+                "px-2 py-0.5 font-semibold tabular-nums",
+                !(cover.missing.length > 0 && onQuoteMissing) && "ml-auto",
                 cover.missing.length === 0
                   ? "bg-[color-mix(in_srgb,var(--status-ok)_16%,white)] text-[var(--status-ok)]"
                   : "bg-[color-mix(in_srgb,var(--status-error)_13%,white)] text-[var(--status-error)]",
@@ -209,7 +231,17 @@ export function Viewer3D({
             <p className="pointer-events-none absolute bottom-2 left-2.5 bg-card/70 px-1.5 py-0.5 text-[11px] text-ink-700">
               {empty ? tt("viewer_hint_empty") : plan ? tt("viewer_hint_plan") : scene.approximate ? tt("viewer_hint_approx") : tt("viewer_hint")}
             </p>
-            {excludedNote && (
+            {assigning && (
+              <div className="absolute inset-x-2.5 top-2 flex flex-wrap items-center justify-between gap-2 bg-[color-mix(in_srgb,#e9b949_30%,var(--card))] px-2.5 py-1.5 text-xs text-foreground shadow-sm">
+                <span>
+                  {tt("viewer_assign_hint")} <b>{assigning}</b>
+                </span>
+                <button type="button" onClick={onDoneAssigning} className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+                  {tt("done")}
+                </button>
+              </div>
+            )}
+            {excludedNote && !assigning && (
               <p className="pointer-events-none absolute top-2 left-2.5 max-w-[80%] bg-white/80 px-1.5 py-0.5 text-[11px] font-medium text-ink-700">{excludedNote}</p>
             )}
           </>

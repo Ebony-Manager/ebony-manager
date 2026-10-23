@@ -16,6 +16,8 @@ import type { Wall } from "@/types/cotizador";
 export interface ViewerCallbacks {
   onMove: (lineId: string, wall: Wall, along: number, y: number) => void;
   onHost: (lineId: string, hostLineId: string) => void;
+  /** Clic (sin arrastrar) sobre una pieza fija de un plano. */
+  onPick?: (pieceId: string) => void;
 }
 
 export interface Viewer {
@@ -334,7 +336,7 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
   const snap = (v: number) => Math.round(v * 20) / 20;
 
   type Drag =
-    | { orbit: true; x: number; y: number }
+    | { orbit: true; x: number; y: number; pick: string | null; travel: number }
     | { orbit: false; g: Three.Object3D; piece: string | null; off: { a: number; y: number }; moved: boolean };
   let drag: Drag | null = null;
 
@@ -348,6 +350,8 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
       g = g.parent;
     }
     const m = g ? meta.get(g) : undefined;
+    // Pieza fija (de un plano): arrastrar gira la vista; un clic la elige.
+    const pickId = m?.locked ? (piece ?? m.lineId) : null;
     if (g && m && !m.locked) {
       const h = hitWall();
       drag = {
@@ -358,17 +362,18 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
         moved: false,
       };
     } else {
-      drag = { orbit: true, x: e.clientX, y: e.clientY };
+      drag = { orbit: true, x: e.clientX, y: e.clientY, pick: pickId, travel: 0 };
     }
     canvas.setPointerCapture(e.pointerId);
   };
   const onMove = (e: PointerEvent) => {
     if (!drag) {
       aim(e);
-      canvas.style.cursor = pick((x) => !x.locked) ? "move" : "grab";
+      canvas.style.cursor = pick((x) => !x.locked) ? "move" : pick((x) => x.locked) ? "pointer" : "grab";
       return;
     }
     if (drag.orbit) {
+      drag.travel += Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y);
       view.az = Math.max(-1.45, Math.min(1.45, view.az - (e.clientX - drag.x) * 0.008));
       view.el = Math.max(0.02, Math.min(1.2, view.el + (e.clientY - drag.y) * 0.006));
       drag.x = e.clientX;
@@ -391,7 +396,11 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
   const onUp = (e: PointerEvent) => {
     const d = drag;
     drag = null;
-    if (!d || d.orbit || !d.moved) return;
+    if (d?.orbit) {
+      if (d.pick && d.travel < 5) cb.onPick?.(d.pick);
+      return;
+    }
+    if (!d || !d.moved) return;
     const m = meta.get(d.g);
     if (!m) return;
     if (d.piece) {
