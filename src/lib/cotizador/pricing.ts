@@ -54,7 +54,12 @@ export interface SectionTotals {
   total: number;
 }
 
+const ZERO: SectionTotals = { ebony: 0, util: 0, ebonyTotal: 0, sub: 0, subTotal: 0, waste: 0, extras: 0, commission: 0, base: 0, ccf: 0, total: 0 };
+
 export function sectionTotals(s: QuoteSection): SectionTotals {
+  // Un ítem sin renglones no cobra nada: los extras (desperdicio, 3D,
+  // mano de obra, flete) solo aplican cuando hay algo que fabricar.
+  if (s.lines.length === 0) return ZERO;
   let ebony = 0;
   let sub = 0;
   for (const l of s.lines) {

@@ -85,6 +85,10 @@ describe("sectionTotals", () => {
     expect(t.ccf).toBeCloseTo(246.0509, 3);
   });
 
+  it("un ítem sin renglones no cobra extras", () => {
+    expect(sectionTotals(section("vacío", [])).total).toBe(0);
+  });
+
   it("aplica la comisión de diseñadora antes del credit card fee", () => {
     const t = sectionTotals({ ...panelado, commissionPct: 10 });
     const before = t.ebonyTotal + t.subTotal + t.extras;

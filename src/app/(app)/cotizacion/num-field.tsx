@@ -46,6 +46,7 @@ export function NumField({
   // Mientras se escribe se conserva el texto tal cual ("4." o "4,1"); al
   // salir se vuelve a mostrar el número guardado.
   const [text, setText] = React.useState<string | null>(null);
+  const justFocused = React.useRef(false);
 
   return (
     <span
@@ -70,11 +71,14 @@ export function NumField({
           locked && "font-semibold text-foreground disabled:opacity-100"
         )}
         onFocus={(e) => {
-          const el = e.currentTarget;
-          // En el siguiente tick: en Safari el mouseup deshace la selección.
-          window.setTimeout(() => {
-            if (document.activeElement === el) el.select();
-          }, 0);
+          e.currentTarget.select();
+          justFocused.current = true;
+        }}
+        onMouseUp={(e) => {
+          // El clic que enfocó la casilla no debe deshacer la selección
+          // (pasa en Safari y Chrome): así lo que se escribe reemplaza.
+          if (justFocused.current) e.preventDefault();
+          justFocused.current = false;
         }}
         onChange={(e) => {
           const raw = e.currentTarget.value;

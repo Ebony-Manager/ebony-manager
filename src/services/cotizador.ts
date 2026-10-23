@@ -498,6 +498,15 @@ export async function createPlanSection({ quoteId, plan, section }: NewPlanSecti
     .single();
   if (error) throw new Error(error.message);
 
+  // La cotización nueva nace con un ítem en blanco; si sigue intacto
+  // (sin nombre, sin descripción y sin renglones), el ítem del plano lo
+  // reemplaza en vez de quedar segundo.
+  const { data: existing } = await supabase.from("quote_sections").select("id, name, location, description").eq("quote_id", quoteId);
+  const blank = (existing ?? []).filter((s) => !s.name && !s.location && !s.description);
+  if (existing?.length === 1 && blank.length === 1) {
+    const { count: lines } = await supabase.from("quote_lines").select("id", { count: "exact", head: true }).eq("section_id", blank[0].id);
+    if (!lines) await supabase.from("quote_sections").delete().eq("id", blank[0].id);
+  }
   const { count } = await supabase.from("quote_sections").select("id", { count: "exact", head: true }).eq("quote_id", quoteId);
   const withPlan = { ...section, planId: data.id };
   const { error: sectionError } = await supabase.from("quote_sections").insert(sectionRow(quoteId, withPlan, count ?? 0));
