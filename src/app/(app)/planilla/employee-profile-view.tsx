@@ -253,7 +253,7 @@ export function EmployeeProfileView({
             <DataItem
               label={tt("pd_document")}
               value={
-                <>
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                   {employee.idDocument ? (
                     `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
                   ) : (
@@ -269,7 +269,7 @@ export function EmployeeProfileView({
                       jotformDocumentUrlFromNotes(employee.notes) ? () => importJotformDocumentAction("employee", employee.id) : undefined
                     }
                   />
-                </>
+                </span>
               }
             />
             <DataItem label={tt("f_nationality")} value={countryName(employee.nationality, lang)} />

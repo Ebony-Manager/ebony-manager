@@ -592,7 +592,7 @@ export function ContractorProfileView({
           <DataItem
             label={tp("pd_document")}
             value={
-              <>
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 {contractor.idDocument ? (
                   [docType, contractor.idDocument].filter(Boolean).join(" ")
                 ) : (
@@ -608,7 +608,7 @@ export function ContractorProfileView({
                     jotformDocumentUrlFromNotes(contractor.notes) ? () => importJotformDocumentAction("contractor", contractor.id) : undefined
                   }
                 />
-              </>
+              </span>
             }
           />
           <DataItem label={tp("f_nationality")} value={countryName(contractor.nationality, lang)} />

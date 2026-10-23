@@ -133,7 +133,7 @@ export function IdDocumentFile({
   const pick = () => inputRef.current?.click();
 
   return (
-    <div className="mt-1 flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <input ref={inputRef} type="file" accept={DOCUMENT_ACCEPT} className="hidden" onChange={onFile} />
       {busy ? (
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -158,7 +158,7 @@ export function IdDocumentFile({
               <img
                 src={url}
                 alt={tt("doc_title")}
-                className="h-9 w-14 rounded border border-border object-cover transition-opacity hover:opacity-80"
+                className="h-6 w-9 rounded-sm border border-border object-cover transition-opacity hover:opacity-80"
               />
             </a>
           ) : (
@@ -167,7 +167,7 @@ export function IdDocumentFile({
               target="_blank"
               rel="noreferrer"
               title={url ? tt("doc_open") : tt("doc_unavailable")}
-              className="flex h-9 items-center gap-1 rounded border border-border px-2 text-xs text-muted-foreground hover:bg-muted/40"
+              className="flex h-6 items-center gap-1 rounded-sm border border-border px-1.5 text-xs text-muted-foreground hover:bg-muted/40"
             >
               {pdf ? <FileText className="size-3.5" /> : <IdCard className="size-3.5" />}
               {pdf ? "PDF" : tt("doc_title")}
