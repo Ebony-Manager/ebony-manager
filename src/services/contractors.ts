@@ -168,6 +168,8 @@ function mapProject(r: ProjectRow): Project {
     clientName: r.client_name,
     status: r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE",
     notes: r.notes,
+    location: r.location,
+    createdAt: r.created_at,
     scope: r.scope,
     furnitureType: r.furniture_type,
     materialColor: r.material_color,
@@ -312,6 +314,7 @@ export interface ProjectContractInput {
 export interface CreateProjectInput extends ProjectContractInput {
   name: string;
   clientName?: string | null;
+  location?: string | null;
   status?: ProjectStatus;
   notes?: string | null;
 }
@@ -323,6 +326,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     .insert({
       name: input.name,
       client_name: input.clientName ?? null,
+      location: input.location ?? null,
       status: input.status ?? "ACTIVE",
       notes: input.notes ?? null,
       scope: input.scope ?? null,
@@ -341,6 +345,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
 export interface UpdateProjectInput extends ProjectContractInput {
   name?: string;
   clientName?: string | null;
+  location?: string | null;
   status?: ProjectStatus;
   notes?: string | null;
 }
@@ -349,6 +354,7 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
   const patch: Database["public"]["Tables"]["projects"]["Update"] = {};
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.clientName !== undefined) patch.client_name = input.clientName;
+  if (input.location !== undefined) patch.location = input.location;
   if (input.status !== undefined) patch.status = input.status;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.scope !== undefined) patch.scope = input.scope;

@@ -24,6 +24,10 @@ export interface Project {
   clientName: string | null;
   status: ProjectStatus;
   notes: string | null;
+  /** Dónde queda la obra. */
+  location: string | null;
+  /** Cuándo se creó el proyecto en la app (ISO). */
+  createdAt: string;
   /** Campos de "contrato" (Etapa 2-A) — todos opcionales. */
   scope: string | null;
   furnitureType: string | null;

@@ -1405,6 +1405,7 @@ export type Database = {
           created_at: string
           furniture_type: string | null
           id: string
+          location: string | null
           material_color: string | null
           name: string
           notes: string | null
@@ -1420,6 +1421,7 @@ export type Database = {
           created_at?: string
           furniture_type?: string | null
           id?: string
+          location?: string | null
           material_color?: string | null
           name: string
           notes?: string | null
@@ -1435,6 +1437,7 @@ export type Database = {
           created_at?: string
           furniture_type?: string | null
           id?: string
+          location?: string | null
           material_color?: string | null
           name?: string
           notes?: string | null

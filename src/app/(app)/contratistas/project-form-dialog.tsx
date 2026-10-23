@@ -54,6 +54,7 @@ export function ProjectFormDialog({
 
   const [name, setName] = React.useState("");
   const [clientName, setClientName] = React.useState("");
+  const [location, setLocation] = React.useState("");
   const [status, setStatus] = React.useState<ProjectStatus>("ACTIVE");
   const [notes, setNotes] = React.useState("");
   // Contrato (Etapa 2-A) — todo texto salvo m² totales.
@@ -71,6 +72,7 @@ export function ProjectFormDialog({
     if (!open) return;
     setName(project?.name ?? "");
     setClientName(project?.clientName ?? "");
+    setLocation(project?.location ?? "");
     setStatus(project?.status ?? "ACTIVE");
     setNotes(project?.notes ?? "");
     setScope(project?.scope ?? "");
@@ -95,6 +97,7 @@ export function ProjectFormDialog({
       const payload = {
         name: name.trim(),
         clientName: clientName.trim() || null,
+        location: location.trim() || null,
         status,
         notes: notes.trim() || null,
         scope: scope.trim() || null,
@@ -157,6 +160,9 @@ export function ProjectFormDialog({
               </Select>
             </Field>
           </div>
+          <Field label={tt("proj_f_location")}>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
+          </Field>
           <Field label={tt("proj_f_notes")}>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>

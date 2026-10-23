@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Folder, Plus, Search } from "lucide-react";
 
@@ -9,8 +8,8 @@ import type { ContractorContract, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { formatCents } from "@/lib/planilla/payroll-period";
-import { contractPendingCents } from "@/lib/contractors/contracts";
+import { formatDateCompact } from "@/lib/planilla/format";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ProjectFormDialog } from "../contratistas/project-form-dialog";
@@ -19,10 +18,10 @@ import { projectPath } from "./paths";
 type StatusFilter = "active" | "completed" | "all";
 
 /**
- * Proyectos → la lista. Arranca en los activos; la búsqueda (nombre o
- * cliente) mira en el filtro elegido. Cada fila abre la ficha del proyecto.
- * Con Contratistas se ve además cuántos contratos tiene y lo que falta por
- * pagar de ellos.
+ * Proyectos → la lista: nombre con la ubicación debajo, cuándo se creó,
+ * cuántos contratos tiene (con Contratistas) y su estado. Sin montos: la
+ * plata se ve dentro de cada proyecto. Arranca en los activos; la búsqueda
+ * mira nombre, ubicación y cliente. Cada fila abre la ficha del proyecto.
  */
 export function ProjectsList({
   projects,
@@ -41,15 +40,9 @@ export function ProjectsList({
   const [status, setStatus] = React.useState<StatusFilter>("active");
   const [adding, setAdding] = React.useState(false);
 
-  const byProject = React.useMemo(() => {
-    const map = new Map<string, { total: number; active: number; pending: number }>();
-    for (const c of contracts) {
-      const cur = map.get(c.projectId) ?? { total: 0, active: 0, pending: 0 };
-      cur.total += 1;
-      if (c.status === "ACTIVE") cur.active += 1;
-      cur.pending += Math.max(0, contractPendingCents(c));
-      map.set(c.projectId, cur);
-    }
+  const contractCount = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of contracts) map.set(c.projectId, (map.get(c.projectId) ?? 0) + 1);
     return map;
   }, [contracts]);
 
@@ -57,11 +50,8 @@ export function ProjectsList({
     const q = query.trim().toLowerCase();
     return projects
       .filter((p) => status === "all" || (status === "active" ? p.status === "ACTIVE" : p.status !== "ACTIVE"))
-      .filter((p) => !q || p.name.toLowerCase().includes(q) || (p.clientName ?? "").toLowerCase().includes(q));
+      .filter((p) => !q || [p.name, p.location, p.clientName].some((s) => (s ?? "").toLowerCase().includes(q)));
   }, [projects, query, status]);
-
-  const countLabel = (s: { total: number; active: number }) =>
-    tt("contracts_count").replace("{active}", String(s.active)).replace("{total}", String(s.total));
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
@@ -114,35 +104,43 @@ export function ProjectsList({
           {tt("no_results")}
         </div>
       ) : (
-        <ul className="flex flex-col border border-ink-900/8 bg-card">
-          {shown.map((p) => {
-            const s = byProject.get(p.id);
-            return (
-              <li key={p.id} className="border-b border-ink-900/8 last:border-0">
-                <Link
-                  href={projectPath(p.id)}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3.5 py-2.5 hover:bg-muted/30"
+        <div className="overflow-x-auto border border-ink-900/8 bg-card">
+          <table className="w-full min-w-[560px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+                <th className="px-3.5 py-2 text-left font-medium">{tt("col_project")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tt("col_created")}</th>
+                {canContracts && <th className="px-3 py-2 text-right font-medium">{tt("col_contracts")}</th>}
+                <th className="px-3.5 py-2 text-right font-medium">{tt("col_status")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((p) => (
+                <tr
+                  key={p.id}
+                  onClick={() => router.push(projectPath(p.id))}
+                  className="cursor-pointer border-b border-ink-900/8 last:border-0 hover:bg-muted/30"
                 >
-                  <span className="flex min-w-0 flex-[1_1_240px] flex-col">
-                    <span className="truncate font-semibold text-foreground">{p.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{p.clientName || tt("none")}</span>
-                  </span>
+                  <td className="max-w-0 px-3.5 py-2.5">
+                    <span className="block truncate font-semibold text-foreground">{p.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{p.location || tt("no_location")}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
+                    {formatDateCompact(lang, todayInPanama(new Date(p.createdAt)))}
+                  </td>
                   {canContracts && (
-                    <span className="w-36 text-xs text-muted-foreground">{s ? countLabel(s) : tt("no_contracts_short")}</span>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{contractCount.get(p.id) ?? 0}</td>
                   )}
-                  {canContracts && (
-                    <span className="w-28 text-right text-sm tabular-nums text-foreground" title={tt("col_pending")}>
-                      {s && s.pending > 0 ? formatCents(s.pending) : "—"}
-                    </span>
-                  )}
-                  <Badge variant={p.status === "ACTIVE" ? "secondary" : "outline"}>
-                    {p.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}
-                  </Badge>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                  <td className="px-3.5 py-2.5 text-right">
+                    <Badge variant={p.status === "ACTIVE" ? "secondary" : "outline"}>
+                      {p.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <ProjectFormDialog

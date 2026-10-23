@@ -9,7 +9,6 @@ import type { ContractorContract, LaborRate, Project } from "@/types/contractors
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatCents } from "@/lib/planilla/payroll-period";
+import { formatDateCompact } from "@/lib/planilla/format";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
+import { cn } from "@/lib/utils";
 import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
@@ -110,7 +112,9 @@ export function ProjectHub({
               {isActive ? tt("status_active") : tt("status_completed")}
             </Badge>
           </h1>
-          <p className="text-sm text-muted-foreground">{project.clientName || tt("none")}</p>
+          <p className="text-sm text-muted-foreground">
+            {[project.location, project.clientName].filter(Boolean).join(" · ") || tt("no_location")}
+          </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
           <Pencil className="size-3.5" />
@@ -118,31 +122,34 @@ export function ProjectHub({
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={changeTab}>
-        {visible.length > 1 && (
-          <TabsList>
-            {visible.map((s) => (
-              <TabsTrigger key={s.key} value={s.key}>
-                {s.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        )}
+      {/* Pestañas — las mismas de Pagos: texto con subrayado. */}
+      <div className="flex items-center gap-[22px] overflow-x-auto border-b border-ink-900/8">
+        {visible.map((s) => {
+          const isActiveTab = tab === s.key;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => changeTab(s.key)}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5",
+                isActiveTab
+                  ? "border-b-2 border-walnut pb-[10px] text-[13.5px] font-semibold text-walnut"
+                  : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
+              )}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
 
-        <TabsContent value="resumen" className="mt-4">
-          <Overview project={project} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
-        </TabsContent>
-
-        {canContracts && (
-          <TabsContent value="contratos" className="mt-4">
-            <ContractsSection
-              contracts={contracts}
-              onOpen={setContractEditing}
-              onAdd={() => setContractAdding(true)}
-            />
-          </TabsContent>
-        )}
-      </Tabs>
+      {tab === "resumen" && (
+        <Overview project={project} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
+      )}
+      {tab === "contratos" && canContracts && (
+        <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
+      )}
 
       <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
       <DeleteProjectDialog
@@ -218,13 +225,15 @@ function Overview({
     <div className="flex flex-col gap-4">
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-semibold text-foreground">{tt("info_title")}</h2>
-        <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
+          <Item label={tt("f_location")} value={project.location || tt("none")} />
           <Item label={tt("f_client")} value={project.clientName || tt("none")} />
           <Item
             label={tt("f_status")}
             value={project.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}
           />
-          <div className="sm:col-span-3">
+          <Item label={tt("f_created")} value={formatDateCompact(lang, todayInPanama(new Date(project.createdAt)))} />
+          <div className="col-span-2 sm:col-span-4">
             <Item label={tt("f_notes")} value={project.notes || tt("none")} />
           </div>
         </dl>
