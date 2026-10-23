@@ -50,3 +50,32 @@ export function countryOptions(lang: Lang): { code: string; name: string; common
     .sort((a, b) => a.name.localeCompare(b.name, lang, { sensitivity: "base" }));
   return [...common, ...rest];
 }
+
+const fold = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+let byName: Map<string, string> | null = null;
+
+/**
+ * Código del país a partir de su nombre en español o inglés ("Panama",
+ * "Panamá", "Colombia" → "PA", "CO"), o del código mismo. null si no se
+ * reconoce (ej. el campo "Country" del registro de JotForm).
+ */
+export function countryCodeFromName(value: string | null | undefined): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  if (isCountryCode(raw.toUpperCase())) return raw.toUpperCase();
+  if (!byName) {
+    byName = new Map();
+    for (const lang of ["es", "en"] as const) {
+      for (const code of COUNTRY_CODES) byName.set(fold(countryName(code, lang)), code);
+    }
+  }
+  return byName.get(fold(raw)) ?? null;
+}

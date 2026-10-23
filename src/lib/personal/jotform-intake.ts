@@ -9,6 +9,8 @@
  * `q3_nombre`). Las dos se llevan a un mismo mapa por nombre de campo.
  */
 
+import { countryCodeFromName } from "@/lib/countries";
+
 /** Formulario de JotForm que alimenta la bandeja de Staff. */
 export const EMPLOYEE_FORM_ID = "232606019835052";
 
@@ -20,6 +22,9 @@ export const EMPLOYEE_FORM_FIELDS = {
   birthDate: "fechaNacimiento",
   address: "domicilio",
   idDocument: "cedulaO",
+  idNumber: "numeroCedula",
+  /** "Country" (lista de países de JotForm, en inglés). */
+  country: "typeA52",
   bankName: "nombreBanco",
   bankAccountType: "tipoDe",
   bankAccountNumber: "numeroDe",
@@ -41,6 +46,11 @@ export interface IntakeFields {
   address: string | null;
   /** Enlace a la foto de la cédula o pasaporte que subió (en JotForm). */
   idDocumentUrl: string | null;
+  /** Número de cédula o pasaporte, como lo escribió (en mayúsculas). */
+  idNumber: string | null;
+  idDocumentType: "cedula" | "pasaporte" | null;
+  /** Nacionalidad: código ISO del país (ej. "PA"). */
+  nationality: string | null;
   bankName: string | null;
   bankAccountType: "ahorro" | "corriente" | null;
   bankAccountNumber: string | null;
@@ -189,6 +199,18 @@ function firstUrl(value: unknown): string | null {
   return url ?? null;
 }
 
+/**
+ * Número de cédula o pasaporte. Una cédula panameña tiene tres partes con
+ * guiones ("8-974-1975", "E-8-123456", "PE-12-345"); lo demás se toma como
+ * pasaporte.
+ */
+export function parseIdNumber(raw: unknown): Pick<IntakeFields, "idNumber" | "idDocumentType"> {
+  const s = str(raw).toUpperCase().replace(/\s*-\s*/g, "-");
+  if (!s) return { idNumber: null, idDocumentType: null };
+  const cedula = /^(\d{1,2}|E|N|PE|\d{1,2}(AV|PI))-\d{1,4}-\d{1,6}$/.test(s);
+  return { idNumber: s, idDocumentType: cedula ? "cedula" : "pasaporte" };
+}
+
 function email(value: unknown): string | null {
   const s = str(value).toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : null;
@@ -208,6 +230,8 @@ export function normalizeIntake(answers: AnswersByName): IntakeFields {
     birthDate: parseJotformDate(answers[f.birthDate]),
     address: formatAddress(answers[f.address]),
     idDocumentUrl: firstUrl(answers[f.idDocument]),
+    ...parseIdNumber(answers[f.idNumber]),
+    nationality: countryCodeFromName(str(answers[f.country])),
     bankName,
     bankAccountType: parseAccountType(answers[f.bankAccountType]),
     bankAccountNumber: formatBankAccount(answers[f.bankAccountNumber], bankName),
@@ -276,6 +300,9 @@ export interface PersonProfileFields {
   bankName: string | null;
   bankAccountType: "ahorro" | "corriente" | null;
   bankAccountNumber: string | null;
+  idDocument: string | null;
+  idDocumentType: "cedula" | "pasaporte" | null;
+  nationality: string | null;
   notes: string | null;
 }
 
@@ -317,6 +344,11 @@ export function intakePatch(current: PersonProfileFields, intake: IntakeFields):
   fill("birthDate");
   fill("emergencyContactName");
   fill("emergencyContactPhone");
+  if (!current.idDocument && intake.idNumber) {
+    patch.idDocument = intake.idNumber;
+    if (!current.idDocumentType && intake.idDocumentType) patch.idDocumentType = intake.idDocumentType;
+  }
+  if (!current.nationality && intake.nationality) patch.nationality = intake.nationality;
   const hasBank = Boolean(current.bankName || current.bankAccountType || current.bankAccountNumber);
   if (!hasBank && intake.bankAccountNumber) {
     patch.bankName = intake.bankName;

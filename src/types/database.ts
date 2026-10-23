@@ -1885,6 +1885,9 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
+          id_number: string | null
+          id_document_type: string | null
+          nationality: string | null
           first_name: string | null
           form_id: string | null
           id: string
@@ -1912,6 +1915,9 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          id_number?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
           first_name?: string | null
           form_id?: string | null
           id?: string
@@ -1939,6 +1945,9 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          id_number?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
           first_name?: string | null
           form_id?: string | null
           id?: string

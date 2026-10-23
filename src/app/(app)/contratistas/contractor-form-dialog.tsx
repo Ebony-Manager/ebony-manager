@@ -65,6 +65,9 @@ export type ContractorPrefill = Partial<
     | "bankName"
     | "bankAccountType"
     | "bankAccountNumber"
+    | "idDocument"
+    | "idDocumentType"
+    | "nationality"
   >
 >;
 

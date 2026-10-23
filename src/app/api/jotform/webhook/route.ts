@@ -113,6 +113,9 @@ function intakeData(answers: AnswersByName) {
     emergency_contact_name: f.emergencyContactName,
     emergency_contact_phone: f.emergencyContactPhone,
     emergency_contact_relation: f.emergencyContactRelation,
+    id_number: f.idNumber,
+    id_document_type: f.idDocumentType,
+    nationality: f.nationality,
   };
 }
 
