@@ -20,8 +20,9 @@ const pz = (p: Omit<PlanPiece, "confidence"> & { confidence?: PlanPiece["confide
 
 const pieces: PlanPiece[] = [
   // Panelados
-  pz({ id: "pan-s1", kind: "panel", label: "Panelado lateral izquierdo", section: 1, x: X.s1, y: 0, w: 0.87, h: 2.93, d: 0.018 }),
-  pz({ id: "pan-s5", kind: "panel", label: "Panelado lateral derecho", section: 5, x: X.s5, y: 0, w: 0.27, h: 2.93, d: 0.018 }),
+  // El plano acota 2.93 en el panel y 2.95 en el mueble: se usa la más grande.
+  pz({ id: "pan-s1", kind: "panel", label: "Panelado lateral izquierdo", section: 1, x: X.s1, y: 0, w: 0.87, h: 2.95, d: 0.018 }),
+  pz({ id: "pan-s5", kind: "panel", label: "Panelado lateral derecho", section: 5, x: X.s5, y: 0, w: 0.27, h: 2.95, d: 0.018 }),
   pz({ id: "pan-tv", kind: "panel", label: "Fondo de la TV", section: 3, x: X.s3, y: NICHE_Y, w: 2.57, h: 1.58, d: 0.018 }),
   pz({ id: "pan-n2", kind: "panel", label: "Fondo de nichos izquierdo", section: 2, x: X.s2, y: NICHE_Y, w: 0.9, h: 1.58, d: 0.018 }),
   pz({ id: "pan-n4", kind: "panel", label: "Fondo de nichos derecho", section: 4, x: X.s4, y: NICHE_Y, w: 0.9, h: 1.58, d: 0.018 }),
@@ -61,7 +62,8 @@ const pieces: PlanPiece[] = [
   pz({ id: "gav-4", kind: "drawer", label: "Gaveta", section: 4, x: X.s4, y: 0.58, w: 0.9, h: 0.14, d: 0.43, opening: "gola", notes: "Tirador a 45°." }),
 
   // Tablillas internas (detrás de las puertas inferiores)
-  pz({ id: "tab-int", kind: "shelf", label: "Tablillas internas", section: 3, x: X.c1, y: 0.36, w: 3.67, h: 0.02, d: 0.4, visible: false, segments: 6, confidence: "media", notes: "Una por cada hoja de puerta." }),
+  // Ancho real de las hojas: 0.45 + 0.45 + 0.65 + 0.63 + 0.63 + 0.65 = 3.46.
+  pz({ id: "tab-int", kind: "shelf", label: "Tablillas internas", section: 3, x: X.s2, y: 0.36, w: 3.46, h: 0.02, d: 0.4, visible: false, segments: 6, confidence: "media", notes: "Una por cada hoja de puerta, con el ancho de las hojas." }),
 
   // Piedra (no se cotiza)
   ...[

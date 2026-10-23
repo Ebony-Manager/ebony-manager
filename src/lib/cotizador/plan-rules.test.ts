@@ -6,7 +6,9 @@ import { THE_WOODS } from "./plan-fixtures";
 import { coverage, piecesToLines, planDescription } from "./plan-rules";
 
 // Referencia: la cotización del Mueble Family (The Woods 10-32) tal como
-// la armó la cotizadora en la app, con sus reglas de medición.
+// la armó la cotizadora en la app (versión del 23 oct 2026). Ella redondea
+// a mano cada parte antes de sumar, así que módulo (5.36), puertas (3.66)
+// y panelado (10.81) pueden diferir en 0.01 m² de este cálculo exacto.
 const qtyOf = (code: string) => piecesToLines(THE_WOODS.pieces, DEFAULT_ANSWERS).lines.find((l) => l.code === code)?.qty;
 
 describe("piecesToLines — The Woods", () => {
@@ -18,12 +20,12 @@ describe("piecesToLines — The Woods", () => {
     ["gav-es-ag", 0.9, "estructura de gaveta, ML"],
     ["gav-go-ag", 0.9, "gola de la gaveta, ML"],
     ["ac-riel-e", 1, "un par de rieles por gaveta"],
-    ["ac-bis-r", 24, "10 hojas × 2 + rejilla 4"],
+    ["ac-bis-r", 22, "10 hojas × 2 + rejilla 2"],
     ["ac-brazo", 2, "un par de brazos para la rejilla"],
-    ["tab-ag", 1.47, "tablillas internas 3.67 × 0.40"],
+    ["tab-ag", 1.38, "tablillas internas: ancho de hojas 3.46 × 0.40"],
     ["ac-sop-tab", 24, "4 soportes por tramo × 6"],
     ["tab-pi", 5.31, "columnas: 4 × 2.95 × 0.45"],
-    ["rev-pi", 10.78, "panelados: laterales, fondo de TV, fondos de nichos, panel bajo gaveta"],
+    ["rev-pi", 10.8, "panelados: laterales (alto 2.95), fondo de TV, fondos de nichos, panel bajo gaveta"],
   ])("%s = %s (%s)", (code, expected) => {
     expect(qtyOf(code)).toBe(expected);
   });

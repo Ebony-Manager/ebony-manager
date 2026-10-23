@@ -15,10 +15,11 @@ import type { PlanAnswers, PlanPiece } from "@/types/plan";
  *     aglomerado (ML de su ancho), un par de rieles y la apertura.
  *  3. Puertas: ancho × alto en el acabado externo, lisas o con listones.
  *     Bisagras rectas de cierre suave: 2 por hoja, 4 si la hoja pasa de
- *     1 m de alto. La puerta que abre hacia arriba lleva bisagras (2, o 4
- *     si pasa de 1 m de ancho) y además un par de brazos.
+ *     1 m de alto. La puerta que abre hacia arriba lleva 2 bisagras y
+ *     además un par de brazos (la "tijera" que la sostiene arriba).
  *  4. Tablillas internas (detrás de puertas): siempre, en aglomerado,
- *     con 4 soportes por tramo. Tablillas vistas: en el acabado externo.
+ *     con el ancho real de las hojas (no el general) y 4 soportes por
+ *     tramo. Tablillas vistas: en el acabado externo.
  *  5. Columnas y piezas verticales completas: como tablilla del acabado
  *     externo, alto × fondo, enteras (no se descuentan del módulo).
  *  6. Panelado (laterales, fondo de TV, fondo de nichos, paneles bajo
@@ -106,7 +107,7 @@ export function piecesToLines(pieces: PlanPiece[], a: PlanAnswers): RulesResult 
         const hinge = a.hinge === "cangrejo" ? "ac-bis-c" : "ac-bis-r";
         const open = p.opening ?? a.opening;
         if (open === "arriba") {
-          out.add(hinge, (p.w > 1 ? 4 : 2) * leaves.length, [p.id]);
+          out.add(hinge, 2 * leaves.length, [p.id]);
           out.add("ac-brazo", 2 * leaves.length, [p.id]);
         } else {
           out.add(hinge, (p.h > 1 ? 4 : 2) * leaves.length, [p.id]);
