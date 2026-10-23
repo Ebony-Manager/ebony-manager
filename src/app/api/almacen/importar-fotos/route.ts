@@ -12,6 +12,16 @@ export const maxDuration = 60;
 
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 
+/** Algunas fotos llegan como "application/octet-stream": se reconoce el tipo por los primeros bytes. */
+function sniffImageType(bytes: Uint8Array): string | null {
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.slice(from, to));
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x89 && ascii(1, 4) === "PNG") return "image/png";
+  if (ascii(0, 3) === "GIF") return "image/gif";
+  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "image/webp";
+  return null;
+}
+
 export async function GET(request: Request) {
   await requireAdmin();
   const apiKey = process.env.JOTFORM_API_KEY?.trim();
@@ -39,10 +49,12 @@ export async function GET(request: Request) {
     if (!url) return result.sin_foto_en_jotform.push(item.name);
     try {
       const img = await fetch(encodeURI(decodeURI(url)), { cache: "no-store" });
-      const type = (img.headers.get("content-type") ?? "").split(";")[0].trim();
-      if (!img.ok || !EXT[type]) throw new Error(`respuesta ${img.status} ${type}`);
+      const bytes = new Uint8Array(await img.arrayBuffer());
+      const header = (img.headers.get("content-type") ?? "").split(";")[0].trim();
+      const type = EXT[header] ? header : sniffImageType(bytes);
+      if (!img.ok || !type) throw new Error(`respuesta ${img.status} ${header}`);
       const path = inventoryPhotoPath(item.id, EXT[type]);
-      const up = await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).upload(path, await img.arrayBuffer(), { contentType: type });
+      const up = await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).upload(path, bytes, { contentType: type });
       if (up.error) throw up.error;
       const upd = await supabase.from("inventory_items").update({ photo_path: path }).eq("id", item.id);
       if (upd.error) throw upd.error;
