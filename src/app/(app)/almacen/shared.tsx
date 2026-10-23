@@ -65,13 +65,13 @@ export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stock
   return <Badge variant="success">{ta("status_ok")}</Badge>;
 }
 
-/** Foto del producto (o un ícono si no tiene). */
-export function ItemThumb({ path, size = 40, className }: { path: string | null; size?: number; className?: string }) {
+/** Foto del producto (o un ícono si no tiene). `size="fill"` ocupa todo el espacio del contenedor. */
+export function ItemThumb({ path, size = 40, className }: { path: string | null; size?: number | "fill"; className?: string }) {
   const url = inventoryPhotoUrl(path);
   return (
     <span
       className={`flex shrink-0 items-center justify-center overflow-hidden border border-ink-900/8 bg-white ${className ?? ""}`}
-      style={{ width: size, height: size }}
+      style={size === "fill" ? undefined : { width: size, height: size }}
     >
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element -- foto pública de Supabase Storage; next/image no aplica.

@@ -94,10 +94,10 @@ export function IssueShop({
         ) : (
           groups.map((g) => (
             <div key={g.category.id || "none"} className="flex flex-col">
-              <h2 className="border-b border-ink-900/8 pb-1.5 text-sm font-semibold text-foreground">{g.category.name}</h2>
-              <ul>
+              <h2 className="mb-3 border-b border-ink-900/8 pb-1.5 text-sm font-semibold text-foreground">{g.category.name}</h2>
+              <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3">
                 {g.items.map((item) => (
-                  <ProductRow
+                  <ProductCard
                     key={item.id}
                     item={item}
                     inCart={cart.filter((l) => item.variants.some((v) => v.id === l.variantId))}
@@ -136,9 +136,9 @@ export function IssueShop({
   );
 }
 
-// ── Un producto de la lista ──────────────────────────────────────────────
+// ── La tarjeta de un producto ──────────────────────────────────────────────
 
-function ProductRow({
+function ProductCard({
   item,
   inCart,
   onAdd,
@@ -178,25 +178,29 @@ function ProductRow({
   const tone = status === "sin" ? "text-destructive" : status === "bajo" ? "text-warning" : "text-muted-foreground";
   const added = inCart.length > 0;
 
+  // Tarjeta: foto, nombre y existencia arriba; menús de variante en el medio;
+  // cantidad y "Agregar" siempre al pie, alineados en toda la fila.
   return (
-    <li className={`flex flex-col gap-2 border-b border-ink-900/8 py-3 last:border-0 ${added ? "bg-primary/5" : ""}`}>
-      <div className="flex gap-3">
-        <ItemThumb path={item.photoPath} size={64} />
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div>
-            <p className="font-semibold leading-tight text-foreground">{item.name}</p>
-            {variant && (
-              <p className={`text-xs ${tone}`}>
-                {status === "sin" ? ta("status_out") : `${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+    <li className={`flex flex-col border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-ink-900/8"}`}>
+      <div className="flex h-28 items-center justify-center border-b border-ink-900/8 bg-white p-2 sm:h-36">
+        <ItemThumb path={item.photoPath} size="fill" className="size-full border-0" />
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
+        <div>
+          <p className="text-sm leading-tight font-semibold text-foreground">{item.name}</p>
+          {variant && (
+            <p className={`mt-0.5 text-xs ${tone}`}>
+              {status === "sin" ? ta("status_out") : `${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}
+            </p>
+          )}
+        </div>
+        {dims > 0 && (
+          <div className="flex flex-col gap-1.5">
             {Array.from({ length: dims }, (_, k) => {
               const opts = optionsAt(variants, k, selection);
               return (
                 <Select key={k} value={selection[k]} onValueChange={(v) => choose(k, v)}>
-                  <SelectTrigger className="h-9 w-auto min-w-24 max-w-full">
+                  <SelectTrigger className="h-8 w-full text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -209,55 +213,58 @@ function ProductRow({
                 </Select>
               );
             })}
-            <div className="flex items-center">
-              <button
-                type="button"
-                aria-label="-"
-                onClick={() => bump(-1)}
-                className="flex size-9 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
-              >
-                <Minus className="size-3.5" />
-              </button>
-              <input
-                inputMode="decimal"
-                value={qty}
-                onChange={(e) => setQty(e.currentTarget.value)}
-                onFocus={(e) => e.currentTarget.select()}
-                aria-label={ta("qty")}
-                className="h-9 w-14 border-y border-input bg-card text-center text-sm tabular-nums outline-none focus-visible:border-ring"
-              />
-              <button
-                type="button"
-                aria-label="+"
-                onClick={() => bump(1)}
-                className="flex size-9 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </div>
-            <Button type="button" size="sm" className="h-9" onClick={addNow} disabled={!variant || n == null || n <= 0}>
-              <Plus className="size-3.5" />
-              {ta("add_to_issue")}
-            </Button>
           </div>
+        )}
+
+        <div className="mt-auto flex flex-col gap-1.5 pt-1">
+          <div className="flex items-center">
+            <button
+              type="button"
+              aria-label="-"
+              onClick={() => bump(-1)}
+              className="flex size-9 shrink-0 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
+            >
+              <Minus className="size-3.5" />
+            </button>
+            <input
+              inputMode="decimal"
+              value={qty}
+              onChange={(e) => setQty(e.currentTarget.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label={ta("qty")}
+              className="h-9 w-full min-w-0 border-y border-input bg-card text-center text-sm tabular-nums outline-none focus-visible:border-ring"
+            />
+            <button
+              type="button"
+              aria-label="+"
+              onClick={() => bump(1)}
+              className="flex size-9 shrink-0 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+          <Button type="button" size="sm" className="h-9 w-full" onClick={addNow} disabled={!variant || n == null || n <= 0}>
+            <Plus className="size-3.5" />
+            {ta("add_to_issue")}
+          </Button>
+          {added && (
+            <ul className="flex flex-col gap-1">
+              {inCart.map((l) => {
+                const v = item.variants.find((x) => x.id === l.variantId);
+                return (
+                  <li key={l.variantId} className="flex items-center gap-1.5 bg-primary/5 px-1.5 py-1 text-xs">
+                    <Check className="size-3 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate">{v?.label ? `${v.label} × ${formatQty(l.qty, lang)}` : `× ${formatQty(l.qty, lang)}`}</span>
+                    <button type="button" aria-label={ta("remove")} onClick={() => onRemove(l.variantId)} className="text-muted-foreground hover:text-destructive">
+                      <X className="size-3" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
-      {added && (
-        <ul className="ml-[76px] flex flex-wrap gap-1.5">
-          {inCart.map((l) => {
-            const v = item.variants.find((x) => x.id === l.variantId);
-            return (
-              <li key={l.variantId} className="flex items-center gap-1.5 border border-primary/30 bg-card px-2 py-0.5 text-xs">
-                <Check className="size-3 text-primary" />
-                {v?.label ? `${v.label} × ${formatQty(l.qty, lang)}` : `× ${formatQty(l.qty, lang)}`}
-                <button type="button" aria-label={ta("remove")} onClick={() => onRemove(l.variantId)} className="text-muted-foreground hover:text-destructive">
-                  <X className="size-3" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </li>
   );
 }
