@@ -28,7 +28,16 @@ export async function GET(request: Request) {
   const inventory = Object.fromEntries(Object.entries(props).filter(([k]) => /stock|inventor|alert|categor/i.test(k)));
 
   if (formato === "json") {
-    return Response.json({ products, inventory }, { headers: { "Content-Disposition": 'attachment; filename="catalogo-jotform.json"' } });
+    // Los nombres de las categorías no vienen en las propiedades: pueden estar en la pregunta de la lista de productos.
+    const qRes = await fetch(`${JOTFORM_API}/form/${FORM_ID}/questions`, { headers: { APIKEY: apiKey }, cache: "no-store" });
+    const qBody = qRes.ok ? ((await qRes.json()) as { content?: Record<string, Record<string, unknown>> }) : {};
+    const questions = Object.values(qBody.content ?? {})
+      .filter((q) => /payment|paypal|stripe|square|product/i.test(String(q.type ?? "")))
+      .map((q) => Object.fromEntries(Object.entries(q).filter(([k]) => k !== "products")));
+    return Response.json(
+      { products, inventory, questions },
+      { headers: { "Content-Disposition": 'attachment; filename="catalogo-jotform.json"' } },
+    );
   }
 
   const known = new Set(["pid", "name", "description", "price", "images", "options"]);
