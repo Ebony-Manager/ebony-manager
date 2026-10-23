@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Plus, X } from "lucide-react";
+import { Camera, Loader2, Plus, Trash2, X } from "lucide-react";
 
 import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type ItemKind, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
+import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photos";
+import { createClient } from "@/lib/supabase/client";
+import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { Field } from "../contratistas/field";
-import { createItemAction, updateItemAction } from "./actions";
-import { Combo, QtyInput, qtyWithUnit, useTa } from "./shared";
+import { createItemAction, setItemPhotoAction, updateItemAction } from "./actions";
+import { Combo, ItemThumb, QtyInput, qtyWithUnit, useTa } from "./shared";
 
 interface VariantDraft {
   key: string;
@@ -73,10 +76,17 @@ export function ItemDialog({
   const [links, setLinks] = React.useState<SupplierDraft[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Foto: en un producto existente se sube al elegirla; en uno nuevo, al guardarlo.
+  const [photoPath, setPhotoPath] = React.useState<string | null>(null);
+  const [pendingPhoto, setPendingPhoto] = React.useState<{ blob: Blob; preview: string } | null>(null);
+  const [photoBusy, setPhotoBusy] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
     if (!item) return;
+    setPhotoPath(current?.photoPath ?? null);
+    setPendingPhoto(null);
     setName(current?.name ?? "");
     setCategoryId(current?.categoryId ?? NONE);
     setUnit(current?.unit ?? "unidad");
@@ -120,6 +130,47 @@ export function ItemDialog({
   const patchLink = (key: string, patch: Partial<SupplierDraft>) =>
     setLinks((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : patch.isPrimary ? { ...l, isPrimary: false } : l)));
 
+  async function uploadPhoto(itemId: string, blob: Blob, oldPath: string | null): Promise<string> {
+    const supabase = createClient();
+    const path = inventoryPhotoPath(itemId);
+    const up = await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+    if (up.error) throw up.error;
+    const res = await setItemPhotoAction(itemId, path);
+    if (!res.ok) throw new Error(res.error);
+    if (oldPath) await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).remove([oldPath]);
+    return path;
+  }
+
+  async function onPhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      const blob = await resizeToJpeg(file, 800);
+      if (current) {
+        setPhotoPath(await uploadPhoto(current.id, blob, photoPath));
+        toast.success(ta("photo_saved"));
+      } else {
+        setPendingPhoto({ blob, preview: URL.createObjectURL(blob) });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : ta("photo_error"));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    if (!current) return setPendingPhoto(null);
+    setPhotoBusy(true);
+    const res = await setItemPhotoAction(current.id, null);
+    if (res.ok && photoPath) await createClient().storage.from(INVENTORY_PHOTOS_BUCKET).remove([photoPath]);
+    setPhotoBusy(false);
+    if (!res.ok) return toast.error(res.error);
+    setPhotoPath(null);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError(ta("name_required"));
@@ -138,6 +189,9 @@ export function ItemDialog({
     };
     setSaving(true);
     const res = current ? await updateItemAction(current.id, input) : await createItemAction(input);
+    if (res.ok && !current && pendingPhoto && res.data) {
+      await uploadPhoto(res.data, pendingPhoto.blob, null).catch(() => toast.error(ta("photo_error")));
+    }
     setSaving(false);
     if (!res.ok) return setError(res.error);
     toast.success(ta("saved"));
@@ -152,10 +206,36 @@ export function ItemDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <div className="flex items-start gap-4">
+            <div className="flex flex-col items-center gap-1.5">
+              {pendingPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element -- vista previa local antes de subir.
+                <img src={pendingPhoto.preview} alt="" className="size-24 border border-ink-900/8 object-contain" />
+              ) : (
+                <ItemThumb path={photoPath} size={96} />
+              )}
+              {!readOnly && (
+                <div className="flex items-center gap-1">
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhotoFile} />
+                  <Button type="button" size="sm" variant="outline" disabled={photoBusy} onClick={() => fileRef.current?.click()}>
+                    {photoBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+                    {photoPath || pendingPhoto ? ta("photo_change") : ta("photo_add")}
+                  </Button>
+                  {(photoPath || pendingPhoto) && (
+                    <button type="button" title={ta("remove")} onClick={() => void removePhoto()} className="p-1 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <fieldset disabled={readOnly} className="flex-1">
+              <Field label={ta("f_name")}>
+                <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!readOnly && !current} />
+              </Field>
+            </fieldset>
+          </div>
           <fieldset disabled={readOnly} className="flex flex-col gap-4">
-            <Field label={ta("f_name")}>
-              <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!readOnly && !current} />
-            </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label={ta("f_category")}>
                 <Select value={categoryId} onValueChange={setCategoryId} disabled={readOnly}>

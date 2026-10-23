@@ -132,6 +132,7 @@ export async function getCatalog(): Promise<InventoryItem[]> {
     allowsDecimals: i.allows_decimals,
     kind: i.kind as ItemKind,
     notes: i.notes,
+    photoPath: i.photo_path,
     active: i.active,
     variants: (byItem.get(i.id) ?? []).map((v) => ({
       id: v.id,
@@ -220,6 +221,12 @@ export async function updateItem(id: string, input: ItemInput): Promise<void> {
   const supabase = await createClient();
   fail((await supabase.from("inventory_items").update(itemRow(input)).eq("id", id)).error);
   await saveItemChildren(id, input);
+}
+
+/** Guarda (o quita) la foto del producto. El archivo ya lo subió el navegador al bucket. */
+export async function setItemPhoto(id: string, path: string | null): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.from("inventory_items").update({ photo_path: path }).eq("id", id)).error);
 }
 
 // ── Personal y proyectos (para las salidas) ─────────────────────────────

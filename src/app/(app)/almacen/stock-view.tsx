@@ -11,7 +11,7 @@ import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatQty, formatUnitCost, stockStatus } from "@/lib/almacen/inventory";
 import { ItemDialog } from "./item-dialog";
-import { EmptyBox, PageHeader, SearchBox, StockBadge, qtyWithUnit, useTa } from "./shared";
+import { EmptyBox, ItemThumb, PageHeader, SearchBox, StockBadge, qtyWithUnit, useTa } from "./shared";
 
 type Filter = "all" | "low" | "out";
 
@@ -125,9 +125,10 @@ export function StockView({
                 <button
                   type="button"
                   onClick={() => setEditing(item)}
-                  className="flex w-full items-start justify-between gap-3 border border-ink-900/8 bg-card px-3.5 py-3 text-left"
+                  className="flex w-full items-start gap-3 border border-ink-900/8 bg-card px-3.5 py-3 text-left"
                 >
-                  <span className="min-w-0">
+                  <ItemThumb path={item.photoPath} size={48} />
+                  <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-foreground">{item.name}</span>
                     {variant.label && <span className="block text-xs text-muted-foreground">{variant.label}</span>}
                     <span className="mt-1 block text-xs text-muted-foreground">
@@ -157,13 +158,18 @@ export function StockView({
               <tbody>
                 {rows.map(({ item, variant }) => (
                   <tr key={variant.id} onClick={() => setEditing(item)} className="cursor-pointer border-b border-ink-900/8 last:border-0 hover:bg-muted/30">
-                    <td className="min-w-[240px] px-3.5 py-2.5">
-                      <span className="flex flex-wrap items-center gap-1.5 font-semibold text-foreground">
-                        {item.name}
-                        {item.kind === "devolvible" && <Badge variant="outline">{ta("returnable")}</Badge>}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {[variant.label, catName.get(item.categoryId ?? "")].filter(Boolean).join(" · ")}
+                    <td className="min-w-[260px] px-3.5 py-2">
+                      <span className="flex items-center gap-3">
+                        <ItemThumb path={item.photoPath} size={40} />
+                        <span className="min-w-0">
+                          <span className="flex flex-wrap items-center gap-1.5 font-semibold text-foreground">
+                            {item.name}
+                            {item.kind === "devolvible" && <Badge variant="outline">{ta("returnable")}</Badge>}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {[variant.label, catName.get(item.categoryId ?? "")].filter(Boolean).join(" · ")}
+                          </span>
+                        </span>
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums">{qtyWithUnit(variant.stockQty, item.unit, lang)}</td>

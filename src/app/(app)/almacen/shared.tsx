@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Package } from "lucide-react";
 
 import type { InventoryItem, InventoryVariant } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { formatQty, stockStatus, unitLabel, variantName } from "@/lib/almacen/inventory";
+import { inventoryPhotoUrl } from "@/lib/almacen/photos";
 
 export type AlmacenKey = keyof typeof strings.almacen;
 
@@ -62,6 +63,24 @@ export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stock
   if (s === "sin") return <Badge variant="destructive">{ta("status_out")}</Badge>;
   if (s === "bajo") return <Badge variant="warning">{ta("status_low")}</Badge>;
   return <Badge variant="success">{ta("status_ok")}</Badge>;
+}
+
+/** Foto del producto (o un ícono si no tiene). */
+export function ItemThumb({ path, size = 40, className }: { path: string | null; size?: number; className?: string }) {
+  const url = inventoryPhotoUrl(path);
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center overflow-hidden border border-ink-900/8 bg-white ${className ?? ""}`}
+      style={{ width: size, height: size }}
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- foto pública de Supabase Storage; next/image no aplica.
+        <img src={url} alt="" loading="lazy" className="size-full object-contain" />
+      ) : (
+        <Package className="size-1/2 text-muted-foreground/40" />
+      )}
+    </span>
+  );
 }
 
 export interface VariantRef {

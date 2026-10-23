@@ -77,6 +77,8 @@ export interface InventoryItem {
   allowsDecimals: boolean;
   kind: ItemKind;
   notes: string | null;
+  /** Ruta de la foto en el bucket público `inventory-photos` (ver inventoryPhotoUrl). */
+  photoPath: string | null;
   active: boolean;
   variants: InventoryVariant[];
   suppliers: ItemSupplier[];
