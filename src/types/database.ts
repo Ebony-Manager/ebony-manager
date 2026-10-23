@@ -2591,6 +2591,14 @@ export type Database = {
         Args: { p_order_id: string; p_received_on: string | null; p_lines: Json }
         Returns: undefined
       }
+      set_inventory_summary_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      inventory_daily_summary: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       inventory_people: {
         Args: Record<PropertyKey, never>
         Returns: {
