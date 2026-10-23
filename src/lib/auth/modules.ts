@@ -9,7 +9,7 @@
 
 export type AppRole = "admin" | "vendedor";
 
-export const APP_MODULES = ["cotizacion", "costos", "proyectos", "planilla", "asistencia", "contratistas"] as const;
+export const APP_MODULES = ["cotizacion", "costos", "proyectos", "planilla", "asistencia", "contratistas", "documentos"] as const;
 
 export type AppModule = (typeof APP_MODULES)[number];
 
@@ -72,5 +72,6 @@ export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "cotizacion")) return "/cotizacion";
   if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
   if (hasModule(subject, "proyectos")) return "/proyectos";
+  if (hasModule(subject, "documentos")) return "/personal/documentos";
   return "/dashboard";
 }

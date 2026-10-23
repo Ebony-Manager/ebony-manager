@@ -1939,6 +1939,28 @@ export type Database = {
         Args: { p_period: string }
         Returns: Json
       }
+      staff_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          kind: string
+          id: string
+          name: string
+          group_key: string
+          position: string | null
+          active: boolean
+          id_document: string | null
+          id_document_type: string | null
+          id_document_path: string | null
+          nationality: string | null
+          birth_date: string | null
+          phone: string | null
+          email: string | null
+          address: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          photo_path: string | null
+        }[]
+      }
       zero_contractor_balance: {
         Args: { p_contractor_id: string; p_date: string; p_note: string }
         Returns: number

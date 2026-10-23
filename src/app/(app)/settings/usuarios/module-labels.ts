@@ -11,4 +11,5 @@ export const MODULE_LABELS: Record<AppModule, { label: Entry; hint: Entry }> = {
   planilla: { label: strings.usuarios.mod_planilla, hint: strings.usuarios.mod_planilla_hint },
   asistencia: { label: strings.usuarios.mod_asistencia, hint: strings.usuarios.mod_asistencia_hint },
   contratistas: { label: strings.usuarios.mod_contratistas, hint: strings.usuarios.mod_contratistas_hint },
+  documentos: { label: strings.usuarios.mod_documentos, hint: strings.usuarios.mod_documentos_hint },
 };

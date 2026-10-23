@@ -29,6 +29,7 @@ export const strings = {
     staff: { es: "Personal", en: "Staff" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     pagos: { es: "Pagos", en: "Payments" },
+    documentos: { es: "Documentos", en: "Documents" },
     // Resumen único de Personal, con filtro Todos / Empleados / Contratistas.
     // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
     resumenPersonal: { es: "Resumen", en: "Summary" },
@@ -2108,6 +2109,47 @@ export const strings = {
     add_contract: { es: "Nuevo contrato", en: "New contract" },
   },
 
+  // Personal → Documentos: documentos y contacto del personal, sin dinero.
+  documentos: {
+    title: { es: "Documentos del personal", en: "Staff documents" },
+    subtitle: {
+      es: "Cédulas y datos de contacto de empleados y contratistas. Marca a las personas y descarga sus documentos en un solo PDF.",
+      en: "IDs and contact details of employees and contractors. Select people and download their documents as one PDF.",
+    },
+    search_ph: { es: "Buscar por nombre…", en: "Search by name…" },
+    filter_all: { es: "Todos", en: "All" },
+    filter_employee: { es: "Empleados", en: "Employees" },
+    filter_contractor: { es: "Contratistas", en: "Contractors" },
+    show_inactive: { es: "Incluir inactivos", en: "Include inactive" },
+    select_visible: { es: "Marcar los que tienen documento", en: "Select those with a document" },
+    clear: { es: "Desmarcar", en: "Clear" },
+    download: { es: "Descargar documentos", en: "Download documents" },
+    downloading: { es: "Armando el PDF…", en: "Building the PDF…" },
+    downloaded: { es: "PDF descargado", en: "PDF downloaded" },
+    download_failed: { es: "No se pudo armar el PDF", en: "Could not build the PDF" },
+    missing_docs: { es: "Sin documento cargado (no van en el PDF):", en: "No document on file (not in the PDF):" },
+    no_document: { es: "Sin documento", en: "No document" },
+    open_document: { es: "Abrir documento", en: "Open document" },
+    empty: { es: "No hay personas para mostrar.", en: "No people to show." },
+    no_results: { es: "Nadie coincide con la búsqueda.", en: "No one matches the search." },
+    inactive: { es: "Inactivo", en: "Inactive" },
+    type_cedula: { es: "Cédula", en: "ID card" },
+    type_pasaporte: { es: "Pasaporte", en: "Passport" },
+    group_taller: { es: "Taller", en: "Workshop" },
+    group_administrativo: { es: "Administrativo", en: "Administrative" },
+    group_ebanista: { es: "Ebanista", en: "Cabinetmaker" },
+    group_pintor: { es: "Pintor", en: "Painter" },
+    f_nationality: { es: "Nacionalidad", en: "Nationality" },
+    f_birth: { es: "Fecha de nacimiento", en: "Date of birth" },
+    f_phone: { es: "Teléfono", en: "Phone" },
+    f_email: { es: "Correo", en: "Email" },
+    f_address: { es: "Dirección", en: "Address" },
+    f_emergency: { es: "Contacto de emergencia", en: "Emergency contact" },
+    not_set: { es: "Sin registrar", en: "Not set" },
+    details: { es: "Ver datos", en: "Details" },
+    file_name: { es: "Documentos personal", en: "Staff documents" },
+  },
+
   // Settings → Usuarios: quién entra a la app y a qué módulos.
   usuarios: {
     title: { es: "Usuarios", en: "Users" },
@@ -2199,6 +2241,11 @@ export const strings = {
     mod_contratistas_hint: {
       es: "Directorio, proyectos, estados de cuenta y tarifas.",
       en: "Directory, projects, statements and rates.",
+    },
+    mod_documentos: { es: "Documentos del personal", en: "Staff documents" },
+    mod_documentos_hint: {
+      es: "Ver y descargar documentos y datos de contacto de empleados y contratistas. Sin sueldos, saldos ni cuentas de banco. Solo lectura.",
+      en: "View and download staff documents and contact details. No salaries, balances or bank accounts. Read-only.",
     },
     dashboard_note: {
       es: "Resumen, Personal y Pagos aparecen a quien tenga Planilla o Contratistas; adentro, cada uno ve solo lo de sus módulos (la vista \"Todos\" del Resumen pide los dos).",
