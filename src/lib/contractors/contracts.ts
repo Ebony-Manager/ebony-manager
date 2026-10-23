@@ -134,6 +134,14 @@ export function looseCredits<E extends EntryLike>(
     .filter((r) => r.remainingCents > 0);
 }
 
+/** Lo por descontar que es plata ya entregada (un pago que se pasó de lo
+ *  que se debía, un adelanto, un ajuste) — frente a un descuento de verdad
+ *  (material, cuota de préstamo, InDrive, daño…). Solo para agrupar en
+ *  pantalla; se descuentan igual. */
+export function isAdvance(e: Pick<ContractorLedgerEntry, "category">): boolean {
+  return e.category === "pago" || e.category === "adelanto" || e.category === "ajuste";
+}
+
 /** Cuánto de un pago sale de lo que está a cuenta y cuánto en efectivo. */
 export function paymentPreview(abonosCents: number, onAccountCents: number): { deductedCents: number; cashCents: number } {
   const total = Math.max(0, abonosCents);

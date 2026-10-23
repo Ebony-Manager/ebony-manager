@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/planilla/payroll-period";
-import { formatDateCompact } from "@/lib/planilla/format";
+import { PaymentBreakdown } from "./payment-breakdown";
 import {
   contractPayableCents,
   contractSublabel,
@@ -28,7 +28,6 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { registerContractorPaymentAction } from "./actions";
-import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { Field } from "./field";
 
 const LOOSE = "__loose__";
@@ -95,7 +94,6 @@ export function RegisterPaymentDialog({
   const looseCents = toCents(amounts[LOOSE] ?? "");
   const abonosCents = lines.reduce((s, l) => s + l.cents, 0) + looseCents;
   const preview = paymentPreview(abonosCents, onAccountCents);
-  const leftOnAccount = onAccountCents - preview.deductedCents;
 
   const setAmount = (key: string, value: string) => setAmounts((cur) => ({ ...cur, [key]: value }));
   const fill = (key: string, cents: number) => setAmount(key, (cents / 100).toFixed(2));
@@ -184,37 +182,18 @@ export function RegisterPaymentDialog({
             </div>
           )}
 
-          {onAccount.length > 0 && (
-            <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
-              <div>
-                <p className="text-xs font-medium text-foreground">{tt("pay_on_account")}</p>
-                <p className="text-xs text-muted-foreground">{tt("pay_on_account_hint")}</p>
-              </div>
-              <ul className="flex max-h-40 flex-col divide-y divide-border overflow-y-auto text-xs">
-                {onAccount.map(({ entry, remainingCents }) => (
-                  <li key={entry.id} className="flex items-center gap-3 py-1.5">
-                    <span className="w-16 shrink-0 text-muted-foreground">{formatDateCompact(lang, entry.entryDate)}</span>
-                    <span className="shrink-0 font-medium text-foreground">
-                      {t(lang, strings.contratistas[CONTRACTOR_CATEGORY_LABEL_KEY[entry.category] as keyof typeof strings.contratistas])}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground">{entry.description ?? ""}</span>
-                    <span className="shrink-0 tabular-nums text-foreground">{formatCents(remainingCents)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/40 p-3 text-sm">
-            <SummaryRow label={tt("pay_sum_abonos")} value={formatCents(abonosCents)} />
-            {onAccountCents > 0 && <SummaryRow label={tt("pay_sum_deducted")} value={`−${formatCents(preview.deductedCents)}`} />}
-            <SummaryRow label={tt("pay_sum_cash")} value={formatCents(preview.cashCents)} strong />
-            {leftOnAccount > 0 && abonosCents > 0 && (
-              <p className="pt-1 text-xs text-muted-foreground">
-                {tt("pay_left_on_account")} {formatCents(leftOnAccount)}
-              </p>
-            )}
-          </div>
+          <PaymentBreakdown
+            abonos={[
+              ...lines.map(({ contract: k, cents }) => ({
+                label: k.projectName !== k.name ? `${k.name} (${k.projectName})` : k.name,
+                cents,
+              })),
+              { label: tt("pay_loose"), cents: looseCents },
+            ]}
+            pending={onAccount}
+            deductedCents={preview.deductedCents}
+            cashCents={preview.cashCents}
+          />
 
           <Field label={tt("mov_f_notes")}>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("f_optional")} />
@@ -280,14 +259,5 @@ function PayRow({
         </div>
       </td>
     </tr>
-  );
-}
-
-function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className={strong ? "font-medium text-foreground" : "text-muted-foreground"}>{label}</span>
-      <span className={`tabular-nums ${strong ? "text-base font-semibold text-foreground" : "text-foreground"}`}>{value}</span>
-    </div>
   );
 }

@@ -20,7 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCents, monthLabel, nextPeriod, previousPeriod } from "@/lib/planilla/payroll-period";
-import { formatDate, formatDateCompact } from "@/lib/planilla/format";
+import { formatDate } from "@/lib/planilla/format";
+import { PaymentBreakdown } from "./payment-breakdown";
 import {
   contractPayableCents,
   contractSublabel,
@@ -40,7 +41,6 @@ import {
   reopenContractorPayPeriodAction,
   setContractorPayLineAction,
 } from "./actions";
-import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 
 type Half = 1 | 2;
 interface PeriodSel {
@@ -333,27 +333,19 @@ export function ContractorClosingView({
                               )}
                             </div>
 
-                            {!paid && r.onAccount.length > 0 && (
-                              <div className="flex flex-col gap-1">
-                                <p className="text-xs font-medium text-foreground">{tt("pay_on_account")}</p>
-                                <ul className="flex flex-col text-xs">
-                                  {r.onAccount.map(({ entry, remainingCents }) => (
-                                    <li key={entry.id} className="flex items-center gap-3 py-0.5">
-                                      <span className="w-16 shrink-0 text-muted-foreground">{formatDateCompact(lang, entry.entryDate)}</span>
-                                      <span className="shrink-0 text-foreground">
-                                        {t(lang, strings.contratistas[CONTRACTOR_CATEGORY_LABEL_KEY[entry.category] as keyof typeof strings.contratistas])}
-                                      </span>
-                                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{entry.description ?? ""}</span>
-                                      <span className="shrink-0 tabular-nums text-foreground">{formatCents(remainingCents)}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                                {r.onAccountCents > r.abonosCents && r.abonosCents > 0 && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {tt("pay_left_on_account")} {formatCents(r.onAccountCents - r.deductedCents)}
-                                  </p>
-                                )}
-                              </div>
+                            {!paid && (r.abonosCents > 0 || r.onAccount.length > 0) && (
+                              <PaymentBreakdown
+                                abonos={[
+                                  ...r.contracts.map(({ contract: k }) => ({
+                                    label: k.projectName !== k.name ? `${k.name} (${k.projectName})` : k.name,
+                                    cents: toCents(inputs[lineKey(r.id, k.id)] ?? ""),
+                                  })),
+                                  { label: tt("pay_loose"), cents: toCents(inputs[lineKey(r.id, null)] ?? "") },
+                                ]}
+                                pending={r.onAccount}
+                                deductedCents={r.deductedCents}
+                                cashCents={r.cashCents}
+                              />
                             )}
 
                             <div className="flex flex-wrap gap-2">
