@@ -1,9 +1,11 @@
 import { requireAdmin } from "@/lib/auth/dal";
+import { answerText, isProductAnswer, parseProductLine, productLines } from "@/lib/almacen/jotform-egresos";
 
 // Catálogo del JotForm "Egreso de Suministros" (productos con fotos,
 // variantes, existencias y mínimos), tal cual está en JotForm, para revisarlo
 // antes de migrarlo al Almacén. Solo lectura y solo admin. CSV por defecto;
-// `?formato=json` da los datos crudos.
+// `?formato=json` da los datos crudos y `?formato=egresos` todos los envíos,
+// una fila por producto entregado.
 const FORM_ID = "221884899655074";
 const JOTFORM_API = process.env.JOTFORM_API_URL ?? "https://api.jotform.com";
 
@@ -13,6 +15,8 @@ export async function GET(request: Request) {
   await requireAdmin();
   const apiKey = process.env.JOTFORM_API_KEY?.trim();
   if (!apiKey) return new Response("Falta JOTFORM_API_KEY en el servidor.", { status: 500 });
+  const formato = new URL(request.url).searchParams.get("formato");
+  if (formato === "egresos") return egresosCsv(apiKey);
 
   const res = await fetch(`${JOTFORM_API}/form/${FORM_ID}/properties`, { headers: { APIKEY: apiKey }, cache: "no-store" });
   if (!res.ok) return new Response(`JotForm respondió ${res.status}.`, { status: 502 });
@@ -20,10 +24,10 @@ export async function GET(request: Request) {
   const props = body.content ?? {};
 
   const products = toProducts(props.products);
-  // Lo que tenga que ver con inventario (existencias, alertas) puede vivir fuera de los productos.
-  const inventory = Object.fromEntries(Object.entries(props).filter(([k]) => /stock|inventor|alert/i.test(k)));
+  // Lo que tenga que ver con inventario (existencias, alertas) o con las categorías puede vivir fuera de los productos.
+  const inventory = Object.fromEntries(Object.entries(props).filter(([k]) => /stock|inventor|alert|categor/i.test(k)));
 
-  if (new URL(request.url).searchParams.get("formato") === "json") {
+  if (formato === "json") {
     return Response.json({ products, inventory }, { headers: { "Content-Disposition": 'attachment; filename="catalogo-jotform.json"' } });
   }
 
@@ -46,6 +50,44 @@ export async function GET(request: Request) {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": 'attachment; filename="catalogo-jotform.csv"',
     },
+  });
+}
+
+type Submission = { id: string; created_at: string; status?: string; answers?: Record<string, { text?: string; type?: string; answer?: unknown; prettyFormat?: string }> };
+
+/** Una fila por producto entregado en cada envío, para calcular el consumo real por variante. */
+async function egresosCsv(apiKey: string): Promise<Response> {
+  const submissions: Submission[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const url = `${JOTFORM_API}/form/${FORM_ID}/submissions?limit=1000&offset=${offset}&orderby=created_at`;
+    const res = await fetch(url, { headers: { APIKEY: apiKey }, cache: "no-store" });
+    if (!res.ok) return new Response(`JotForm respondió ${res.status}.`, { status: 502 });
+    const page = ((await res.json()) as { content?: Submission[] }).content ?? [];
+    submissions.push(...page);
+    if (page.length < 1000) break;
+  }
+
+  const rows = [["envio", "creado", "fecha", "entregado_a", "autorizado_por", "proyecto", "producto", "variante", "cantidad", "devoluciones", "texto_original"]];
+  for (const s of submissions) {
+    if (s.status === "DELETED") continue;
+    const answers = Object.values(s.answers ?? {});
+    const byText = (re: RegExp) => answerText(answers.find((a) => re.test(a.text ?? "")));
+    const devoluciones = answers
+      .filter((a) => /^devoluci/i.test(a.text ?? ""))
+      .map((a) => [a.text, answerText(a)] as const)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(" | ");
+    const base = [s.id, s.created_at, byText(/^fecha/i), byText(/entregado/i), byText(/autorizado/i), byText(/proyecto/i)];
+    const lines = answers.filter(isProductAnswer).flatMap(productLines);
+    if (lines.length === 0) rows.push([...base, "", "", "", devoluciones, ""]);
+    for (const line of lines) {
+      const p = parseProductLine(line);
+      rows.push([...base, p.product, p.variant, String(p.quantity), devoluciones, line]);
+    }
+  }
+  return new Response("﻿" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n"), {
+    headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="egresos-jotform.csv"' },
   });
 }
 
