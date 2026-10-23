@@ -41,6 +41,10 @@ export interface PayrollEmployee {
    *  — el caso "Acumulado a 500". Cuando está seteada, cada prestación
    *  se computa dos veces (real y sobre esta) y se muestran ambas. */
   benefitsBaseSalaryCents: number | null;
+  /** ¿Lleva décimo / vacación / prima de antigüedad? Si no, no se acumulan ni se muestran. */
+  benefitsEnabled: boolean;
+  /** Empresa que paga sus prestaciones en lugar de Ebony (null = las paga Ebony). */
+  benefitsExternalCompany: string | null;
   notes: string | null;
   /** Se setea junto con `endDate` al liquidar — aclaraciones/disputas/
    *  ajustes sobre ESA liquidación, aparte de `notes`. */
@@ -52,9 +56,15 @@ export interface PayrollEmployee {
   nationality: string | null;
   /** Fecha de nacimiento, `YYYY-MM-DD`. */
   birthDate: string | null;
+  /** Foto o PDF del documento en el bucket privado `staff-documents`; null = sin documento. */
+  idDocumentPath: string | null;
   /** Ruta de la foto en el bucket privado `employee-photos`; null = sin foto. */
   photoPath: string | null;
   phone: string | null;
+  /** Correo personal. */
+  email: string | null;
+  /** Dirección de domicilio, texto libre. */
+  address: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   contractInfo: string | null;
@@ -156,7 +166,13 @@ export type LedgerCategory =
   | "carnet"
   | "otro"
   /** Viajes de InDrive (transporte) — se registran en su propio tab. */
-  | "indrive";
+  | "indrive"
+  /** Intereses cobrados en un préstamo (deuda propia, enlazada al préstamo). */
+  | "interes"
+  /** Descuento a terceros (ej. una financiera): se le descuenta a la persona y
+   *  Ebony se lo paga a ese tercero. No es dinero que Ebony prestó: no cuenta
+   *  en lo que el empleado le debe a la empresa. */
+  | "tercero";
 
 export type LedgerDirection = "debt" | "payment";
 
@@ -182,13 +198,22 @@ export type LoanPaymentMethod = "cuota_fija" | "cuota_variable";
 
 /** Lo que se financia a cuotas: dinero (préstamo/adelanto) o una compra
  *  (herramienta) / un cobro (daño). */
-export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano";
+export type LoanCategory = "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro" | "tercero";
+
+/** Cómo se calculó el interés de un préstamo. */
+export type LoanInterestMode = "monthly_pct" | "total_pct" | "fixed";
 
 export interface PayrollLoan {
   id: string;
   employeeId: string;
   category: LoanCategory;
+  /** Lo que se entregó. Las cuotas suman principal + intereses. */
   principalCents: number;
+  /** Intereses cobrados (0 = sin intereses). */
+  interestCents: number;
+  interestMode: LoanInterestMode | null;
+  /** % usado para calcularlo (null con monto fijo o sin interés). */
+  interestRatePct: number | null;
   paymentMethod: LoanPaymentMethod;
   numInstallments: number;
   requestDate: string;
@@ -323,17 +348,25 @@ export interface UpcomingObligations {
   employeesWithLoanBalance: number;
 }
 
-/** Un viaje de InDrive (transporte) del empleado. */
-export interface IndriveRide {
-  id: string;
+/** Una fila de la vista general de préstamos: un préstamo/adelanto/herramienta/
+ *  daño de un empleado con su avance de pago. */
+export interface LoanOverviewRow {
+  loanId: string;
   employeeId: string;
-  rideDate: string;
-  amountCents: number;
-  /** ¿Se le cobra al empleado? Siempre queda en el historial. */
-  charge: boolean;
-  notes: string | null;
-  /** Quincena del viaje (la que contiene su fecha). */
-  period: { year: number; month: number; half: 1 | 2 };
-  /** Cobrado y la quincena ya se pagó: ya no se puede cambiar el cobro. */
-  locked: boolean;
+  category: LoanCategory;
+  status: "active" | "cancelled";
+  paymentMethod: LoanPaymentMethod;
+  requestDate: string;
+  principalCents: number;
+  /** Intereses de este préstamo (ya incluidos en lo pagado/pendiente). */
+  interestCents: number;
+  /** Cuotas programadas hoy (las canceladas ya no cuentan). */
+  installmentCount: number;
+  paidCount: number;
+  paidCents: number;
+  pendingCents: number;
+  /** Próxima cuota sin pagar, si queda alguna. */
+  next: { period: { year: number; month: number; half: 1 | 2 }; amountCents: number } | null;
+  /** Última quincena del calendario, si hay cuotas. */
+  last: { year: number; month: number; half: 1 | 2 } | null;
 }

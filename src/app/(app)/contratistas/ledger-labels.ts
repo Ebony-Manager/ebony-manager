@@ -12,4 +12,8 @@ export const CONTRACTOR_CATEGORY_LABEL_KEY: Record<ContractorLedgerCategory, str
   material: "cat_material",
   gasto_operativo: "cat_gasto_operativo",
   ajuste: "cat_ajuste",
+  herramienta: "cat_herramienta",
+  dano: "cat_dano",
+  indrive: "cat_indrive",
+  otro: "cat_otro",
 };

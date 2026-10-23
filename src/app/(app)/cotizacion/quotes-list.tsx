@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
-import { createQuoteAction, deleteQuoteAction, duplicateQuoteAction } from "./actions";
+import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
 
 const STATUS_STYLE: Record<QuoteStatus, string> = {
   BORRADOR: "bg-stone-200 text-ink-700",
@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<QuoteStatus, string> = {
 };
 
 /** Lista de cotizaciones: buscar, filtrar por estado, abrir, duplicar y borrar. */
-export function QuotesList({ initialQuotes, isAdmin }: { initialQuotes: QuoteSummary[]; isAdmin: boolean }) {
+export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: QuoteSummary[]; canEditCosts: boolean }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
   const router = useRouter();
@@ -42,14 +42,10 @@ export function QuotesList({ initialQuotes, isAdmin }: { initialQuotes: QuoteSum
     });
   }, [quotes, filter, search]);
 
-  async function onNew() {
+  // No crea nada todavía: el editor guarda la cotización con el primer cambio.
+  function onNew() {
     setBusy("new");
-    try {
-      router.push(`/cotizacion/${await createQuoteAction()}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error");
-      setBusy(null);
-    }
+    router.push("/cotizacion/nueva");
   }
   async function onDuplicate(id: string) {
     setBusy(id);
@@ -84,7 +80,7 @@ export function QuotesList({ initialQuotes, isAdmin }: { initialQuotes: QuoteSum
           <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          {isAdmin && (
+          {canEditCosts && (
             <Link href="/cotizacion/costos" className="text-xs text-ink-900/40 hover:text-ink-900/70">
               {tt("costs_link")}
             </Link>

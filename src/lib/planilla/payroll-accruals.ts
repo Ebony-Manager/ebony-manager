@@ -259,45 +259,89 @@ export function periodFromDateString(dateStr: string): Period | null {
   return { year: d.getFullYear(), month: d.getMonth() + 1, half: d.getDate() <= 15 ? 1 : 2 };
 }
 
+/** Lo que hace falta para calcular la prima sobre lo REALMENTE pagado. */
+export interface PrimaAccrualOptions {
+  /** Último pago real de prima estrictamente antes de `asOf`: el reloj
+   *  reinicia en la quincena siguiente, igual que la vacación. */
+  lastPayout?: Period | null;
+  /** Suma y cantidad de las compensaciones (salario realmente ganado) de las
+   *  quincenas con entry entre `fromOrdExclusive` y `toOrd` (incluida). */
+  compensation?: (fromOrdExclusive: number, toOrd: number) => { sumCents: number; count: number };
+}
+
 /**
  * Prima de Antigüedad — Código de Trabajo Art. 196 / Ley 44 de 1995:
  * una semana de salario por año completo de servicio, que la provisión
  * mensual estándar expresa como 1.92% del salario mensual por mes
  * trabajado. Se cuenta en meses calendario desde `employee.startDate`
- * por default. Cuando el empleado tiene una liquidación registrada
- * (`resetAnchor`, derivada de `employee.endDate`), los meses se cuentan
- * desde ESA fecha para cualquier `asOf` posterior — una liquidación
- * real reinicia el reloj, igual que Décimo/Vacación reinician después
- * de un pago. Piso a meses enteros, siempre contra el salario base real.
+ * por default; una liquidación registrada (`resetAnchor`) o un pago real de
+ * prima (`opts.lastPayout`) reinician el reloj: los meses se cuentan desde
+ * ahí, igual que Décimo/Vacación reinician después de un pago.
+ *
+ * El salario de referencia es el PAGADO: el promedio mensual de lo realmente
+ * ganado (base + extras − horas/días descontados) en las quincenas con
+ * entry dentro de esa ventana, tomada hasta el último mes completo (así solo
+ * cambia una vez al mes). Si no hay ninguna, cae al salario base.
+ * Piso a meses enteros.
  */
 export function computePrimaAntiguedadAccrualCore(
   employee: PayrollEmployee,
   asOf: Period,
-  resetAnchor: Period | null
+  resetAnchor: Period | null,
+  opts: PrimaAccrualOptions = {}
 ): number {
-  let anchor: Date;
   const asOfOrd = periodOrdinal(asOf.year, asOf.month, asOf.half);
-  const resetOrd = resetAnchor ? periodOrdinal(resetAnchor.year, resetAnchor.month, resetAnchor.half) : null;
-  if (resetAnchor && resetOrd !== null && asOfOrd > resetOrd) {
-    anchor = periodApproxDate(resetAnchor);
-  } else {
-    if (!employee.startDate) return 0;
-    anchor = new Date(employee.startDate);
-    if (Number.isNaN(anchor.getTime())) return 0;
+  const ord = (p: Period) => periodOrdinal(p.year, p.month, p.half);
+
+  let anchor: Date | null = null;
+  let anchorOrdExclusive = -Infinity;
+  if (employee.startDate) {
+    const d = new Date(employee.startDate);
+    const sp = periodFromDateString(employee.startDate);
+    if (!Number.isNaN(d.getTime()) && sp) {
+      anchor = d;
+      anchorOrdExclusive = ord(sp) - 1;
+    }
   }
+  const restarts: Period[] = [];
+  if (resetAnchor && asOfOrd > ord(resetAnchor)) restarts.push(resetAnchor);
+  if (opts.lastPayout && ord(opts.lastPayout) < asOfOrd) restarts.push(opts.lastPayout);
+  for (const r of restarts) {
+    // Un reinicio solo adelanta el ancla; nunca la retrocede.
+    if (ord(r) > anchorOrdExclusive) {
+      anchor = periodApproxDate(r);
+      anchorOrdExclusive = ord(r);
+    }
+  }
+  if (!anchor) return 0;
+
   const asOfApproxDate = periodApproxDate(asOf);
   let months =
     (asOfApproxDate.getFullYear() - anchor.getFullYear()) * 12 + (asOfApproxDate.getMonth() - anchor.getMonth());
   if (asOfApproxDate.getDate() < anchor.getDate()) months -= 1;
   months = Math.max(0, months);
-  return Math.round(employee.baseSalaryCents * 0.0192 * months);
+
+  // El promedio pagado se toma hasta el último MES COMPLETO (hasta la 2da
+  // quincena): así la prima avanza una vez al mes, junto con los meses
+  // cumplidos, y no sube y baja con cada quincena que trae un descuento.
+  let monthlyCents = employee.baseSalaryCents;
+  if (opts.compensation) {
+    const windowEndOrd = asOf.half === 2 ? asOfOrd : asOfOrd - 1;
+    const { sumCents, count } = opts.compensation(anchorOrdExclusive, windowEndOrd);
+    if (count > 0) monthlyCents = Math.round((sumCents / count) * 2);
+  }
+  return Math.round(monthlyCents * 0.0192 * months);
 }
 
 /** Wrapper puro: deriva el `resetAnchor` de `employee.endDate` y llama
  *  al core. Igual que el `computePrimaAntiguedadAccrual` de Atlas. */
-export function computePrimaAntiguedadAccrual(employee: PayrollEmployee, asOf: Period): number {
+export function computePrimaAntiguedadAccrual(
+  employee: PayrollEmployee,
+  asOf: Period,
+  opts: PrimaAccrualOptions = {}
+): number {
   const resetAnchor = employee.endDate ? periodFromDateString(employee.endDate) : null;
-  return computePrimaAntiguedadAccrualCore(employee, asOf, resetAnchor);
+  return computePrimaAntiguedadAccrualCore(employee, asOf, resetAnchor, opts);
 }
 
 // ============================================================================
@@ -315,6 +359,11 @@ export interface EmployeeAccrualContext {
    *  cuota representa. Con `<=` el acumulado daba 0 exactamente en el
    *  único momento que necesitaba igualar el monto pagado real. */
   lastVacationPayout: (asOf: Period) => Period | null;
+  /** Igual que `lastVacationPayout`, para la prima de antigüedad. */
+  lastPrimaPayout: (asOf: Period) => Period | null;
+  /** Salario realmente ganado (sin décimo/vacación/prima pagados ni abonos de
+   *  préstamo) de las quincenas con entry en (`fromOrdExclusive`, `toOrd`]. */
+  compensation: (fromOrdExclusive: number, toOrd: number) => { sumCents: number; count: number };
 }
 
 /**
@@ -346,16 +395,21 @@ export function buildEmployeeContext(entries: PayrollEntry[], ledgerRows: Ledger
   const entryByKey = new Map<string, PayrollEntry>();
   const periodsWithEntries: Period[] = [];
   const vacationPayouts: Period[] = [];
+  const primaPayouts: Period[] = [];
+  const compensations: { ord: number; cents: number }[] = [];
   for (const entry of sorted) {
     const p: Period = { year: entry.periodYear, month: entry.periodMonth, half: entry.periodHalf };
     entryByKey.set(fullPeriodKey(p), entry);
     periodsWithEntries.push(p);
     if (entry.vacationPaidCents > 0) vacationPayouts.push(p);
+    if (entry.primaAntiguedadPaidCents > 0) primaPayouts.push(p);
+    compensations.push({ ord: periodOrdinal(p.year, p.month, p.half), cents: salaryCompensationCents(entry) });
   }
   // `sorted` es ascendente, así que vacationPayouts también — se
   // invierte para que lastVacationPayout tome el primero estrictamente
   // antes de asOf que encuentre (más reciente primero).
   vacationPayouts.reverse();
+  primaPayouts.reverse();
 
   const lookup: PeriodTotalLookup = (p) => {
     const entry = entryByKey.get(fullPeriodKey(p)) ?? null;
@@ -371,7 +425,27 @@ export function buildEmployeeContext(entries: PayrollEntry[], ledgerRows: Ledger
     return null;
   };
 
-  return { lookup, periodsWithEntries, lastVacationPayout };
+  const lastPrimaPayout = (asOf: Period): Period | null => {
+    const asOfOrd = periodOrdinal(asOf.year, asOf.month, asOf.half);
+    for (const p of primaPayouts) {
+      if (periodOrdinal(p.year, p.month, p.half) < asOfOrd) return p;
+    }
+    return null;
+  };
+
+  const compensation = (fromOrdExclusive: number, toOrd: number) => {
+    let sumCents = 0;
+    let count = 0;
+    for (const c of compensations) {
+      if (c.ord > fromOrdExclusive && c.ord <= toOrd) {
+        sumCents += c.cents;
+        count += 1;
+      }
+    }
+    return { sumCents, count };
+  };
+
+  return { lookup, periodsWithEntries, lastVacationPayout, lastPrimaPayout, compensation };
 }
 
 // ============================================================================
@@ -459,8 +533,11 @@ export function computeAnnualDetail(
   year: number,
   projectFuture = false
 ): AnnualDetailRow[] {
+  const benefitsEnabled = employee.benefitsEnabled !== false;
   const hasBenefitsBase =
-    employee.benefitsBaseSalaryCents != null && employee.benefitsBaseSalaryCents !== employee.baseSalaryCents;
+    benefitsEnabled &&
+    employee.benefitsBaseSalaryCents != null &&
+    employee.benefitsBaseSalaryCents !== employee.baseSalaryCents;
   // Mismo guard que la proyección de Salario Base de Resumen Anual: solo
   // un empleado activo con salario base real tiene algo sensato que
   // extrapolar.
@@ -488,6 +565,8 @@ export function computeAnnualDetail(
         return ord > liquidationOrd! && ord <= asOfOrd;
       });
     const inLiquidationGap = pastLiquidation && !hasResumedByHere;
+    // Sin prestaciones (empleado que no las lleva) o en un hueco de liquidación: acumulado en 0.
+    const accrualOff = inLiquidationGap || !benefitsEnabled;
 
     // Proyección: una quincena futura sin entry real tiene totalCents en
     // 0 — se parte el salario mensual entre sus dos quincenas como
@@ -503,10 +582,10 @@ export function computeAnnualDetail(
       half,
       ...projectedTotal,
       runningLedgerBalanceCents: runningBalance,
-      decimoAccrualCents: inLiquidationGap
+      decimoAccrualCents: accrualOff
         ? 0
         : computeDecimoAccrualCore(context.lookup, asOf, undefined, realProjectionBase),
-      vacationAccrualCents: inLiquidationGap
+      vacationAccrualCents: accrualOff
         ? 0
         : computeVacationAccrualCore(
             context.periodsWithEntries,
@@ -517,12 +596,12 @@ export function computeAnnualDetail(
             realProjectionBase
           ),
       decimoAccrualBenefitsCents: hasBenefitsBase
-        ? inLiquidationGap
+        ? accrualOff
           ? 0
           : computeDecimoAccrualCore(context.lookup, asOf, employee.benefitsBaseSalaryCents!, benefitsProjectionBase)
         : null,
       vacationAccrualBenefitsCents: hasBenefitsBase
-        ? inLiquidationGap
+        ? accrualOff
           ? 0
           : computeVacationAccrualCore(
               context.periodsWithEntries,
@@ -534,7 +613,12 @@ export function computeAnnualDetail(
             )
         : null,
       primaAntiguedadAccrualCents:
-        !inLiquidationGap ? computePrimaAntiguedadAccrualCore(employee, asOf, liquidationAnchor) : 0,
+        !accrualOff
+          ? computePrimaAntiguedadAccrualCore(employee, asOf, liquidationAnchor, {
+              lastPayout: context.lastPrimaPayout(asOf),
+              compensation: context.compensation,
+            })
+          : 0,
     };
   });
 }

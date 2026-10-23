@@ -32,17 +32,13 @@ describe("buildQuincenaReport", () => {
     expect(report.lines[0]).toMatchObject({ baseCents: 47500, bonificacionesCents: 15706, descuentosCents: 412, loanPaymentCents: 6000, netCents: 56794 });
   });
 
-  it("totales y desglose por método de pago", () => {
+  it("totales", () => {
     expect(report.totals.netCents).toBe(94294);
     expect(report.totals.loanPaymentCents).toBe(6000);
-    expect(report.byMethod).toEqual([
-      { method: "transferencia", count: 2, netCents: 56794 },
-      { method: "efectivo", count: 1, netCents: 37500 },
-    ]);
     expect(report.paidCount).toBe(1);
   });
 
-  it("sin quincena registrada: todo en cero y método por defecto transferencia", () => {
-    expect(report.lines[2]).toMatchObject({ baseCents: 0, netCents: 0, paymentMethod: "transferencia", paid: false });
+  it("sin quincena registrada: todo en cero", () => {
+    expect(report.lines[2]).toMatchObject({ baseCents: 0, netCents: 0, paid: false });
   });
 });

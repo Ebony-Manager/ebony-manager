@@ -132,10 +132,48 @@ Fase 1 — Cotizador. **Pendiente de aplicar** (se corre en el SQL Editor).
 - Tras aplicarla, regenerar `src/types/database.ts` (las tablas `quote_*` están
   escritas a mano mientras tanto).
 
-### 20261023120000_fase1_cotizador_planos.sql
+### 20261020120000_usuarios_permisos.sql
 
-Fase 1 — Cotizador · lectura de planos. **Pendiente de aplicar.** Debe
-aplicarse ANTES de desplegar el código que la usa (el editor guarda
+Usuarios y permisos por módulo (pantalla **Settings → Usuarios**).
+**Aplicada** el 2026-10-20 con `execute_sql` del MCP, en 4 partes (el
+`apply_migration` del MCP se quedaba esperando una confirmación por los
+`DROP`, por eso la migración ya no tiene ninguno). Idempotente.
+
+- `public.allowed_emails` pasa a ser la lista de usuarios: `role`
+  (`admin` = todo; `vendedor` = "Usuario", solo sus módulos) + `modules`
+  (`cotizacion`, `costos`, `planilla`, `asistencia`, `contratistas`),
+  `invited_at`, `invited_by`. Índice único sobre `lower(email)`.
+- `public.profiles` lleva una copia de `role` + `modules` y
+  `last_sign_in_at`. Triggers:
+  - `allowed_emails_sync_profile` — agregar/editar un correo actualiza (o
+    recrea) el perfil; quitarlo **borra el perfil**, y sin perfil la app no
+    deja entrar. No se puede cambiar el correo de una fila.
+  - `on_auth_user_signed_in` (en `auth.users`) — copia `last_sign_in_at`.
+  - `handle_new_user` ahora también copia `modules` al alta.
+  - `protect_profile_privileged_columns` — un no-admin tampoco puede
+    cambiarse `modules`.
+- `private.has_module(m)` (admin siempre `true`) reemplaza a
+  `private.is_admin()` en las policies (las viejas se renombran a
+  `*_module_*`/`*_costos_*` y se les cambia la condición con ALTER POLICY): Planilla (+ fotos de empleados) →
+  `planilla`; Contratistas → `contratistas`; cotizaciones → `cotizacion`;
+  catálogo e insumos: leen `cotizacion`/`costos`, escribe `costos`; recetas →
+  `costos`. En `storage.objects` (dueño: Storage) no se pueden cambiar
+  policies, así que `employee_photos_module_all` se agrega al lado de
+  `employee_photos_admin_all`, que queda redundante. Una tabla que no exista todavía (ej. `payroll_indrive_rides`) se
+  salta: volver a correr esta migración después de crearla.
+- `asistencia` no tiene tablas propias: escribe en `payroll_entries` (por
+  eso exige `planilla`); el permiso lo hace cumplir la app.
+- Probada contra Postgres 16 con un stub de `auth`/`storage`: corre en orden
+  después de las anteriores, se puede repetir, y los casos (invitar, alta,
+  editar, quitar, volver a invitar, auto-escalarse, fuera de la lista) dan lo
+  esperado.
+
+### 20261024110000_fase1_cotizador_planos.sql
+
+Fase 1 — Cotizador · lectura de planos. **Aplicada** el 2026-10-23 desde el
+SQL Editor (con el nombre `20261023120000_…`; se renombró para no compartir
+fecha con `20261023120000_contractor_retention_cap.sql`). Debe estar
+aplicada antes de desplegar el código que la usa (el editor guarda
 `piece_ids` y `plan_id`).
 
 - `public.quote_plans` — lectura de un plano: archivo, piezas (`PlanPiece[]`),

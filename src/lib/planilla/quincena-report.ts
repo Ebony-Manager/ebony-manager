@@ -30,14 +30,12 @@ export interface QuincenaReportLine {
   prestacionesCents: number;
   loanPaymentCents: number;
   netCents: number;
-  paymentMethod: string;
   paid: boolean;
 }
 
 export interface QuincenaReport {
   lines: QuincenaReportLine[];
-  totals: Omit<QuincenaReportLine, "employeeId" | "name" | "paymentMethod" | "paid">;
-  byMethod: { method: string; count: number; netCents: number }[];
+  totals: Omit<QuincenaReportLine, "employeeId" | "name" | "paid">;
   paidCount: number;
 }
 
@@ -53,7 +51,6 @@ export function buildQuincenaReport(items: readonly QuincenaReportInput[]): Quin
       prestacionesCents: s.prestacionesCents,
       loanPaymentCents: i.loanPaymentCents,
       netCents: i.netCents,
-      paymentMethod: i.entry?.paymentMethod ?? "transferencia",
       paid: i.entry?.paid ?? false,
     };
   });
@@ -73,18 +70,9 @@ export function buildQuincenaReport(items: readonly QuincenaReportInput[]): Quin
   const { paid: _unused, ...totalsOut } = totals;
   void _unused;
 
-  const methods = new Map<string, { count: number; netCents: number }>();
-  for (const l of lines) {
-    const m = methods.get(l.paymentMethod) ?? { count: 0, netCents: 0 };
-    m.count += 1;
-    m.netCents += l.netCents;
-    methods.set(l.paymentMethod, m);
-  }
-
   return {
     lines,
     totals: totalsOut,
-    byMethod: [...methods.entries()].map(([method, v]) => ({ method, ...v })),
     paidCount: lines.filter((l) => l.paid).length,
   };
 }

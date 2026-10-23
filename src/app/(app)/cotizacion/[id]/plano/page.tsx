@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { requireProfile } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
+import { hasModule } from "@/lib/auth/modules";
 import { defaultsFromInputs } from "@/lib/cotizador/pricing";
 import { getCatalog, getCostInputs, getQuote } from "@/services/cotizador";
 import { hasPlanReaderKey } from "@/services/plan-reader";
@@ -13,7 +14,7 @@ export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
-  const profile = await requireProfile();
+  const profile = await requireModule("cotizacion");
   const { id } = await params;
   const [quote, catalog, inputs] = await Promise.all([getQuote(id), getCatalog(), getCostInputs()]);
   if (!quote) notFound();
@@ -26,7 +27,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       catalog={catalog}
       defaults={defaultsFromInputs(inputs)}
       hasKey={hasPlanReaderKey()}
-      isAdmin={profile.role === "admin"}
+      canEditCosts={hasModule(profile, "costos")}
     />
   );
 }

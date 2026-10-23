@@ -14,14 +14,9 @@ export interface QuincenaPdfLabels {
     benefits: string;
     loan: string;
     net: string;
-    method: string;
     paid: string;
   };
   total: string;
-  byMethodTitle: string;
-  methodCount: string;
-  methodNet: string;
-  methodName: (method: string) => string;
   yes: string;
   page: string;
 }
@@ -59,7 +54,7 @@ export async function buildQuincenaPdf(report: QuincenaReport, labels: QuincenaP
   autoTable(doc, {
     startY: 72,
     margin: { left: margin, right: margin, bottom: 40 },
-    head: [[c.n, c.employee, c.base, c.bonus, c.deductions, c.benefits, c.loan, c.net, c.method, c.paid]],
+    head: [[c.n, c.employee, c.base, c.bonus, c.deductions, c.benefits, c.loan, c.net, c.paid]],
     body: report.lines.map((l, i) => [
       String(i + 1),
       l.name,
@@ -69,7 +64,6 @@ export async function buildQuincenaPdf(report: QuincenaReport, labels: QuincenaP
       money(l.prestacionesCents),
       money(l.loanPaymentCents === 0 ? 0 : -l.loanPaymentCents),
       formatCents(l.netCents),
-      labels.methodName(l.paymentMethod),
       l.paid ? labels.yes : "–",
     ]),
     foot: [
@@ -82,7 +76,6 @@ export async function buildQuincenaPdf(report: QuincenaReport, labels: QuincenaP
         formatCents(report.totals.prestacionesCents),
         formatCents(-report.totals.loanPaymentCents),
         formatCents(report.totals.netCents),
-        "",
         `${report.paidCount}/${report.lines.length}`,
       ],
     ],
@@ -99,26 +92,11 @@ export async function buildQuincenaPdf(report: QuincenaReport, labels: QuincenaP
       5: right,
       6: right,
       7: { ...right, fontStyle: "bold" },
-      9: { halign: "center", cellWidth: 40 },
+      8: { halign: "center", cellWidth: 40 },
     },
     didParseCell: (d) => {
       if (d.section !== "body" && d.section !== "foot") return;
       if (d.column.index >= 2 && d.column.index <= 7) d.cell.styles.halign = "right";
-    },
-  });
-
-  // Desglose por método de pago, debajo de la tabla.
-  const lastY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 72;
-  autoTable(doc, {
-    startY: lastY + 18,
-    margin: { left: margin, right: pageW / 2 + 40, bottom: 40 },
-    head: [[labels.byMethodTitle, labels.methodCount, labels.methodNet]],
-    body: report.byMethod.map((m) => [labels.methodName(m.method), String(m.count), formatCents(m.netCents)]),
-    styles: { font: "helvetica", fontSize: 8.5, cellPadding: 4, textColor: INK, lineColor: [225, 225, 222], lineWidth: 0.4 },
-    headStyles: { fillColor: SOFT, textColor: INK, fontStyle: "bold" },
-    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
-    didParseCell: (d) => {
-      if (d.column.index >= 1) d.cell.styles.halign = "right";
     },
   });
 

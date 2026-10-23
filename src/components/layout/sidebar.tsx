@@ -2,20 +2,65 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Layers, Settings, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
-import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ADMIN_PANEL_ITEMS } from "./nav-items";
+import { PendingBadge } from "@/components/shared/pending-badge";
+import { EbonyMark } from "@/components/brand/ebony-logo";
+import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { UserMenu } from "./user-menu";
 
-export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
+const railActive = "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm";
+const railIdle = "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+
+/** Cuántos pendientes hay por revisar (indicadores rojos del menú). */
+export interface PendingCounts {
+  /** "Nuevos registros" (JotForm) → Personal. */
+  intakes: number;
+  /** "Solicitudes de dinero" (JotForm) → Planilla. */
+  moneyRequests: number;
+}
+
+export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose: () => void; pending: PendingCounts }) {
   const { lang } = useLang();
-  const { role } = useAuth();
+  const { role, modules } = useAuth();
   const pathname = usePathname();
-  const isAdmin = role === "admin";
-  const [planillaItem, contratistasItem] = ADMIN_PANEL_ITEMS;
-  const isAdminRoute = ADMIN_PANEL_ITEMS.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const access = { role, modules };
+  const railItems = RAIL_ITEMS.filter((i) => canSeeNavItem(i, access));
+
+  // Cada panel con solo los ítems que este usuario puede abrir.
+  const visible = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
+  const almacenPanel = visible(ALMACEN_PANEL);
+  const personalPanel = visible(PERSONAL_PANEL);
+  const settingsPanel = visible(SETTINGS_PANEL);
+  const openPanel = [almacenPanel, personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
+  // Qué ítem del panel lleva cada indicador.
+  const pendingFor = (href: string) =>
+    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0;
+  const panelPending = (panel: NavPanel) => panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0);
+
+  // Ícono del rail para un panel: un Link normal al primer ítem que el
+  // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
+  // la ruta. Sin ítems visibles, no hay ícono.
+  function panelLink(panel: NavPanel) {
+    const [first] = panel.items;
+    if (!first) return null;
+    const Icon = panel.icon;
+    return (
+      <Link
+        href={first.href}
+        onClick={onClose}
+        title={t(lang, panel.title)}
+        aria-label={t(lang, panel.title)}
+        className={`relative ${railButton} ${openPanel?.key === panel.key ? railActive : railIdle}`}
+      >
+        <Icon size={23} className="shrink-0" strokeWidth={1.5} />
+        <PendingBadge count={panelPending(panel)} className="absolute -top-1 -right-1" title={t(lang, strings.nav.pending)} />
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -29,21 +74,19 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Barra nogal — íconos grandes y blancos, estilo ClickUp. */}
-        <aside className="relative w-[68px] h-full flex flex-col items-center shrink-0 bg-walnut py-4">
+        {/* Rail de íconos — colores de barra lateral del tema (--sidebar-*). */}
+        <aside className="relative w-[68px] h-full flex flex-col items-center shrink-0 bg-sidebar border-r border-sidebar-border py-4">
           <button
             onClick={onClose}
-            className="md:hidden absolute top-1.5 right-1.5 text-white/60 hover:text-white"
+            className="md:hidden absolute top-1.5 right-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground"
           >
             <X size={14} />
           </button>
 
-          <div className="w-9 h-9 rounded-[10px] bg-white/16 flex items-center justify-center mb-[22px] shrink-0">
-            <EbonyLogo variant="isotipo" tone="white" height={20} />
-          </div>
+          <EbonyMark size={36} className="mb-[22px]" />
 
           <nav className="flex-1 flex flex-col items-center gap-1.5">
-            {RAIL_ITEMS.map(({ href, icon: Icon, label }) => {
+            {railItems.map(({ href, icon: Icon, label }) => {
               const isActive = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
@@ -52,120 +95,58 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   onClick={onClose}
                   title={t(lang, label)}
                   aria-label={t(lang, label)}
-                  className={`
-                    w-11 h-11 flex items-center justify-center rounded-[11px]
-                    transition-colors duration-100
-                    ${isActive ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
-                  `}
+                  className={`${railButton} ${isActive ? railActive : railIdle}`}
                 >
                   <Icon size={23} className="shrink-0" strokeWidth={1.5} />
                 </Link>
               );
             })}
 
-            {/* Administración — un Link normal como los 5 de arriba (no un
-                toggle que abre/cierra nada); el panel crema de al lado
-                aparece solo, según la ruta (ver isAdminRoute), al entrar
-                acá. Solo para admin: un vendedor no tiene nada que ver en
-                Planilla/Contratistas. */}
-            {isAdmin && (
-              <Link
-                href={planillaItem.href}
-                onClick={onClose}
-                title={t(lang, strings.nav.administracion)}
-                aria-label={t(lang, strings.nav.administracion)}
-                className={`
-                  w-11 h-11 flex items-center justify-center rounded-[11px]
-                  transition-colors duration-100
-                  ${isAdminRoute ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}
-                `}
-              >
-                <Briefcase size={23} className="shrink-0" strokeWidth={1.5} />
-              </Link>
-            )}
+            {panelLink(almacenPanel)}
+            {panelLink(personalPanel)}
           </nav>
 
-          {/* Inerte por ahora — el mockup lo pinta pero no define a dónde
-              lleva (¿ajustes de perfil? ¿de la app?). Avisar antes de
-              cablearlo a algo. */}
-          <div
-            className="mt-auto w-11 h-11 flex items-center justify-center rounded-[11px] text-white/65"
-            title={t(lang, strings.nav.settings)}
-          >
-            <Settings size={20} strokeWidth={1.5} />
+          {/* Al pie: Settings (engranaje) y el acceso al perfil. */}
+          <div className="mt-auto flex flex-col items-center gap-1.5">
+            {panelLink(settingsPanel)}
+            <UserMenu />
           </div>
         </aside>
 
-        {/* Panel "Administración" — solo para admins, y solo dentro de
-            Planilla o Contratistas (antes aparecía en cualquier ruta). */}
-        {isAdmin && isAdminRoute && (
-          <aside className="w-56 h-full flex flex-col shrink-0 bg-cream-100 border-r border-ink-900/8">
+        {/* Panel del ícono activo (Personal o Settings) — solo
+            dentro de sus rutas, y solo con los ítems que el usuario puede abrir. */}
+        {openPanel && (
+          <aside className="w-56 h-full flex flex-col shrink-0 bg-sidebar border-r border-sidebar-border">
             <div className="px-5 pt-[22px] pb-4">
-              <h2 className="text-[15px] font-bold text-ink-900">{t(lang, strings.nav.administracion)}</h2>
+              <h2 className="text-[15px] font-bold text-sidebar-foreground">{t(lang, openPanel.title)}</h2>
             </div>
-            <div className="h-px bg-ink-900/8 mx-5 mb-3.5" />
+            <div className="h-px bg-sidebar-border mx-5 mb-3.5" />
 
             <nav className="flex-1 py-1 px-3 overflow-y-auto space-y-0.5">
-              {(() => {
-                const isActive =
-                  pathname === planillaItem.href || pathname.startsWith(`${planillaItem.href}/`);
-                const Icon = planillaItem.icon;
+              {openPanel.items.map((item) => {
+                const { href, icon: Icon, label } = item;
+                const isActive = isNavItemActive(item, pathname);
                 return (
                   <Link
-                    href={planillaItem.href}
+                    key={href}
+                    href={href}
                     onClick={onClose}
                     className={`
-                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
+                      flex items-center gap-[11px] rounded-md px-3 py-[9px] text-[13.5px]
                       transition-colors duration-100
                       ${
                         isActive
-                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
-                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
+                          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                          : "font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                       }
                     `}
                   >
                     <Icon size={18} className="shrink-0" strokeWidth={1.7} />
-                    <span>{t(lang, planillaItem.label)}</span>
+                    <span>{t(lang, label)}</span>
+                    <PendingBadge count={pendingFor(href)} className="ml-auto" title={t(lang, strings.nav.pending)} />
                   </Link>
                 );
-              })()}
-
-              {/* "Dashboard" acá es el Resumen de Planillas global (Taller +
-                  Contratistas juntos) — todavía sin construir. El mockup lo
-                  pinta como un ítem normal (no apagado) con etiqueta
-                  "NUEVO" en vez de "Pronto"; sigue sin ser un <Link> real
-                  porque no hay página a la que mandarlo todavía. */}
-              <div className="flex items-center gap-[11px] rounded-[9px] px-3 py-[9px] text-[13.5px] font-medium text-ink-900/55">
-                <Layers size={18} className="shrink-0" strokeWidth={1.7} />
-                <span>{t(lang, strings.nav.resumenPlanillas)}</span>
-                <span className="ml-auto rounded-[5px] bg-walnut-tint px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.04em] text-walnut">
-                  {t(lang, strings.nav.nuevo)}
-                </span>
-              </div>
-
-              {(() => {
-                const isActive =
-                  pathname === contratistasItem.href || pathname.startsWith(`${contratistasItem.href}/`);
-                const Icon = contratistasItem.icon;
-                return (
-                  <Link
-                    href={contratistasItem.href}
-                    onClick={onClose}
-                    className={`
-                      flex items-center gap-[11px] rounded-[9px] text-[13.5px]
-                      transition-colors duration-100
-                      ${
-                        isActive
-                          ? "border-l-[3px] border-walnut bg-walnut-tint py-[9px] pl-[10px] pr-3 font-semibold text-walnut"
-                          : "border-l-[3px] border-transparent py-[9px] px-3 font-medium text-ink-900/55 hover:bg-ink-900/5 hover:text-ink-900"
-                      }
-                    `}
-                  >
-                    <Icon size={18} className="shrink-0" strokeWidth={1.7} />
-                    <span>{t(lang, contratistasItem.label)}</span>
-                  </Link>
-                );
-              })()}
+              })}
             </nav>
           </aside>
         )}

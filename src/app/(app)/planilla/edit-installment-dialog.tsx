@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 import type { Period } from "@/lib/planilla/payroll-period";
 import { formatCents } from "@/lib/planilla/payroll-period";
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { monthShort } from "@/lib/planilla/format";
 import { reflowLoanSchedule, type PendingInstallment, type ReflowMode } from "@/lib/planilla/payroll-loans";
 import { useLang } from "@/context/language-context";
@@ -112,21 +112,12 @@ export function EditInstallmentDialog({
     >
       {current && <p className="text-sm text-muted-foreground">{pl(current.period)}</p>}
       <Field label={tt("loan_edit_f_amount")}>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-          autoFocus
-        />
+        <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
       </Field>
       <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>
 
       {changed && !same && (
-        <fieldset className="flex flex-col gap-2 rounded-none border border-border p-3">
+        <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <legend className="px-1 text-xs font-medium text-foreground">{tt("loan_edit_mode_title")}</legend>
           {(["extend", "spread"] as const).map((m) => (
             <label key={m} className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
@@ -149,7 +140,7 @@ export function EditInstallmentDialog({
       )}
 
       {changed && shown.length > 0 && (
-        <div className="rounded-none border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           <p className="mb-1 font-medium text-foreground">{tt("loan_edit_preview")}</p>
           <ul className="flex flex-col gap-0.5">
             {shown.map((i, idx) => (

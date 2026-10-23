@@ -66,33 +66,46 @@ reutilizable; los nombres de módulo no.
 
 ## 3. Tokens / tema (mecanismo reutilizable, valores específicos de Ebony)
 
-`src/app/globals.css` tiene tres bloques, deliberadamente separados con
-comentarios `FUNDACIÓN` / `EBONY` / `CONTRATO DE PIEZAS COMPARTIDAS`:
+`src/app/globals.css`, en este orden:
 
-1. **Fundación** — `@import "tailwindcss"`, `@layer base` (borde/focus-ring
-   globales), nada de color. Se copia tal cual a cualquier app nueva.
-2. **Ebony** — los 7 hex de marca (`--ebony-dark/medium/light/warm/gray/
-   gold/gold-light`) + `--radius`. Esto es lo único que cambia entre apps:
-   una app nueva reemplaza este bloque por su propia paleta, sin tocar
-   nada más del archivo.
-3. **Contrato de piezas compartidas** — nombres de token estilo shadcn
-   (`--background`, `--primary`, `--card`, `--border`...) mapeados a los
-   hex de Ebony. **Probado contra las 21 piezas reales de Atlas — ver
-   sección 8 para el detalle de qué se confirmó y qué se agregó.**
+1. **Fundación** — `@import "tailwindcss"`, `@custom-variant dark`
+   (modo oscuro por clase `.dark` en `<html>`) y `@layer base`
+   (borde/focus-ring globales, `letter-spacing` del tema). Se copia tal
+   cual a cualquier app nueva.
+2. **Tema** — exportado de [tweakcn](https://tweakcn.com) en oklch: `:root`
+   (claro) y `.dark` (oscuro) con los nombres estándar de shadcn
+   (`--background`, `--primary`, `--card`, `--sidebar-*`, `--chart-*`…),
+   `--radius`, la escala de sombras y `--tracking-normal`. **Cambiar de
+   piel = reemplazar los valores de estos dos bloques** con los de otro
+   tema de tweakcn (mismos nombres). Agregados de Ebony que el tema no trae:
+   `--success`/`--warning` y `--row-hover`/`--row-focus`.
+3. **Nombres de marca heredados → tema** — `--ink-900`, `--walnut`,
+   `--cream-100`, `--stone-*`, `--ebony-*` siguen existiendo porque muchas
+   pantallas usan esas clases, pero ahora apuntan al tema (tinta = texto,
+   madera = principal, crema = fondo, piedras = grises). Así siguen al
+   tema y al modo oscuro sin reescribir cada pantalla. Código nuevo: usar
+   los nombres del tema directamente.
+4. **Planilla / Contratistas** — colores por categoría (fijos, semánticos)
+   y grises/velos de tabla derivados del tema (`color-mix` con
+   `--foreground` sobre `--card`, válidos en claro y oscuro).
+5. **`@theme inline`** — re-expone todo lo anterior como utilidades de
+   Tailwind (`bg-primary`, `rounded-lg`, `shadow-md`, `font-sans`…).
 
-Regla que se mantiene desde el plan de piezas compartidas (conversación
-previa): **ninguna pieza de interfaz nombra un color/radio/sombra
-literal** — todo se resuelve a través de estos tokens. Las clases
-`.btn-primary`/`.card`/`.input`/etc. heredadas de la versión Vite ya
-seguían esa regla (usan `bg-ebony-gold`, no `#C9A84C`); las 21 piezas de
-Atlas también la siguen — se copiaron sin editar un solo color/radio, y
-donde faltaba un token para que resolvieran contra Ebony (no contra
-Atlas), se agregó al contrato en vez de tocar la pieza. Ver sección 8.
+Regla: **ninguna pieza de interfaz nombra un color/radio/sombra
+literal** — todo se resuelve a través de estos tokens. Las piezas de `ui/`
+usan los radios estándar de shadcn (`rounded-md` botones/campos,
+`rounded-xl` tarjetas, `rounded-lg` diálogos, `rounded-sm` opciones de
+menú), así el redondeo sale de `--radius`.
 
-**Fuente:** Inter, vía `next/font/google` (self-hosted) en vez del
-`<link>` a Google Fonts que usaba la versión Vite — mismo font, mecanismo
-de carga distinto. `--font-sans` en `@theme inline` apunta a la variable
-que genera `next/font`.
+**Modo oscuro:** `src/lib/theme.ts` (script en línea que `layout.tsx` pone
+en `<head>` para aplicar `.dark` antes del primer pintado, sin parpadeo) +
+`src/context/theme-context.tsx` (`useTheme()`: Claro / Oscuro /
+Automático, guardado por navegador en `localStorage`). El selector vive en
+el menú de perfil (`user-menu.tsx`).
+
+**Fuentes:** las del tema — Inter (interfaz), Merriweather (`font-serif`)
+y JetBrains Mono (`font-mono`) — vía `next/font/google` en `layout.tsx`;
+`@theme inline` lee sus variables (`--font-inter`, etc.).
 
 ## 4. Supabase (mecanismo reutilizable — conectado en Fase 1)
 
@@ -156,6 +169,47 @@ Roles y acceso (ver `supabase/migrations/20260906170000_fase1_auth_rls.sql`):
   auto-escale el rol.
 - Las funciones helper/trigger viven en el esquema `private` (no expuesto
   por PostgREST). `get_advisors` (security) queda limpio.
+
+### Organización del menú
+
+- **Rail:** módulos de trabajo (Cotización, Proyectos, Cronograma, Gastos,
+  Dashboard ejecutivo) y el ícono **Personal**; al pie, **Settings** y el
+  menú de perfil.
+- **Personal** (`/personal`): Resumen (lo pagado por mes, Planilla +
+  Contratistas), **Staff** (`/personal/staff`: empleados y contratistas
+  en una sola lista, solo lectura, cada fila abre su ficha), Planilla y
+  Contratistas. "Dashboard" queda reservado para el ejecutivo de la empresa.
+- **Settings** (`/settings`): Usuarios.
+- Paneles e ítems definidos en `src/components/layout/nav-items.ts`
+  (`modules` = todos, `anyModules` = alguno, `adminOnly`).
+
+### Usuarios y permisos por módulo
+
+Ver `supabase/migrations/20261020120000_usuarios_permisos.sql` y la
+pantalla **Settings → Usuarios** (`src/app/(app)/settings/usuarios/`, solo admin).
+
+- `allowed_emails` es la lista de usuarios: `first_name` / `last_name`
+  (los pone el admin al invitar; mandan sobre el nombre de Google y se
+  copian a `profiles.full_name`), `role` (`admin` = todo;
+  `vendedor` = "Usuario", solo lo marcado) + `modules`. Un trigger copia
+  ambos a `profiles`, que es lo que leen la RLS y el servidor; quitar un
+  correo borra el perfil y sin perfil no se entra.
+- La lista de módulos vive en un solo lugar: `src/lib/auth/modules.ts`
+  (`APP_MODULES`, sub-permisos `asistencia` ⊂ `planilla` y `costos` ⊂
+  `cotizacion`, `hasModule`, `homePathFor`). En el servidor:
+  `requireModule(...)` en cada página/action (`src/lib/auth/dal.ts`); en
+  Postgres: `private.has_module(m)` en cada policy; en el cliente:
+  `useAuth().can(m)` y `canSeeNavItem` solo para mostrar/ocultar.
+- **Invitación por correo sin service_role:** `sendInvitation`
+  (`src/services/app-users.ts`) llama `signInWithOtp` con la clave pública
+  desde un cliente aparte en flujo implícito; Supabase manda el enlace y,
+  si la persona no tiene cuenta, la crea (el trigger de alta la deja pasar
+  porque ya está en la lista). El enlace vuelve a `/auth/confirm`, que toma
+  la sesión del `#hash` (o de `?token_hash=`) en el navegador. El invitado
+  también puede entrar con Google si su correo es de Google.
+- Agregar un módulo nuevo: sumarlo a `APP_MODULES` (+ etiqueta en
+  `usuarios/module-labels.ts`), al `check` de `allowed_emails.modules` y a
+  las policies de sus tablas con `private.has_module('<modulo>')`.
 
 **Nota reutilizable:** el patrón "route group `(app)` + gate en su layout"
 se mantuvo; lo que cambió es que el gate ahora es server-side
@@ -262,15 +316,7 @@ overlay, no forma parte de la identidad de ninguna de las dos apps) y
 `rounded-full` (forma de píldora/círculo — avatar, badges — no una
 decisión de radio temable).
 
-### Modo oscuro — hallazgo, no ajuste
+### Modo oscuro
 
-`/style-check` se verificó en claro y con `prefers-color-scheme: dark`
-emulado en el navegador. **Salieron idénticos** — no porque el contrato
-esté mal, sino porque Ebony nunca definió una paleta oscura (ni la
-versión Vite la tenía; no hay bloque `@media (prefers-color-scheme: dark)`
-en `globals.css`). No es un bug de esta reconstrucción, es un hueco de
-diseño preexistente que recién se hace visible ahora que hay piezas reales
-para probarlo contra los dos temas. **Pendiente de decisión del usuario**,
-no de esta sesión — no se inventó una paleta oscura sin que la definiera
-la persona dueña de la marca, mismo criterio que se usó con la paleta
-clara original.
+Resuelto con el tema de tweakcn (bloque `.dark` de `globals.css`) y el
+selector Claro / Oscuro / Automático del menú de perfil — ver §3.

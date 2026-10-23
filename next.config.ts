@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // El indicador de desarrollo va por defecto abajo a la izquierda, justo
+  // encima del acceso al perfil del rail (user-menu.tsx). Solo existe con
+  // `next dev`.
+  devIndicators: {
+    position: "bottom-right",
+  },
 };
 
 export default nextConfig;

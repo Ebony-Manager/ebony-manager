@@ -4,34 +4,40 @@ import type { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider, type EbonyUser } from "@/context/auth-context";
-import type { AppRole } from "@/lib/auth/dal";
+import { ThemeProvider } from "@/context/theme-context";
+import type { AppModule, AppRole } from "@/lib/auth/modules";
 
 export function Providers({
   children,
   initialUser = null,
   initialRole = null,
+  initialModules,
 }: {
   children: ReactNode;
   initialUser?: EbonyUser | null;
   initialRole?: AppRole | null;
+  initialModules?: AppModule[];
 }) {
   return (
-    <LanguageProvider>
-      <AuthProvider initialUser={initialUser} initialRole={initialRole}>
-        {children}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "var(--ebony-warm)",
-              color: "var(--ebony-dark)",
-              border: "1px solid var(--ebony-gray)",
-            },
-            success: { iconTheme: { primary: "var(--ebony-gold)", secondary: "var(--ebony-warm)" } },
-            error: { iconTheme: { primary: "var(--ebony-destructive)", secondary: "var(--ebony-warm)" } },
-          }}
-        />
-      </AuthProvider>
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+              },
+              success: { iconTheme: { primary: "var(--success)", secondary: "var(--popover)" } },
+              error: { iconTheme: { primary: "var(--destructive)", secondary: "var(--popover)" } },
+            }}
+          />
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

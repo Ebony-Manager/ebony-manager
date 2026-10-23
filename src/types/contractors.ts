@@ -24,6 +24,10 @@ export interface Project {
   clientName: string | null;
   status: ProjectStatus;
   notes: string | null;
+  /** Dónde queda la obra. */
+  location: string | null;
+  /** Cuándo se creó el proyecto en la app (ISO). */
+  createdAt: string;
   /** Campos de "contrato" (Etapa 2-A) — todos opcionales. */
   scope: string | null;
   furnitureType: string | null;
@@ -38,9 +42,29 @@ export interface Contractor {
   id: string;
   name: string;
   contractorType: ContractorType;
+  /** Número de cédula o pasaporte (el tipo va en `idDocumentType`). */
   idDocument: string | null;
+  idDocumentType: "cedula" | "pasaporte" | null;
+  /** Código de país ISO 3166-1 de dos letras (ver src/lib/countries.ts). */
+  nationality: string | null;
+  /** Fecha de nacimiento, `YYYY-MM-DD`. */
+  birthDate: string | null;
+  /** Foto o PDF del documento en el bucket privado `staff-documents`; null = sin documento. */
+  idDocumentPath: string | null;
+  /** Ruta de la foto en el bucket privado `contractor-photos`; null = sin foto. */
+  photoPath: string | null;
   phone: string | null;
-  contactInfo: string | null;
+  /** Correo personal. */
+  email: string | null;
+  /** Dirección de domicilio, texto libre. */
+  address: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  contractInfo: string | null;
+  bankName: string | null;
+  bankAccountType: "ahorro" | "corriente" | null;
+  bankAccountNumber: string | null;
+  bankRoutingCode: string | null;
   startDate: string | null;
   status: ContractorStatus;
   endDate: string | null;
@@ -61,11 +85,6 @@ export interface ContractorHelper {
   notes: string | null;
 }
 
-/** Contratista + su saldo actual calculado (para el directorio). */
-export interface ContractorWithBalance extends Contractor {
-  balanceCents: number;
-}
-
 /** Las 9 categorías de la tabla `contractor_ledger_entries`. */
 export type ContractorLedgerCategory =
   | "trabajo"
@@ -76,7 +95,11 @@ export type ContractorLedgerCategory =
   | "adelanto"
   | "material"
   | "gasto_operativo"
-  | "ajuste";
+  | "ajuste"
+  | "herramienta"
+  | "dano"
+  | "indrive"
+  | "otro";
 
 /** `a_favor` sube el saldo (Ebony le debe más al contratista); `reduce`
  *  lo baja. */
@@ -111,6 +134,69 @@ export interface ContractorLedgerEntry {
    *  null cuando el movimiento no tiene ítems. Solo para mostrar en la
    *  tabla del estado de cuenta sin tener que abrir el movimiento. */
   itemsSummary: string | null;
+  /** Cuota de un préstamo/descuento en cuotas (`contractor_loans`); null en
+   *  un movimiento suelto. Con fecha futura está programada y no cuenta en
+   *  el saldo de hoy. */
+  loanId: string | null;
+  /** Contrato del que este movimiento es parte del VALOR (trabajo, extra,
+   *  bono o ajuste). null = fuera de un contrato. */
+  contractId: string | null;
+  /** Nombre del contrato, resuelto en el `select` — solo para mostrar. */
+  contractName: string | null;
+}
+
+/** Contrato: lo que se le encarga a un contratista dentro de un proyecto.
+ *  Su valor sale de los movimientos con `contractId`; lo abonado, de
+ *  `ContractorAllocation`. Ninguno de los dos se guarda: se calculan. */
+export type ContractStatus = "ACTIVE" | "COMPLETED";
+
+export interface ContractorContract {
+  id: string;
+  contractorId: string;
+  contractorName: string;
+  projectId: string;
+  projectName: string;
+  name: string;
+  contractDate: string;
+  status: ContractStatus;
+  notes: string | null;
+  /** Valor acordado: Σ de sus movimientos (con signo). */
+  valueCents: number;
+  /** Lo abonado: Σ de lo repartido a este contrato. */
+  allocatedCents: number;
+  /** Retención de garantía (pintores): la parte de lo pendiente que no se
+   *  puede pagar hasta que el proyecto esté terminado. 0 si no aplica. */
+  retentionCents: number;
+}
+
+/** Cuánto de un movimiento que baja el saldo (`sourceEntryId`) se abonó a
+ *  un contrato o a un crédito suelto (uno de los dos). */
+export interface ContractorAllocation {
+  id: string;
+  sourceEntryId: string;
+  contractId: string | null;
+  creditEntryId: string | null;
+  amountCents: number;
+}
+
+/** Préstamo, adelanto, herramienta, daño o InDrive de un contratista, con
+ *  el avance de sus cuotas (cada cuota es un movimiento con `loanId`). */
+export interface ContractorLoanSummary {
+  id: string;
+  contractorId: string;
+  category: "prestamo" | "adelanto" | "herramienta" | "dano" | "indrive" | "otro";
+  requestDate: string;
+  principalCents: number;
+  interestCents: number;
+  status: "active" | "cancelled";
+  notes: string | null;
+  installmentCount: number;
+  /** Cuotas cuya fecha ya llegó (ya se descontaron del saldo). */
+  dueCount: number;
+  dueCents: number;
+  /** Lo que falta por descontar (cuotas programadas). */
+  pendingCents: number;
+  next: { date: string; amountCents: number } | null;
 }
 
 /** Una fila del estado de cuenta con el saldo corrido justo después de

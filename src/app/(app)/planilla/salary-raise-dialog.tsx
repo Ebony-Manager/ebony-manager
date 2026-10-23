@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { currentPeriod, nextPeriod, periodOrdinal, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
@@ -43,6 +43,9 @@ function nextPeriodN(p: Period, n: number): Period {
 export function SalaryRaiseDialog({
   employeeId,
   defaultFrom,
+  externalCompany,
+  currentMonthlyCents,
+  currentBenefitsCents,
   open,
   onOpenChange,
   onSaved,
@@ -50,6 +53,11 @@ export function SalaryRaiseDialog({
   employeeId: string;
   /** Quincena sugerida para "desde cuándo" (ej. el ingreso, en un primer sueldo). */
   defaultFrom?: Period;
+  /** Si sus prestaciones las paga otra empresa: el segundo campo es lo que le paga esa empresa. */
+  externalCompany?: string | null;
+  /** Lo vigente hoy, para no tener que volver a escribirlo al cambiar solo una parte. */
+  currentMonthlyCents?: number;
+  currentBenefitsCents?: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (saved: { monthlySalaryCents: number; benefitsBaseSalaryCents: number | null }) => void;
@@ -70,8 +78,8 @@ export function SalaryRaiseDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setMonthly("");
-    setBenefits("");
+    setMonthly(currentMonthlyCents ? (currentMonthlyCents / 100).toFixed(2) : "");
+    setBenefits(currentBenefitsCents != null ? (currentBenefitsCents / 100).toFixed(2) : "");
     setPeriodKey(keyOf(defaultFrom ?? currentPeriod()));
     setNotes("");
     setError(null);
@@ -122,25 +130,10 @@ export function SalaryRaiseDialog({
     >
       <div className="grid grid-cols-2 gap-3">
         <Field label={tt("raise_f_monthly")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={monthly}
-            onChange={(e) => setMonthly(e.target.value)}
-            placeholder="0.00"
-            autoFocus
-          />
+          <MoneyInput value={monthly} onValueChange={setMonthly} autoFocus />
         </Field>
-        <Field label={tt("raise_f_benefits")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={benefits}
-            onChange={(e) => setBenefits(e.target.value)}
-            placeholder={tt("f_benefits_hint")}
-          />
+        <Field label={externalCompany ? `${tt("raise_f_external")} ${externalCompany}` : tt("raise_f_benefits")}>
+          <MoneyInput value={benefits} onValueChange={setBenefits} placeholder={tt("f_benefits_hint")} />
         </Field>
       </div>
 

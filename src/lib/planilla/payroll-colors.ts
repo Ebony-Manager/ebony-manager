@@ -88,10 +88,11 @@ const TINT = { header: 14, cell: 4, group: 10, line: 3, border: 38 } as const;
 
 /** Color de texto de una categoría cuando va SOBRE su propio tinte
  *  (encabezados, filas de grupo, cifras de color). Los tokens son tonos
- *  suaves a propósito; mezclados 70% con negro conservan el matiz y pasan
- *  AA (>= 4.7:1 incluso sobre el tinte del encabezado). */
+ *  suaves a propósito; mezclados 70% con el color de texto del tema (casi
+ *  negro en modo claro, casi blanco en oscuro) conservan el matiz y se leen
+ *  sobre el tinte en los dos modos (AA en claro: >= 4.7:1). */
 export function payrollCategoryInk(key: PayrollCategoryKey): string {
-  return `color-mix(in oklch, ${PAYROLL_CATEGORY[key].color} 70%, black)`;
+  return `color-mix(in oklch, ${PAYROLL_CATEGORY[key].color} 70%, var(--foreground))`;
 }
 
 /** Fondo de las columnas "extremas" (Empleado, Total, Pagado, Método):

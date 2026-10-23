@@ -14,7 +14,6 @@
  *   "mi vista" (o la original si no hay).
  */
 
-export const REGISTRO_VIEW_KEY = "ebony:planilla-registro-vista-v1";
 export const AUDITORIA_VIEW_KEY = "ebony:planilla-auditoria-vista-v1";
 export const SAVED_VIEW_VERSION = 1;
 

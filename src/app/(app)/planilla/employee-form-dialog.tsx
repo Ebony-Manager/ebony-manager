@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
+import { CountrySelect } from "@/components/shared/country-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,9 +68,31 @@ interface FormState {
   idDocumentType: "cedula" | "pasaporte" | typeof NO_ACCOUNT_TYPE;
   nationality: string;
   birthDate: string;
+  email: string;
+  address: string;
   bankAccountNumber: string;
   bankRoutingCode: string;
+  benefitsEnabled: boolean;
+  benefitsExternalCompany: string;
 }
+
+/** Datos con los que puede llegar prellenada el alta (ej. desde un registro de JotForm). */
+export type EmployeePrefill = Partial<
+  Pick<
+    FormState,
+    | "name"
+    | "phone"
+    | "email"
+    | "address"
+    | "birthDate"
+    | "emergencyContactName"
+    | "emergencyContactPhone"
+    | "bankName"
+    | "bankAccountType"
+    | "bankAccountNumber"
+    | "notes"
+  >
+>;
 
 const EMPTY: FormState = {
   name: "",
@@ -89,8 +113,14 @@ const EMPTY: FormState = {
   idDocumentType: NO_ACCOUNT_TYPE,
   nationality: "",
   birthDate: "",
+  email: "",
+  address: "",
   bankAccountNumber: "",
   bankRoutingCode: "",
+  // Casi nadie lleva prestaciones en la planilla: un empleado nuevo arranca
+  // sin ellas y se marcan a mano si le tocan.
+  benefitsEnabled: false,
+  benefitsExternalCompany: "",
 };
 
 /** `activePositions` es el catálogo VIGENTE (ya filtrado a activas por el
@@ -118,8 +148,12 @@ function fromEmployee(e: PayrollEmployee, activePositions: PayrollPosition[]): F
     idDocumentType: e.idDocumentType ?? NO_ACCOUNT_TYPE,
     nationality: e.nationality ?? "",
     birthDate: e.birthDate ?? "",
+    email: e.email ?? "",
+    address: e.address ?? "",
     bankAccountNumber: e.bankAccountNumber ?? "",
     bankRoutingCode: e.bankRoutingCode ?? "",
+    benefitsEnabled: e.benefitsEnabled,
+    benefitsExternalCompany: e.benefitsExternalCompany ?? "",
   };
 }
 
@@ -134,12 +168,18 @@ export function EmployeeFormDialog({
   positions,
   open,
   onOpenChange,
+  prefill,
+  onCreated,
 }: {
   mode: "add" | "edit";
   employee?: PayrollEmployee | null;
   positions: PayrollPosition[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Solo en "add": el formulario abre con estos datos ya puestos. */
+  prefill?: EmployeePrefill;
+  /** Solo en "add": después de crear, con el id del empleado nuevo. */
+  onCreated?: (employeeId: string) => void | Promise<void>;
 }) {
   const { lang } = useLang();
   const [form, setForm] = React.useState<FormState>(EMPTY);
@@ -178,11 +218,11 @@ export function EmployeeFormDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el empleado editado cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : EMPTY);
+    setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : { ...EMPTY, ...prefill });
     setSalaryShown({ monthly: employee?.baseSalaryCents ?? 0, benefits: employee?.benefitsBaseSalaryCents ?? null });
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario arriba: catálogo solo importa al abrir.
-  }, [open, mode, employee]);
+  }, [open, mode, employee, prefill]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -220,27 +260,40 @@ export function EmployeeFormDialog({
       const docType = form.idDocumentType === NO_ACCOUNT_TYPE ? null : form.idDocumentType;
       const nationality = form.nationality.trim() || null;
       const birthDate = form.birthDate || null;
+      const email = form.email.trim() || null;
+      const address = form.address.trim() || null;
       const profileExtra =
         mode === "edit" && employee
           ? {
+              ...(form.benefitsEnabled !== employee.benefitsEnabled ? { benefitsEnabled: form.benefitsEnabled } : {}),
+              ...((form.benefitsExternalCompany.trim() || null) !== employee.benefitsExternalCompany
+                ? { benefitsExternalCompany: form.benefitsExternalCompany.trim() || null }
+                : {}),
               ...(docType !== employee.idDocumentType ? { idDocumentType: docType } : {}),
               ...(nationality !== employee.nationality ? { nationality } : {}),
               ...(birthDate !== employee.birthDate ? { birthDate } : {}),
+              ...(email !== employee.email ? { email } : {}),
+              ...(address !== employee.address ? { address } : {}),
             }
           : {
+              ...(!form.benefitsEnabled ? { benefitsEnabled: false } : {}),
+              ...(form.benefitsExternalCompany.trim() ? { benefitsExternalCompany: form.benefitsExternalCompany.trim() } : {}),
               ...(docType ? { idDocumentType: docType } : {}),
               ...(nationality ? { nationality } : {}),
               ...(birthDate ? { birthDate } : {}),
+              ...(email ? { email } : {}),
+              ...(address ? { address } : {}),
             };
       if (mode === "edit" && employee) {
         await updateEmployeeAction(employee.id, { ...common, ...profileExtra });
       } else {
-        await createEmployeeAction({
+        const created = await createEmployeeAction({
           ...common,
           ...profileExtra,
           baseSalaryCents: toCents(form.baseSalary),
           benefitsBaseSalaryCents: form.benefitsBaseSalary.trim() ? toCents(form.benefitsBaseSalary) : null,
         });
+        await onCreated?.(created.id);
       }
       toast.success(t(lang, mode === "edit" ? strings.planilla.action_save : strings.planilla.action_add));
       onOpenChange(false);
@@ -329,28 +382,18 @@ export function EmployeeFormDialog({
               {mode === "add" ? (
                 <>
                   <Field label={tt("f_base_salary")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={form.baseSalary}
-                      onChange={(e) => set("baseSalary", e.target.value)}
-                      placeholder="0.00"
-                    />
+                    <MoneyInput value={form.baseSalary} onValueChange={(v) => set("baseSalary", v)} />
                   </Field>
                   <Field label={tt("f_benefits_salary")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
+                    <MoneyInput
                       value={form.benefitsBaseSalary}
-                      onChange={(e) => set("benefitsBaseSalary", e.target.value)}
+                      onValueChange={(v) => set("benefitsBaseSalary", v)}
                       placeholder={tt("f_benefits_hint")}
                     />
                   </Field>
                 </>
               ) : (
-                <div className="flex items-center justify-between gap-3 rounded-none border border-border px-3 py-2 sm:col-span-2">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 sm:col-span-2">
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">{tt("current_salary")}</p>
                     {salaryShown.monthly > 0 ? (
@@ -365,13 +408,55 @@ export function EmployeeFormDialog({
                     ) : (
                       <p className="text-sm text-muted-foreground">{tt("salary_not_set")}</p>
                     )}
+                    {form.benefitsExternalCompany.trim() && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}:{" "}
+                        <span className="font-medium text-foreground">
+                          {salaryShown.benefits != null ? `${formatCents(salaryShown.benefits)} ${tt("per_month")}` : tt("external_salary_missing")}
+                        </span>
+                      </p>
+                    )}
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
-                    {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
-                  </Button>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
+                      {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
+                    </Button>
+                    {form.benefitsExternalCompany.trim() && (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        onClick={() => setRaiseOpen(true)}
+                      >
+                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
+
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={form.benefitsEnabled}
+                onChange={(e) => set("benefitsEnabled", e.target.checked)}
+              />
+              <span>
+                <span className="font-medium text-foreground">{tt("f_benefits_enabled")}</span>
+                <span className="block text-xs text-muted-foreground">{tt("f_benefits_enabled_hint")}</span>
+              </span>
+            </label>
+            {form.benefitsEnabled && (
+              <Field label={tt("f_benefits_external")} className="sm:col-span-2">
+                <Input
+                  value={form.benefitsExternalCompany}
+                  onChange={(e) => set("benefitsExternalCompany", e.target.value)}
+                  placeholder={tt("f_benefits_external_ph")}
+                />
+                <p className="text-xs text-muted-foreground">{tt("f_benefits_external_hint")}</p>
+              </Field>
+            )}
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
               <Field label={tt("f_phone")}>
@@ -400,14 +485,25 @@ export function EmployeeFormDialog({
                 />
               </Field>
               <Field label={tt("f_nationality")}>
-                <Input
-                  value={form.nationality}
-                  onChange={(e) => set("nationality", e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
+                <CountrySelect value={form.nationality || null} onChange={(code) => set("nationality", code ?? "")} />
               </Field>
               <Field label={tt("f_birth_date")}>
                 <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+              </Field>
+              <Field label={tt("f_email")}>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder={tt("f_optional")}
+                />
+              </Field>
+              <Field label={tt("f_address")} className="sm:col-span-2">
+                <Input
+                  value={form.address}
+                  onChange={(e) => set("address", e.target.value)}
+                  placeholder={tt("f_address_ph")}
+                />
               </Field>
               <Field label={tt("f_emg_name")}>
                 <Input
@@ -498,6 +594,9 @@ export function EmployeeFormDialog({
       {mode === "edit" && employee && (
         <SalaryRaiseDialog
           employeeId={employee.id}
+          externalCompany={form.benefitsExternalCompany.trim() || employee.benefitsExternalCompany}
+          currentMonthlyCents={salaryShown.monthly}
+          currentBenefitsCents={salaryShown.benefits}
           defaultFrom={
             salaryShown.monthly === 0 && employee.startDate
               ? (() => {

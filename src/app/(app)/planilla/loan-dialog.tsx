@@ -3,9 +3,10 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import type { LoanCategory, LoanPaymentMethod, PayrollLoanWithSchedule } from "@/types/planilla";
+import type { LoanCategory, LoanInterestMode, LoanPaymentMethod, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -16,11 +17,18 @@ import {
   previousPeriod,
   type Period,
 } from "@/lib/planilla/payroll-period";
-import { computeLoanSchedule, defaultLoanStartPeriod, loanPayoffPeriod } from "@/lib/planilla/payroll-loans";
-import { periodLabel } from "@/lib/planilla/format";
+import {
+  computeLoanInterestCents,
+  computeLoanSchedule,
+  defaultLoanStartPeriod,
+  isSingleInstallment,
+  loanPayoffPeriod,
+} from "@/lib/planilla/payroll-loans";
+import { periodLabel, shortPeriodLabel } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createLoanAction, replaceLoanAction } from "./actions";
+import { createContractorLoanAction } from "../contratistas/actions";
 import { FormDialog, Field } from "./form-dialog";
 
 function periodKeyOf(p: Period): string {
@@ -51,6 +59,9 @@ const CATEGORY_LABEL: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_type_adelanto",
   herramienta: "loan_type_herramienta",
   dano: "loan_type_dano",
+  indrive: "loan_type_indrive",
+  otro: "loan_type_otro",
+  tercero: "loan_type_tercero",
 };
 
 const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -58,6 +69,9 @@ const TITLE_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_dlg_adelanto_title",
   herramienta: "loan_dlg_herramienta_title",
   dano: "loan_dlg_dano_title",
+  indrive: "loan_dlg_indrive_title",
+  otro: "loan_dlg_otro_title",
+  tercero: "loan_dlg_tercero_title",
 };
 
 const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
@@ -65,6 +79,9 @@ const SUBMIT_KEY: Record<LoanCategory, keyof typeof strings.planilla> = {
   adelanto: "loan_submit_adelanto",
   herramienta: "loan_submit_herramienta",
   dano: "loan_submit_dano",
+  indrive: "loan_submit_indrive",
+  otro: "loan_submit_otro",
+  tercero: "loan_submit_tercero",
 };
 
 /** Reparte `total` en `n` partes (el sobrante de la división va a la última). */
@@ -82,21 +99,37 @@ const parseCents = (s: string) => {
 };
 
 /**
- * Alta (o edición) de un préstamo, adelanto, herramienta o daño. Tiene dos
+ * Alta (o edición) de un préstamo, adelanto, herramienta, daño o viaje de
+ * InDrive (una cuota, en la quincena del viaje). Tiene dos
  * formas de pago: cuota fija (partes iguales) y cuota variable (el monto de
  * cada quincena se escribe a mano y debe sumar el total). Al editar se rehace
  * el calendario completo (solo si no hay cuotas pagadas).
  */
+/** Datos con los que puede abrir el alta de un préstamo/adelanto. */
+export interface LoanPrefill {
+  category: LoanCategory;
+  amountCents: number;
+  requestDate: string;
+  /** Recargo como % fijo sobre el monto ("total_pct"); sin esto, sin intereses. */
+  interestTotalPct?: number;
+  notes?: string;
+}
+
 export function LoanDialog({
   employeeId,
+  contractorId,
   categories,
   defaultCategory,
   editing,
   open,
   onOpenChange,
   onSaved,
+  prefill,
 }: {
-  employeeId: string;
+  /** A quién: un empleado (cuotas en la planilla) o un contratista (cuotas en
+   *  su estado de cuenta, una al inicio de cada quincena). Uno de los dos. */
+  employeeId?: string;
+  contractorId?: string;
   /** Tipos que se pueden elegir en este diálogo. */
   categories: LoanCategory[];
   defaultCategory: LoanCategory;
@@ -105,6 +138,8 @@ export function LoanDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  /** Solo al crear: abre con estos datos (ej. una solicitud de dinero de JotForm). Memoizarlo en el padre. */
+  prefill?: LoanPrefill;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -122,6 +157,9 @@ export function LoanDialog({
   const [amounts, setAmounts] = React.useState<string[]>([]);
   const [touched, setTouched] = React.useState(false);
   const [notes, setNotes] = React.useState("");
+  const [interestOn, setInterestOn] = React.useState(false);
+  const [interestMode, setInterestMode] = React.useState<LoanInterestMode>("monthly_pct");
+  const [interestValue, setInterestValue] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -144,36 +182,63 @@ export function LoanDialog({
       setAmounts(sorted.map((i) => toCentsStr(i.amountCents)));
       setTouched(editing.paymentMethod === "cuota_variable");
       setNotes(editing.notes ?? "");
+      setInterestOn(editing.interestCents > 0);
+      setInterestMode(editing.interestMode ?? "fixed");
+      setInterestValue(
+        editing.interestCents <= 0
+          ? ""
+          : editing.interestMode === "fixed" || editing.interestRatePct === null
+            ? toCentsStr(editing.interestCents)
+            : String(editing.interestRatePct)
+      );
     } else {
-      setCategory(defaultCategory);
-      setAmount("");
-      setRequestDate(today);
+      const category0 = prefill?.category ?? defaultCategory;
+      const date0 = prefill?.requestDate ?? today;
+      setCategory(category0);
+      setAmount(prefill ? toCentsStr(prefill.amountCents) : "");
+      setRequestDate(date0);
       setNumInstallments("1");
       setScheme("cuota_fija");
-      setStartPeriodKey(periodKeyOf(defaultLoanStartPeriod(defaultCategory, today) ?? periods[2]));
+      setStartPeriodKey(periodKeyOf(defaultLoanStartPeriod(category0, date0) ?? periods[2]));
       setAmounts([]);
       setTouched(false);
-      setNotes("");
+      setNotes(prefill?.notes ?? "");
+      setInterestOn(Boolean(prefill?.interestTotalPct));
+      setInterestMode(prefill?.interestTotalPct ? "total_pct" : "monthly_pct");
+      setInterestValue(prefill?.interestTotalPct ? String(prefill.interestTotalPct) : "");
     }
-  }, [open, editing, defaultCategory, today, periods]);
+  }, [open, editing, defaultCategory, today, periods, prefill]);
 
   // Re-deriva la quincena de inicio al cambiar el tipo o la fecha (solo al crear).
   React.useEffect(() => {
     if (!open || editing) return;
     const def = defaultLoanStartPeriod(category, requestDate);
     if (def) setStartPeriodKey(periodKeyOf(def));
-    if (category === "adelanto") {
+    if (isSingleInstallment(category)) {
       setNumInstallments("1");
       setScheme("cuota_fija");
     }
   }, [open, editing, category, requestDate]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const isAdelanto = category === "adelanto";
+  // Adelanto e InDrive: una sola cuota, en la quincena de la fecha.
+  const isAdelanto = isSingleInstallment(category);
   const n = isAdelanto ? 1 : Math.max(1, Math.min(60, parseInt(numInstallments || "1", 10) || 1));
   const amountCents = parseCents(amount);
   const startPeriod = periods.find((p) => periodKeyOf(p) === startPeriodKey) ?? periods[2];
   const isVariable = scheme === "cuota_variable" && !isAdelanto;
+
+  // Intereses (solo en dinero prestado, no en herramientas/daños).
+  const canCharge = category === "prestamo" || category === "adelanto";
+  const interestInput =
+    canCharge && interestOn
+      ? interestMode === "fixed"
+        ? { mode: interestMode, fixedCents: parseCents(interestValue) }
+        : { mode: interestMode, ratePct: parseFloat(interestValue || "0") || 0 }
+      : null;
+  const interestCents = computeLoanInterestCents(amountCents, n, interestInput);
+  // Las cuotas pagan lo entregado más los intereses.
+  const totalCents = amountCents + interestCents;
 
   // Cuota variable: mientras no se haya tocado nada a mano, se mantiene el
   // reparto en partes iguales al cambiar monto o número de cuotas.
@@ -181,16 +246,16 @@ export function LoanDialog({
   React.useEffect(() => {
     if (!open || !isVariable) return;
     if (!touched) {
-      setAmounts(splitEvenly(amountCents, n).map(toCentsStr));
+      setAmounts(splitEvenly(totalCents, n).map(toCentsStr));
     } else {
       setAmounts((prev) => (prev.length === n ? prev : Array.from({ length: n }, (_, i) => prev[i] ?? "0.00")));
     }
-  }, [open, isVariable, touched, amountCents, n]);
+  }, [open, isVariable, touched, totalCents, n]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const variableCents = amounts.map(parseCents);
   const variableSum = variableCents.reduce((s, a) => s + a, 0);
-  const variableDiff = amountCents - variableSum;
+  const variableDiff = totalCents - variableSum;
   const variableOk = variableCents.length === n && variableDiff === 0 && variableCents.every((a) => a > 0);
 
   let schedule: ReturnType<typeof computeLoanSchedule> = [];
@@ -198,9 +263,9 @@ export function LoanDialog({
     try {
       schedule = isVariable
         ? variableOk
-          ? computeLoanSchedule(amountCents, n, startPeriod, "cuota_variable", variableCents)
+          ? computeLoanSchedule(totalCents, n, startPeriod, "cuota_variable", variableCents)
           : []
-        : computeLoanSchedule(amountCents, n, startPeriod);
+        : computeLoanSchedule(totalCents, n, startPeriod);
     } catch {
       schedule = [];
     }
@@ -216,11 +281,15 @@ export function LoanDialog({
       setError(tt("loan_variable_mismatch"));
       return;
     }
+    // A un tercero hay que saber a quién se le paga.
+    if (category === "tercero" && !notes.trim()) {
+      setError(tt("loan_f_payee_required"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const input = {
-        employeeId,
         category,
         principalCents: amountCents,
         paymentMethod: (isVariable ? "cuota_variable" : "cuota_fija") as LoanPaymentMethod,
@@ -228,10 +297,18 @@ export function LoanDialog({
         numInstallments: n,
         startPeriod,
         installmentAmountsCents: isVariable ? variableCents : undefined,
+        interest: interestInput,
         notes: notes.trim() || null,
       };
-      if (editing) await replaceLoanAction(editing.id, input);
-      else await createLoanAction(input);
+      const result = contractorId
+        ? await createContractorLoanAction({ ...input, contractorId })
+        : editing
+          ? await replaceLoanAction(editing.id, { ...input, employeeId: employeeId ?? "" })
+          : await createLoanAction({ ...input, employeeId: employeeId ?? "" });
+      if (!result.ok) {
+        setError("migrationPending" in result && result.migrationPending ? tt("migration_pending") : result.error);
+        return;
+      }
       toast.success(editing ? tt("loan_updated") : tt(SUBMIT_KEY[category]));
       onOpenChange(false);
       onSaved();
@@ -250,13 +327,21 @@ export function LoanDialog({
       onOpenChange={onOpenChange}
       title={editing ? tt("loan_dlg_edit_title") : tt(TITLE_KEY[category])}
       description={
-        editing
-          ? tt("loan_dlg_edit_desc")
-          : isItem
-            ? tt("loan_dlg_item_desc")
-            : isAdelanto
-              ? tt("loan_dlg_adelanto_desc")
-              : tt("loan_dlg_prestamo_desc")
+        contractorId
+          ? tt("loan_dlg_contractor_desc")
+          : editing
+            ? tt("loan_dlg_edit_desc")
+            : category === "otro"
+              ? tt("loan_dlg_otro_desc")
+              : category === "tercero"
+                ? tt("loan_dlg_tercero_desc")
+              : isItem
+                ? tt("loan_dlg_item_desc")
+                : category === "indrive"
+                  ? tt("loan_dlg_indrive_desc")
+                  : isAdelanto
+                    ? tt("loan_dlg_adelanto_desc")
+                    : tt("loan_dlg_prestamo_desc")
       }
       onSubmit={onSubmit}
       submitting={submitting}
@@ -283,17 +368,9 @@ export function LoanDialog({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={tt("loan_f_amount")}>
-          <Input
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            autoFocus
-          />
+          <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
         </Field>
-        <Field label={tt("loan_f_request_date")}>
+        <Field label={category === "indrive" ? tt("loan_f_ride_date") : tt("loan_f_request_date")}>
           <Input type="date" value={requestDate} onChange={(e) => setRequestDate(e.target.value)} />
         </Field>
       </div>
@@ -349,8 +426,68 @@ export function LoanDialog({
         <p className="text-xs text-muted-foreground">{tt("loan_period_hint")}</p>
       </Field>
 
+      {canCharge && (
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" checked={interestOn} onChange={(e) => setInterestOn(e.target.checked)} />
+            {tt("loan_interest_charge")}
+          </label>
+          {interestOn && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={tt("loan_interest_how")}>
+                  <Select
+                    value={interestMode}
+                    onValueChange={(v) => {
+                      setInterestMode(v as LoanInterestMode);
+                      setInterestValue("");
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly_pct">{tt("loan_interest_monthly")}</SelectItem>
+                      <SelectItem value="total_pct">{tt("loan_interest_total")}</SelectItem>
+                      <SelectItem value="fixed">{tt("loan_interest_fixed")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={interestMode === "fixed" ? tt("loan_interest_amount") : tt("loan_interest_rate")}>
+                  <MoneyInput
+                    symbol={interestMode === "fixed" ? "$" : "%"}
+                    value={interestValue}
+                    onValueChange={setInterestValue}
+                    placeholder={interestMode === "fixed" ? "0.00" : "0"}
+                  />
+                </Field>
+              </div>
+              {amountCents > 0 && (
+                <dl className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">{tt("loan_interest_principal")}</dt>
+                    <dd className="font-medium tabular-nums text-foreground">{formatCents(amountCents)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">{tt("loan_interest_label")}</dt>
+                    <dd className="font-medium tabular-nums text-foreground">+ {formatCents(interestCents)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">{tt("loan_interest_to_pay")}</dt>
+                    <dd className="font-semibold tabular-nums text-foreground">{formatCents(totalCents)}</dd>
+                  </div>
+                </dl>
+              )}
+              {interestMode === "monthly_pct" && (
+                <p className="text-[11px] text-muted-foreground">{tt("loan_interest_monthly_hint")}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {isVariable && (
-        <div className="flex flex-col gap-2 rounded-none border border-border p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium text-foreground">{tt("loan_variable_title")}</p>
             <Button
@@ -360,7 +497,7 @@ export function LoanDialog({
               className="h-7 px-2 text-xs"
               onClick={() => {
                 setTouched(false);
-                setAmounts(splitEvenly(amountCents, n).map(toCentsStr));
+                setAmounts(splitEvenly(totalCents, n).map(toCentsStr));
               }}
             >
               {tt("loan_variable_equal")}
@@ -372,23 +509,21 @@ export function LoanDialog({
               for (let k = 0; k < i; k++) p = nextPeriod(p);
               return (
                 <label key={i} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span className="whitespace-nowrap">{pLabel(p)}</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    className="h-8 w-28 text-right tabular-nums"
+                  <span className="whitespace-nowrap">{shortPeriodLabel(lang, p)}</span>
+                  <div className="w-28">
+                  <MoneyInput
+                    className="h-8"
                     value={amounts[i] ?? ""}
-                    onChange={(e) => {
+                    onValueChange={(v) => {
                       setTouched(true);
                       setAmounts((prev) => {
                         const next = Array.from({ length: n }, (_, k) => prev[k] ?? "0.00");
-                        next[i] = e.target.value;
+                        next[i] = v;
                         return next;
                       });
                     }}
                   />
+                  </div>
                 </label>
               );
             })}
@@ -406,7 +541,7 @@ export function LoanDialog({
       )}
 
       {amountCents > 0 && schedule.length > 0 && payoff && (
-        <div className="rounded-none border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           {isAdelanto ? (
             <p>
               {tt("loan_preview_adelanto")}{" "}
@@ -439,9 +574,15 @@ export function LoanDialog({
         </div>
       )}
 
-      <Field label={tt("mov_f_notes")}>
-        <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
+      {category === "tercero" ? (
+        <Field label={tt("loan_f_payee")}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("loan_f_payee_ph")} />
+        </Field>
+      ) : (
+        <Field label={tt("mov_f_notes")}>
+          <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </Field>
+      )}
     </FormDialog>
   );
 }

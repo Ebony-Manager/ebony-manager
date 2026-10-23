@@ -6,6 +6,7 @@ import {
   defaultsFromInputs,
   lineQty,
   newLine,
+  newQuote,
   newSection,
   quoteTotals,
   sectionTotals,
@@ -183,5 +184,23 @@ describe("buildScene", () => {
   it("avisa cuando un renglón en m² no tiene medidas", () => {
     expect(buildScene(panelado).approximate).toBe(false);
     expect(buildScene(section("x", [dir("rev-pi", 8.38)])).approximate).toBe(true);
+  });
+});
+
+describe("newQuote", () => {
+  it("nace en borrador, vacía, con un ítem y los valores de los insumos", () => {
+    const q = newQuote("q1", "s1", defaults, "2026-10-20");
+    expect(q).toMatchObject({
+      id: "q1",
+      number: "",
+      clientName: "",
+      status: "BORRADOR",
+      quoteDate: "2026-10-20",
+      itbmsPct: defaults.itbmsPct,
+      deliveryDays: Math.round(defaults.deliveryDays),
+      discountValue: 0,
+    });
+    expect(q.sections).toHaveLength(1);
+    expect(q.sections[0]).toMatchObject({ id: "s1", lines: [] });
   });
 });

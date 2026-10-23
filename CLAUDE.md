@@ -17,7 +17,7 @@
 **Stack:** Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, Supabase como base de datos, Google OAuth authentication, deployed on Vercel. Ver FOUNDATION.md para el detalle.  
 **Languages:** Spanish (primary UI), English (secondary — bilingual support required throughout).  
 **Access:** Responsive design — must work equally well on desktop (office) and mobile (field installers).  
-**Users:** ~15–20 internal users. Acceso por allow-list de correos (`public.allowed_emails`). Roles: `admin` y `vendedor` (columna `role` en `public.profiles`); en Fase 1 ambos ven todos los módulos, la separación fina de permisos por rol se afina después.  
+**Users:** ~15–20 internal users. Se agregan por correo desde **Settings → Usuarios** (solo admin), y les llega una invitación. Roles: `admin` (todo) y `vendedor` (se muestra como "Usuario": solo los módulos asignados — `cotizacion`, `costos`, `planilla`, `asistencia`, `contratistas`). Lista y permisos en `public.allowed_emails`, copiados a `public.profiles`; módulos definidos en `src/lib/auth/modules.ts`, exigidos con `requireModule()` en el servidor y `private.has_module()` en la RLS. Ver FOUNDATION.md §5.  
 **Authentication:** Supabase Auth con Google como proveedor — sesión en cookies, verificada en el servidor (`proxy.ts` + DAL + gate en `(app)/layout.tsx`). Login solo con Google en Fase 1; email/contraseña más adelante. Ver FOUNDATION.md §5.
 
 ---
@@ -34,8 +34,8 @@
 - Rutas reales por módulo (no una SPA con estado en memoria): `/cotizacion`, `/proyectos`, `/cronograma`, `/gastos`, `/dashboard`, protegidas por un layout de grupo `(app)`.
 - Sidebar navigation con ícono y label por módulo — colapsable en mobile.
 - Bilingual toggle (ES/EN) — all labels, buttons, and headings must have both language versions.
-- Color palette and brand: dark wood tones (#2C1A0E, #5C3A1E), warm whites (#FAF7F2), and gold accents (#C9A84C). Typography: Inter (self-hosted vía `next/font/google`).
-- Piezas de interfaz compartidas (shadcn/ui sobre Radix, como en Atlas) todavía no se trajeron — hoy son las clases `.btn-primary`/`.card`/`.input`/etc. heredadas de la versión anterior. Los tokens ya están preparados para recibirlas (FOUNDATION.md §3).
+- Colores, radios, sombras y tipografía: tema de tweakcn (shadcn, oklch) en `src/app/globals.css`, con modo claro y oscuro. Tipografía: Inter (+ Merriweather / JetBrains Mono) vía `next/font/google`. Ver FOUNDATION.md §3.
+- Piezas de interfaz compartidas: shadcn/ui sobre Radix en `src/components/ui/`; toman el tema solas.
 
 ### Deployment: Vercel
 - Environment variables stored in Vercel dashboard (never hardcoded).
@@ -329,8 +329,8 @@ Return ONLY a valid JSON array. No preamble, no explanation, no markdown formatt
 ## UI/UX Guidelines
 
 - **Sidebar navigation** with icons and labels for each module. Collapsible on mobile.
-- **Language toggle** (ES / EN) persistent in the top navbar. All strings must have both versions.
-- **Color theme:** Dark wood (#2C1A0E), medium wood (#5C3A1E), warm white (#FAF7F2), gold accent (#C9A84C), soft gray (#E8E2D9).
+- **Language toggle** (ES / EN) and **theme** (Claro / Oscuro / Automático) live in the profile menu, bottom-left of the sidebar (there is no top navbar). All strings must have both versions.
+- **Color theme:** the tweakcn theme in `src/app/globals.css` (light + dark). Use theme token names (`bg-primary`, `text-muted-foreground`…), never literal colors.
 - **Typography:** Inter font, clean and professional.
 - **Mobile:** All tables must be horizontally scrollable or converted to card views on small screens. Forms must be thumb-friendly.
 - **Loading states:** Skeleton loaders while fetching from Sheets API.

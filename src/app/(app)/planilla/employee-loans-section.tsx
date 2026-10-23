@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Plus } from "lucide-react";
 
 import type { LedgerCategory, PayrollEmployee, PayrollLedgerEntry } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
@@ -10,15 +11,17 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getLedgerEntriesAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
+import { AddChargeDialog } from "./add-charge-dialog";
 
 type View = "quincena" | "month" | "concept";
 
 /**
- * "Préstamos y adelantos" del perfil del empleado: todo lo que se le
+ * "Préstamos y descuentos" del perfil del empleado: todo lo que se le
  * otorgó y todo lo que se le ha descontado, con su fecha y el saldo corrido,
  * en tres lecturas — por quincena (cada movimiento), por mes y por concepto
- * (préstamo / adelanto / herramienta / daño). Solo lectura; agregar o
- * editar movimientos sigue en el sheet de Registro.
+ * (préstamo / adelanto / herramienta / daño / InDrive). "Agregar" abre la
+ * misma ventana que en Pagos; editar o cancelar cuotas sigue en el detalle
+ * del empleado (Pagos → Quincena).
  */
 export function EmployeeLoansSection({
   employee,
@@ -37,9 +40,12 @@ export function EmployeeLoansSection({
   const [entries, setEntries] = React.useState<PayrollLedgerEntry[] | null>(initialEntries ?? null);
   const [failed, setFailed] = React.useState(false);
   const [view, setView] = React.useState<View>("quincena");
+  const [addOpen, setAddOpen] = React.useState(false);
+  // Sube al agregar algo: vuelve a leer los movimientos.
+  const [reloads, setReloads] = React.useState(0);
 
   React.useEffect(() => {
-    if (initialEntries) return;
+    if (initialEntries && reloads === 0) return;
     let cancelled = false;
     getLedgerEntriesAction(employee.id)
       .then((e) => {
@@ -52,7 +58,7 @@ export function EmployeeLoansSection({
     return () => {
       cancelled = true;
     };
-  }, [employee.id, initialEntries]);
+  }, [employee.id, initialEntries, reloads]);
 
   const statement = React.useMemo(() => (entries ? buildLoanStatement(entries, currentPeriod()) : null), [entries]);
 
@@ -65,23 +71,29 @@ export function EmployeeLoansSection({
   const num = "px-3 py-1.5 text-right tabular-nums";
 
   return (
-    <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">{tt("loans_title")}</h2>
-        {statement && statement.movements.length > 0 && (
-          <div className="flex items-center gap-1">
-            {views.map((v) => (
-              <Button
-                key={v.key}
-                size="sm"
-                variant={view === v.key ? "secondary" : "ghost"}
-                onClick={() => setView(v.key)}
-              >
-                {v.label}
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-1">
+          {statement && statement.movements.length > 0 && (
+            <div className="flex items-center gap-1">
+              {views.map((v) => (
+                <Button
+                  key={v.key}
+                  size="sm"
+                  variant={view === v.key ? "secondary" : "ghost"}
+                  onClick={() => setView(v.key)}
+                >
+                  {v.label}
+                </Button>
+              ))}
+            </div>
+          )}
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3.5" />
+            {t(lang, strings.pagos.add)}
+          </Button>
+        </div>
       </div>
 
       {failed ? (
@@ -99,7 +111,7 @@ export function EmployeeLoansSection({
               { label: tt("ls_balance_today"), value: statement.totals.balanceTodayCents },
               { label: tt("ls_balance_end"), value: statement.totals.balanceEndCents },
             ].map((k) => (
-              <div key={k.label} className="rounded-none border border-border px-3 py-2">
+              <div key={k.label} className="rounded-lg border border-border px-3 py-2">
                 <p className="text-xs text-muted-foreground">{k.label}</p>
                 <p className="text-lg font-semibold tabular-nums text-foreground">{formatCents(k.value)}</p>
               </div>
@@ -192,6 +204,12 @@ export function EmployeeLoansSection({
           )}
         </>
       )}
+      <AddChargeDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        person={{ kind: "employee", id: employee.id, name: employee.name }}
+        onSaved={() => setReloads((n) => n + 1)}
+      />
     </section>
   );
 }

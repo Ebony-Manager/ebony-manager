@@ -1,7 +1,7 @@
 import type { LedgerCategory } from "@/types/planilla";
 
 /** Clave i18n de `strings.planilla` para cada categoría de ledger.
- *  Compartido por ledger-section y ledger-entry-dialog. */
+ *  Compartido por las listas de préstamos y descuentos. */
 export const LEDGER_CATEGORY_LABEL_KEY: Record<LedgerCategory, string> = {
   prestamo: "ledger_cat_prestamo",
   adelanto: "ledger_cat_adelanto",
@@ -11,9 +11,6 @@ export const LEDGER_CATEGORY_LABEL_KEY: Record<LedgerCategory, string> = {
   carnet: "ledger_cat_carnet",
   otro: "ledger_cat_otro",
   indrive: "ledger_cat_indrive",
+  interes: "ledger_cat_interes",
+  tercero: "ledger_cat_tercero",
 };
-
-/** Categorías que ofrece el diálogo genérico "Agregar movimiento" —
- *  préstamo/adelanto quedan fuera a propósito: van por LoanDialog, que
- *  arma su calendario de cuotas. */
-export const GENERIC_LEDGER_CATEGORIES: LedgerCategory[] = ["herramienta", "dano", "seguro_social", "carnet", "otro"];

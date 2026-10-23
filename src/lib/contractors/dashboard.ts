@@ -39,6 +39,8 @@ export interface DashboardEntry {
   clientText: string | null;
   mt2: number | null;
   ebonyAbsorbsMaterial: boolean;
+  /** Cuota de un préstamo en cuotas (los préstamos se listan aparte). */
+  loanId?: string | null;
 }
 
 export type DashboardPeriod = number | "all";
@@ -101,7 +103,9 @@ export interface ContractorsDashboard {
 }
 
 const WORK: ContractorLedgerCategory[] = ["trabajo", "bono", "extra"];
-const LOAN: ContractorLedgerCategory[] = ["prestamo", "adelanto"];
+// Lo que Ebony les entregó además del pago: préstamos, adelantos y lo que
+// pagó por ellos (herramientas, InDrive). Un daño solo baja el saldo.
+const LOAN: ContractorLedgerCategory[] = ["prestamo", "adelanto", "herramienta", "indrive"];
 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
 const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso}T00:00:00Z`) / 86_400_000);

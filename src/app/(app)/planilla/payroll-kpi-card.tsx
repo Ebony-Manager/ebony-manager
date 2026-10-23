@@ -42,10 +42,10 @@ export function PayrollKpiCard({
   const accentTextStyle: React.CSSProperties | undefined = isNeutral ? undefined : { color: resolvedColor };
   return (
     <div
-      className={cn("flex items-start gap-3 rounded-none border border-border bg-card px-4 py-3", className)}
+      className={cn("flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3", className)}
       style={cardStyle}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-none" style={iconTintStyle}>
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={iconTintStyle}>
         <Icon className="size-4" style={accentTextStyle} />
       </div>
       <div className="min-w-0 flex-1">

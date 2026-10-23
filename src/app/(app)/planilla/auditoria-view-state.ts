@@ -1,7 +1,7 @@
 /**
  * Estado "de vista" de Auditoría (lo que guarda "Guardar como mi vista") y
  * sus valores de fábrica. Vive aparte de auditoria-view.tsx para que
- * planilla-client pueda leer el tipo de empleado guardado sin importar
+ * pagos-client pueda leer el tipo de empleado guardado sin importar
  * toda la pantalla.
  */
 import type { PayrollPalette } from "@/lib/planilla/payroll-colors";
@@ -12,14 +12,7 @@ export type Densidad = "comprimida" | "expandida";
 export type NivelDetalle = "macro" | "quincenal" | "concepto" | "micro";
 export type StatusFilter = "todos" | "activo" | "inactivo";
 
-export const GROUP_KEYS = [
-  "salarios",
-  "prestaciones",
-  "bonificaciones",
-  "descuentos",
-  "prestamos_otros",
-  "descuento_prestamos",
-] as const;
+export const GROUP_KEYS = ["salarios", "bonificaciones", "descuentos", "descuento_prestamos", "prestaciones"] as const;
 
 export interface AuditoriaSavedView {
   palette: PayrollPalette;

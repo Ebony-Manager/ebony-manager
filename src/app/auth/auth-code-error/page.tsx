@@ -1,33 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { AuthShell } from "@/components/brand/auth-shell";
+import { useLang } from "@/context/language-context";
+import { t, strings } from "@/lib/i18n";
 
 /**
- * Where /auth/callback lands the user when sign-in fails. The most common
- * reason in Fase 1 is a Google account whose email is not in
- * public.allowed_emails — the signup trigger rejects it, so no session is
- * created.
+ * Where sign-in lands when it fails or the account has no access. Most
+ * common: a Google account whose email is not in public.allowed_emails (the
+ * signup trigger rejects it), or a user removed from Settings → Usuarios
+ * (their profile is gone, so requireProfile() sends them here).
  */
 export default function AuthCodeErrorPage() {
+  const { lang } = useLang();
   return (
-    <div className="min-h-screen bg-ebony-dark flex flex-col items-center justify-center px-4">
-      <div className="bg-ebony-warm rounded-none shadow-2xl p-10 w-full max-w-sm text-center space-y-5">
-        <div className="mx-auto w-14 h-14 rounded-none bg-ebony-dark flex items-center justify-center">
-          <span className="text-cream-100 font-black text-xl">!</span>
-        </div>
-        <div className="space-y-1.5">
-          <h1 className="text-lg font-bold text-ebony-dark">No se pudo iniciar sesión</h1>
-          <p className="text-xs text-ebony-light">
-            Tu cuenta de Google no está autorizada para entrar a Ebony Manager, o
-            el enlace de acceso expiró. Si crees que deberías tener acceso, pide a
-            un administrador que agregue tu correo.
-          </p>
-        </div>
-        <Link
-          href="/login"
-          className="inline-block w-full bg-ebony-dark text-cream-100 rounded-none px-4 py-3 text-sm font-medium hover:bg-ebony-medium transition-colors"
-        >
-          Volver a intentar
-        </Link>
-      </div>
-    </div>
+    <AuthShell title={t(lang, strings.auth.error_title)}>
+      <p className="text-sm text-muted-foreground">{t(lang, strings.auth.error_body)}</p>
+      <Button asChild className="mt-5 h-11 w-full">
+        <Link href="/login">{t(lang, strings.auth.retry)}</Link>
+      </Button>
+    </AuthShell>
   );
 }

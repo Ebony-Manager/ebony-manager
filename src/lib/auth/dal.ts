@@ -3,16 +3,18 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import { hasAnyModule, hasModules, homePathFor, normalizeModules, type AppModule, type AppRole } from "./modules";
 
 // Data Access Layer for auth. Every server-side auth/role check goes
 // through here so the rules live in one place. Not a Client Component
 // module — it imports the server Supabase client (next/headers), which
 // throws if pulled into the browser bundle.
 
-export type AppRole = "admin" | "vendedor";
+export type { AppModule, AppRole } from "./modules";
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
+export type Profile = Omit<Database["public"]["Tables"]["profiles"]["Row"], "role" | "modules"> & {
   role: AppRole;
+  modules: AppModule[];
 };
 
 /**
@@ -51,14 +53,20 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     .eq("id", user.id)
     .maybeSingle();
 
-  return (data as Profile | null) ?? null;
+  if (!data) return null;
+  return { ...data, role: data.role as AppRole, modules: normalizeModules(data.modules ?? []) };
 });
 
-/** Profile or bust — redirects to /login if unauthenticated. */
+/**
+ * Profile or bust — redirects to /login if unauthenticated. A session
+ * without a profile means the email was removed from the allow-list
+ * (Settings → Usuarios borra el perfil): that goes to the
+ * "not authorized" page, not back to /login, which would bounce it here.
+ */
 export const requireProfile = cache(async (): Promise<Profile> => {
   await requireUser();
   const profile = await getProfile();
-  if (!profile) redirect("/login");
+  if (!profile) redirect("/auth/auth-code-error");
   return profile;
 });
 
@@ -67,9 +75,27 @@ export async function isAdmin(): Promise<boolean> {
   return profile?.role === "admin";
 }
 
-/** Gate a page/action to admins. Non-admins are bounced to the app entry. */
+/** Gate a page/action to admins. Non-admins are bounced to their home module. */
 export const requireAdmin = cache(async (): Promise<Profile> => {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/cotizacion");
+  if (profile.role !== "admin") redirect(homePathFor(profile));
   return profile;
 });
+
+/**
+ * Gate a page/action to users who have ALL the given modules (admins always
+ * pass). Others are bounced to their home module. Postgres RLS
+ * (`private.has_module`) repeats the same rule as the last line.
+ */
+export async function requireModule(...modules: AppModule[]): Promise<Profile> {
+  const profile = await requireProfile();
+  if (!hasModules(profile, modules)) redirect(homePathFor(profile));
+  return profile;
+}
+
+/** Como requireModule, pero alcanza con UNO de los módulos (ej. Staff). */
+export async function requireAnyModule(...modules: AppModule[]): Promise<Profile> {
+  const profile = await requireProfile();
+  if (!hasAnyModule(profile, modules)) redirect(homePathFor(profile));
+  return profile;
+}

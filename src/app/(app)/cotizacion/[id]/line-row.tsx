@@ -26,7 +26,7 @@ export function LineRow({
   line,
   options,
   cornerMode,
-  isAdmin,
+  canEditCosts,
   onChange,
   onSwap,
   onRemove,
@@ -40,7 +40,7 @@ export function LineRow({
   /** Ítems activos de la misma categoría que el renglón. */
   options: CatalogItem[];
   cornerMode: boolean;
-  isAdmin: boolean;
+  canEditCosts: boolean;
   onChange: (patch: Partial<QuoteLine>) => void;
   onSwap: (item: CatalogItem) => void;
   onRemove: () => void;
@@ -180,7 +180,7 @@ export function LineRow({
                 {tt("line_price_reset")}
               </button>
             )}
-            {!free && isAdmin && catalogItem && (
+            {!free && canEditCosts && catalogItem && (
               <Link href={`/cotizacion/costos?item=${catalogItem.id}`} className="text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground">
                 {tt("line_price_catalog")}
               </Link>

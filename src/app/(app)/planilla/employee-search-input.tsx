@@ -15,13 +15,17 @@ export function EmployeeSearchInput({
   value,
   onChange,
   className,
+  placeholder,
 }: {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  /** Por defecto "Buscar empleado…"; Staff busca también contratistas. */
+  placeholder?: string;
 }) {
   const { lang } = useLang();
   const clearLabel = t(lang, strings.planilla.emp_search_clear);
+  const ph = placeholder ?? t(lang, strings.planilla.emp_search_ph);
   return (
     <div className={`relative ${className ?? "w-52"}`}>
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -31,8 +35,8 @@ export function EmployeeSearchInput({
         onKeyDown={(e) => {
           if (e.key === "Escape") onChange("");
         }}
-        placeholder={t(lang, strings.planilla.emp_search_ph)}
-        aria-label={t(lang, strings.planilla.emp_search_ph)}
+        placeholder={ph}
+        aria-label={ph}
         className="h-8 pr-7 pl-8 text-sm"
       />
       {value && (

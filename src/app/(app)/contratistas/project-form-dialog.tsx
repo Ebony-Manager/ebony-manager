@@ -54,6 +54,7 @@ export function ProjectFormDialog({
 
   const [name, setName] = React.useState("");
   const [clientName, setClientName] = React.useState("");
+  const [location, setLocation] = React.useState("");
   const [status, setStatus] = React.useState<ProjectStatus>("ACTIVE");
   const [notes, setNotes] = React.useState("");
   // Contrato (Etapa 2-A) — todo texto salvo m² totales.
@@ -71,6 +72,7 @@ export function ProjectFormDialog({
     if (!open) return;
     setName(project?.name ?? "");
     setClientName(project?.clientName ?? "");
+    setLocation(project?.location ?? "");
     setStatus(project?.status ?? "ACTIVE");
     setNotes(project?.notes ?? "");
     setScope(project?.scope ?? "");
@@ -95,6 +97,7 @@ export function ProjectFormDialog({
       const payload = {
         name: name.trim(),
         clientName: clientName.trim() || null,
+        location: location.trim() || null,
         status,
         notes: notes.trim() || null,
         scope: scope.trim() || null,
@@ -157,71 +160,13 @@ export function ProjectFormDialog({
               </Select>
             </Field>
           </div>
+          <Field label={tt("proj_f_location")}>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
+          </Field>
           <Field label={tt("proj_f_notes")}>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
 
-          {/* Contrato — todo opcional. */}
-          <div className="flex flex-col gap-4 border-t border-border pt-4">
-            <div>
-              <h3 className="text-sm font-medium text-foreground">{tt("proj_contract_section")}</h3>
-              <p className="text-xs text-muted-foreground">{tt("proj_contract_hint")}</p>
-            </div>
-
-            <Field label={tt("proj_f_scope")}>
-              <Textarea
-                rows={2}
-                value={scope}
-                onChange={(e) => setScope(e.target.value)}
-                placeholder={tt("f_optional")}
-              />
-            </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("proj_f_furniture_type")}>
-                <Input
-                  value={furnitureType}
-                  onChange={(e) => setFurnitureType(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("proj_f_material_color")}>
-                <Input
-                  value={materialColor}
-                  onChange={(e) => setMaterialColor(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-            </div>
-            <Field label={tt("proj_f_specs")}>
-              <Textarea
-                rows={2}
-                value={specs}
-                onChange={(e) => setSpecs(e.target.value)}
-                placeholder={tt("f_optional")}
-              />
-            </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("proj_f_payment_terms")}>
-                <Textarea
-                  rows={2}
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("proj_f_total_mt2")}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={totalMt2}
-                  onChange={(e) => setTotalMt2(e.target.value)}
-                  placeholder="0.00"
-                />
-              </Field>
-            </div>
-          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

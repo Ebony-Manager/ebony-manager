@@ -1,26 +1,29 @@
 import type { Metadata } from "next";
-import { Work_Sans, Catamaran } from "next/font/google";
+import { Inter, Merriweather, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { getUser, getProfile } from "@/lib/auth/dal";
 import type { EbonyUser } from "@/context/auth-context";
-import type { AppRole } from "@/lib/auth/dal";
+import type { AppModule, AppRole } from "@/lib/auth/dal";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Work Sans (titulares/subtítulos/UI/labels) + Catamaran (cuerpo de
-// texto) — las dos tipografías reales de la marca (brand guidelines
-// p.21, ver _diseño-ebony-fuente/tokens/fonts.css), reemplazando a
-// Inter. Work Sans es variable en Google Fonts — sin `weight` carga todo
-// el rango (200-600) que pide el sistema; Catamaran no, así que se fija
-// la escala de pesos que usa la tipografía de marca (300-600).
-const workSans = Work_Sans({
-  variable: "--font-work-sans",
+// Tipografías del tema (tweakcn): Inter para toda la interfaz, Merriweather
+// (serif) y JetBrains Mono disponibles como font-serif / font-mono. Las
+// variables las lee @theme inline en globals.css.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const catamaran = Catamaran({
-  variable: "--font-catamaran",
+const merriweather = Merriweather({
+  variable: "--font-merriweather",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -30,7 +33,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Seed the client AuthProvider from the verified server session so the
-  // shell (Navbar avatar, role-gated bits) renders right on first paint,
+  // shell (profile menu, role-gated bits) renders right on first paint,
   // with no logged-out flash.
   const [user, profile] = await Promise.all([getUser(), getProfile()]);
 
@@ -49,11 +52,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       }
     : null;
   const initialRole: AppRole | null = profile?.role ?? null;
+  const initialModules: AppModule[] | undefined = profile?.modules;
 
   return (
-    <html lang="es" className={`${workSans.variable} ${catamaran.variable} h-full antialiased`}>
-      <body className="min-h-full">
-        <Providers initialUser={initialUser} initialRole={initialRole}>
+    // suppressHydrationWarning: THEME_INIT_SCRIPT pone `.dark` en <html>
+    // antes de hidratar, así que su className puede diferir del servidor.
+    <html
+      lang="es"
+      className={`${inter.variable} ${merriweather.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full font-sans">
+        <Providers initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
           {children}
         </Providers>
       </body>

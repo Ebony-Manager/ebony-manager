@@ -1,8 +1,37 @@
 import type { Period } from "@/lib/planilla/payroll-period";
 import { nextPeriod, periodOrdinal } from "@/lib/planilla/payroll-period";
-import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
+import type { LoanCategory, LoanInterestMode, LoanPaymentMethod } from "@/types/planilla";
 
 export type { LoanPaymentMethod };
+
+export interface LoanInterestInput {
+  mode: LoanInterestMode;
+  /** Para "monthly_pct" y "total_pct": el porcentaje (ej. 5 = 5%). */
+  ratePct?: number | null;
+  /** Para "fixed": el monto en centavos. */
+  fixedCents?: number | null;
+}
+
+/**
+ * Intereses de un préstamo (interés simple), en centavos:
+ *  - "monthly_pct": % mensual sobre el monto × los meses del préstamo (cada
+ *    quincena cuenta medio mes: 6 cuotas = 3 meses);
+ *  - "total_pct": un % fijo sobre el monto, sin importar el plazo;
+ *  - "fixed": un monto en dólares.
+ * Sin entrada, o con valores vacíos / negativos, es 0.
+ */
+export function computeLoanInterestCents(
+  principalCents: number,
+  numInstallments: number,
+  input: LoanInterestInput | null | undefined
+): number {
+  if (!input || !(principalCents > 0)) return 0;
+  if (input.mode === "fixed") return Math.max(0, Math.round(input.fixedCents ?? 0));
+  const rate = input.ratePct ?? 0;
+  if (!(rate > 0)) return 0;
+  const months = input.mode === "monthly_pct" ? Math.max(1, numInstallments) / 2 : 1;
+  return Math.round(principalCents * (rate / 100) * months);
+}
 
 export interface LoanScheduleInstallment {
   period: Period;
@@ -79,10 +108,20 @@ export function computeLoanSchedule(
  * pago. Ambos son overrides editables en el diálogo, nunca forzados.
  */
 export function defaultLoanStartPeriod(category: LoanCategory, requestDate: string): Period | null {
-  const d = new Date(requestDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const requestPeriod: Period = { year: d.getFullYear(), month: d.getMonth() + 1, half: d.getDate() <= 15 ? 1 : 2 };
-  return category === "adelanto" ? requestPeriod : nextPeriod(requestPeriod);
+  // "YYYY-MM-DD" leído a mano: `new Date()` lo toma como UTC y en Panamá el
+  // día 16 a medianoche UTC todavía es el 15 (caía en la quincena anterior).
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(requestDate);
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const requestPeriod: Period = { year, month, half: day <= 15 ? 1 : 2 };
+  return isSingleInstallment(category) ? requestPeriod : nextPeriod(requestPeriod);
+}
+
+/** Adelanto e InDrive se descuentan completos en una sola quincena: la que
+ *  contiene la fecha (de la solicitud o del viaje). */
+export function isSingleInstallment(category: LoanCategory): boolean {
+  return category === "adelanto" || category === "indrive";
 }
 
 /** La última quincena que toca el calendario de un préstamo — "fecha

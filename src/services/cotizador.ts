@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { selectAllRows } from "@/lib/supabase/select-all";
-import { defaultsFromInputs, newSection, quoteTotals } from "@/lib/cotizador/pricing";
+import { quoteTotals } from "@/lib/cotizador/pricing";
 import type { Database, Json } from "@/types/database";
 import { DEFAULT_ANSWERS, type PlanAnswers, type PlanPiece } from "@/types/plan";
 import type {
@@ -405,20 +405,17 @@ export async function saveQuote(q: Quote): Promise<void> {
   fail((await staleSections).error);
 }
 
-/** Crea una cotización en borrador con un primer ítem vacío. */
-export async function createQuote(): Promise<string> {
+/**
+ * Crea en la base una cotización que hasta ahora solo existía en el editor
+ * (ver `newQuote`): el editor la llama con el primer cambio del usuario, así
+ * abrir "Nueva cotización" y salir sin escribir nada no deja un borrador
+ * vacío. El id lo trae la cotización (uuid generado al abrirla).
+ */
+export async function createQuote(q: Quote): Promise<void> {
   const supabase = await createClient();
-  const defaults = defaultsFromInputs(await getCostInputs());
-  const { data, error } = await supabase
-    .from("quotes")
-    .insert({ itbms_pct: defaults.itbmsPct, delivery_days: Math.round(defaults.deliveryDays) })
-    .select("id")
-    .single();
+  const { error } = await supabase.from("quotes").insert({ id: q.id, ...headerPatch(q) });
   if (error) throw new Error(error.message);
-  const first = newSection(crypto.randomUUID(), defaults);
-  const { error: sectionError } = await supabase.from("quote_sections").insert(sectionRow(data.id, first, 0));
-  if (sectionError) throw new Error(sectionError.message);
-  return data.id;
+  await saveQuote(q);
 }
 
 /** Copia una cotización como borrador nuevo (para una nueva versión). */

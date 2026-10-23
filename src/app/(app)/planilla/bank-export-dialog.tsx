@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  ACH_CONCEPT_ORDER,
   buildAchPayload,
   type AchAccountType,
+  type AchConcept,
   type AchProblem,
 } from "@/lib/planilla/bank-export";
 import { formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
@@ -17,6 +19,13 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
+
+const CONCEPT_LABEL: Record<AchConcept, keyof typeof strings.planilla> = {
+  quincena: "ach_concept_quincena",
+  decimo: "ach_concept_decimo",
+  vacacion: "ach_concept_vacacion",
+  prima: "ach_concept_prima",
+};
 
 const PROBLEM_KEY: Record<AchProblem, keyof typeof strings.planilla> = {
   no_id: "ach_missing_id",
@@ -79,14 +88,26 @@ export function BankExportDialog({
           bankAccountType: employee.bankAccountType as AchAccountType | null,
           paymentMethod: total.entry?.paymentMethod ?? "transferencia",
           netCents: total.totalCents,
+          benefits: {
+            decimoCents: total.entry?.decimoPaidCents ?? 0,
+            vacationCents: total.entry?.vacationPaidCents ?? 0,
+            primaCents: total.entry?.primaAntiguedadPaidCents ?? 0,
+          },
+          benefitsPaidExternally: Boolean(employee.benefitsExternalCompany),
         })),
         addendaText,
-        route
+        route,
+        {
+          decimo: `${tt("ach_text_decimo")} ${quincena}`,
+          vacacion: `${tt("ach_text_vacacion")} ${quincena}`,
+          prima: `${tt("ach_text_prima")} ${quincena}`,
+        }
       ),
-    [rows, addendaText, route]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tt` solo cambia con el idioma.
+    [rows, addendaText, route, lang, quincena]
   );
 
-  const url = `/planilla/export/ach?year=${period.year}&month=${period.month}&half=${period.half}&text=${encodeURIComponent(addendaText)}&route=${encodeURIComponent(route.trim())}`;
+  const url = `/planilla/export/ach?year=${period.year}&month=${period.month}&half=${period.half}&text=${encodeURIComponent(addendaText)}&route=${encodeURIComponent(route.trim())}&decimo=${encodeURIComponent(`${tt("ach_text_decimo")} ${quincena}`)}&vacacion=${encodeURIComponent(`${tt("ach_text_vacacion")} ${quincena}`)}&prima=${encodeURIComponent(`${tt("ach_text_prima")} ${quincena}`)}`;
   const notTransfer = payload.skipped.filter((s) => s.reason === "not_transfer").length;
   const zero = payload.skipped.filter((s) => s.reason === "zero").length;
 
@@ -110,6 +131,24 @@ export function BankExportDialog({
             <p className="text-xl font-semibold tabular-nums text-foreground">{formatCents(payload.totalCents)}</p>
           </div>
         </div>
+
+        {(payload.totalsByConcept.decimo.count > 0 ||
+          payload.totalsByConcept.vacacion.count > 0 ||
+          payload.totalsByConcept.prima.count > 0) && (
+          <div className="border border-border p-3 text-xs">
+            <p className="mb-1 font-medium text-foreground">{tt("ach_by_concept")}</p>
+            <ul className="flex flex-col gap-0.5">
+              {ACH_CONCEPT_ORDER.filter((c) => payload.totalsByConcept[c].count > 0).map((c) => (
+                <li key={c} className="flex justify-between gap-3 text-muted-foreground">
+                  <span>
+                    {tt(CONCEPT_LABEL[c])} · {payload.totalsByConcept[c].count}
+                  </span>
+                  <span className="tabular-nums text-foreground">{formatCents(payload.totalsByConcept[c].cents)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {payload.incomplete.length > 0 && (
           <div className="border border-destructive/40 bg-destructive/5 p-3 text-sm">

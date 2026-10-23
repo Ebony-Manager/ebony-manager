@@ -44,7 +44,8 @@ export function DeleteProjectDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await deleteProjectAction(project.id);
+      const res = await deleteProjectAction(project.id);
+      if (!res.ok) throw new Error(res.error);
       toast.success(tt("proj_deleted"));
       onOpenChange(false);
       onDeleted?.();
@@ -67,7 +68,7 @@ export function DeleteProjectDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {tt("proj_delete_keeps_moves")}
         </div>
 

@@ -28,9 +28,15 @@ import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { SalaryHistorySection } from "./salary-history-section";
+import { EmployeeBenefitsSection } from "./employee-benefits-section";
 import { EmployeeStatementSection } from "./employee-statement-section";
 import { EmployeeLoansSection } from "./employee-loans-section";
-import { EmployeePhotoUploader } from "./employee-photo-uploader";
+import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { IdDocumentFile } from "@/components/shared/id-document-file";
+import { jotformDocumentUrlFromNotes } from "@/lib/personal/jotform-intake";
+import { importJotformDocumentAction } from "@/app/(app)/personal/staff/actions";
+import { countryName } from "@/lib/countries";
+import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import { LiquidationDialog } from "./liquidation-dialog";
 import { DeleteEmployeeDialog } from "./delete-employee-dialog";
@@ -58,7 +64,7 @@ function DataItem({
 
 /**
  * Perfil del empleado a pantalla completa (Taller · Tanda 1) — mismo
- * patrón visual que `/contratistas/[id]`: volver + engranaje arriba,
+ * patrón visual que la ficha del contratista: volver + engranaje arriba,
  * tarjeta de encabezado, secciones apiladas debajo. Reemplaza al viejo
  * `EmployeeProfileSheet` como destino de "Empleados"; `EmployeeDetailSheet`
  * (con el ledger de préstamos, editable) sigue existiendo aparte, sin
@@ -73,17 +79,20 @@ export function EmployeeProfileView({
   employee,
   positions,
   photoUrl: initialPhotoUrl,
+  documentUrl,
   initial,
-  from = "empleados",
+  from,
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
   photoUrl: string | null;
+  /** URL firmada del documento (cédula / pasaporte), si tiene. */
+  documentUrl: string | null;
   /** Datos de las secciones ya cargados por el servidor (en paralelo con el
    *  empleado), para que la página abra con todo en vez de pedirlo por
    *  separado y en fila después de pintarse. */
-  /** Pestaña de Planilla desde la que se llegó (a ella regresa "Volver"). */
-  from?: "dashboard" | "registro" | "auditoria" | "empleados";
+  /** Pantalla desde la que se llegó (a ella regresa "Volver"); sin esto, a Staff. */
+  from?: EmployeeFrom;
   initial?: {
     detail: ComponentProps<typeof EmployeeStatementSection>["initialDetail"];
     ledger: PayrollLedgerEntry[];
@@ -99,6 +108,7 @@ export function EmployeeProfileView({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [togglingStatus, setTogglingStatus] = React.useState(false);
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
+  const [photoPath, setPhotoPath] = React.useState<string | null>(employee.photoPath);
 
   async function toggleStatus() {
     setTogglingStatus(true);
@@ -129,9 +139,9 @@ export function EmployeeProfileView({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-              <Link href={`/planilla?tab=${from}`}>
+              <Link href={employeeBackPath(from)}>
                 <ArrowLeft className="size-3.5" />
-                {tt("back_to_employees")}
+                {t(lang, strings.common.back)}
               </Link>
             </Button>
 
@@ -187,10 +197,19 @@ export function EmployeeProfileView({
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex flex-col items-center gap-2">
+                <ProfilePhotoPicker
+                  bucket="employee-photos"
+                  ownerId={employee.id}
+                  currentPath={photoPath}
+                  hasPhoto={photoUrl !== null}
+                  savePath={(path) => updateEmployeeAction(employee.id, { photoPath: path })}
+                  onPhotoChange={(url, path) => {
+                    setPhotoUrl(url);
+                    setPhotoPath(path);
+                  }}
+                >
                   <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="xl" />
-                  <EmployeePhotoUploader employee={employee} hasPhoto={photoUrl !== null} onPhotoChange={setPhotoUrl} />
-                </div>
+                </ProfilePhotoPicker>
                 <div className="flex flex-col gap-1">
                   <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-foreground">
                     {employee.name}
@@ -222,7 +241,7 @@ export function EmployeeProfileView({
         </div>
 
         {/* Datos del empleado — la "ficha" con todo lo que se sabe de la persona. */}
-        <section className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">{tt("pd_title")}</h2>
             <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
@@ -234,17 +253,42 @@ export function EmployeeProfileView({
             <DataItem
               label={tt("pd_document")}
               value={
-                employee.idDocument
-                  ? `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
-                  : null
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  {employee.idDocument ? (
+                    `${employee.idDocumentType === "pasaporte" ? tt("id_type_pasaporte") : employee.idDocumentType === "cedula" ? tt("id_type_cedula") : ""} ${employee.idDocument}`.trim()
+                  ) : (
+                    <span className="text-muted-foreground/70">{tt("pd_not_set")}</span>
+                  )}
+                  <IdDocumentFile
+                    kind="employee"
+                    ownerId={employee.id}
+                    initialPath={employee.idDocumentPath}
+                    initialUrl={documentUrl}
+                    savePath={(path) => updateEmployeeAction(employee.id, { idDocumentPath: path })}
+                    importFromJotform={
+                      jotformDocumentUrlFromNotes(employee.notes) ? () => importJotformDocumentAction("employee", employee.id) : undefined
+                    }
+                  />
+                </span>
               }
             />
-            <DataItem label={tt("f_nationality")} value={employee.nationality} />
+            <DataItem label={tt("f_nationality")} value={countryName(employee.nationality, lang)} />
             <DataItem
               label={tt("f_birth_date")}
               value={employee.birthDate ? formatDate(lang, employee.birthDate) : null}
             />
             <DataItem label={tt("f_phone")} value={employee.phone} />
+            <DataItem
+              label={tt("f_email")}
+              value={
+                employee.email ? (
+                  <a href={`mailto:${employee.email}`} className="break-all hover:text-primary">
+                    {employee.email}
+                  </a>
+                ) : null
+              }
+            />
+            <DataItem label={tt("f_address")} value={employee.address} />
             <DataItem
               label={tt("pd_contact")}
               value={
@@ -277,17 +321,19 @@ export function EmployeeProfileView({
         </section>
 
         {employee.notes && (
-          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
             {employee.notes}
           </div>
         )}
 
         {employee.liquidationNotes && (
-          <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{tt("liq_notes_title")}: </span>
             <span className="whitespace-pre-wrap">{employee.liquidationNotes}</span>
           </div>
         )}
+
+        <EmployeeBenefitsSection employee={employee} initialDetail={initial?.detail} />
 
         <EmployeeStatementSection employee={employee} initialDetail={initial?.detail} />
 
@@ -312,7 +358,7 @@ export function EmployeeProfileView({
         employee={employee}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onDeleted={() => router.push(`/planilla?tab=${from}`)}
+        onDeleted={() => router.push(employeeBackPath(from))}
       />
     </EmployeePhotosProvider>
   );

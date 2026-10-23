@@ -40,7 +40,7 @@ export function PlanFlow({
   catalog,
   defaults,
   hasKey,
-  isAdmin,
+  canEditCosts,
 }: {
   quoteId: string;
   clientName: string;
@@ -48,7 +48,7 @@ export function PlanFlow({
   catalog: CatalogItem[];
   defaults: QuoteDefaults;
   hasKey: boolean;
-  isAdmin: boolean;
+  canEditCosts: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
@@ -376,7 +376,7 @@ export function PlanFlow({
                     {preview.missingCodes.length > 0 && (
                       <p className="mt-2 text-xs text-[var(--status-error)]">
                         {tt("plan_missing_codes")} {preview.missingCodes.join(", ")}
-                        {isAdmin ? "" : ` ${tt("plan_ask_admin")}`}
+                        {canEditCosts ? "" : ` ${tt("plan_ask_admin")}`}
                       </p>
                     )}
                   </div>

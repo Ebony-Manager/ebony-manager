@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Hammer,
+  HandCoins,
   LogOut,
   Package,
   Palette,
@@ -24,7 +25,14 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { Contractor, ContractorLedgerEntry, LaborRate, Project } from "@/types/contractors";
+import type {
+  Contractor,
+  ContractorAllocation,
+  ContractorContract,
+  ContractorLedgerEntry,
+  LaborRate,
+  Project,
+} from "@/types/contractors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -55,6 +63,7 @@ import {
   contractorBalanceCents,
   withRunningBalance,
 } from "@/lib/contractors/contractor-ledger";
+import { isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
 import {
   balanceTone,
   categoryDotStyle,
@@ -83,24 +92,40 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
   deleteLedgerEntryAction,
+  getContractorAllocationsAction,
   getContractorLedgerAction,
+  getContractsAction,
   getProjectsAction,
   updateContractorAction,
 } from "./actions";
+import { contractPendingCents, looseCredits, sortContracts, unallocatedSources } from "@/lib/contractors/contracts";
+import { ContractDialog } from "./contract-dialog";
+import { ContractsTable } from "./contracts-table";
+import { RegisterPaymentDialog } from "./register-payment-dialog";
+import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { ContractorAvatar } from "./contractor-avatar";
+import { ContractorFormDialog } from "./contractor-form-dialog";
+import { ProfilePhotoPicker } from "@/components/shared/profile-photo-picker";
+import { IdDocumentFile } from "@/components/shared/id-document-file";
+import { jotformDocumentUrlFromNotes } from "@/lib/personal/jotform-intake";
+import { importJotformDocumentAction } from "@/app/(app)/personal/staff/actions";
+import { countryName } from "@/lib/countries";
+import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
+/** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
+function DataItem({ label, value, hideWhenEmpty = false }: { label: string; value: React.ReactNode; hideWhenEmpty?: boolean }) {
+  const { lang } = useLang();
+  if (!value && hideWhenEmpty) return null;
   return (
-    <div className="flex items-start justify-between gap-3 py-0.5">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-right text-foreground">{value}</span>
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={value ? "text-foreground" : "text-muted-foreground/70"}>{value || t(lang, strings.planilla.pd_not_set)}</dd>
     </div>
   );
 }
@@ -125,6 +150,9 @@ const CAT_ALL = "all";
 const PROJ_ALL = "all";
 const PROJ_NONE = "__none__";
 
+// La vista de período del estado de cuenta se recuerda por navegador.
+const PERIOD_STORAGE_KEY = "contratistas:ledger-period";
+
 // La elección de paleta ("full" / "sober") se recuerda por navegador.
 const PALETTE_STORAGE_KEY = "contratistas:ledger-palette";
 function readStoredPalette(): LedgerPalette | null {
@@ -148,7 +176,7 @@ function readStoredKpisOpen(): boolean | null {
 }
 
 /**
- * Ficha del contratista A PANTALLA COMPLETA (`/contratistas/[id]`):
+ * Ficha del contratista A PANTALLA COMPLETA (`/personal/staff/contratistas/[id]`):
  * tarjeta de encabezado (nombre/tipo + saldo), KPIs colapsables y el
  * estado de cuenta. Los datos personales y las acciones de estado
  * (inactivar / liquidar / reactivar / borrar) viven en el menú del
@@ -169,14 +197,28 @@ function readStoredKpisOpen(): boolean | null {
  */
 export function ContractorProfileView({
   contractor,
+  photoUrl: initialPhotoUrl,
+  documentUrl,
   initialEntries,
   initialProjects,
+  initialContracts,
+  initialAllocations,
   laborRates,
+  from,
 }: {
   contractor: Contractor;
+  photoUrl: string | null;
+  /** URL firmada del documento (cédula / pasaporte), si tiene. */
+  documentUrl: string | null;
   initialEntries: ContractorLedgerEntry[];
   initialProjects: Project[];
+  /** Contratos de este contratista. */
+  initialContracts: ContractorContract[];
+  /** Sus abonos (qué movimiento se abonó a qué contrato). */
+  initialAllocations: ContractorAllocation[];
   laborRates: LaborRate[];
+  /** Pantalla desde la que se llegó (a ella regresa "Volver"); sin esto, a Staff. */
+  from?: ContractorFrom;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -184,6 +226,13 @@ export function ContractorProfileView({
 
   const [entries, setEntries] = React.useState<ContractorLedgerEntry[]>(initialEntries);
   const [projects, setProjects] = React.useState<Project[]>(initialProjects);
+  const [contracts, setContracts] = React.useState<ContractorContract[]>(initialContracts);
+  const [allocations, setAllocations] = React.useState<ContractorAllocation[]>(initialAllocations);
+  const [contractEditing, setContractEditing] = React.useState<ContractorContract | null>(null);
+  const [contractAdding, setContractAdding] = React.useState(false);
+  const [payOpen, setPayOpen] = React.useState(false);
+  const [chargeOpen, setChargeOpen] = React.useState(false);
+  const [showCompletedContracts, setShowCompletedContracts] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<ContractorLedgerEntry | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
@@ -193,10 +242,32 @@ export function ContractorProfileView({
   const [helpersOpen, setHelpersOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
+  const [photoPath, setPhotoPath] = React.useState<string | null>(contractor.photoPath);
 
-  // Vista de período — "Mes" por defecto. El ancla arranca en el mes del
-  // último movimiento (o el mes actual si no hay ninguno).
-  const [periodView, setPeriodView] = React.useState<LedgerPeriodView>("month");
+  // Vista de período — "Últimos 15 movimientos" por defecto (con "Mes", un
+  // abono a inicio de mes se veía solo, sin el trabajo que paga). La
+  // elección se recuerda por navegador. El ancla de las vistas por
+  // calendario arranca en el mes del último movimiento.
+  const [periodView, setPeriodView] = React.useState<LedgerPeriodView>("last15");
+  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
+  React.useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(PERIOD_STORAGE_KEY);
+      if (v && (LEDGER_PERIOD_VIEWS as readonly string[]).includes(v)) setPeriodView(v as LedgerPeriodView);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PERIOD_STORAGE_KEY, periodView);
+    } catch {
+      /* ignore */
+    }
+  }, [periodView]);
   const [anchor, setAnchor] = React.useState(() => {
     const last = initialEntries[initialEntries.length - 1];
     const d = last ? last.entryDate : new Date().toISOString().slice(0, 10);
@@ -249,8 +320,12 @@ export function ContractorProfileView({
 
   const contractorId = contractor.id;
 
+  // Un movimiento puede cambiar el valor o lo abonado de un contrato: se
+  // recargan los tres juntos.
   const load = React.useCallback(() => {
     getContractorLedgerAction(contractorId).then(setEntries);
+    getContractsAction({ contractorId }).then(setContracts);
+    getContractorAllocationsAction(contractorId).then(setAllocations);
   }, [contractorId]);
 
   const reloadProjects = React.useCallback(() => {
@@ -264,11 +339,20 @@ export function ContractorProfileView({
   React.useEffect(() => {
     setProjects(initialProjects);
   }, [initialProjects]);
+  React.useEffect(() => {
+    setContracts(initialContracts);
+  }, [initialContracts]);
+  React.useEffect(() => {
+    setAllocations(initialAllocations);
+  }, [initialAllocations]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Saldo corrido sobre la HISTORIA COMPLETA — nunca por período/filtro.
   const allRows = React.useMemo(() => withRunningBalance(entries), [entries]);
-  const balanceCents = contractorBalanceCents(entries);
+  // Las cuotas programadas (préstamos en cuotas, fecha futura) se ven en el
+  // estado de cuenta pero todavía no cuentan en el saldo de hoy.
+  const today = React.useMemo(() => todayInPanama(), []);
+  const balanceCents = contractorBalanceCents(entries.filter((e) => !isScheduled(e, today)));
   const balTone = balanceTone(balanceCents);
 
   // KPIs — totales de toda la historia del contratista.
@@ -276,10 +360,8 @@ export function ContractorProfileView({
     let billed = 0;
     let paid = 0;
     let materials = 0;
-    let projectCount = 0;
     for (const e of entries) {
       if (e.category === "trabajo") {
-        projectCount += 1;
         if (e.direction === "a_favor") billed += e.amountCents;
       } else if (e.category === "pago") {
         paid += e.amountCents;
@@ -287,8 +369,28 @@ export function ContractorProfileView({
         materials += e.amountCents;
       }
     }
-    return { billed, paid, materials, projectCount };
+    return { billed, paid, materials };
   }, [entries]);
+
+  // Contratos: activos arriba, terminados plegados. Lo que falta, lo que
+  // está a cuenta (se descuenta en el próximo pago) y lo acreditado sin
+  // contrato (historia vieja, bonos).
+  const sortedContracts = React.useMemo(() => sortContracts(contracts), [contracts]);
+  const activeContracts = sortedContracts.filter((c) => c.status === "ACTIVE");
+  const completedContracts = sortedContracts.filter((c) => c.status !== "ACTIVE");
+  const contractsPendingCents = contracts.reduce((s, c) => s + Math.max(0, contractPendingCents(c)), 0);
+  const contractsRetainedCents = contracts.reduce(
+    (s, c) => s + Math.min(c.retentionCents, Math.max(0, contractPendingCents(c))),
+    0
+  );
+  const onAccountCents = React.useMemo(
+    () => unallocatedSources(entries, allocations, today).reduce((s, r) => s + r.remainingCents, 0),
+    [entries, allocations, today]
+  );
+  const looseCents = React.useMemo(
+    () => looseCredits(entries, allocations).reduce((s, r) => s + r.remainingCents, 0),
+    [entries, allocations]
+  );
 
   // Filas visibles: período → filtros → agrupación. `allRows` ya trae el
   // saldo real acumulado en cada fila; acá solo se esconden filas.
@@ -370,26 +472,22 @@ export function ContractorProfileView({
   const isInactive = contractor.status === "INACTIVE";
   const totalColSpan = 10;
 
-  // Datos personales, ahora discretos dentro del menú del engranaje.
-  const startOrEnd = isInactive
-    ? contractor.endDate
-      ? { label: tt("end_date_label"), value: formatDate(lang, contractor.endDate) }
-      : null
-    : contractor.startDate
-      ? { label: tt("f_start_date"), value: formatDate(lang, contractor.startDate) }
-      : null;
-  const hasDetails = Boolean(
-    contractor.idDocument || contractor.phone || contractor.contactInfo || startOrEnd
-  );
+  const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const bankTypeLabel =
+    contractor.bankAccountType === "ahorro" ? tp("bank_type_ahorro") : contractor.bankAccountType === "corriente" ? tp("bank_type_corriente") : "";
+  const bank = [contractor.bankName, bankTypeLabel, contractor.bankAccountNumber].filter(Boolean).join(" · ");
+  const docType =
+    contractor.idDocumentType === "pasaporte" ? tp("id_type_pasaporte") : contractor.idDocumentType === "cedula" ? tp("id_type_cedula") : "";
+  const emergency = [contractor.emergencyContactName, contractor.emergencyContactPhone].filter(Boolean).join(" · ");
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-            <Link href="/contratistas">
+            <Link href={contractorBackPath(from)}>
               <ArrowLeft className="size-3.5" />
-              {tt("back_to_directory")}
+              {t(lang, strings.common.back)}
             </Link>
           </Button>
 
@@ -409,31 +507,6 @@ export function ContractorProfileView({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              {hasDetails && (
-                <>
-                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                    {tt("details_title")}
-                  </DropdownMenuLabel>
-                  <div className="px-2 pb-1 text-xs">
-                    <DetailRow label={tt("f_id_document")} value={contractor.idDocument} />
-                    <DetailRow
-                      label={tt("f_phone")}
-                      value={
-                        contractor.phone ? (
-                          <a href={`tel:${contractor.phone}`} className="hover:text-primary">
-                            {contractor.phone}
-                          </a>
-                        ) : null
-                      }
-                    />
-                    <DetailRow label={tt("f_contact")} value={contractor.contactInfo} />
-                    {startOrEnd && (
-                      <DetailRow label={startOrEnd.label} value={startOrEnd.value} />
-                    )}
-                  </div>
-                  <DropdownMenuSeparator />
-                </>
-              )}
               <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                 {tt("status_label")}:{" "}
                 <span className="font-medium text-foreground">
@@ -473,7 +546,19 @@ export function ContractorProfileView({
         <Card className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <ContractorAvatar name={contractor.name} size="md" />
+              <ProfilePhotoPicker
+                bucket="contractor-photos"
+                ownerId={contractor.id}
+                currentPath={photoPath}
+                hasPhoto={photoUrl !== null}
+                savePath={(path) => updateContractorAction(contractor.id, { photoPath: path })}
+                onPhotoChange={(url, path) => {
+                  setPhotoUrl(url);
+                  setPhotoPath(path);
+                }}
+              >
+                <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="xl" />
+              </ProfilePhotoPicker>
               <div>
                 <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
                   {contractor.name}
@@ -494,8 +579,72 @@ export function ContractorProfileView({
         </Card>
       </div>
 
+      {/* Datos del contratista — la "ficha" con todo lo que se sabe de la persona, como la del empleado. */}
+      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">{tt("details_section_title")}</h2>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-3.5" />
+            {tp("pd_edit")}
+          </Button>
+        </div>
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <DataItem
+            label={tp("pd_document")}
+            value={
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                {contractor.idDocument ? (
+                  [docType, contractor.idDocument].filter(Boolean).join(" ")
+                ) : (
+                  <span className="text-muted-foreground/70">{tp("pd_not_set")}</span>
+                )}
+                <IdDocumentFile
+                  kind="contractor"
+                  ownerId={contractor.id}
+                  initialPath={contractor.idDocumentPath}
+                  initialUrl={documentUrl}
+                  savePath={(path) => updateContractorAction(contractor.id, { idDocumentPath: path })}
+                  importFromJotform={
+                    jotformDocumentUrlFromNotes(contractor.notes) ? () => importJotformDocumentAction("contractor", contractor.id) : undefined
+                  }
+                />
+              </span>
+            }
+          />
+          <DataItem label={tp("f_nationality")} value={countryName(contractor.nationality, lang)} />
+          <DataItem label={tp("f_birth_date")} value={contractor.birthDate ? formatDate(lang, contractor.birthDate) : null} />
+          <DataItem
+            label={tp("f_phone")}
+            value={
+              contractor.phone ? (
+                <a href={`tel:${contractor.phone}`} className="hover:text-primary">
+                  {contractor.phone}
+                </a>
+              ) : null
+            }
+          />
+          <DataItem
+            label={tp("f_email")}
+            value={
+              contractor.email ? (
+                <a href={`mailto:${contractor.email}`} className="break-all hover:text-primary">
+                  {contractor.email}
+                </a>
+              ) : null
+            }
+          />
+          <DataItem label={tp("f_address")} value={contractor.address} />
+          <DataItem label={tp("pd_contact")} value={emergency || null} />
+          <DataItem label={tp("f_contract")} value={contractor.contractInfo} />
+          <DataItem label={tt("f_start_date")} value={contractor.startDate ? formatDate(lang, contractor.startDate) : null} />
+          <DataItem label={tt("end_date_label")} value={contractor.endDate ? formatDate(lang, contractor.endDate) : null} hideWhenEmpty />
+          <DataItem label={tp("pd_bank")} value={bank || null} />
+          <DataItem label={tp("f_bank_routing_code")} value={contractor.bankRoutingCode} hideWhenEmpty />
+        </dl>
+      </section>
+
       {contractor.notes && (
-        <div className="rounded-none border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
           {contractor.notes}
         </div>
       )}
@@ -534,9 +683,9 @@ export function ContractorProfileView({
             />
             <PayrollKpiCard
               icon={Hammer}
-              label={tt("kpi_projects")}
-              value={String(kpis.projectCount)}
-              sublabel={tt("kpi_projects_count")}
+              label={tt("kpi_contracts")}
+              value={String(contracts.length)}
+              sublabel={`${activeContracts.length} ${tt("kpi_contracts_active")}`}
               color="var(--contractor-cat-proyecto)"
             />
             <PayrollKpiCard
@@ -552,6 +701,75 @@ export function ContractorProfileView({
               color="var(--contractor-cat-material)"
             />
           </div>
+        )}
+      </div>
+
+      {/* Contratos: lo acordado y lo abonado. */}
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-medium text-foreground">{tt("ct_section_title")}</h2>
+            <p className="text-xs text-muted-foreground">
+              {tt("ct_col_pending")}: <span className="font-medium text-foreground tabular-nums">{formatCents(contractsPendingCents)}</span>
+              {contractsRetainedCents > 0 && (
+                <>
+                  {" "}
+                  <span title={tt("ct_retained_hint")}>
+                    ({tt("ct_retained").toLowerCase()} {formatCents(contractsRetainedCents)})
+                  </span>
+                </>
+              )}
+              {looseCents > 0 && (
+                <>
+                  {" · "}
+                  {tt("pay_loose")}: <span className="tabular-nums">{formatCents(looseCents)}</span>
+                </>
+              )}
+              {onAccountCents > 0 && (
+                <>
+                  {" · "}
+                  {tt("ct_on_account")}: <span className="tabular-nums">{formatCents(onAccountCents)}</span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setContractAdding(true)}>
+              <Plus className="size-3.5" />
+              {tt("ct_add")}
+            </Button>
+            <Button size="sm" onClick={() => setPayOpen(true)}>
+              <Banknote className="size-3.5" />
+              {tt("pay_title")}
+            </Button>
+          </div>
+        </div>
+
+        {contracts.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
+            {tt("ct_empty_contractor")}
+          </p>
+        ) : (
+          <>
+            {activeContracts.length > 0 ? (
+              <ContractsTable contracts={activeContracts} onOpen={setContractEditing} />
+            ) : (
+              <p className="text-xs text-muted-foreground">{tt("ct_no_active")}</p>
+            )}
+            {completedContracts.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCompletedContracts((v) => !v)}
+                  className="flex items-center gap-1.5 self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  {showCompletedContracts ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                  {tt("proj_completed_section")} ({completedContracts.length})
+                </button>
+                {showCompletedContracts && <ContractsTable contracts={completedContracts} onOpen={setContractEditing} />}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -572,7 +790,7 @@ export function ContractorProfileView({
 
           <div className="flex flex-wrap items-center gap-2">
             {isCalendarView(periodView) && (
-              <div className="flex items-center gap-1 rounded-none border border-border px-1">
+              <div className="flex items-center gap-1 rounded-lg border border-border px-1">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -610,8 +828,15 @@ export function ContractorProfileView({
               </SelectContent>
             </Select>
 
+            <Button size="sm" variant="outline" onClick={() => setChargeOpen(true)}>
+              <HandCoins className="size-3.5" />
+              {tt("ledger_add_charge")}
+            </Button>
+            {/* Lo ocasional (material, gasto, extra, ajuste): más discreto. */}
             <Button
               size="sm"
+              variant="ghost"
+              className="text-muted-foreground"
               onClick={() => {
                 setEditing(null);
                 setDialogOpen(true);
@@ -687,7 +912,7 @@ export function ContractorProfileView({
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
         {filteredRows.length > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-none bg-muted/30 px-3 py-1.5 text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/30 px-3 py-1.5 text-xs">
             <span className="text-muted-foreground">
               {tt("filtered_total")} · {filteredRows.length}{" "}
               {filteredRows.length === 1 ? tt("filtered_count_one") : tt("filtered_count_many")}
@@ -717,15 +942,15 @@ export function ContractorProfileView({
         )}
 
         {allRows.length === 0 ? (
-          <p className="rounded-none border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             {tt("ledger_empty")}
           </p>
         ) : filteredRows.length === 0 ? (
-          <p className="rounded-none border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             {periodRows.length === 0 ? tt("period_empty") : tt("no_results")}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-none border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[1150px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
@@ -760,7 +985,11 @@ export function ContractorProfileView({
                   {g.rows.map((row) => {
                     const absorbed = row.ebonyAbsorbsMaterial;
                     const hovered = hoveredId === row.id;
-                    const catText = label(CONTRACTOR_CATEGORY_LABEL_KEY[row.category]);
+                    // Lo que forma el valor de un contrato se lee "Contrato"; el
+                    // trabajo viejo suelto (sin contrato) sigue como "Trabajo".
+                    const catText = label(
+                      row.category === "trabajo" && row.contractId ? "cat_contrato" : CONTRACTOR_CATEGORY_LABEL_KEY[row.category]
+                    );
                     const catDot = categoryDotStyle(row.category);
                     // MISMO objeto de estilo para el <tr> y para la celda
                     // de Fecha congelada — un único color opaco por fila,
@@ -811,15 +1040,15 @@ export function ContractorProfileView({
                               ? "font-medium text-foreground"
                               : "text-muted-foreground"
                           }`}
-                          title={row.projectName ?? row.clientText ?? undefined}
+                          title={row.contractName ?? row.projectName ?? row.clientText ?? undefined}
                         >
-                          {row.projectName ? (
+                          {row.contractName || row.projectName ? (
                             sober ? (
                               <span className="border-l-2 border-muted-foreground/30 pl-2">
-                                {row.projectName}
+                                {row.contractName ?? row.projectName}
                               </span>
                             ) : (
-                              row.projectName
+                              (row.contractName ?? row.projectName)
                             )
                           ) : (
                             <span className="text-muted-foreground/60">{tt("no_project")}</span>
@@ -834,6 +1063,11 @@ export function ContractorProfileView({
                           className="max-w-56 truncate px-3 py-2 text-muted-foreground"
                           title={row.itemsSummary ?? row.description ?? undefined}
                         >
+                          {isScheduled(row, today) && (
+                            <span className="mr-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {tt("scheduled")}
+                            </span>
+                          )}
                           {row.itemsSummary ?? row.description ?? "—"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
@@ -911,27 +1145,64 @@ export function ContractorProfileView({
 
       <LedgerEntryDialog
         contractorId={contractor.id}
+        contractorName={contractor.name}
         contractorType={contractor.contractorType}
         laborRates={laborRates}
         entry={editing}
         projects={projects}
+        contracts={contracts}
+        allocations={allocations}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSaved={load}
+        onContractsChanged={load}
         onProjectsChanged={reloadProjects}
       />
+      <ContractDialog
+        open={contractAdding || contractEditing !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setContractAdding(false);
+            setContractEditing(null);
+          }
+        }}
+        contract={contractEditing}
+        contractors={[]}
+        fixedContractor={{ id: contractor.id, name: contractor.name, contractorType: contractor.contractorType }}
+        projects={projects}
+        laborRates={laborRates}
+        onSaved={load}
+        onProjectsChanged={reloadProjects}
+      />
+      <RegisterPaymentDialog
+        contractor={{ id: contractor.id, name: contractor.name }}
+        contracts={contracts}
+        entries={entries}
+        allocations={allocations}
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        onSaved={load}
+      />
+      <AddChargeDialog
+        open={chargeOpen}
+        onOpenChange={setChargeOpen}
+        person={{ kind: "contractor", id: contractor.id, name: contractor.name }}
+        onSaved={load}
+      />
+      <ContractorFormDialog contractor={contractor} open={editOpen} onOpenChange={setEditOpen} />
       <ContractorHelpersDialog contractor={contractor} open={helpersOpen} onOpenChange={setHelpersOpen} />
       <ContractorLiquidationDialog
         contractor={contractor}
         balanceCents={balanceCents}
         open={liqOpen}
         onOpenChange={setLiqOpen}
+        onSaved={load}
       />
       <DeleteContractorDialog
         contractor={contractor}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onDeleted={() => router.push("/contratistas")}
+        onDeleted={() => router.push(contractorBackPath(from))}
       />
     </div>
   );

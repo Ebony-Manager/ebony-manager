@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { signedPhotoUrls } from "./photos";
 import type { Database } from "@/types/database";
 import type { BankAccountType, EmployeeCategoria, PayrollEmployee } from "@/types/planilla";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
@@ -38,6 +39,9 @@ function mapEmployee(r: Row): PayrollEmployee {
     categoria: r.categoria === "administrativo" ? "administrativo" : "taller",
     baseSalaryCents: r.base_salary_cents,
     benefitsBaseSalaryCents: r.benefits_base_salary_cents,
+    // Columna nueva (migración 20261014120000): `?? true` mantiene la app andando sin ella.
+    benefitsEnabled: r.benefits_enabled ?? true,
+    benefitsExternalCompany: r.benefits_external_company ?? null,
     notes: r.notes,
     liquidationNotes: r.liquidation_notes,
     sortOrder: r.sort_order,
@@ -49,6 +53,9 @@ function mapEmployee(r: Row): PayrollEmployee {
     nationality: r.nationality ?? null,
     birthDate: r.birth_date ?? null,
     photoPath: r.photo_path ?? null,
+    idDocumentPath: r.id_document_path ?? null,
+    email: r.email ?? null,
+    address: r.address ?? null,
     emergencyContactName: r.emergency_contact_name,
     emergencyContactPhone: r.emergency_contact_phone,
     contractInfo: r.contract_info,
@@ -92,12 +99,16 @@ export interface CreatePayrollEmployeeInput {
    *  formulario: los cambios son aumentos registrados aparte. */
   baseSalaryCents?: number;
   benefitsBaseSalaryCents?: number | null;
+  benefitsEnabled?: boolean;
+  benefitsExternalCompany?: string | null;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
   idDocumentType?: "cedula" | "pasaporte" | null;
   nationality?: string | null;
   birthDate?: string | null;
+  email?: string | null;
+  address?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -143,6 +154,10 @@ export async function createPayrollEmployee(input: CreatePayrollEmployeeInput): 
       ...(input.idDocumentType ? { id_document_type: input.idDocumentType } : {}),
       ...(input.nationality ? { nationality: input.nationality } : {}),
       ...(input.birthDate ? { birth_date: input.birthDate } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(input.address ? { address: input.address } : {}),
+      ...(input.benefitsEnabled === false ? { benefits_enabled: false } : {}),
+      ...(input.benefitsExternalCompany ? { benefits_external_company: input.benefitsExternalCompany } : {}),
       sort_order: nextSort,
     })
     .select("*")
@@ -180,6 +195,8 @@ export interface UpdatePayrollEmployeeInput {
   endDate?: string | null;
   status?: "ACTIVE" | "INACTIVE";
   liquidationNotes?: string | null;
+  benefitsEnabled?: boolean;
+  benefitsExternalCompany?: string | null;
   notes?: string | null;
   phone?: string | null;
   idDocument?: string | null;
@@ -187,6 +204,9 @@ export interface UpdatePayrollEmployeeInput {
   nationality?: string | null;
   birthDate?: string | null;
   photoPath?: string | null;
+  idDocumentPath?: string | null;
+  email?: string | null;
+  address?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   contractInfo?: string | null;
@@ -209,6 +229,8 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.endDate !== undefined) patch.end_date = input.endDate;
   if (input.status !== undefined) patch.status = input.status;
   if (input.liquidationNotes !== undefined) patch.liquidation_notes = input.liquidationNotes;
+  if (input.benefitsEnabled !== undefined) patch.benefits_enabled = input.benefitsEnabled;
+  if (input.benefitsExternalCompany !== undefined) patch.benefits_external_company = input.benefitsExternalCompany;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.idDocument !== undefined) patch.id_document = input.idDocument;
@@ -216,6 +238,9 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (input.nationality !== undefined) patch.nationality = input.nationality;
   if (input.birthDate !== undefined) patch.birth_date = input.birthDate;
   if (input.photoPath !== undefined) patch.photo_path = input.photoPath;
+  if (input.idDocumentPath !== undefined) patch.id_document_path = input.idDocumentPath;
+  if (input.email !== undefined) patch.email = input.email;
+  if (input.address !== undefined) patch.address = input.address;
   if (input.emergencyContactName !== undefined) patch.emergency_contact_name = input.emergencyContactName;
   if (input.emergencyContactPhone !== undefined) patch.emergency_contact_phone = input.emergencyContactPhone;
   if (input.contractInfo !== undefined) patch.contract_info = input.contractInfo;
@@ -231,19 +256,6 @@ export async function updatePayrollEmployee(id: string, input: UpdatePayrollEmpl
   if (error) throw new Error(error.message);
 }
 
-/** Cambia el estado (ACTIVE / INACTIVE) de VARIOS empleados de una vez —
- *  "estos ya no laboran". Solo toca `status`: `end_date` es la fecha de
- *  liquidación de prestaciones (reinicia acumulados) y no se mezcla con
- *  esto. Devuelve cuántos cambió. */
-export async function setPayrollEmployeesStatus(ids: string[], status: "ACTIVE" | "INACTIVE"): Promise<number> {
-  const unique = [...new Set(ids)];
-  if (unique.length === 0) return 0;
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("payroll_employees").update({ status }).in("id", unique).select("id");
-  if (error) throw new Error(error.message);
-  return data?.length ?? 0;
-}
-
 /** Borra por completo al empleado. Por el `on delete cascade` de las 4
  *  tablas hijas, esto elimina también sus payroll_entries,
  *  payroll_ledger_entries, payroll_loans y payroll_salary_changes.
@@ -254,26 +266,7 @@ export async function deletePayrollEmployee(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** URL firmada (1 h) de la foto de cada empleado que tenga una. El bucket
- *  `employee-photos` es privado; si aún no existe (migración sin aplicar) o
- *  falla, devuelve {} y la app muestra las iniciales como siempre. */
+/** URL firmada (1 h) de la foto de cada empleado que tenga una (ver signedPhotoUrls). */
 export async function getEmployeePhotoUrls(employees: PayrollEmployee[]): Promise<Record<string, string>> {
-  const withPhoto = employees.filter((e) => e.photoPath);
-  if (withPhoto.length === 0) return {};
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
-      .from("employee-photos")
-      .createSignedUrls(withPhoto.map((e) => e.photoPath as string), 3600);
-    if (error || !data) return {};
-    const byPath = new Map(data.map((d) => [d.path, d.signedUrl]));
-    const out: Record<string, string> = {};
-    for (const e of withPhoto) {
-      const url = byPath.get(e.photoPath as string);
-      if (url) out[e.id] = url;
-    }
-    return out;
-  } catch {
-    return {};
-  }
+  return signedPhotoUrls("employee-photos", employees);
 }

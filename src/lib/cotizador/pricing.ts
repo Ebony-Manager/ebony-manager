@@ -113,6 +113,33 @@ export function defaultsFromInputs(inputs: CostInput[]): QuoteDefaults {
   };
 }
 
+/**
+ * Cotización en blanco, con los mismos valores con que la crearía la base
+ * (borrador, español, detalle por ítem, sin descuento) más el ITBMS y los
+ * días de entrega de los insumos, y un primer ítem vacío. No se guarda: el
+ * editor la crea en la base recién con el primer cambio (ver QuoteEditor).
+ */
+export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, quoteDate: string): Quote {
+  return {
+    id,
+    number: "",
+    clientName: "",
+    designerName: "",
+    projectName: "",
+    quoteDate,
+    deliveryDays: Math.round(d.deliveryDays),
+    status: "BORRADOR",
+    lang: "es",
+    pdfDetail: "section",
+    discountType: "pct",
+    discountValue: 0,
+    itbmsPct: d.itbmsPct,
+    notes: "",
+    sections: [newSection(firstSectionId, d)],
+    plans: [],
+  };
+}
+
 export function newSection(id: string, d: QuoteDefaults, location = ""): QuoteSection {
   return {
     id,

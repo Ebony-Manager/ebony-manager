@@ -12,7 +12,7 @@ const PLOT_H = 220;
 const AXIS_W = 52;
 
 /** Colores suaves de la paleta de Planilla (mezclados con blanco). */
-const soft = (token: string, pct = 55) => `color-mix(in oklch, var(${token}) ${pct}%, white)`;
+const soft = (token: string, pct = 55) => `color-mix(in oklch, var(${token}) ${pct}%, var(--card))`;
 const PAID = soft("--payroll-salario", 55);
 const LOANS = soft("--payroll-prestamos", 45);
 
@@ -36,7 +36,7 @@ export function ContractorsMonthlyChart({ months }: { months: MonthPoint[] }) {
   const hovered = hover !== null ? months[hover] : null;
 
   return (
-    <div className="rounded-none border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{tt("cd_chart_title")}</p>
         <div className="flex items-center gap-4 text-[11px] text-muted-foreground">

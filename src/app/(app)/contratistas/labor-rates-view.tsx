@@ -16,7 +16,7 @@ import { LaborRateFormDialog } from "./labor-rate-form-dialog";
 type TypeFilter = "all" | ContractorType;
 
 /**
- * Pestaña "Tarifas" del módulo Contratistas — catálogo de precios de
+ * "Tarifas" (botón de Pagos → Contratos) — catálogo de precios de
  * mano de obra (`labor_rates`), filtrable por tipo. Editar abre el
  * formulario; activar/desactivar es un patch directo (nunca se borra un
  * registro, por trazabilidad histórica). El selector de ítems dentro de
