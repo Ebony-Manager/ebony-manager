@@ -8,11 +8,10 @@ import type { Database } from "@/types/database";
 /**
  * Resumen diario del Almacén por correo (Resend).
  *
- * - El cron de Vercel lo llama cada mañana con `Authorization: Bearer
- *   CRON_SECRET` y se manda solo si hay algo que avisar. PAUSADO hasta que se
- *   empiece a usar el inventario: para reactivarlo, en vercel.json
- *   `"crons": [{ "path": "/api/almacen/resumen-diario", "schedule": "0 12 * * 1-6" }]`
- *   (lunes a sábado, 7:00 de Panamá).
+ * - El cron de Vercel (vercel.json) lo llama todos los días a las 7:00 de
+ *   Panamá con `Authorization: Bearer CRON_SECRET`. Manda solo si en
+ *   Settings → Notificaciones está prendido, si hoy es uno de los días
+ *   elegidos y si hay algo que avisar.
  * - Un admin con sesión puede: `?activar=1` (una vez: guarda el hash del
  *   CRON_SECRET en la base, sin copiarlo a mano), `?ver=1` (ver el correo en
  *   el navegador) y `?enviar=1` (mandarlo ya, para probar).
@@ -54,6 +53,8 @@ export async function GET(request: Request) {
   if (!isCron && url.searchParams.get("enviar") !== "1") {
     return Response.json({ uso: "?activar=1 (una vez), ?ver=1 para ver el correo, ?enviar=1 para mandarlo ya", destinatarios: summary.recipients, asunto: email.subject });
   }
+  if (isCron && !summary.enabled) return Response.json({ ok: true, enviado: false, motivo: "apagado en Settings → Notificaciones" });
+  if (isCron && !summary.days.includes(summary.dow)) return Response.json({ ok: true, enviado: false, motivo: "hoy no es uno de los días elegidos" });
   if (isCron && !email.hasContent) return Response.json({ ok: true, enviado: false, motivo: "nada que avisar" });
   if (summary.recipients.length === 0) return Response.json({ ok: true, enviado: false, motivo: "sin destinatarios" });
 

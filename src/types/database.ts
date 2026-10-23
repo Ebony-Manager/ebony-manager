@@ -856,6 +856,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          days: number[]
+          enabled: boolean
+          key: string
+          recipients: string[] | null
+          updated_at: string
+          updated_by_name: string | null
+        }
+        Insert: {
+          days?: number[]
+          enabled?: boolean
+          key: string
+          recipients?: string[] | null
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Update: {
+          days?: number[]
+          enabled?: boolean
+          key?: string
+          recipients?: string[] | null
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       payroll_employees: {
         Row: {
           address: string | null

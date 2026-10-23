@@ -41,6 +41,7 @@ export const strings = {
     // Engranaje al pie del rail: abre el panel "Settings" (hoy, Usuarios).
     settings: { es: "Settings", en: "Settings" },
     usuarios: { es: "Usuarios", en: "Users" },
+    notificaciones: { es: "Notificaciones", en: "Notifications" },
     // Panel "Almacén": existencias, salidas, compras (cualquiera pide), proveedores y ajustes.
     almacen: { es: "Almacén", en: "Warehouse" },
     existencias: { es: "Existencias", en: "Stock" },
@@ -2534,6 +2535,43 @@ export const strings = {
     adj_no_changes: { es: "No hubo cambios: lo contado es igual a lo que había.", en: "No changes: the count matches the stock." },
     col_reason: { es: "Motivo", en: "Reason" },
     col_changes: { es: "Cambios", en: "Changes" },
+  },
+
+  // Settings → Notificaciones: avisos automáticos de la app.
+  notificaciones: {
+    title: { es: "Notificaciones", en: "Notifications" },
+    subtitle: {
+      es: "Los avisos que la app manda sola por correo: si están prendidos, qué días y a quién.",
+      en: "The emails the app sends on its own: whether they're on, which days and to whom.",
+    },
+    almacen_title: { es: "Resumen diario del almacén", en: "Daily warehouse summary" },
+    almacen_desc: {
+      es: "Lo que llegó al mínimo, las solicitudes por pedir, los pedidos por llegar y las salidas de ayer. Si un día no hay nada que avisar, no se manda.",
+      en: "What hit the minimum, requests to order, orders not yet received and yesterday's issues. If there's nothing to report, it isn't sent.",
+    },
+    on: { es: "Prendido", en: "On" },
+    off: { es: "Apagado", en: "Off" },
+    days: { es: "Días", en: "Days" },
+    day_1: { es: "Lun", en: "Mon" },
+    day_2: { es: "Mar", en: "Tue" },
+    day_3: { es: "Mié", en: "Wed" },
+    day_4: { es: "Jue", en: "Thu" },
+    day_5: { es: "Vie", en: "Fri" },
+    day_6: { es: "Sáb", en: "Sat" },
+    day_7: { es: "Dom", en: "Sun" },
+    time_note: { es: "Llega a las 7:00 a. m. (hora de Panamá).", en: "Arrives at 7:00 a.m. (Panama time)." },
+    recipients: { es: "Quién lo recibe", en: "Who gets it" },
+    recipients_auto: { es: "Automático", en: "Automatic" },
+    recipients_custom: { es: "Elegir personas", en: "Pick people" },
+    recipients_auto_hint: { es: "Los admins y quien tiene el permiso de Compras:", en: "Admins and anyone with the Purchasing permission:" },
+    pick_someone: { es: "Elige al menos una persona.", en: "Pick at least one person." },
+    preview: { es: "Ver ejemplo", en: "Preview" },
+    send_test: { es: "Enviar prueba ahora", en: "Send a test now" },
+    test_sent: { es: "Prueba enviada", en: "Test sent" },
+    test_not_sent: { es: "No se mandó", en: "Not sent" },
+    save: { es: "Guardar", en: "Save" },
+    saving: { es: "Guardando…", en: "Saving…" },
+    saved: { es: "Guardado", en: "Saved" },
   },
 
   common: {

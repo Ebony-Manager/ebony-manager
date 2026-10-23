@@ -6,6 +6,11 @@ import { formatQty, unitLabel } from "./inventory";
 
 export interface DailySummary {
   today: string;
+  /** Día ISO de hoy (1 = lunes … 7 = domingo). */
+  dow: number;
+  /** Settings → Notificaciones. */
+  enabled: boolean;
+  days: number[];
   recipients: string[];
   low_stock: { category: string; name: string; label: string; unit: string; stock: number; min: number; reorder: number | null; requested: boolean }[];
   pending_requests: { name: string; label: string | null; qty: number; unit: string | null; by: string | null; auto: boolean; created_at: string }[];

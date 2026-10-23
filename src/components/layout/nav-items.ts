@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Truck,
   ClipboardCheck,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
@@ -106,7 +107,10 @@ export const SETTINGS_PANEL: NavPanel = {
   key: "settings",
   icon: Settings,
   title: strings.nav.settings,
-  items: [{ href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true }],
+  items: [
+    { href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
+    { href: "/settings/notificaciones", icon: Bell, label: strings.nav.notificaciones, adminOnly: true },
+  ],
 };
 
 export const NAV_PANELS: NavPanel[] = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL];

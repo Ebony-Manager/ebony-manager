@@ -4,6 +4,9 @@ import { buildSummaryEmail, type DailySummary } from "./daily-summary";
 
 const base: DailySummary = {
   today: "2026-10-24",
+  dow: 6,
+  enabled: true,
+  days: [1, 2, 3, 4, 5, 6],
   recipients: ["a@b.com"],
   low_stock: [],
   pending_requests: [],
