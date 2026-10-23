@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import { defaultsFromInputs, newSection, quoteTotals } from "@/lib/cotizador/pricing";
 import type { Database, Json } from "@/types/database";
+import { DEFAULT_ANSWERS, type PlanAnswers, type PlanPiece } from "@/types/plan";
 import type {
   CatalogCategory,
   CatalogItem,
@@ -11,6 +12,7 @@ import type {
   Finish,
   Quote,
   QuoteLine,
+  QuotePlan,
   QuoteSection,
   QuoteStatus,
   QuoteSummary,
@@ -37,6 +39,7 @@ type RecipeRow = Tables["quote_item_recipes"]["Row"];
 type QuoteRow = Tables["quotes"]["Row"];
 type SectionRow = Tables["quote_sections"]["Row"];
 type LineRow = Tables["quote_lines"]["Row"];
+type PlanRow = Tables["quote_plans"]["Row"];
 
 /** `numeric` puede volver como string por PostgREST — se normaliza. */
 function num(v: number | string | null | undefined): number {
@@ -109,6 +112,7 @@ function mapLine(r: LineRow): QuoteLine {
     posX: numOrNull(r.pos_x),
     posY: numOrNull(r.pos_y),
     hostLineId: r.host_line_id,
+    pieceIds: r.piece_ids ?? [],
   };
 }
 
@@ -131,11 +135,26 @@ function mapSection(r: SectionRow, lines: QuoteLine[]): QuoteSection {
     ccfPct: num(r.ccf_pct),
     wallShape: r.wall_shape === "L" ? "L" : "recta",
     cornerAt: numOrNull(r.corner_at),
+    planId: r.plan_id,
     lines,
   };
 }
 
-function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
+function mapPlan(r: PlanRow): QuotePlan {
+  const answers = r.answers && typeof r.answers === "object" && !Array.isArray(r.answers) ? (r.answers as Partial<PlanAnswers>) : {};
+  return {
+    id: r.id,
+    fileName: r.file_name,
+    filePath: r.file_path,
+    source: r.source === "ejemplo" ? "ejemplo" : "ia",
+    title: r.title,
+    pieces: Array.isArray(r.pieces) ? (r.pieces as unknown as PlanPiece[]) : [],
+    answers: { ...DEFAULT_ANSWERS, ...answers },
+    doubts: Array.isArray(r.doubts) ? r.doubts.map(String) : [],
+  };
+}
+
+function mapQuote(r: QuoteRow, sections: QuoteSection[], plans: QuotePlan[]): Quote {
   return {
     id: r.id,
     number: r.number,
@@ -152,6 +171,7 @@ function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
     itbmsPct: num(r.itbms_pct),
     notes: r.notes,
     sections,
+    plans,
   };
 }
 
@@ -254,13 +274,15 @@ export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
 
 export async function getQuote(id: string): Promise<Quote | null> {
   const supabase = await createClient();
-  const [quoteRes, sectionRows] = await Promise.all([
+  const [quoteRes, sectionRows, planRes] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", id).maybeSingle(),
     selectAllRows<SectionRow>((from, to) =>
       supabase.from("quote_sections").select("*").eq("quote_id", id).order("sort_order").order("id").range(from, to)
     ),
+    supabase.from("quote_plans").select("*").eq("quote_id", id).order("created_at"),
   ]);
   if (quoteRes.error) throw new Error(quoteRes.error.message);
+  if (planRes.error) throw new Error(planRes.error.message);
   if (!quoteRes.data) return null;
 
   const sectionIds = sectionRows.map((s) => s.id);
@@ -277,7 +299,8 @@ export async function getQuote(id: string): Promise<Quote | null> {
   }
   return mapQuote(
     quoteRes.data,
-    sectionRows.map((s) => mapSection(s, bySection.get(s.id) ?? []))
+    sectionRows.map((s) => mapSection(s, bySection.get(s.id) ?? [])),
+    (planRes.data ?? []).map(mapPlan)
   );
 }
 
@@ -302,6 +325,7 @@ function sectionRow(quoteId: string, s: QuoteSection, i: number): Tables["quote_
     ccf_pct: num(s.ccfPct),
     wall_shape: s.wallShape === "L" ? "L" : "recta",
     corner_at: s.cornerAt === null ? null : num(s.cornerAt),
+    plan_id: s.planId,
   };
 }
 
@@ -328,6 +352,7 @@ function lineRow(sectionId: string, l: QuoteLine, i: number, lineIds: Set<string
     pos_y: l.posY === null ? null : num(l.posY),
     // Un anfitrión que ya no existe en la cotización rompería el FK.
     host_line_id: l.hostLineId && lineIds.has(l.hostLineId) ? l.hostLineId : null,
+    piece_ids: l.pieceIds ?? [],
   };
 }
 
@@ -404,6 +429,18 @@ export async function duplicateQuote(id: string): Promise<string> {
   const { data, error } = await supabase.from("quotes").insert({}).select("id").single();
   if (error) throw new Error(error.message);
 
+  // Los planos se copian con id nuevo y los ítems apuntan a la copia.
+  const planIdMap = new Map<string, string>();
+  for (const p of source.plans) {
+    const { data: plan, error: planError } = await supabase
+      .from("quote_plans")
+      .insert({ quote_id: data.id, file_path: p.filePath, file_name: p.fileName, source: p.source, title: p.title, pieces: p.pieces as unknown as Json, answers: p.answers as unknown as Json, doubts: p.doubts })
+      .select("id")
+      .single();
+    if (planError) throw new Error(planError.message);
+    planIdMap.set(p.id, plan.id);
+  }
+
   const lineIdMap = new Map<string, string>();
   for (const s of source.sections) for (const l of s.lines) lineIdMap.set(l.id, crypto.randomUUID());
   const copy: Quote = {
@@ -412,9 +449,11 @@ export async function duplicateQuote(id: string): Promise<string> {
     number: "",
     status: "BORRADOR",
     quoteDate: new Date().toISOString().slice(0, 10),
+    plans: [],
     sections: source.sections.map((s) => ({
       ...s,
       id: crypto.randomUUID(),
+      planId: s.planId ? (planIdMap.get(s.planId) ?? null) : null,
       lines: s.lines.map((l) => ({
         ...l,
         id: lineIdMap.get(l.id) as string,
@@ -430,4 +469,57 @@ export async function deleteQuote(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("quotes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ── Planos ──────────────────────────────────────────────────────────────
+
+export interface NewPlanSection {
+  quoteId: string;
+  plan: Omit<QuotePlan, "id">;
+  section: QuoteSection;
+}
+
+/** Guarda la lectura de un plano y crea el ítem que salió de ella. */
+export async function createPlanSection({ quoteId, plan, section }: NewPlanSection): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quote_plans")
+    .insert({
+      quote_id: quoteId,
+      file_path: plan.filePath,
+      file_name: plan.fileName,
+      source: plan.source,
+      title: plan.title,
+      pieces: plan.pieces as unknown as Json,
+      answers: plan.answers as unknown as Json,
+      doubts: plan.doubts,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { count } = await supabase.from("quote_sections").select("id", { count: "exact", head: true }).eq("quote_id", quoteId);
+  const withPlan = { ...section, planId: data.id };
+  const { error: sectionError } = await supabase.from("quote_sections").insert(sectionRow(quoteId, withPlan, count ?? 0));
+  if (sectionError) throw new Error(sectionError.message);
+  const ids = new Set(section.lines.map((l) => l.id));
+  if (section.lines.length) {
+    const { error: lineError } = await supabase.from("quote_lines").insert(section.lines.map((l, i) => lineRow(section.id, l, i, ids)));
+    if (lineError) throw new Error(lineError.message);
+  }
+}
+
+/** Descarga un plano subido al bucket privado "planos". */
+export async function downloadPlanFile(path: string): Promise<{ data: Buffer; mediaType: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("planos").download(path);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo descargar el plano.");
+  return { data: Buffer.from(await data.arrayBuffer()), mediaType: data.type || "application/pdf" };
+}
+
+/** Enlace temporal para ver el plano en la revisión. */
+export async function planFileUrl(path: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("planos").createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
 }

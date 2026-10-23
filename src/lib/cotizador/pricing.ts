@@ -127,6 +127,7 @@ export function newSection(id: string, d: QuoteDefaults, location = ""): QuoteSe
     ccfPct: d.ccfPct,
     wallShape: "recta",
     cornerAt: null,
+    planId: null,
     lines: [],
   };
 }
@@ -165,6 +166,7 @@ export function newLine(id: string, item: CatalogItem): QuoteLine {
     posX: null,
     posY: null,
     hostLineId: null,
+    pieceIds: [],
   };
 }
 
@@ -189,6 +191,7 @@ export function newFreeLine(id: string): QuoteLine {
     posX: null,
     posY: null,
     hostLineId: null,
+    pieceIds: [],
   };
 }
 

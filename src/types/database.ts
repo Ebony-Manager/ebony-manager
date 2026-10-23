@@ -4,9 +4,10 @@
 // or via the Supabase MCP `generate_typescript_types` tool.
 // Do not edit by hand.
 //
-// EXCEPCIÓN TEMPORAL: las seis tablas `quote_*` del Cotizador se
+// EXCEPCIÓN TEMPORAL: las tablas `quote_*` del Cotizador se
 // escribieron a mano a partir de
-// supabase/migrations/20261013130000_fase1_cotizador.sql, porque la
+// supabase/migrations/20261013130000_fase1_cotizador.sql y
+// 20261023120000_fase1_cotizador_planos.sql, porque la
 // migración se aplica desde el SQL Editor. Al regenerar este archivo
 // después de aplicarla, este aviso desaparece solo.
 
@@ -1043,6 +1044,7 @@ export type Database = {
           updated_at: string
           wall: string | null
           width: number
+          piece_ids: string[]
         }
         Insert: {
           category: string
@@ -1067,6 +1069,7 @@ export type Database = {
           updated_at?: string
           wall?: string | null
           width?: number
+          piece_ids?: string[]
         }
         Update: {
           category?: string
@@ -1091,6 +1094,7 @@ export type Database = {
           updated_at?: string
           wall?: string | null
           width?: number
+          piece_ids?: string[]
         }
         Relationships: [
           {
@@ -1112,6 +1116,62 @@ export type Database = {
             columns: ["host_line_id"]
             isOneToOne: false
             referencedRelation: "quote_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_plans: {
+        Row: {
+          answers: Json
+          created_at: string
+          created_by: string | null
+          doubts: Json
+          file_name: string
+          file_path: string | null
+          id: string
+          model: string | null
+          pieces: Json
+          quote_id: string
+          source: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          doubts?: Json
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          model?: string | null
+          pieces?: Json
+          quote_id: string
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          doubts?: Json
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          model?: string | null
+          pieces?: Json
+          quote_id?: string
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_plans_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -1139,6 +1199,7 @@ export type Database = {
           waste_pct: number
           waste_sheet_price: number
           waste_sheets: number
+          plan_id: string | null
         }
         Insert: {
           ccf_pct?: number
@@ -1162,6 +1223,7 @@ export type Database = {
           waste_pct?: number
           waste_sheet_price?: number
           waste_sheets?: number
+          plan_id?: string | null
         }
         Update: {
           ccf_pct?: number
@@ -1185,6 +1247,7 @@ export type Database = {
           waste_pct?: number
           waste_sheet_price?: number
           waste_sheets?: number
+          plan_id?: string | null
         }
         Relationships: [
           {

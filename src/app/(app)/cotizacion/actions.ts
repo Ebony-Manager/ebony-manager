@@ -2,7 +2,9 @@
 
 import { requireAdmin, requireProfile } from "@/lib/auth/dal";
 import * as cotizador from "@/services/cotizador";
+import { PlanReadError, readPlan } from "@/services/plan-reader";
 import type { Quote } from "@/types/cotizador";
+import type { PlanReading } from "@/types/plan";
 
 // Cotizar es para cualquier usuario de la app (`requireProfile`); el
 // catálogo y los insumos solo los cambia el admin (`requireAdmin`). La RLS
@@ -45,4 +47,33 @@ export async function createCatalogItemAction(input: cotizador.CreateCatalogItem
 export async function updateCostInputAction(key: string, value: number) {
   await requireAdmin();
   await cotizador.updateCostInput(key, value);
+}
+
+// ── Planos ──────────────────────────────────────────────────────────────
+
+/**
+ * Lee un plano ya subido al bucket "planos". Devuelve el error como valor
+ * (no lo lanza) para que el mensaje llegue tal cual a la pantalla: en
+ * producción Next oculta el texto de los errores lanzados por un action.
+ */
+export async function readPlanAction(path: string, fileName: string): Promise<{ ok: true; reading: PlanReading } | { ok: false; error: string }> {
+  await requireProfile();
+  try {
+    const file = await cotizador.downloadPlanFile(path);
+    return { ok: true, reading: await readPlan({ ...file, name: fileName }) };
+  } catch (err) {
+    if (err instanceof PlanReadError) return { ok: false, error: err.message };
+    console.error("readPlanAction", err);
+    return { ok: false, error: "No se pudo leer el plano. Vuelve a intentar en un momento." };
+  }
+}
+
+export async function createPlanSectionAction(input: cotizador.NewPlanSection): Promise<void> {
+  await requireProfile();
+  await cotizador.createPlanSection(input);
+}
+
+export async function planFileUrlAction(path: string): Promise<string | null> {
+  await requireProfile();
+  return cotizador.planFileUrl(path);
 }

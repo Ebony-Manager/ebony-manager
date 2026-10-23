@@ -1,6 +1,6 @@
 import type * as Three from "three";
 
-import type { Scene, SceneGroup, SceneMat } from "@/lib/cotizador/scene";
+import type { BoxState, Scene, SceneGroup, SceneMat } from "@/lib/cotizador/scene";
 import type { Wall } from "@/types/cotizador";
 
 /**
@@ -28,6 +28,7 @@ interface Meta {
   lineId: string;
   kind: "free" | "hosted";
   isModule: boolean;
+  locked: boolean;
   wall: Wall;
   along: number;
   y: number;
@@ -129,11 +130,15 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
       mats.set(key, made);
       return made;
     }
-    const key = m.kind === "mirror" ? `mirror|${m.tone}` : m.kind;
+    const key = m.kind === "mirror" || m.kind === "ref" ? `${m.kind}|${m.tone}` : m.kind;
     const hit = mats.get(key);
     if (hit) return hit;
     const made =
-      m.kind === "glass"
+      m.kind === "stone"
+        ? new T.MeshStandardMaterial({ color: "#bdb6ab", roughness: 0.9 })
+        : m.kind === "ref"
+          ? new T.MeshStandardMaterial({ color: m.tone === "ac" ? "#f1f1ee" : "#161616", roughness: m.tone === "ac" ? 0.6 : 0.35 })
+          : m.kind === "glass"
         ? new T.MeshStandardMaterial({ color: "#bcd6d8", transparent: true, opacity: 0.45, roughness: 0.1 })
         : m.kind === "led"
           ? new T.MeshStandardMaterial({ color: "#ffe6b0", emissive: "#ffd27a", emissiveIntensity: 1 })
@@ -142,6 +147,19 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
               metalness: 0.85,
               roughness: 0.12,
             });
+    mats.set(key, made);
+    return made;
+  };
+
+  // Resaltado de un renglón (dorado) o de lo que quedó sin cotizar (rojizo).
+  const withState = (base: Three.Material, state?: BoxState): Three.Material => {
+    if (!state) return base;
+    const key = `${base.uuid}|${state}`;
+    const hit = mats.get(key);
+    if (hit) return hit;
+    const made = (base as Three.MeshStandardMaterial).clone();
+    made.emissive = new T.Color(state === "selected" ? "#c9a84c" : "#b0412b");
+    made.emissiveIntensity = state === "selected" ? 0.6 : 0.5;
     mats.set(key, made);
     return made;
   };
@@ -191,9 +209,9 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
 
   const build = (sg: SceneGroup, parent: Three.Object3D) => {
     const g = new T.Group();
-    meta.set(g, { lineId: sg.lineId, kind: sg.kind, isModule: sg.isModule, wall: sg.wall, along: sg.along, y: sg.y, w: sg.w, h: sg.h });
+    meta.set(g, { lineId: sg.lineId, kind: sg.kind, isModule: sg.isModule, locked: !!sg.locked, wall: sg.wall, along: sg.along, y: sg.y, w: sg.w, h: sg.h });
     for (const b of sg.boxes) {
-      const mesh = new T.Mesh(new T.BoxGeometry(b.w, b.h, b.d), material(b.mat));
+      const mesh = new T.Mesh(new T.BoxGeometry(b.w, b.h, b.d), withState(material(b.mat), b.state));
       mesh.position.set(b.x + b.w / 2, b.y + b.h / 2, b.z + b.d / 2);
       mesh.castShadow = mesh.receiveShadow = true;
       g.add(mesh);
@@ -230,6 +248,20 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
       )
     );
 
+  // Encuadre: la distancia de la cámara depende del tamaño del conjunto y
+  // de la proporción del lienzo, así que se recalcula también al cambiar
+  // el tamaño de la ventana (no solo al cambiar la escena).
+  let lastFit = "";
+  let fitBox: { size: Three.Vector3; ctr: Three.Vector3; corner: boolean } | null = null;
+  const fit = () => {
+    if (!fitBox) return;
+    const { size, ctr, corner: isCorner } = fitBox;
+    view.target.set(ctr.x, (ctr.y + size.y / 2) / 2, ctr.z);
+    const fov = (cam.fov * Math.PI) / 180;
+    const wide = Math.max(size.x, isCorner ? size.z : 0);
+    const need = Math.max(size.y * 1.25, (wide * 1.3) / Math.max(0.5, cam.aspect));
+    view.dist = need / (2 * Math.tan(fov / 2)) + Math.max(size.z, isCorner ? size.x * 0.4 : 0);
+  };
   const setScene = (s: Scene, paintHex: string) => {
     paint = paintHex;
     corner = { on: s.isCorner, at: s.cornerAt };
@@ -257,11 +289,13 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
     label(`${bb.max.y.toFixed(2)} m`, xr + (s.isCorner ? -1 : 1) * off * 3.6, ctr.y, zf, k);
     if (s.isCorner && size.z > 0.6) label(`${size.z.toFixed(2)} m`, bb.max.x - off, 0.02, ctr.z, k);
 
-    view.target.set(ctr.x, bb.max.y / 2, ctr.z);
-    const fov = (cam.fov * Math.PI) / 180;
-    const wide = Math.max(size.x, s.isCorner ? size.z : 0);
-    const need = Math.max(size.y * 1.25, (wide * 1.3) / Math.max(0.5, cam.aspect));
-    view.dist = need / (2 * Math.tan(fov / 2)) + Math.max(size.z, s.isCorner ? size.x * 0.4 : 0);
+    // Solo se reencuadra si cambió el tamaño del conjunto (no al resaltar).
+    const key = [size.x, size.y, size.z, ctr.x].map((v) => v.toFixed(2)).join("|");
+    if (key !== lastFit) {
+      lastFit = key;
+      fitBox = { size, ctr, corner: s.isCorner };
+      fit();
+    }
     render();
   };
 
@@ -314,7 +348,7 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
       g = g.parent;
     }
     const m = g ? meta.get(g) : undefined;
-    if (g && m) {
+    if (g && m && !m.locked) {
       const h = hitWall();
       drag = {
         orbit: false,
@@ -331,7 +365,7 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
   const onMove = (e: PointerEvent) => {
     if (!drag) {
       aim(e);
-      canvas.style.cursor = pick(() => true) ? "move" : "grab";
+      canvas.style.cursor = pick((x) => !x.locked) ? "move" : "grab";
       return;
     }
     if (drag.orbit) {
@@ -390,6 +424,7 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
     renderer.setSize(w, h, false);
     cam.aspect = w / h;
     cam.updateProjectionMatrix();
+    fit();
     render();
   };
 

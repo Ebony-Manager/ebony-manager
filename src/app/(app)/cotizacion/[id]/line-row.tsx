@@ -30,8 +30,13 @@ export function LineRow({
   onChange,
   onSwap,
   onRemove,
+  selected = false,
+  onSelect,
 }: {
   line: QuoteLine;
+  /** Renglón seleccionado: sus piezas se resaltan en el dibujo del plano. */
+  selected?: boolean;
+  onSelect?: () => void;
   /** Ítems activos de la misma categoría que el renglón. */
   options: CatalogItem[];
   cornerMode: boolean;
@@ -59,7 +64,14 @@ export function LineRow({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border border-ink-900/8 bg-card px-2 pt-1.5 pb-2">
+    <div
+      onClickCapture={onSelect}
+      onFocusCapture={onSelect}
+      className={cn(
+        "flex flex-wrap items-center gap-x-2.5 gap-y-1 border bg-card px-2 pt-1.5 pb-2",
+        selected ? "border-[#c9a84c] ring-1 ring-[#c9a84c]" : "border-ink-900/8"
+      )}
+    >
       <div className="flex basis-full items-center gap-2 text-[11px] tracking-[0.03em] text-muted-foreground">
         <span>{tt(`cat_${line.category}`)}</span>
         {cornerMode && ON_WALL.includes(line.shape) && (

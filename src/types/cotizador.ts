@@ -14,6 +14,8 @@
  * `number` en dólares (numeric en Postgres), no centavos enteros.
  */
 
+import type { PlanAnswers, PlanPiece } from "@/types/plan";
+
 export type Unit = "m2" | "ml" | "unidad";
 export type Finish = "aglomerado" | "blanco" | "pintado" | "chapilla";
 
@@ -113,6 +115,8 @@ export interface QuoteLine {
   posX: number | null;
   posY: number | null;
   hostLineId: string | null;
+  /** Piezas del plano que cubre (solo en ítems generados desde un plano). */
+  pieceIds: string[];
 }
 
 export type WallShape = "recta" | "L";
@@ -136,6 +140,8 @@ export interface QuoteSection {
   ccfPct: number;
   wallShape: WallShape;
   cornerAt: number | null;
+  /** Plano del que se generó el ítem; con plano, el dibujo sale exacto de sus piezas. */
+  planId: string | null;
   lines: QuoteLine[];
 }
 
@@ -160,6 +166,19 @@ export interface Quote {
   itbmsPct: number;
   notes: string;
   sections: QuoteSection[];
+  /** Planos leídos en esta cotización. */
+  plans: QuotePlan[];
+}
+
+export interface QuotePlan {
+  id: string;
+  fileName: string;
+  filePath: string | null;
+  source: "ia" | "ejemplo";
+  title: string;
+  pieces: PlanPiece[];
+  answers: PlanAnswers;
+  doubts: string[];
 }
 
 /** Fila de la lista de cotizaciones (sin ítems ni renglones). */

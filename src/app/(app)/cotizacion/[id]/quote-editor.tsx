@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Copy, Loader2, Plus, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, FileScan, Loader2, Plus, TriangleAlert, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { formatMoney, newSection, quoteTotals, sectionTotals, syncDraftPrices } from "@/lib/cotizador/pricing";
@@ -32,7 +32,9 @@ export function QuoteEditor({
   catalog,
   defaults,
   isAdmin,
+  initialSectionId = null,
 }: {
+  initialSectionId?: string | null;
   initialQuote: Quote;
   catalog: CatalogItem[];
   defaults: QuoteDefaults;
@@ -43,7 +45,10 @@ export function QuoteEditor({
   const router = useRouter();
 
   const [quote, setQuote] = React.useState(() => syncDraftPrices(initialQuote, catalog));
-  const [currentId, setCurrentId] = React.useState<string | null>(initialQuote.sections[0]?.id ?? null);
+  const [currentId, setCurrentId] = React.useState<string | null>(
+    initialQuote.sections.find((s) => s.id === initialSectionId)?.id ?? initialQuote.sections[0]?.id ?? null
+  );
+  const [selectedLineId, setSelectedLineId] = React.useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<"edit" | "client">("edit");
   const [open, setOpen] = React.useState<Record<BlockKey, boolean>>({ eb: true, sb: true, ex: false, mg: false });
@@ -108,6 +113,17 @@ export function QuoteEditor({
   const section = quote.sections.find((s) => s.id === currentId) ?? quote.sections[0] ?? null;
   const totals = quoteTotals(quote);
   const secTotals = section ? sectionTotals(section) : null;
+  const plan = section?.planId ? quote.plans.find((p) => p.id === section.planId) : undefined;
+  const planView = React.useMemo(() => {
+    if (!plan || !section) return undefined;
+    const selectedLine = section.lines.find((l) => l.id === selectedLineId);
+    return {
+      pieces: plan.pieces,
+      finish: plan.answers.exteriorFinish,
+      selected: new Set(selectedLine?.pieceIds ?? []),
+      covered: new Set(section.lines.flatMap((l) => l.pieceIds)),
+    };
+  }, [plan, section, selectedLineId]);
 
   const setHeader = (p: Partial<Quote>) => change((q) => ({ ...q, ...p }));
   const setSection = (next: QuoteSection) => change((q) => ({ ...q, sections: q.sections.map((s) => (s.id === next.id ? next : s)) }));
@@ -301,6 +317,7 @@ export function QuoteEditor({
                       aria-pressed={section?.id === s.id}
                       onClick={() => {
                         setCurrentId(s.id);
+                        setSelectedLineId(null);
                         setConfirmDelete(null);
                       }}
                       className={cn(
@@ -335,6 +352,20 @@ export function QuoteEditor({
                 <Plus className="size-3.5" />
                 {tt("sec_add")}
               </button>
+              <Link
+                href={`/cotizacion/${quote.id}/plano`}
+                onClick={() => {
+                  if (timer.current !== null) {
+                    window.clearTimeout(timer.current);
+                    timer.current = null;
+                    void flush();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 border border-dashed border-ink-900/25 px-3 text-xs font-medium text-ink-700 hover:border-ink-700"
+              >
+                <FileScan className="size-3.5" />
+                {tt("plan_read")}
+              </Link>
             </div>
 
             {section ? (
@@ -347,6 +378,8 @@ export function QuoteEditor({
                   open={open}
                   onToggle={(k) => setOpen((o) => ({ ...o, [k]: !o[k] }))}
                   onChange={setSection}
+                  selectedLineId={selectedLineId}
+                  onSelectLine={setSelectedLineId}
                 />
               </div>
             ) : (
@@ -358,6 +391,7 @@ export function QuoteEditor({
             {section && (
               <Viewer3D
                 section={section}
+                plan={planView}
                 onMoveLine={(lineId, wall, x, y) =>
                   patchSection(section.id, (s) => ({ ...s, lines: s.lines.map((l) => (l.id === lineId ? { ...l, wall, posX: x, posY: y } : l)) }))
                 }

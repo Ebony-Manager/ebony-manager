@@ -23,7 +23,13 @@ export type SceneMat =
   | { kind: "finish"; finish: Finish | null; dark?: boolean; clear?: boolean; w: number; h: number }
   | { kind: "glass" }
   | { kind: "led" }
-  | { kind: "mirror"; tone: "claro" | "bronce" | "gris" };
+  | { kind: "mirror"; tone: "claro" | "bronce" | "gris" }
+  /** Lo que se dibuja pero no se cotiza (piedra, TV, A/C, barra de sonido). */
+  | { kind: "stone" }
+  | { kind: "ref"; tone: "tv" | "ac" | "sound" };
+
+/** Resaltado de una caja en el dibujo de un plano. */
+export type BoxState = "selected" | "missing";
 
 export interface SceneBox {
   w: number;
@@ -33,6 +39,7 @@ export interface SceneBox {
   y: number;
   z: number;
   mat: SceneMat;
+  state?: BoxState;
 }
 
 export interface SceneGroup {
@@ -40,6 +47,8 @@ export interface SceneGroup {
   /** `free` se arrastra por la pared; `hosted` vive dentro de un módulo. */
   kind: "free" | "hosted";
   isModule: boolean;
+  /** Pieza de un plano: queda donde dice el plano, no se arrastra. */
+  locked?: boolean;
   wall: Wall;
   /** Distancia a lo largo de la pared y altura desde el piso (m). */
   along: number;

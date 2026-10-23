@@ -140,6 +140,7 @@ describe("precios y catálogo", () => {
     itbmsPct: 7,
     notes: "",
     sections: [bar],
+    plans: [],
   };
   const raised = catalog.map((c) => (c.code === "mod-pi" ? { ...c, price: 300 } : c));
 

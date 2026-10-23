@@ -131,3 +131,17 @@ Fase 1 — Cotizador. **Pendiente de aplicar** (se corre en el SQL Editor).
 - Trae el seed del catálogo (63 renglones, 30 recetas, 24 insumos/valores).
 - Tras aplicarla, regenerar `src/types/database.ts` (las tablas `quote_*` están
   escritas a mano mientras tanto).
+
+### 20261023120000_fase1_cotizador_planos.sql
+
+Fase 1 — Cotizador · lectura de planos. **Pendiente de aplicar.** Debe
+aplicarse ANTES de desplegar el código que la usa (el editor guarda
+`piece_ids` y `plan_id`).
+
+- `public.quote_plans` — lectura de un plano: archivo, piezas (`PlanPiece[]`),
+  respuestas del cuestionario y dudas. RLS igual que las cotizaciones.
+- `quote_sections.plan_id` y `quote_lines.piece_ids` — de qué plano salió un
+  ítem y qué piezas cubre cada renglón (resaltado y cobertura en el 3D).
+- Catálogo: + "Soporte de tablilla" (`ac-sop-tab`).
+- Storage: bucket privado `planos` (PDF/PNG/JPG/WEBP, 25 MB) con políticas
+  para usuarios de la app.

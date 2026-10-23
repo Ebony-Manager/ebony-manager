@@ -10,12 +10,18 @@ import { QuoteEditor } from "./quote-editor";
 // `force-dynamic`: la cotización cambia por acción del usuario.
 export const dynamic = "force-dynamic";
 
-export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function QuotePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ item?: string }>;
+}) {
   const profile = await requireProfile();
-  const { id } = await params;
+  const [{ id }, { item }] = await Promise.all([params, searchParams]);
 
   const [quote, catalog, inputs] = await Promise.all([getQuote(id), getCatalog(), getCostInputs()]);
   if (!quote) notFound();
 
-  return <QuoteEditor initialQuote={quote} catalog={catalog} defaults={defaultsFromInputs(inputs)} isAdmin={profile.role === "admin"} />;
+  return <QuoteEditor initialQuote={quote} catalog={catalog} defaults={defaultsFromInputs(inputs)} isAdmin={profile.role === "admin"} initialSectionId={item ?? null} />;
 }

@@ -74,8 +74,12 @@ export function SectionEditor({
   open,
   onToggle,
   onChange,
+  selectedLineId = null,
+  onSelectLine,
 }: {
   section: QuoteSection;
+  selectedLineId?: string | null;
+  onSelectLine?: (id: string) => void;
   catalog: CatalogItem[];
   isAdmin: boolean;
   open: Record<BlockKey, boolean>;
@@ -119,6 +123,8 @@ export function SectionEditor({
       onChange={(p) => patchLine(l.id, p)}
       onSwap={(item) => setLines(section.lines.map((x) => (x.id === l.id ? swapLineItem(x, item) : x)))}
       onRemove={() => removeLine(l.id)}
+      selected={selectedLineId === l.id}
+      onSelect={onSelectLine ? () => onSelectLine(l.id) : undefined}
     />
   );
 
