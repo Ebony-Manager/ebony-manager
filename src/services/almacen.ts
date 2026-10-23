@@ -223,6 +223,30 @@ export async function updateItem(id: string, input: ItemInput): Promise<void> {
   await saveItemChildren(id, input);
 }
 
+/**
+ * Borra un producto con sus variantes, solo si nunca tuvo movimientos ni
+ * solicitudes (si los tuvo, se desactiva: así no se pierde el historial).
+ * También borra su foto.
+ */
+export async function deleteItem(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: variants, error } = await supabase.from("inventory_variants").select("id").eq("item_id", id);
+  fail(error);
+  const ids = (variants ?? []).map((v) => v.id);
+  if (ids.length) {
+    const [movs, reqs] = await Promise.all([
+      supabase.from("inventory_movements").select("id", { count: "exact", head: true }).in("variant_id", ids),
+      supabase.from("purchase_requests").select("id", { count: "exact", head: true }).in("variant_id", ids),
+    ]);
+    if ((movs.count ?? 0) > 0 || (reqs.count ?? 0) > 0) {
+      throw new Error("Este producto ya tiene movimientos o solicitudes: desactívalo en vez de borrarlo.");
+    }
+  }
+  const { data: item } = await supabase.from("inventory_items").select("photo_path").eq("id", id).maybeSingle();
+  fail((await supabase.from("inventory_items").delete().eq("id", id)).error);
+  if (item?.photo_path) await supabase.storage.from("inventory-photos").remove([item.photo_path]);
+}
+
 /** Guarda (o quita) la foto del producto. El archivo ya lo subió el navegador al bucket. */
 export async function setItemPhoto(id: string, path: string | null): Promise<void> {
   const supabase = await createClient();

@@ -46,6 +46,11 @@ export async function updateItemAction(id: string, input: almacen.ItemInput) {
   return run(() => almacen.updateItem(id, input));
 }
 
+export async function deleteItemAction(id: string) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.deleteItem(id));
+}
+
 export async function setItemPhotoAction(id: string, path: string | null) {
   await requireModule("almacen", "almacen_compras");
   return run(() => almacen.setItemPhoto(id, path));

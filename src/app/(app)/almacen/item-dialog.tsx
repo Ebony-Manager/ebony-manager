@@ -15,7 +15,7 @@ import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photo
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { Field } from "../contratistas/field";
-import { createItemAction, setItemPhotoAction, updateItemAction } from "./actions";
+import { createItemAction, deleteItemAction, setItemPhotoAction, updateItemAction } from "./actions";
 import { Combo, ItemThumb, QtyInput, qtyWithUnit, useTa } from "./shared";
 
 interface VariantDraft {
@@ -80,12 +80,14 @@ export function ItemDialog({
   const [photoPath, setPhotoPath] = React.useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = React.useState<{ blob: Blob; preview: string } | null>(null);
   const [photoBusy, setPhotoBusy] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
     if (!item) return;
     setPhotoPath(current?.photoPath ?? null);
+    setConfirmDelete(false);
     setPendingPhoto(null);
     setName(current?.name ?? "");
     setCategoryId(current?.categoryId ?? NONE);
@@ -169,6 +171,17 @@ export function ItemDialog({
     setPhotoBusy(false);
     if (!res.ok) return toast.error(res.error);
     setPhotoPath(null);
+  }
+
+  async function deleteItem() {
+    if (!current) return;
+    if (!confirmDelete) return setConfirmDelete(true);
+    setSaving(true);
+    const res = await deleteItemAction(current.id);
+    setSaving(false);
+    if (!res.ok) return setError(res.error);
+    toast.success(ta("item_deleted"));
+    onClose();
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -322,9 +335,7 @@ export function ItemDialog({
                     <button
                       type="button"
                       title={ta("remove")}
-                      onClick={() =>
-                        v.id ? patchVariant(v.key, { active: !v.active }) : setVariants((vs) => vs.filter((x) => x.key !== v.key))
-                      }
+                      onClick={() => (v.id ? patchVariant(v.key, { active: !v.active }) : setVariants((vs) => vs.filter((x) => x.key !== v.key)))}
                       className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
                     >
                       {v.id && !v.active ? <Plus className="size-4" /> : <X className="size-4" />}
@@ -356,14 +367,24 @@ export function ItemDialog({
               </div>
               {links.map((l) => (
                 <div key={l.key} className="grid grid-cols-[1fr_28px] items-center gap-2 sm:grid-cols-[1fr_1fr_80px_auto_28px]">
-                  <Combo options={supplierOptions} value={l.supplierId} onChange={(id) => patchLink(l.key, { supplierId: id })} placeholder={ta("pick_supplier")} />
+                  <Combo
+                    options={supplierOptions}
+                    value={l.supplierId}
+                    onChange={(id) => patchLink(l.key, { supplierId: id })}
+                    placeholder={ta("pick_supplier")}
+                  />
                   <Input
                     className="col-span-2 sm:col-span-1"
                     value={l.packLabel}
                     onChange={(e) => patchLink(l.key, { packLabel: e.target.value })}
                     placeholder={ta("pack_label_ph")}
                   />
-                  <QtyInput value={l.packQty} onChange={(x) => patchLink(l.key, { packQty: x })} placeholder={formatQty(1, lang)} aria-label={ta("pack_label_ph")} />
+                  <QtyInput
+                    value={l.packQty}
+                    onChange={(x) => patchLink(l.key, { packQty: x })}
+                    placeholder={formatQty(1, lang)}
+                    aria-label={ta("pack_label_ph")}
+                  />
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="radio" name="primary-supplier" checked={l.isPrimary} onChange={() => patchLink(l.key, { isPrimary: true })} />
                     {ta("primary")}
@@ -386,9 +407,7 @@ export function ItemDialog({
                   variant="outline"
                   size="sm"
                   className="self-start"
-                  onClick={() =>
-                    setLinks((ls) => [...ls, { key: newKey(), supplierId: null, isPrimary: ls.length === 0, packLabel: "", packQty: "" }])
-                  }
+                  onClick={() => setLinks((ls) => [...ls, { key: newKey(), supplierId: null, isPrimary: ls.length === 0, packLabel: "", packQty: "" }])}
                 >
                   <Plus className="size-3.5" />
                   {ta("add_supplier_link")}
@@ -408,13 +427,23 @@ export function ItemDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!readOnly && (
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
-                {ta("cancel")}
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? ta("saving") : ta("save")}
-              </Button>
+            <DialogFooter className="sm:justify-between">
+              {current ? (
+                <Button type="button" variant="ghost" className="text-destructive" onClick={() => void deleteItem()} disabled={saving}>
+                  <Trash2 className="size-3.5" />
+                  {confirmDelete ? ta("delete_item_confirm") : ta("delete_item")}
+                </Button>
+              ) : (
+                <span />
+              )}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+                  {ta("cancel")}
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? ta("saving") : ta("save")}
+                </Button>
+              </div>
             </DialogFooter>
           )}
         </form>
