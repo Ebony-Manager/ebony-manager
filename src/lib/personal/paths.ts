@@ -1,12 +1,9 @@
 /**
  * Rutas de las fichas del staff. Empleados y contratistas se abren desde
- * Personal → Staff (`/personal/staff/...`); las rutas viejas
- * (`/planilla/[id]`, `/contratistas/[id]`) redirigen acá.
+ * Personal → Staff (`/personal/staff/...`).
  *
  * `from` dice a dónde regresa "Volver" cuando se llegó desde otra pantalla
- * (el Resumen, una pestaña de Pagos…); sin `from`, vuelve a Staff. Los
- * valores conservan sus nombres viejos ("registro", "auditoria",
- * "dashboard") porque pueden venir en enlaces guardados.
+ * (el Resumen, una pestaña de Pagos…); sin `from`, vuelve a Staff.
  */
 
 export const RESUMEN_PATH = "/personal";

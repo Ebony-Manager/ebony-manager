@@ -38,8 +38,6 @@ type PagosTab = "asistencia" | "quincena" | "contratistas" | "prestamos" | "hist
 /** Préstamos: además de Taller / Administrativo, los de contratistas. */
 type LoansFilter = CategoriaFilter | "contratistas";
 
-/** Nombres de pestaña de la vieja Planilla, que pueden venir en enlaces guardados. */
-const LEGACY_TABS: Record<string, PagosTab> = { registro: "quincena", auditoria: "historial" };
 
 /**
  * Personal → Pagos: una sola fila de pestañas para todo lo que se le paga
@@ -101,8 +99,7 @@ export function PagosClient({
   ).filter((x) => x.show);
 
   const [tab, setTabState] = React.useState<PagosTab>(() => {
-    const wanted = initialTab ? (LEGACY_TABS[initialTab] ?? initialTab) : null;
-    const found = TABS.find((x) => x.value === wanted);
+    const found = TABS.find((x) => x.value === initialTab);
     return found ? found.value : canEmployees ? "quincena" : "contratistas";
   });
   const setTab = React.useCallback((value: PagosTab) => {
