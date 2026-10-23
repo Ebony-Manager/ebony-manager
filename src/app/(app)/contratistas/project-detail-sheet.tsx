@@ -11,17 +11,13 @@ import { formatCents } from "@/lib/planilla/payroll-period";
 import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import toast from "react-hot-toast";
 import { ContractsTable } from "./contracts-table";
-import { RetentionTable, type RetentionTableRow } from "./retention-table";
-import { getProjectRetentionAction, releaseRetentionAction } from "./actions";
 
 /**
  * Ficha del proyecto: el resumen de sus contratos (valor, abonado,
  * pendiente) y la lista de ellos — el proyecto es el padre, los contratos
  * los hijos. Tocar un contrato lo abre; "Nuevo contrato" lo crea con este
- * proyecto ya elegido. Abajo, la retención de garantía de cada contratista
- * en el proyecto, que se devuelve cuando el proyecto está terminado. Editar abre `ProjectFormDialog`; borrar abre
+ * proyecto ya elegido. Editar abre `ProjectFormDialog`; borrar abre
  * `DeleteProjectDialog` — la lógica vive en el padre (`ProjectsView`).
  */
 export function ProjectDetailSheet({
@@ -48,46 +44,6 @@ export function ProjectDetailSheet({
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const [showCompleted, setShowCompleted] = React.useState(false);
-  const [retention, setRetention] = React.useState<RetentionTableRow[]>([]);
-  const [releasingKey, setReleasingKey] = React.useState<string | null>(null);
-
-  const projectId = project?.id ?? null;
-  const delivered = project?.status === "COMPLETED";
-  const loadRetention = React.useCallback(() => {
-    if (!projectId) return;
-    getProjectRetentionAction(projectId).then((rows) =>
-      setRetention(
-        rows.map((r) => ({
-          key: r.contractorId,
-          label: r.contractorName,
-          heldCents: r.heldCents,
-          releasedCents: r.releasedCents,
-          pendingCents: r.pendingCents,
-          canRelease: delivered,
-        }))
-      )
-    );
-  }, [projectId, delivered]);
-
-  /* eslint-disable react-hooks/set-state-in-effect -- carga al abrir la ficha. */
-  React.useEffect(() => {
-    setRetention([]);
-    if (open) loadRetention();
-  }, [open, loadRetention]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  async function handleRelease(row: RetentionTableRow) {
-    if (!projectId || !window.confirm(tt("ret_release_confirm"))) return;
-    setReleasingKey(row.key);
-    try {
-      const res = await releaseRetentionAction(row.key, projectId);
-      if (!res.ok) return void toast.error(res.error);
-      toast.success(tt("ret_released"));
-      loadRetention();
-    } finally {
-      setReleasingKey(null);
-    }
-  }
 
   const sorted = React.useMemo(() => sortContracts(contracts), [contracts]);
   const active = sorted.filter((c) => c.status === "ACTIVE");
@@ -97,6 +53,7 @@ export function ProjectDetailSheet({
       value: contracts.reduce((s, c) => s + c.valueCents, 0),
       paid: contracts.reduce((s, c) => s + c.allocatedCents, 0),
       pending: contracts.reduce((s, c) => s + Math.max(0, contractPendingCents(c)), 0),
+      retained: contracts.reduce((s, c) => s + Math.min(c.retentionCents, Math.max(0, contractPendingCents(c))), 0),
     }),
     [contracts]
   );
@@ -153,6 +110,13 @@ export function ProjectDetailSheet({
                   <Stat label={tt("ct_col_paid")} value={formatCents(totals.paid)} />
                   <Stat label={tt("ct_col_pending")} value={formatCents(totals.pending)} strong />
                 </div>
+                {totals.retained > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {tt("ct_retained")}: <span className="font-medium tabular-nums text-foreground">{formatCents(totals.retained)}</span>
+                    {" · "}
+                    {tt("ct_retained_hint")}
+                  </p>
+                )}
 
                 {active.length > 0 ? (
                   <ContractsTable contracts={active} onOpen={onOpenContract} showContractor />
@@ -179,21 +143,6 @@ export function ProjectDetailSheet({
               </>
             )}
           </div>
-
-          {retention.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <div>
-                <h3 className="text-sm font-medium text-foreground">{tt("ret_title")}</h3>
-                {!delivered && <p className="text-xs text-muted-foreground">{tt("ret_not_delivered")}</p>}
-              </div>
-              <RetentionTable
-                rows={retention}
-                labelHeader={tt("ct_f_contractor")}
-                busyKey={releasingKey}
-                onRelease={handleRelease}
-              />
-            </div>
-          )}
 
           {/* Zona de peligro */}
           <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4">

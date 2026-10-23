@@ -16,6 +16,7 @@
  */
 import type { ContractorAllocation, ContractorContract, ContractorLedgerEntry } from "@/types/contractors";
 import { movesBalance } from "./contractor-ledger";
+import { formatCents } from "@/lib/planilla/payroll-period";
 
 type EntryLike = Pick<
   ContractorLedgerEntry,
@@ -25,6 +26,56 @@ type EntryLike = Pick<
 /** Lo que le falta por abonar al contrato (negativo = se abonó de más). */
 export function contractPendingCents(c: Pick<ContractorContract, "valueCents" | "allocatedCents">): number {
   return c.valueCents - c.allocatedCents;
+}
+
+/** Lo que se le puede abonar hoy al contrato: lo pendiente menos lo
+ *  retenido (retención de garantía, hasta que el proyecto esté terminado). */
+export function contractPayableCents(
+  c: Pick<ContractorContract, "valueCents" | "allocatedCents" | "retentionCents">
+): number {
+  return Math.max(0, contractPendingCents(c) - c.retentionCents);
+}
+
+/** Subtítulo de un contrato en las listas de pago: su proyecto (si se
+ *  llama distinto) y lo retenido, si tiene. */
+export function contractSublabel(
+  c: Pick<ContractorContract, "name" | "projectName" | "retentionCents">,
+  retainedLabel: string
+): string | undefined {
+  const parts = [
+    c.projectName !== c.name ? c.projectName : null,
+    c.retentionCents > 0 ? `${retainedLabel}: ${formatCents(c.retentionCents)}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
+/** Regla de retención de garantía de un tipo de contratista. */
+export interface RetentionRule {
+  pct: number;
+  /** Trabajos con fecha anterior no llevan retención. */
+  startsOn: string | null;
+}
+
+/**
+ * Lo retenido de un contrato: el % de cada trabajo / extra a favor
+ * (redondeado hacia arriba al centavo, a favor de la empresa) mientras su
+ * proyecto no esté terminado. Igual que `contractor_contract_retention_cents`
+ * de la base, que es la que manda al pagar.
+ */
+export function contractRetentionCents(
+  entries: readonly Pick<ContractorLedgerEntry, "category" | "direction" | "amountCents" | "entryDate" | "ebonyAbsorbsMaterial">[],
+  rule: RetentionRule | null,
+  delivered: boolean
+): number {
+  if (delivered || !rule || rule.pct <= 0) return 0;
+  let total = 0;
+  for (const e of entries) {
+    if (e.direction !== "a_favor" || e.ebonyAbsorbsMaterial) continue;
+    if (e.category !== "trabajo" && e.category !== "extra") continue;
+    if (rule.startsOn && e.entryDate < rule.startsOn) continue;
+    total += Math.ceil((e.amountCents * rule.pct) / 100);
+  }
+  return total;
 }
 
 /** Avance de pago en %, entre 0 y 100. */

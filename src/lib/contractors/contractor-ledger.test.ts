@@ -30,7 +30,6 @@ function entry(over: Partial<ContractorLedgerEntry>): ContractorLedgerEntry {
     loanId: null,
     contractId: null,
     contractName: null,
-    retentionOfEntryId: null,
     ...over,
   };
 }

@@ -81,7 +81,7 @@ export interface ContractorHelper {
   notes: string | null;
 }
 
-/** Las categorías de la tabla `contractor_ledger_entries`. */
+/** Las 9 categorías de la tabla `contractor_ledger_entries`. */
 export type ContractorLedgerCategory =
   | "trabajo"
   | "bono"
@@ -95,10 +95,7 @@ export type ContractorLedgerCategory =
   | "herramienta"
   | "dano"
   | "indrive"
-  | "otro"
-  /** Retención de garantía (pintores): `reduce` = lo retenido de un
-   *  trabajo (automático); `a_favor` = su devolución. */
-  | "retencion";
+  | "otro";
 
 /** `a_favor` sube el saldo (Ebony le debe más al contratista); `reduce`
  *  lo baja. */
@@ -142,9 +139,6 @@ export interface ContractorLedgerEntry {
   contractId: string | null;
   /** Nombre del contrato, resuelto en el `select` — solo para mostrar. */
   contractName: string | null;
-  /** Retención automática: el trabajo del que sale. La mantiene la base;
-   *  no se edita ni se borra a mano. */
-  retentionOfEntryId: string | null;
 }
 
 /** Contrato: lo que se le encarga a un contratista dentro de un proyecto.
@@ -168,6 +162,9 @@ export interface ContractorContract {
   valueCents: number;
   /** Lo abonado: Σ de lo repartido a este contrato. */
   allocatedCents: number;
+  /** Retención de garantía (pintores): la parte de lo pendiente que no se
+   *  puede pagar hasta que el proyecto esté terminado. 0 si no aplica. */
+  retentionCents: number;
 }
 
 /** Cuánto de un movimiento que baja el saldo (`sourceEntryId`) se abonó a

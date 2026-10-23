@@ -55,6 +55,11 @@ export function ContractsTable({
                   title={pending < 0 ? tt("ct_overpaid") : undefined}
                 >
                   {formatCents(pending)}
+                  {c.retentionCents > 0 && pending > 0 && (
+                    <span className="block text-[10px] font-normal text-muted-foreground" title={tt("ct_retained_hint")}>
+                      {tt("ct_retained")}: {formatCents(Math.min(c.retentionCents, pending))}
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">

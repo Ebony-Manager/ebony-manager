@@ -97,13 +97,10 @@ import {
   getContractsAction,
   getProjectsAction,
   updateContractorAction,
-  releaseRetentionAction,
 } from "./actions";
 import { contractPendingCents, looseCredits, sortContracts, unallocatedSources } from "@/lib/contractors/contracts";
 import { ContractDialog } from "./contract-dialog";
 import { ContractsTable } from "./contracts-table";
-import { RetentionTable, type RetentionTableRow } from "./retention-table";
-import { retentionByProject, retentionPendingCents } from "@/lib/contractors/retention";
 import { RegisterPaymentDialog } from "./register-payment-dialog";
 import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
@@ -382,6 +379,10 @@ export function ContractorProfileView({
   const activeContracts = sortedContracts.filter((c) => c.status === "ACTIVE");
   const completedContracts = sortedContracts.filter((c) => c.status !== "ACTIVE");
   const contractsPendingCents = contracts.reduce((s, c) => s + Math.max(0, contractPendingCents(c)), 0);
+  const contractsRetainedCents = contracts.reduce(
+    (s, c) => s + Math.min(c.retentionCents, Math.max(0, contractPendingCents(c))),
+    0
+  );
   const onAccountCents = React.useMemo(
     () => unallocatedSources(entries, allocations, today).reduce((s, r) => s + r.remainingCents, 0),
     [entries, allocations, today]
@@ -390,33 +391,6 @@ export function ContractorProfileView({
     () => looseCredits(entries, allocations).reduce((s, r) => s + r.remainingCents, 0),
     [entries, allocations]
   );
-
-  // Retención de garantía, por proyecto. Se devuelve con el proyecto
-  // entregado (terminado); lo que no tiene proyecto, cuando se decida.
-  const retention = React.useMemo(() => retentionByProject(entries), [entries]);
-  const retentionPending = retentionPendingCents(retention);
-  const [releasingKey, setReleasingKey] = React.useState<string | null>(null);
-  const retentionRows: RetentionTableRow[] = retention.map((r) => ({
-    key: r.projectId ?? "",
-    label: r.projectName ?? tt("no_project"),
-    heldCents: r.heldCents,
-    releasedCents: r.releasedCents,
-    pendingCents: r.pendingCents,
-    canRelease: r.projectId === null || projects.find((p) => p.id === r.projectId)?.status === "COMPLETED",
-  }));
-
-  async function handleReleaseRetention(row: RetentionTableRow) {
-    if (!window.confirm(tt("ret_release_confirm"))) return;
-    setReleasingKey(row.key);
-    try {
-      const res = await releaseRetentionAction(contractor.id, row.key || null);
-      if (!res.ok) return void toast.error(res.error);
-      toast.success(tt("ret_released"));
-      load();
-    } finally {
-      setReleasingKey(null);
-    }
-  }
 
   // Filas visibles: período → filtros → agrupación. `allRows` ya trae el
   // saldo real acumulado en cada fila; acá solo se esconden filas.
@@ -737,6 +711,14 @@ export function ContractorProfileView({
             <h2 className="text-sm font-medium text-foreground">{tt("ct_section_title")}</h2>
             <p className="text-xs text-muted-foreground">
               {tt("ct_col_pending")}: <span className="font-medium text-foreground tabular-nums">{formatCents(contractsPendingCents)}</span>
+              {contractsRetainedCents > 0 && (
+                <>
+                  {" "}
+                  <span title={tt("ct_retained_hint")}>
+                    ({tt("ct_retained").toLowerCase()} {formatCents(contractsRetainedCents)})
+                  </span>
+                </>
+              )}
               {looseCents > 0 && (
                 <>
                   {" · "}
@@ -790,31 +772,6 @@ export function ContractorProfileView({
           </>
         )}
       </div>
-
-      {/* Retención de garantía (pintores). */}
-      {(contractor.contractorType === "pintor" || retention.length > 0) && (
-        <div className="flex flex-col gap-3 border-t border-border pt-4">
-          <div>
-            <h2 className="text-sm font-medium text-foreground">{tt("ret_title")}</h2>
-            <p className="text-xs text-muted-foreground">
-              {tt("ret_col_pending")}:{" "}
-              <span className="font-medium tabular-nums text-foreground">{formatCents(retentionPending)}</span>
-              {" · "}
-              {tt("ret_desc")}
-            </p>
-          </div>
-          {retentionRows.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{tt("ret_empty")}</p>
-          ) : (
-            <RetentionTable
-              rows={retentionRows}
-              labelHeader={tt("proj_col_name")}
-              busyKey={releasingKey}
-              onRelease={handleReleaseRetention}
-            />
-          )}
-        </div>
-      )}
 
       {/* Estado de cuenta */}
       <div className="flex flex-col gap-3 border-t border-border pt-4">
@@ -1138,39 +1095,28 @@ export function ContractorProfileView({
                           {formatCents(row.balanceAfterCents)}
                         </td>
                         <td className="whitespace-nowrap px-2 py-2 text-right">
-                          {row.retentionOfEntryId ? (
-                            // La retención la mantiene la base con su trabajo.
-                            <span className="text-[10px] text-muted-foreground" title={tt("ret_auto_hint")}>
-                              {tt("ret_auto")}
-                            </span>
-                          ) : (
-                            <>
-                              {row.category !== "retencion" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-6 text-muted-foreground hover:text-foreground"
-                                  title={tt("action_edit")}
-                                  onClick={() => {
-                                    setEditing(row);
-                                    setDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="size-3.5" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-6 text-muted-foreground hover:text-destructive"
-                                title={tt("mov_delete_title")}
-                                disabled={deletingId === row.id}
-                                onClick={() => handleDeleteEntry(row.id)}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            </>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:text-foreground"
+                            title={tt("action_edit")}
+                            onClick={() => {
+                              setEditing(row);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:text-destructive"
+                            title={tt("mov_delete_title")}
+                            disabled={deletingId === row.id}
+                            onClick={() => handleDeleteEntry(row.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         </td>
                       </tr>
                     );

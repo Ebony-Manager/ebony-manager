@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
 import {
-  contractPendingCents,
+  contractPayableCents,
+  contractSublabel,
   looseCredits,
   paymentPreview,
   sortContracts,
@@ -80,7 +81,7 @@ export function RegisterPaymentDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const payable = React.useMemo(
-    () => sortContracts(contracts.filter((c) => contractPendingCents(c) > 0)),
+    () => sortContracts(contracts.filter((c) => contractPayableCents(c) > 0)),
     [contracts]
   );
   const loosePending = React.useMemo(
@@ -90,7 +91,7 @@ export function RegisterPaymentDialog({
   const onAccount = React.useMemo(() => unallocatedSources(entries, allocations, date), [entries, allocations, date]);
   const onAccountCents = onAccount.reduce((s, r) => s + r.remainingCents, 0);
 
-  const lines = payable.map((c) => ({ contract: c, pending: contractPendingCents(c), cents: toCents(amounts[c.id] ?? "") }));
+  const lines = payable.map((c) => ({ contract: c, pending: contractPayableCents(c), cents: toCents(amounts[c.id] ?? "") }));
   const looseCents = toCents(amounts[LOOSE] ?? "");
   const abonosCents = lines.reduce((s, l) => s + l.cents, 0) + looseCents;
   const preview = paymentPreview(abonosCents, onAccountCents);
@@ -157,7 +158,7 @@ export function RegisterPaymentDialog({
                     <PayRow
                       key={c.id}
                       label={c.name}
-                      sublabel={c.projectName !== c.name ? c.projectName : undefined}
+                      sublabel={contractSublabel(c, tt("ct_retained"))}
                       muted={c.status !== "ACTIVE"}
                       pending={pending}
                       value={amounts[c.id] ?? ""}

@@ -22,7 +22,8 @@ import {
 import { formatCents, monthLabel, nextPeriod, previousPeriod } from "@/lib/planilla/payroll-period";
 import { formatDate, formatDateCompact } from "@/lib/planilla/format";
 import {
-  contractPendingCents,
+  contractPayableCents,
+  contractSublabel,
   looseCredits,
   paymentPreview,
   sortContracts,
@@ -129,7 +130,7 @@ export function ContractorClosingView({
       const allocations = byContractor(data.allocations, c.id);
       const lineContracts = new Set(data.lines.filter((l) => l.contractorId === c.id).map((l) => l.contractId));
       const contracts = sortContracts(data.contracts.filter((k) => k.contractorId === c.id))
-        .map((contract) => ({ contract, pending: contractPendingCents(contract) }))
+        .map((contract) => ({ contract, pending: contractPayableCents(contract) }))
         .filter(({ contract, pending }) => pending > 0 || lineContracts.has(contract.id));
       const loosePending = looseCredits(entries, allocations).reduce((s, r) => s + r.remainingCents, 0);
       const onAccount = unallocatedSources(entries, allocations, data.payDate);
@@ -300,7 +301,7 @@ export function ContractorClosingView({
                                 <LineRow
                                   key={k.id}
                                   label={k.name}
-                                  sublabel={k.projectName !== k.name ? k.projectName : undefined}
+                                  sublabel={contractSublabel(k, tt("ct_retained"))}
                                   pending={pending}
                                   value={inputs[lineKey(r.id, k.id)] ?? ""}
                                   disabled={paid}

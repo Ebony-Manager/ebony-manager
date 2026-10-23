@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { ContractorAllocation } from "@/types/contractors";
 import {
+  contractPayableCents,
   contractPendingCents,
+  contractRetentionCents,
   contractProgressPct,
   isLooseCredit,
   isSource,
@@ -83,5 +85,32 @@ describe("contratos", () => {
       { status: "ACTIVE" as const, contractDate: "2026-05-01", name: "C" },
     ];
     expect(sortContracts(list).map((c) => c.name)).toEqual(["C", "A", "B"]);
+  });
+});
+
+describe("retención de garantía", () => {
+  const work = (amountCents: number, entryDate = "2026-10-20", category: "trabajo" | "extra" | "bono" = "trabajo") => ({
+    category,
+    direction: "a_favor" as const,
+    amountCents,
+    entryDate,
+    ebonyAbsorbsMaterial: false,
+  });
+  const rule = { pct: 10, startsOn: "2026-10-14" };
+
+  it("retiene el % del trabajo y extra desde la fecha de inicio, redondeando hacia arriba", () => {
+    expect(contractRetentionCents([work(389553), work(10000, "2026-10-21", "extra")], rule, false)).toBe(38956 + 1000);
+    expect(contractRetentionCents([work(100000, "2026-10-13")], rule, false)).toBe(0);
+    expect(contractRetentionCents([work(100000, "2026-10-20", "bono")], rule, false)).toBe(0);
+  });
+
+  it("no retiene con el proyecto terminado ni sin regla", () => {
+    expect(contractRetentionCents([work(100000)], rule, true)).toBe(0);
+    expect(contractRetentionCents([work(100000)], null, false)).toBe(0);
+  });
+
+  it("lo que se puede pagar es lo pendiente menos lo retenido", () => {
+    expect(contractPayableCents({ valueCents: 100000, allocatedCents: 0, retentionCents: 10000 })).toBe(90000);
+    expect(contractPayableCents({ valueCents: 100000, allocatedCents: 95000, retentionCents: 10000 })).toBe(0);
   });
 });

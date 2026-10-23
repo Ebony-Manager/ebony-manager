@@ -160,15 +160,6 @@ export async function zeroContractorBalanceAction(contractorId: string, date: st
   return contractResult(() => contractors.zeroContractorBalance(contractorId, date, note));
 }
 
-export async function releaseRetentionAction(contractorId: string, projectId: string | null) {
-  return contractResult(() => contractors.releaseContractorRetention(contractorId, projectId));
-}
-
-export async function getProjectRetentionAction(projectId: string) {
-  await requireModule("contratistas");
-  return contractors.getProjectRetention(projectId);
-}
-
 export async function setContractStatusAction(id: string, status: "ACTIVE" | "COMPLETED") {
   return contractResult(() => contractors.setContractStatus(id, status));
 }

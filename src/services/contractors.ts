@@ -5,6 +5,7 @@ import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
 import { installmentDate, isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import { contractRetentionCents, type RetentionRule } from "@/lib/contractors/contracts";
 import {
   computeLoanInterestCents,
   computeLoanSchedule,
@@ -129,7 +130,6 @@ function mapLedger(
     loanId: r.loan_id,
     contractId: r.contract_id,
     contractName,
-    retentionOfEntryId: r.retention_of_entry_id,
   };
 }
 
@@ -672,19 +672,19 @@ function mapAllocation(r: AllocationRow): ContractorAllocation {
 }
 
 const CONTRACT_SELECT =
-  "*, projects!contractor_contracts_project_id_fkey(name), contractors!contractor_contracts_contractor_id_fkey(name)";
+  "*, projects!contractor_contracts_project_id_fkey(name, status), contractors!contractor_contracts_contractor_id_fkey(name, contractor_type)";
 
 /** Contratos (de un contratista, o todos) con su valor y lo abonado. */
 export async function getContracts(filter: { contractorId?: string } = {}): Promise<ContractorContract[]> {
   const supabase = await createClient();
   let contractsQuery = supabase.from("contractor_contracts").select(CONTRACT_SELECT);
   if (filter.contractorId) contractsQuery = contractsQuery.eq("contractor_id", filter.contractorId);
-  const [contractsRes, valueRows, allocRows] = await Promise.all([
+  const [contractsRes, valueRows, allocRows, settingsRes] = await Promise.all([
     contractsQuery,
     selectAllRows((from, to) => {
       let q = supabase
         .from("contractor_ledger_entries")
-        .select("contract_id, direction, amount_cents, ebony_absorbs_material")
+        .select("contract_id, category, direction, amount_cents, entry_date, ebony_absorbs_material")
         .not("contract_id", "is", null);
       if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
       return q.order("id").range(from, to);
@@ -697,13 +697,28 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
       if (filter.contractorId) q = q.eq("contractor_id", filter.contractorId);
       return q.order("id").range(from, to);
     }),
+    supabase.from("contractor_type_settings").select("contractor_type, retention_pct, retention_starts_on"),
   ]);
   if (contractsRes.error) throw new Error(contractsRes.error.message);
+  if (settingsRes.error) throw new Error(settingsRes.error.message);
 
+  const rules = new Map<string, RetentionRule>(
+    (settingsRes.data ?? []).map((r) => [r.contractor_type, { pct: Number(r.retention_pct), startsOn: r.retention_starts_on }])
+  );
   const value = new Map<string, number>();
+  const work = new Map<string, Parameters<typeof contractRetentionCents>[0][number][]>();
   for (const r of valueRows) {
     if (!r.contract_id || r.ebony_absorbs_material) continue;
     value.set(r.contract_id, (value.get(r.contract_id) ?? 0) + (r.direction === "a_favor" ? r.amount_cents : -r.amount_cents));
+    const list = work.get(r.contract_id) ?? [];
+    list.push({
+      category: r.category as ContractorLedgerCategory,
+      direction: r.direction === "a_favor" ? "a_favor" : "reduce",
+      amountCents: r.amount_cents,
+      entryDate: r.entry_date,
+      ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+    });
+    work.set(r.contract_id, list);
   }
   const allocated = new Map<string, number>();
   for (const r of allocRows) {
@@ -711,7 +726,10 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
   }
 
   return (contractsRes.data ?? []).map((raw) => {
-    const r = raw as unknown as ContractRow & { projects: { name: string } | null; contractors: { name: string } | null };
+    const r = raw as unknown as ContractRow & {
+      projects: { name: string; status: string } | null;
+      contractors: { name: string; contractor_type: string } | null;
+    };
     return {
       id: r.id,
       contractorId: r.contractor_id,
@@ -726,6 +744,11 @@ export async function getContracts(filter: { contractorId?: string } = {}): Prom
       notes: r.notes,
       valueCents: value.get(r.id) ?? 0,
       allocatedCents: allocated.get(r.id) ?? 0,
+      retentionCents: contractRetentionCents(
+        work.get(r.id) ?? [],
+        rules.get(r.contractors?.contractor_type ?? "") ?? null,
+        r.projects?.status === "COMPLETED"
+      ),
     };
   });
 }
@@ -851,54 +874,6 @@ export async function zeroContractorBalance(contractorId: string, date: string, 
     p_contractor_id: contractorId,
     p_date: date,
     p_note: note ?? "",
-  });
-  if (error) throw new Error(error.message);
-  return data ?? 0;
-}
-
-/** Lo retenido a cada contratista en un proyecto (retención de garantía). */
-export interface ProjectRetention {
-  contractorId: string;
-  contractorName: string;
-  heldCents: number;
-  releasedCents: number;
-  pendingCents: number;
-}
-
-export async function getProjectRetention(projectId: string): Promise<ProjectRetention[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("contractor_ledger_entries")
-    .select("contractor_id, direction, amount_cents, contractors(name)")
-    .eq("category", "retencion")
-    .eq("project_id", projectId);
-  if (error) throw new Error(error.message);
-  const map = new Map<string, ProjectRetention>();
-  for (const r of data ?? []) {
-    const name = (r.contractors as { name: string } | null)?.name ?? "";
-    const cur = map.get(r.contractor_id) ?? {
-      contractorId: r.contractor_id,
-      contractorName: name,
-      heldCents: 0,
-      releasedCents: 0,
-      pendingCents: 0,
-    };
-    if (r.direction === "reduce") cur.heldCents += r.amount_cents;
-    else cur.releasedCents += r.amount_cents;
-    cur.pendingCents = cur.heldCents - cur.releasedCents;
-    map.set(r.contractor_id, cur);
-  }
-  return [...map.values()].sort((a, b) => a.contractorName.localeCompare(b.contractorName));
-}
-
-/** Devuelve lo retenido de un proyecto entregado (null = sin proyecto):
- *  queda a favor del contratista y se paga en el próximo cierre. */
-export async function releaseContractorRetention(contractorId: string, projectId: string | null): Promise<number> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("release_contractor_retention", {
-    p_contractor_id: contractorId,
-    p_project_id: projectId,
-    p_date: todayInPanama(),
   });
   if (error) throw new Error(error.message);
   return data ?? 0;
