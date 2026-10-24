@@ -165,8 +165,11 @@ export interface NewProduct {
   name: string;
   category: string;
   unit: string;
+  /** "" = todavía no se sabe. */
   primary: string;
   alternatives?: string[];
+  /** Variantes con las que se crea (sin esto, variante única). */
+  variants?: string[];
   doubt?: string;
 }
 
@@ -182,6 +185,14 @@ export const NEW_PRODUCTS: NewProduct[] = [
     unit: "unidad",
     primary: "centro",
     doubt: "¿Qué medidas? ¿Se presta y se devuelve como la broca de pared?",
+  },
+  {
+    name: "Manigueta",
+    category: "Herrajería",
+    unit: "unidad",
+    primary: "",
+    variants: ["B262Y-C negra"],
+    doubt: "¿A quién se le compra? ¿También a YALIS?",
   },
   { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", doubt: 'Estaba en el Excel ("Rollo cable RGB"). ¿Lo agrego también?' },
 ];

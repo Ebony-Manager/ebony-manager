@@ -39,7 +39,7 @@ export default async function RevisionPage() {
     const p = ITEM_PROPOSALS[i.name];
     if (p?.primary) productsBySupplier.set(p.primary, (productsBySupplier.get(p.primary) ?? 0) + 1);
   }
-  for (const n of NEW_PRODUCTS) productsBySupplier.set(n.primary, (productsBySupplier.get(n.primary) ?? 0) + 1);
+  for (const n of NEW_PRODUCTS.filter((x) => x.primary)) productsBySupplier.set(n.primary, (productsBySupplier.get(n.primary) ?? 0) + 1);
   const questions = [
     ...doubts.map((i) => `${i.name}: ${ITEM_PROPOSALS[i.name].doubt}`),
     ...NEW_PRODUCTS.filter((n) => n.doubt).map((n) => `${n.name} (nuevo): ${n.doubt}`),
@@ -174,10 +174,13 @@ export default async function RevisionPage() {
             <tbody>
               {NEW_PRODUCTS.map((n) => (
                 <tr key={n.name} className="border-t border-border">
-                  <td className="px-3 py-2 font-medium">{n.name}</td>
+                  <td className="px-3 py-2 font-medium">
+                    {n.name}
+                    {n.variants?.length ? <span className="block text-xs font-normal text-muted-foreground">{n.variants.join(", ")}</span> : null}
+                  </td>
                   <td className="px-3 py-2">{n.category}</td>
                   <td className="px-3 py-2">{unitLabel(n.unit, 1)}</td>
-                  <td className="px-3 py-2">{supplierName(n.primary)}</td>
+                  <td className="px-3 py-2">{n.primary ? supplierName(n.primary) : "—"}</td>
                   <td className="px-3 py-2">{n.alternatives?.map(supplierName).join(", ") || "—"}</td>
                   <td className="px-3 py-2 text-amber-700 dark:text-amber-400">{n.doubt ?? ""}</td>
                 </tr>
