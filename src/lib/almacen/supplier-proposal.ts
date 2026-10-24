@@ -44,14 +44,13 @@ export const PROPOSED_SUPPLIERS: ProposedSupplier[] = [
   },
   { key: "amazon", name: "Amazon", contact: null, phone: null, note: "Compra en línea (falta el enlace del producto)." },
   { key: "madex", name: "Madex", contact: null, phone: null, note: "Sin contacto todavía." },
-  { key: "yalis", name: "GuangDong YALIS Intelligent Technology Co., LTD", contact: null, phone: null, note: "China (importación). Sin contacto todavía." },
   {
     key: "iisdoo",
-    name: "Zhongshan Xiaolan Yixuan Hardware Factory (IISDOO)",
+    name: "IISDOO",
     contact: "Yumi",
     phone: null,
     email: "sales15@iisdoodesign.com",
-    note: "Ya está creado en la app. Emitió la factura IIS-20260428H1-1 de las bisagras ocultas y maniguetas.",
+    note: "Ya está creado en la app. Razón social: Zhongshan Xiaolan Yixuan Hardware Factory (también GuangDong YALIS).",
   },
 ];
 
@@ -175,7 +174,6 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
     primary: "iisdoo",
     excel: "—",
     note: "Dos modelos negros: YLS-033 sin resorte y YS-2D con resorte. En camino: 100 YLS-033 y 50 YS-2D.",
-    doubt: "Dijiste que el proveedor es YALIS, pero la factura es de Zhongshan Xiaolan Yixuan (IISDOO). ¿Son la misma empresa?",
   },
   Manigueta: {
     primary: "iisdoo",
