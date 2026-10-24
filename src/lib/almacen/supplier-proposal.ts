@@ -7,6 +7,7 @@ export interface ProposedSupplier {
   name: string;
   contact: string | null;
   phone: string | null;
+  email?: string;
   note: string | null;
 }
 
@@ -21,12 +22,22 @@ export const PROPOSED_SUPPLIERS: ProposedSupplier[] = [
   { key: "fdc", name: "FDC", contact: "Sara", phone: "6823-8406", note: null },
   { key: "enxamble", name: "Enxamble", contact: "Daniela", phone: "6814-2401", note: null },
   { key: "villalobos", name: "Auto Repuestos y Ferretería Villalobos", contact: null, phone: "6967-6398", note: null },
-  { key: "colombia", name: "Colombia", contact: null, phone: null, note: "Así dice el Excel, sin contacto." },
+  {
+    key: "euroferr",
+    name: "Ferretería Euroferr",
+    contact: null,
+    phone: "+57 312 540 4477",
+    email: "ferreteriaeuroferr@gmail.com",
+    note: 'En Colombia. En el Excel decía "Colombia".',
+  },
   { key: "hopsa", name: "Hopsa", contact: "Ana Velásquez", phone: "6840-3874", note: null },
   { key: "lumicentro", name: "Lumicentro", contact: null, phone: null, note: "Sin contacto en el Excel." },
   { key: "mrled", name: "Mr. Led", contact: null, phone: "6201-2268", note: null },
   { key: "gigatech", name: "Gigatech", contact: null, phone: "6205-9485", note: null },
   { key: "abernathy", name: "Abernathy", contact: null, phone: "6830-8134", note: null },
+  { key: "amazon", name: "Amazon", contact: null, phone: null, note: "Compra en línea (falta el enlace del producto)." },
+  { key: "madex", name: "Madex", contact: null, phone: null, note: "Sin contacto todavía." },
+  { key: "china", name: "Importación de China", contact: null, phone: null, note: "Sin contacto todavía." },
 ];
 
 export interface ItemProposal {
@@ -34,12 +45,11 @@ export interface ItemProposal {
   alternatives?: string[];
   /** Cómo aparece en el Excel. */
   excel: string;
+  /** Dato confirmado que conviene ver al revisar. */
+  note?: string;
   /** Algo que hay que confirmar. */
   doubt?: string;
 }
-
-const CARBONE_DOUBT =
-  "En el Excel la celda de Carbone cubre 31 productos (de Marcadores a Punta estrella). ¿Todos se compran en Carbone o algunos son de Dimosa?";
 
 /** Por nombre del producto en la app. */
 export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
@@ -49,53 +59,54 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Soporte de tablilla flotante": { primary: "multicomercial", excel: "Soporte de tablilla flotante" },
   "Alcayata de metal": { primary: "multicomercial", excel: "Alcayata" },
   // Centro de Ofertas
-  "Tornillo #6": { primary: "centro", excel: "Tornillo gypsum 6x1, 6x1-1/8 y 6x2", doubt: 'La medida 2-1/2" no aparece en el Excel.' },
-  "Tornillo de pared": { primary: "centro", excel: "Tornillo azul", doubt: '¿El "tornillo azul" es el tornillo de pared?' },
+  "Tornillo #6": { primary: "centro", excel: "Tornillo gypsum 6x1, 6x1-1/8 y 6x2" },
+  "Tornillo de pared": { primary: "centro", alternatives: ["multicomercial"], excel: "Tornillo azul" },
   "Broca de pared": {
     primary: "carbone",
     alternatives: ["multicomercial", "centro"],
     excel: "Brocas pared (Carbone), Brocas 5/32 (Multicomercial), Brocas 1/4 concreto (Centro de Ofertas)",
-    doubt: "Sale con tres proveedores según la medida. ¿Cuál es el principal?",
+    note: "Cada uno vende solo algunas medidas: 5/32 en Multicomercial, 1/4 de concreto en Centro de Ofertas, el resto en Carbone.",
   },
   // Dimosa
   "Papel de embalaje": { primary: "dimosa", excel: "Papel blanco de embalar" },
   // Carbone
-  "Plástico de embalaje": { primary: "carbone", excel: "Plastico para embalar", doubt: CARBONE_DOUBT },
-  "Wiper (estopa)": { primary: "carbone", excel: "Estopa", doubt: CARBONE_DOUBT },
-  "Cúter (exacto)": { primary: "carbone", excel: "Exacto", doubt: CARBONE_DOUBT },
-  "Cuchilla para cúter": { primary: "carbone", excel: "Repuesto exacto", doubt: CARBONE_DOUBT },
-  'Disco de corte 6-1/2"': { primary: "carbone", excel: "Discos de corte", doubt: CARBONE_DOUBT },
-  "Disco de corte para metal": { primary: "carbone", excel: "Discos de corte", doubt: CARBONE_DOUBT },
-  "Hoja de segueta": { primary: "carbone", excel: "Hojas de zegueta", doubt: CARBONE_DOUBT },
-  "Hoja de caladora": { primary: "carbone", excel: "Cuchillas caladora", doubt: CARBONE_DOUBT },
-  "Tape transparente": { primary: "carbone", excel: "Tape transparente", doubt: CARBONE_DOUBT },
-  Thinner: { primary: "carbone", excel: "Thinner", doubt: CARBONE_DOUBT },
-  "Saco de polipropileno": { primary: "carbone", excel: "Saco caliche", doubt: CARBONE_DOUBT },
-  "Paño de microfibra": { primary: "carbone", excel: "Paños de microfibra", doubt: CARBONE_DOUBT },
-  "Lija en pliego": { primary: "carbone", excel: "Lijas", doubt: CARBONE_DOUBT },
-  "Lija en rollo": { primary: "carbone", excel: "Lijas", doubt: CARBONE_DOUBT },
-  Lápiz: { primary: "carbone", excel: "Lapiz", doubt: CARBONE_DOUBT },
-  Limpiavidrios: { primary: "carbone", excel: "Limpia vidrios", doubt: CARBONE_DOUBT },
-  "WD-40": { primary: "carbone", excel: "WD-40", doubt: CARBONE_DOUBT },
-  "High Tack": { primary: "carbone", excel: "High Tack", doubt: CARBONE_DOUBT },
-  "Bolsa de basura": { primary: "carbone", excel: "Bolsa de basura", doubt: CARBONE_DOUBT },
-  Aguarrás: { primary: "carbone", excel: "Aguarras", doubt: CARBONE_DOUBT },
-  Tomacorriente: { primary: "carbone", excel: "Tomacorriente / Tomacorriente polarizado hembra y macho", doubt: CARBONE_DOUBT },
-  "Enchufe polarizado (macho)": { primary: "carbone", excel: "Tomacorriente polarizado hembra y macho", doubt: CARBONE_DOUBT },
-  "Conector eléctrico": { primary: "carbone", excel: "Conectores electricos", doubt: CARBONE_DOUBT },
-  Estaño: { primary: "carbone", excel: "Estaño", doubt: CARBONE_DOUBT },
-  "Tape eléctrico negro": { primary: "carbone", excel: "Tape negro electrico", doubt: CARBONE_DOUBT },
-  "Grapa para pistola": { primary: "carbone", excel: "Grapa Pistola", doubt: CARBONE_DOUBT },
-  "Clavo para pistola (clavillo)": { primary: "carbone", excel: "Clavillo pistola", doubt: CARBONE_DOUBT },
-  "Punta de destornillador estrella": { primary: "carbone", excel: "Punta estrella", doubt: CARBONE_DOUBT },
+  "Plástico de embalaje": { primary: "carbone", excel: "Plastico para embalar" },
+  "Wiper (estopa)": { primary: "carbone", excel: "Estopa" },
+  "Cúter (exacto)": { primary: "carbone", excel: "Exacto" },
+  "Cuchilla para cúter": { primary: "carbone", excel: "Repuesto exacto" },
+  'Disco de corte 6-1/2"': { primary: "carbone", excel: "Discos de corte" },
+  "Disco de corte para metal": { primary: "carbone", excel: "Discos de corte" },
+  "Hoja de segueta": { primary: "carbone", excel: "Hojas de zegueta" },
+  "Hoja de caladora": { primary: "carbone", excel: "Cuchillas caladora" },
+  "Tape transparente": { primary: "carbone", excel: "Tape transparente" },
+  Thinner: { primary: "carbone", excel: "Thinner" },
+  "Saco de polipropileno": { primary: "carbone", excel: "Saco caliche" },
+  "Paño de microfibra": { primary: "carbone", excel: "Paños de microfibra" },
+  "Lija en pliego": { primary: "carbone", excel: "Lijas" },
+  "Lija en rollo": { primary: "carbone", excel: "Lijas" },
+  Lápiz: { primary: "carbone", excel: "Lapiz" },
+  Limpiavidrios: { primary: "carbone", excel: "Limpia vidrios" },
+  "WD-40": { primary: "carbone", excel: "WD-40" },
+  "High Tack": { primary: "carbone", excel: "High Tack" },
+  "Bolsa de basura": { primary: "carbone", excel: "Bolsa de basura" },
+  Aguarrás: { primary: "carbone", excel: "Aguarras" },
+  Tomacorriente: { primary: "carbone", excel: "Tomacorriente / Tomacorriente polarizado hembra y macho" },
+  "Enchufe polarizado (macho)": { primary: "carbone", excel: "Tomacorriente polarizado hembra y macho" },
+  "Conector eléctrico": { primary: "carbone", excel: "Conectores electricos" },
+  Estaño: { primary: "carbone", excel: "Estaño" },
+  "Tape eléctrico negro": { primary: "carbone", excel: "Tape negro electrico" },
+  "Grapa para pistola": { primary: "carbone", excel: "Grapa Pistola" },
+  "Clavo para pistola (clavillo)": { primary: "carbone", excel: "Clavillo pistola" },
+  "Punta de destornillador estrella": { primary: "carbone", excel: "Punta estrella" },
   // Moby
   Deslizador: { primary: "moby", excel: "Deslizadores" },
   Pasacables: { primary: "moby", excel: "Pasa cables" },
   "Riel de gaveta": {
     primary: "moby",
-    alternatives: ["hopsa"],
     excel: "Riel telescópico y riel oculto Salice cierre lento (Moby); Riel cierre suave de 30 (Hopsa)",
-    doubt: 'Imeca tiene un "Riel escondido 23 cm" que no está entre las medidas de la app. ¿Se agrega esa medida?',
+    alternatives: ["hopsa", "imeca"],
+    note: "Nueva medida 23 cm (riel escondido, de Imeca).",
+    doubt: "El riel escondido de 23 cm, ¿es de cierre suave o push?",
   },
   "Bisagra curva": { primary: "moby", excel: "Bisagra curva" },
   "Bisagra semicurva": { primary: "moby", excel: "Bisagra Semicurva" },
@@ -115,7 +126,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Perfil para cinta LED": { primary: "fdc", excel: "Perfil cinta led" },
   Burlete: { primary: "fdc", excel: "Burlete" },
   // Enxamble
-  "Pegamento Kit Express": { primary: "enxamble", excel: "Pegadit express Duo", doubt: '¿"Pegadit express Duo" es el Kit Express?' },
+  "Pegamento Kit Express": { primary: "enxamble", excel: "Pegadit express Duo" },
   "Pegamento Fortik": { primary: "enxamble", excel: "Cemento PL o Fortik" },
   "Expulsor (push)": { primary: "enxamble", excel: "Push open" },
   "Pegamento Carpincol": { primary: "enxamble", excel: "Carpincol Plus" },
@@ -124,37 +135,61 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   // Villalobos
   'Tape naranja 1"': { primary: "villalobos", excel: "Tape naranja" },
   // Colombia
-  Avellanador: { primary: "colombia", excel: "Avellanador" },
-  "Fresa para router": { primary: "colombia", excel: "Fresas para Router" },
+  Avellanador: { primary: "euroferr", excel: "Avellanador" },
+  "Fresa para router": { primary: "euroferr", excel: "Fresas para Router" },
   // Luces
-  "Cinta LED": {
-    primary: "lumicentro",
-    alternatives: ["gigatech"],
-    excel: "Caja cinta led 3000k (Lumicentro); Rollo cable RGB (Gigatech)",
-    doubt: '¿El "Rollo cable RGB" de Gigatech es la cinta LED RGB o un cable aparte?',
-  },
+  "Cinta LED": { primary: "lumicentro", excel: "Caja cinta led 3000k" },
   Interruptor: { primary: "mrled", excel: "Interruptor" },
   "Conector para LED": { primary: "mrled", excel: "Conector para led" },
   "Transformador LED": { primary: "mrled", excel: "Transformador led" },
   Termoencogible: { primary: "gigatech", excel: "Termoencogible" },
   "Cable dúplex calibre 16": { primary: "gigatech", excel: "Cable calibre 16 duplex" },
   "Cable calibre 14 AWG": { primary: "gigatech", excel: "Cable electrico calibre 14 AWG" },
+  // Respondidos por Ebony (no estaban en el Excel)
+  "Broca para madera": { primary: "multicomercial", excel: "—" },
+  "Disco para engalletadora": { primary: "amazon", excel: "—", doubt: "Falta el enlace de Amazon." },
+  "Disco para melamina": { primary: "carbone", excel: "—" },
+  "Sensor de luz": { primary: "mrled", excel: "—" },
+  "Canto chapilla": { primary: "moby", alternatives: ["fdc"], excel: "—" },
+  "Canto melamina gris coco": { primary: "moby", excel: "—" },
+  "Canto pintable": { primary: "enxamble", alternatives: ["madex"], excel: "—" },
+  "Bisagra oculta": {
+    primary: "moby",
+    alternatives: ["china"],
+    excel: "—",
+    doubt:
+      "Hay dos tipos (la de China y la de Moby). ¿Cuáles de las variantes (gris, gris grande, negro, negro grande) son de cada una, o se separan como tipo?",
+  },
+  "Tubo de closet": { primary: "moby", alternatives: ["fdc", "enxamble"], excel: "—" },
+  "Fresa para canto": { primary: "", excel: "—", doubt: "Nadie supo qué es (viene del JotForm de egresos, sin foto). ¿Se elimina?" },
   // Abernathy
   "Pegamento epóxico Duo": { primary: "abernathy", excel: "Duo epoxica" },
 };
 
-/** Lo que está en el Excel de proveedores pero no es un producto del almacén. */
-export const EXCEL_ONLY: { name: string; supplier: string; note?: string }[] = [
-  { name: "Bisagra mariposa", supplier: "multicomercial" },
-  { name: "Crema de soldar", supplier: "multicomercial" },
-  { name: "Broca punta de diamante", supplier: "centro" },
-  { name: "Mantenimiento de herramientas", supplier: "centro", note: "Es un servicio, no un producto." },
-  { name: "Masilla", supplier: "novey" },
-  { name: "Plantilla para tornillos y bisagras", supplier: "imeca", note: "Parece herramienta (Etapa 2)." },
-  { name: "Riel escondido 23 cm", supplier: "imeca", note: "Medida que no está en Riel de gaveta." },
-  { name: "Marcadores", supplier: "carbone" },
-  { name: "Platina", supplier: "carbone" },
-  { name: "Pilas", supplier: "carbone" },
+/** Productos nuevos que se agregan al catálogo (pedidos por Ebony). Sin foto ni mínimo todavía. */
+export interface NewProduct {
+  name: string;
+  category: string;
+  unit: string;
+  primary: string;
+  alternatives?: string[];
+  doubt?: string;
+}
+
+export const NEW_PRODUCTS: NewProduct[] = [
+  { name: "Masilla", category: "Pintura y sellantes", unit: "unidad", primary: "novey", doubt: "¿Se compra por galón, cuarto o tubo?" },
+  { name: "Pilas", category: "Eléctrico", unit: "unidad", primary: "carbone", alternatives: ["novey"], doubt: "¿Qué tamaños (AA, AAA, 9V)?" },
+  { name: "Platina", category: "Soportes y perfiles", unit: "unidad", primary: "carbone", doubt: "¿Qué medidas?" },
+  { name: "Crema de soldar", category: "Eléctrico", unit: "unidad", primary: "multicomercial" },
+  { name: "Bisagra mariposa", category: "Herrajería", unit: "unidad", primary: "multicomercial", doubt: "¿Qué tamaños?" },
+  {
+    name: "Broca punta de diamante",
+    category: "Brocas y cuchillas",
+    unit: "unidad",
+    primary: "centro",
+    doubt: "¿Qué medidas? ¿Se presta y se devuelve como la broca de pared?",
+  },
+  { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", doubt: 'Estaba en el Excel ("Rollo cable RGB"). ¿Lo agrego también?' },
 ];
 
 /** En el Excel, pero ya se eliminaron de la app. */

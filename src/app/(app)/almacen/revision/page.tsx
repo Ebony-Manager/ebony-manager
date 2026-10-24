@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/dal";
 import { formatQty, unitLabel } from "@/lib/almacen/inventory";
-import { EXCEL_DELETED, EXCEL_ONLY, ITEM_PROPOSALS, PROPOSED_SUPPLIERS, type ItemProposal } from "@/lib/almacen/supplier-proposal";
+import { EXCEL_DELETED, ITEM_PROPOSALS, NEW_PRODUCTS, PROPOSED_SUPPLIERS, type ItemProposal } from "@/lib/almacen/supplier-proposal";
 import { getCatalog, getCategories } from "@/services/almacen";
 import type { InventoryItem } from "@/types/almacen";
 import { ItemThumb } from "../shared";
@@ -20,15 +20,19 @@ export default async function RevisionPage() {
   const [items, categories] = await Promise.all([getCatalog(), getCategories()]);
   const active = items.filter((i) => i.active);
   const doubts = active.filter((i) => ITEM_PROPOSALS[i.name]?.doubt);
-  const noSupplier = active.filter((i) => !ITEM_PROPOSALS[i.name]);
+  const noSupplier = active.filter((i) => !ITEM_PROPOSALS[i.name]?.primary);
   const variantCount = active.reduce((n, i) => n + i.variants.filter((v) => v.active).length, 0);
   const withMin = active.reduce((n, i) => n + i.variants.filter((v) => v.active && v.minQty != null).length, 0);
   const productsBySupplier = new Map<string, number>();
   for (const i of active) {
     const p = ITEM_PROPOSALS[i.name];
-    if (p) productsBySupplier.set(p.primary, (productsBySupplier.get(p.primary) ?? 0) + 1);
+    if (p?.primary) productsBySupplier.set(p.primary, (productsBySupplier.get(p.primary) ?? 0) + 1);
   }
-  const uniqueDoubts = [...new Set(doubts.map((i) => ITEM_PROPOSALS[i.name].doubt!))];
+  for (const n of NEW_PRODUCTS) productsBySupplier.set(n.primary, (productsBySupplier.get(n.primary) ?? 0) + 1);
+  const questions = [
+    ...doubts.map((i) => `${i.name}: ${ITEM_PROPOSALS[i.name].doubt}`),
+    ...NEW_PRODUCTS.filter((n) => n.doubt).map((n) => `${n.name} (nuevo): ${n.doubt}`),
+  ];
 
   return (
     <div className="flex flex-col gap-8 px-4 pt-6 pb-16 sm:px-7">
@@ -40,10 +44,10 @@ export default async function RevisionPage() {
           proveedores se cargan cuando lo apruebes. &quot;Pedir hasta&quot; es la cantidad a la que se repone cuando baja del mínimo.
         </p>
         <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Productos" value={active.length} />
+          <Stat label="Productos" value={active.length} hint={`+${NEW_PRODUCTS.length} nuevos`} />
           <Stat label="Variantes" value={variantCount} hint={`${withMin} con mínimo`} />
           <Stat label="Proveedores" value={PROPOSED_SUPPLIERS.length} />
-          <Stat label="Por confirmar" value={uniqueDoubts.length + (noSupplier.length ? 1 : 0)} hint={`${noSupplier.length} sin proveedor`} warn />
+          <Stat label="Por confirmar" value={questions.length} hint={`${noSupplier.length} sin proveedor`} warn />
         </dl>
       </header>
 
@@ -53,18 +57,9 @@ export default async function RevisionPage() {
           Preguntas antes de cargar
         </h2>
         <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm text-foreground">
-          {uniqueDoubts.map((d) => (
-            <li key={d}>{d}</li>
+          {questions.map((q) => (
+            <li key={q}>{q}</li>
           ))}
-          {noSupplier.length > 0 && (
-            <li>
-              Sin proveedor en el Excel ({noSupplier.length}): {noSupplier.map((i) => i.name).join(", ")}. ¿A quién se le compran?
-            </li>
-          )}
-          <li>
-            En el Excel pero no en el almacén: {EXCEL_ONLY.map((e) => `${e.name} (${supplierName(e.supplier)}${e.note ? `; ${e.note}` : ""})`).join(", ")}. ¿Se
-            agrega alguno como producto?
-          </li>
         </ol>
         <p className="text-xs text-muted-foreground">También salen en el Excel, pero ya se eliminaron de la app: {EXCEL_DELETED.join(", ")}.</p>
       </section>
@@ -77,7 +72,7 @@ export default async function RevisionPage() {
               <tr>
                 <th className="px-3 py-2 font-medium">Proveedor</th>
                 <th className="px-3 py-2 font-medium">Contacto</th>
-                <th className="px-3 py-2 font-medium">Teléfono / WhatsApp</th>
+                <th className="px-3 py-2 font-medium">Teléfono / correo</th>
                 <th className="px-3 py-2 text-right font-medium">Productos (principal)</th>
                 <th className="px-3 py-2 font-medium">Nota</th>
               </tr>
@@ -87,9 +82,42 @@ export default async function RevisionPage() {
                 <tr key={s.key} className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{s.name}</td>
                   <td className="px-3 py-2">{s.contact ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums">{s.phone ?? "—"}</td>
+                  <td className="px-3 py-2 tabular-nums">{[s.phone, s.email].filter(Boolean).join(" · ") || "—"}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{productsBySupplier.get(s.key) ?? 0}</td>
                   <td className="px-3 py-2 text-muted-foreground">{s.note ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          Productos nuevos{" "}
+          <span className="text-sm font-normal text-muted-foreground">({NEW_PRODUCTS.length}, se agregan al aprobar; luego les ponemos foto y mínimo)</span>
+        </h2>
+        <div className="overflow-x-auto border border-border">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">Producto</th>
+                <th className="px-3 py-2 font-medium">Categoría</th>
+                <th className="px-3 py-2 font-medium">Unidad</th>
+                <th className="px-3 py-2 font-medium">Principal</th>
+                <th className="px-3 py-2 font-medium">Alternativo</th>
+                <th className="px-3 py-2 font-medium">Por confirmar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {NEW_PRODUCTS.map((n) => (
+                <tr key={n.name} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{n.name}</td>
+                  <td className="px-3 py-2">{n.category}</td>
+                  <td className="px-3 py-2">{unitLabel(n.unit, 1)}</td>
+                  <td className="px-3 py-2">{supplierName(n.primary)}</td>
+                  <td className="px-3 py-2">{n.alternatives?.map(supplierName).join(", ") || "—"}</td>
+                  <td className="px-3 py-2 text-amber-700 dark:text-amber-400">{n.doubt ?? ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -142,7 +170,7 @@ function ProductRow({ item, proposal }: { item: InventoryItem; proposal: ItemPro
             {!item.photoPath && " · sin foto"}
           </div>
         </div>
-        {proposal ? (
+        {proposal?.primary ? (
           <div className="flex flex-col gap-1 text-sm">
             <div>
               <span className="text-xs text-muted-foreground">Principal: </span>
@@ -154,7 +182,8 @@ function ProductRow({ item, proposal }: { item: InventoryItem; proposal: ItemPro
                 {proposal.alternatives.map(supplierName).join(", ")}
               </div>
             ) : null}
-            <div className="text-xs text-muted-foreground">En el Excel: {proposal.excel}</div>
+            {proposal.excel !== "—" && <div className="text-xs text-muted-foreground">En el Excel: {proposal.excel}</div>}
+            {proposal.note && <div className="text-xs text-muted-foreground">{proposal.note}</div>}
             {proposal.doubt && (
               <div className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
@@ -165,7 +194,7 @@ function ProductRow({ item, proposal }: { item: InventoryItem; proposal: ItemPro
         ) : (
           <div className="flex gap-1.5 text-sm text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            Sin proveedor en el Excel
+            {proposal?.doubt ?? "Sin proveedor"}
           </div>
         )}
       </div>
