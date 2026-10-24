@@ -105,8 +105,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
     primary: "moby",
     excel: "Riel telescópico y riel oculto Salice cierre lento (Moby); Riel cierre suave de 30 (Hopsa)",
     alternatives: ["hopsa", "imeca"],
-    note: "Nueva medida 23 cm (riel escondido, de Imeca).",
-    doubt: "El riel escondido de 23 cm, ¿es de cierre suave o push?",
+    note: "Medida nueva: 23 cm cierre suave oculto (el riel escondido de Imeca).",
   },
   "Bisagra curva": { primary: "moby", excel: "Bisagra curva" },
   "Bisagra semicurva": { primary: "moby", excel: "Bisagra Semicurva" },
@@ -147,7 +146,11 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Cable calibre 14 AWG": { primary: "gigatech", excel: "Cable electrico calibre 14 AWG" },
   // Respondidos por Ebony (no estaban en el Excel)
   "Broca para madera": { primary: "multicomercial", excel: "—" },
-  "Disco para engalletadora": { primary: "amazon", excel: "—", doubt: "Falta el enlace de Amazon." },
+  "Disco para engalletadora": {
+    primary: "amazon",
+    excel: "—",
+    note: '100 mm / 4" Carbide Biscuit. Amazon: https://www.amazon.com/dp/B08BZ3Z8K9',
+  },
   "Disco para melamina": { primary: "carbone", excel: "—" },
   "Sensor de luz": { primary: "mrled", excel: "—" },
   "Canto chapilla": { primary: "moby", alternatives: ["fdc"], excel: "—" },
@@ -155,7 +158,6 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Canto pintable": { primary: "enxamble", alternatives: ["madex"], excel: "—" },
   "Bisagra oculta": { primary: "yalis", excel: "—", note: "Dos modelos, los dos negros: YLS-033 sin resorte (regular) y YS-2D con resorte." },
   "Tubo de closet": { primary: "moby", alternatives: ["fdc", "enxamble"], excel: "—" },
-  "Fresa para canto": { primary: "", excel: "—", doubt: "Nadie supo qué es (viene del JotForm de egresos, sin foto). ¿Se elimina?" },
   // Abernathy
   "Pegamento epóxico Duo": { primary: "abernathy", excel: "Duo epoxica" },
 };
@@ -175,8 +177,8 @@ export interface NewProduct {
 
 export const NEW_PRODUCTS: NewProduct[] = [
   { name: "Masilla", category: "Pintura y sellantes", unit: "unidad", primary: "novey", doubt: "¿Se compra por galón, cuarto o tubo?" },
-  { name: "Pilas", category: "Eléctrico", unit: "unidad", primary: "carbone", alternatives: ["novey"], doubt: "¿Qué tamaños (AA, AAA, 9V)?" },
-  { name: "Platina", category: "Soportes y perfiles", unit: "unidad", primary: "carbone", doubt: "¿Qué medidas?" },
+  { name: "Pilas", category: "Eléctrico", unit: "unidad", primary: "carbone", alternatives: ["novey"], variants: ["AA", "AAA"] },
+  { name: "Platina", category: "Soportes y perfiles", unit: "unidad", primary: "carbone" },
   { name: "Crema de soldar", category: "Eléctrico", unit: "unidad", primary: "multicomercial" },
   { name: "Bisagra mariposa", category: "Herrajería", unit: "unidad", primary: "multicomercial", doubt: "¿Qué tamaños?" },
   {
@@ -193,7 +195,13 @@ export const NEW_PRODUCTS: NewProduct[] = [
     primary: "yalis",
     variants: ["B262Y-C negra"],
   },
-  { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", doubt: 'Estaba en el Excel ("Rollo cable RGB"). ¿Lo agrego también?' },
+  {
+    name: "Cable RGB",
+    category: "Eléctrico",
+    unit: "metro",
+    primary: "gigatech",
+    doubt: 'En la app solo está la cinta LED RGB (Cinta LED, variante RGB), no el cable. ¿Agrego el "Rollo cable RGB" de Gigatech?',
+  },
 ];
 
 /** En el Excel, pero ya se eliminaron de la app. */
