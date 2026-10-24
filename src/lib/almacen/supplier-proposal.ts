@@ -45,6 +45,14 @@ export const PROPOSED_SUPPLIERS: ProposedSupplier[] = [
   { key: "amazon", name: "Amazon", contact: null, phone: null, note: "Compra en línea (falta el enlace del producto)." },
   { key: "madex", name: "Madex", contact: null, phone: null, note: "Sin contacto todavía." },
   { key: "yalis", name: "GuangDong YALIS Intelligent Technology Co., LTD", contact: null, phone: null, note: "China (importación). Sin contacto todavía." },
+  {
+    key: "iisdoo",
+    name: "Zhongshan Xiaolan Yixuan Hardware Factory (IISDOO)",
+    contact: "Yumi",
+    phone: null,
+    email: "sales15@iisdoodesign.com",
+    note: "Ya está creado en la app. Emitió la factura IIS-20260428H1-1 de las bisagras ocultas y maniguetas.",
+  },
 ];
 
 export interface ItemProposal {
@@ -163,7 +171,18 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Canto chapilla": { primary: "moby", alternatives: ["fdc"], excel: "—" },
   "Canto melamina gris coco": { primary: "moby", excel: "—" },
   "Canto pintable": { primary: "enxamble", alternatives: ["madex"], excel: "—" },
-  "Bisagra oculta": { primary: "yalis", excel: "—", note: "Dos modelos, los dos negros: YLS-033 sin resorte (regular) y YS-2D con resorte." },
+  "Bisagra oculta": {
+    primary: "iisdoo",
+    excel: "—",
+    note: "Dos modelos negros: YLS-033 sin resorte y YS-2D con resorte. En camino: 100 YLS-033 y 50 YS-2D.",
+    doubt: "Dijiste que el proveedor es YALIS, pero la factura es de Zhongshan Xiaolan Yixuan (IISDOO). ¿Son la misma empresa?",
+  },
+  Manigueta: {
+    primary: "iisdoo",
+    excel: "—",
+    note: "En camino: 100 juegos B262Y-C negro mate y 1 muestra de cada BJ84344 y BJ84347.",
+  },
+  "Plantilla para bisagra oculta": { primary: "iisdoo", excel: "—", note: "Herramienta que se presta y se devuelve. En camino: 4." },
   "Tubo de closet": { primary: "moby", alternatives: ["fdc", "enxamble"], excel: "—" },
   // Pedido de luces de China (ya creados en la app con su proveedor)
   "Cinta LED rollo 100 m": { primary: "ledchina", excel: "—", note: "EF1010-130-27K-V12-01, rollo de 100 m. Pedidos 500 m a $1.40/m." },
@@ -205,13 +224,7 @@ export const NEW_PRODUCTS: NewProduct[] = [
     primary: "centro",
     doubt: "¿Qué medidas? ¿Se presta y se devuelve como la broca de pared?",
   },
-  {
-    name: "Manigueta",
-    category: "Herrajería",
-    unit: "unidad",
-    primary: "yalis",
-    variants: ["B262Y-C negra"],
-  },
+
   { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", note: "Rollo de cable RGB (no es la cinta)." },
 ];
 
