@@ -35,6 +35,13 @@ export const PROPOSED_SUPPLIERS: ProposedSupplier[] = [
   { key: "mrled", name: "Mr. Led", contact: null, phone: "6201-2268", note: null },
   { key: "gigatech", name: "Gigatech", contact: null, phone: "6205-9485", note: null },
   { key: "abernathy", name: "Abernathy", contact: null, phone: "6830-8134", note: null },
+  {
+    key: "ledchina",
+    name: "Proveedor LED China (por confirmar)",
+    contact: null,
+    phone: null,
+    note: "Ya está creado en la app (proforma CX2026092901-K96024). Falta el nombre de la empresa.",
+  },
   { key: "amazon", name: "Amazon", contact: null, phone: null, note: "Compra en línea (falta el enlace del producto)." },
   { key: "madex", name: "Madex", contact: null, phone: null, note: "Sin contacto todavía." },
   { key: "yalis", name: "GuangDong YALIS Intelligent Technology Co., LTD", contact: null, phone: null, note: "China (importación). Sin contacto todavía." },
@@ -158,6 +165,11 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Canto pintable": { primary: "enxamble", alternatives: ["madex"], excel: "—" },
   "Bisagra oculta": { primary: "yalis", excel: "—", note: "Dos modelos, los dos negros: YLS-033 sin resorte (regular) y YS-2D con resorte." },
   "Tubo de closet": { primary: "moby", alternatives: ["fdc", "enxamble"], excel: "—" },
+  // Pedido de luces de China (ya creados en la app con su proveedor)
+  "Cinta LED rollo 100 m": { primary: "ledchina", excel: "—", note: "EF1010-130-27K-V12-01, rollo de 100 m. Pedidos 500 m a $1.40/m." },
+  "Fuente de poder LED 12 V 100 W": { primary: "ledchina", excel: "—", note: "CB03-100-12-US. Pedidas 50 a $8.00." },
+  "Cable de conexión para cinta EF1010": { primary: "ledchina", excel: "—", note: "A-EF1010-01. Pedidos 100 a $0.30." },
+  "Tapa para cinta EF1010": { primary: "ledchina", excel: "—", note: "CAP-EF1010-01. Pedidos 100 pares a $0.12." },
   // Abernathy
   "Pegamento epóxico Duo": { primary: "abernathy", excel: "Duo epoxica" },
 };
@@ -197,14 +209,6 @@ export const NEW_PRODUCTS: NewProduct[] = [
     variants: ["B262Y-C negra"],
   },
   { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", note: "Rollo de cable RGB (no es la cinta)." },
-  {
-    name: "Cinta LED rollo 100 m",
-    category: "Eléctrico",
-    unit: "metro",
-    primary: "",
-    note: "Vienen de China: rollos de 100 m, se cuentan por metro. Hay 5 rollos pedidos.",
-    doubt: "¿De qué color (3000K, 6500K)? ¿El proveedor es YALIS u otro?",
-  },
 ];
 
 /** En el Excel, pero ya se eliminaron de la app. */
