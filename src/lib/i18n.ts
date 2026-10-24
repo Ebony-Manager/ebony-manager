@@ -58,6 +58,9 @@ export const strings = {
     theme_system: { es: "Automático", en: "Automatic" },
     // Botón para abrir el menú lateral en el celular.
     menu: { es: "Menú", en: "Menu" },
+    // Última pestaña de la barra de abajo en el celular: abre el menú completo.
+    more: { es: "Más", en: "More" },
+    close: { es: "Cerrar", en: "Close" },
     pending: { es: "por revisar", en: "to review" },
   },
 

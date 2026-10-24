@@ -1,43 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Sidebar, type PendingCounts } from "@/components/layout/sidebar";
-import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { useLang } from "@/context/language-context";
-import { t, strings } from "@/lib/i18n";
+import { MobileBottomNav, MobileTopBar } from "@/components/layout/mobile-nav";
+import { MobileMoreSheet } from "@/components/layout/mobile-more-sheet";
+import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 
 /**
- * Client chrome for the protected area: sidebar + the mobile open/close
- * state. No top bar on desktop — the profile/language/sign-out menu lives at
- * the bottom of the rail (user-menu.tsx). On mobile the rail is hidden, so a
- * slim strip with the menu button is the only way to open it. The auth gate
- * itself lives in the (app) server layout that renders this.
+ * Client chrome for the protected area. Desktop: the rail on the left, no
+ * top bar — the profile/language/sign-out menu lives at the bottom of the
+ * rail (user-menu.tsx). Mobile (< md): a top bar with the section (and its
+ * tabs), a bottom tab bar with the modules, and "Más" opens the whole menu
+ * (with names) plus the profile preferences as a bottom sheet. The content scrolls inside <PullToRefresh> (pull down to
+ * refresh). The auth gate itself lives in the (app) server layout.
  */
 export function AppShell({ children, pending }: { children: React.ReactNode; pending: PendingCounts }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { lang } = useLang();
+  const pathname = usePathname();
+  // "Más" queda abierto solo en la ruta donde se abrió: al navegar se cierra solo.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  const moreOpen = openAt === pathname;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} pending={pending} />
+    <div className="flex h-dvh overflow-hidden bg-background">
+      {/* En celular el rail no se usa (isOpen siempre false): lo reemplazan las barras y "Más". */}
+      <Sidebar isOpen={false} onClose={() => setOpenAt(null)} pending={pending} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex h-12 shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 md:hidden">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label={t(lang, strings.nav.menu)}
-            className="relative p-1 text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground"
-          >
-            <Menu size={20} />
-            {pending.intakes + pending.moneyRequests > 0 && (
-              <span className="absolute top-0.5 right-0.5 size-2 rounded-full bg-red-600" aria-hidden />
-            )}
-          </button>
-          <EbonyLogo variant="wordmark" tone="black" height={16} />
-        </div>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <MobileTopBar pending={pending} />
+        <PullToRefresh className="flex-1 overflow-y-auto pb-[var(--app-bottom)]">{children}</PullToRefresh>
+        <MobileBottomNav pending={pending} onOpenMenu={() => setOpenAt(pathname)} />
+        <MobileMoreSheet open={moreOpen} onClose={() => setOpenAt(null)} pending={pending} />
       </div>
     </div>
   );

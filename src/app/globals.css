@@ -426,3 +426,39 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* =============================================================================
+   CELULAR / APP INSTALADA
+   - --mobile-nav-h: alto de la barra de navegación de abajo (solo < md).
+     --app-bottom: lo que ocupa esa barra más la zona de gestos del teléfono;
+     lo usan las barras fijas de abajo (ej. el carrito de Salidas) para
+     quedar encima de ella.
+   - Campos de texto a 16px en celular: con menos, el iPhone hace zoom al
+     tocarlos y la pantalla queda corrida.
+   - Sin el recuadro gris al tocar, y sin el rebote que arrastra toda la
+     pantalla (el refrescar al jalar lo hace la app, ver pull-to-refresh.tsx).
+   ============================================================================= */
+:root {
+  --mobile-nav-h: 0px;
+  --app-bottom: 0px;
+}
+@media (max-width: 767px) {
+  :root {
+    --mobile-nav-h: 3.5rem;
+    --app-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}

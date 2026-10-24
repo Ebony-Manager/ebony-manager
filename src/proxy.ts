@@ -13,9 +13,10 @@ export const config = {
     /*
      * Every path except:
      * - _next/static, _next/image (build assets)
-     * - favicon.ico and common image files
+     * - favicon.ico, manifest.webmanifest (the PWA manifest: the browser
+     *   fetches it without cookies) and common image files
      * Auth needs to run on everything else, including RSC data requests.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -116,7 +116,7 @@ export function IssueShop({
 
       {/* Celular: barra abajo que abre la salida. */}
       {count > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-ink-900/8 bg-card px-4 py-3 shadow-lg lg:hidden">
+        <div className="fixed inset-x-0 bottom-[var(--app-bottom)] z-20 flex items-center justify-between gap-3 border-t border-ink-900/8 bg-card px-4 py-3 shadow-lg lg:hidden">
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="size-4" />
             {ta("n_in_cart", { n: count })}
