@@ -37,7 +37,7 @@ export const PROPOSED_SUPPLIERS: ProposedSupplier[] = [
   { key: "abernathy", name: "Abernathy", contact: null, phone: "6830-8134", note: null },
   { key: "amazon", name: "Amazon", contact: null, phone: null, note: "Compra en línea (falta el enlace del producto)." },
   { key: "madex", name: "Madex", contact: null, phone: null, note: "Sin contacto todavía." },
-  { key: "china", name: "Importación de China", contact: null, phone: null, note: "Sin contacto todavía." },
+  { key: "yalis", name: "GuangDong YALIS Intelligent Technology Co., LTD", contact: null, phone: null, note: "China (importación). Sin contacto todavía." },
 ];
 
 export interface ItemProposal {
@@ -153,13 +153,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Canto chapilla": { primary: "moby", alternatives: ["fdc"], excel: "—" },
   "Canto melamina gris coco": { primary: "moby", excel: "—" },
   "Canto pintable": { primary: "enxamble", alternatives: ["madex"], excel: "—" },
-  "Bisagra oculta": {
-    primary: "moby",
-    alternatives: ["china"],
-    excel: "—",
-    doubt:
-      "Hay dos tipos (la de China y la de Moby). ¿Cuáles de las variantes (gris, gris grande, negro, negro grande) son de cada una, o se separan como tipo?",
-  },
+  "Bisagra oculta": { primary: "yalis", excel: "—", note: "Dos modelos, los dos negros: YLS-033 sin resorte (regular) y YS-2D con resorte." },
   "Tubo de closet": { primary: "moby", alternatives: ["fdc", "enxamble"], excel: "—" },
   "Fresa para canto": { primary: "", excel: "—", doubt: "Nadie supo qué es (viene del JotForm de egresos, sin foto). ¿Se elimina?" },
   // Abernathy
