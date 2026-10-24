@@ -169,7 +169,11 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Cinta LED rollo 100 m": { primary: "ledchina", excel: "—", note: "EF1010-130-27K-V12-01, rollo de 100 m. Pedidos 500 m a $1.40/m." },
   "Fuente de poder LED 12 V 100 W": { primary: "ledchina", excel: "—", note: "CB03-100-12-US. Pedidas 50 a $8.00." },
   "Cable de conexión para cinta EF1010": { primary: "ledchina", excel: "—", note: "A-EF1010-01. Pedidos 100 a $0.30." },
-  "Tapa para cinta EF1010": { primary: "ledchina", excel: "—", note: "CAP-EF1010-01. Pedidos 100 pares a $0.12." },
+  "Tapa para cinta EF1010": {
+    primary: "ledchina",
+    excel: "—",
+    note: "CAP-EF1010-01. Se cuenta por unidad; se compra por par. Pedidos 100 pares (200 tapas) a $0.12 el par.",
+  },
   // Abernathy
   "Pegamento epóxico Duo": { primary: "abernathy", excel: "Duo epoxica" },
 };
