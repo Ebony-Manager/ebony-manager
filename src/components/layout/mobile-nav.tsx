@@ -7,6 +7,7 @@ import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
+import { haptic } from "@/lib/haptics";
 import { EbonyMark } from "@/components/brand/ebony-logo";
 import {
   RAIL_ITEMS,
@@ -136,7 +137,7 @@ export function MobileBottomNav({ pending, onOpenMenu }: { pending: PendingCount
         {tabs.map((d) => {
           const Icon = d.icon;
           return (
-            <Link key={d.key} href={d.href} aria-current={d.active ? "page" : undefined} className={`${item} ${color(d.active)}`}>
+            <Link key={d.key} href={d.href} onClick={() => haptic()} aria-current={d.active ? "page" : undefined} className={`${item} ${color(d.active)}`}>
               <span className={`flex h-7 w-12 items-center justify-center rounded-full ${d.active ? "bg-primary/10" : ""}`}>
                 <Icon size={21} strokeWidth={d.active ? 2 : 1.6} />
               </span>
@@ -145,7 +146,14 @@ export function MobileBottomNav({ pending, onOpenMenu }: { pending: PendingCount
             </Link>
           );
         })}
-        <button type="button" onClick={onOpenMenu} className={`${item} ${color(hiddenActive)}`}>
+        <button
+          type="button"
+          onClick={() => {
+            haptic();
+            onOpenMenu();
+          }}
+          className={`${item} ${color(hiddenActive)}`}
+        >
           <span className={`flex h-7 w-12 items-center justify-center rounded-full ${hiddenActive ? "bg-primary/10" : ""}`}>
             <Menu size={21} strokeWidth={hiddenActive ? 2 : 1.6} />
           </span>

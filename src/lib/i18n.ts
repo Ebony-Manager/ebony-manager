@@ -61,6 +61,7 @@ export const strings = {
     // Última pestaña de la barra de abajo en el celular: abre el menú completo.
     more: { es: "Más", en: "More" },
     close: { es: "Cerrar", en: "Close" },
+    loading: { es: "Cargando", en: "Loading" },
     pending: { es: "por revisar", en: "to review" },
   },
 

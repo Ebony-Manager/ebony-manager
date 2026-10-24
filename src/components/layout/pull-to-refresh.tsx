@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
+import { haptic } from "@/lib/haptics";
 
 const TRIGGER = 64; // px que hay que jalar para refrescar
 const MAX = 96;
@@ -67,7 +68,10 @@ export function PullToRefresh({ children, className }: { children: React.ReactNo
       if (dy <= 0) return set(0);
       if (e.cancelable) e.preventDefault();
       // Resistencia: cuesta más mientras más se jala.
-      set(Math.min(MAX, dy * 0.5));
+      const next = Math.min(MAX, dy * 0.5);
+      // Un toquecito al pasar el umbral: "suelta y refresca".
+      if (next >= TRIGGER && pullRef.current < TRIGGER) haptic(10);
+      set(next);
     };
     const onEnd = () => {
       if (!tracking) return;

@@ -462,3 +462,42 @@ a,
 [role="button"] {
   touch-action: manipulation;
 }
+
+/* Reacción al tacto (solo pantallas táctiles): todo lo que se toca se hunde
+   un poco y se aclara mientras el dedo está encima, para que cada toque se
+   sienta respondido. En computadora mandan los estados hover de siempre. */
+@media (hover: none) and (pointer: coarse) {
+  button:not(:disabled),
+  a[href],
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  summary,
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    transition:
+      transform 120ms ease,
+      opacity 120ms ease,
+      background-color 120ms ease;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:active,
+  [role="tab"]:active,
+  [role="menuitem"]:active,
+  [role="option"]:active,
+  summary:active,
+  label:has(input[type="checkbox"]):active,
+  label:has(input[type="radio"]):active {
+    transform: scale(0.97);
+    opacity: 0.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active,
+  a[href]:active,
+  [role="button"]:active {
+    transform: none !important;
+  }
+}
