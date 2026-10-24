@@ -190,9 +190,8 @@ export const NEW_PRODUCTS: NewProduct[] = [
     name: "Manigueta",
     category: "Herrajería",
     unit: "unidad",
-    primary: "",
+    primary: "yalis",
     variants: ["B262Y-C negra"],
-    doubt: "¿A quién se le compra? ¿También a YALIS?",
   },
   { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", doubt: 'Estaba en el Excel ("Rollo cable RGB"). ¿Lo agrego también?' },
 ];
