@@ -141,7 +141,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   // Enxamble
   "Pegamento Kit Express": { primary: "enxamble", excel: "Pegadit express Duo" },
   "Pegamento Fortik": { primary: "enxamble", excel: "Cemento PL o Fortik" },
-  "Expulsor (push)": { primary: "enxamble", excel: "Push open" },
+  "Expulsor (push) largo": { primary: "enxamble", excel: "Push open" },
   "Pegamento Carpincol": { primary: "enxamble", excel: "Carpincol Plus" },
   "Pegamento granulado para canteadora": { primary: "enxamble", excel: "Pegamento granulado transparente canteadora" },
   "Pegamento PU": { primary: "enxamble", excel: "PU" },
@@ -156,7 +156,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   "Conector para LED": { primary: "mrled", excel: "Conector para led" },
   "Transformador LED": { primary: "mrled", excel: "Transformador led" },
   Termoencogible: { primary: "gigatech", excel: "Termoencogible" },
-  "Cable dúplex calibre 16": { primary: "gigatech", excel: "Cable calibre 16 duplex" },
+  "Cable dúplex calibre 16 AWG": { primary: "gigatech", excel: "Cable calibre 16 duplex" },
   "Cable calibre 14 AWG": { primary: "gigatech", excel: "Cable electrico calibre 14 AWG" },
   // Respondidos por Ebony (no estaban en el Excel)
   "Broca para madera": { primary: "multicomercial", excel: "—" },
