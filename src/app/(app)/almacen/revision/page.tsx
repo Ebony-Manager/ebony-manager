@@ -177,6 +177,7 @@ export default async function RevisionPage() {
                   <td className="px-3 py-2 font-medium">
                     {n.name}
                     {n.variants?.length ? <span className="block text-xs font-normal text-muted-foreground">{n.variants.join(", ")}</span> : null}
+                    {n.note ? <span className="block text-xs font-normal text-muted-foreground">{n.note}</span> : null}
                   </td>
                   <td className="px-3 py-2">{n.category}</td>
                   <td className="px-3 py-2">{unitLabel(n.unit, 1)}</td>

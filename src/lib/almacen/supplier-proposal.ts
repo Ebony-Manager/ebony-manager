@@ -137,7 +137,7 @@ export const ITEM_PROPOSALS: Record<string, ItemProposal> = {
   Avellanador: { primary: "euroferr", excel: "Avellanador" },
   "Fresa para router": { primary: "euroferr", excel: "Fresas para Router" },
   // Luces
-  "Cinta LED": { primary: "lumicentro", excel: "Caja cinta led 3000k" },
+  "Cinta LED rollo 5 m": { primary: "lumicentro", excel: "Caja cinta led 3000k", note: "Paquete con 1 rollo de 5 m; se cuenta por rollo." },
   Interruptor: { primary: "mrled", excel: "Interruptor" },
   "Conector para LED": { primary: "mrled", excel: "Conector para led" },
   "Transformador LED": { primary: "mrled", excel: "Transformador led" },
@@ -170,6 +170,7 @@ export interface NewProduct {
   /** "" = todavía no se sabe. */
   primary: string;
   alternatives?: string[];
+  note?: string;
   /** Variantes con las que se crea (sin esto, variante única). */
   variants?: string[];
   doubt?: string;
@@ -195,12 +196,14 @@ export const NEW_PRODUCTS: NewProduct[] = [
     primary: "yalis",
     variants: ["B262Y-C negra"],
   },
+  { name: "Cable RGB", category: "Eléctrico", unit: "metro", primary: "gigatech", note: "Rollo de cable RGB (no es la cinta)." },
   {
-    name: "Cable RGB",
+    name: "Cinta LED rollo 100 m",
     category: "Eléctrico",
     unit: "metro",
-    primary: "gigatech",
-    doubt: 'En la app solo está la cinta LED RGB (Cinta LED, variante RGB), no el cable. ¿Agrego el "Rollo cable RGB" de Gigatech?',
+    primary: "",
+    note: "Vienen de China: rollos de 100 m, se cuentan por metro. Hay 5 rollos pedidos.",
+    doubt: "¿De qué color (3000K, 6500K)? ¿El proveedor es YALIS u otro?",
   },
 ];
 
