@@ -34,6 +34,20 @@ export default async function RevisionPage() {
     ...NEW_PRODUCTS.filter((n) => n.doubt).map((n) => `${n.name} (nuevo): ${n.doubt}`),
   ];
 
+  // Para afinar: lo que el cálculo por consumo (JotForm de egresos) dejó raro o vacío.
+  const live = (i: InventoryItem) => i.variants.filter((v) => v.active);
+  const withoutMin = active.filter((i) => live(i).every((v) => v.minQty == null));
+  const partialMin = active.filter((i) => {
+    const vs = live(i);
+    return vs.length > 1 && vs.some((v) => v.minQty != null) && vs.some((v) => v.minQty == null);
+  });
+  const bulk = active.flatMap((i) =>
+    live(i)
+      .filter((v) => (v.minQty ?? 0) >= 50)
+      .map((v) => `${i.name}${v.label ? ` ${v.label}` : ""}: mínimo ${formatQty(v.minQty!)} ${unitLabel(i.unit, v.minQty!)}`),
+  );
+  const returnable = active.filter((i) => i.kind === "devolvible" && live(i).some((v) => v.minQty != null));
+
   return (
     <div className="flex flex-col gap-8 px-4 pt-6 pb-16 sm:px-7">
       <header className="flex flex-col gap-2">
@@ -62,6 +76,41 @@ export default async function RevisionPage() {
           ))}
         </ol>
         <p className="text-xs text-muted-foreground">También salen en el Excel, pero ya se eliminaron de la app: {EXCEL_DELETED.join(", ")}.</p>
+      </section>
+
+      <section className="flex flex-col gap-4 border border-border bg-card p-4 sm:p-5">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Para afinar los mínimos</h2>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Los mínimos salen del consumo registrado en el JotForm de egresos: 2 semanas de consumo, y &quot;pedir hasta&quot; es el doble. Lo que casi no se
+            registraba quedó sin mínimo, y por eso la app nunca va a avisar que se está acabando.
+          </p>
+        </div>
+        <Finding title={`Sin ningún mínimo (${withoutMin.length})`} hint="¿Cuáles de estos no pueden faltar? Dime cuánto tener como mínimo.">
+          {withoutMin.map((i) => i.name).join(", ")}
+        </Finding>
+        <Finding
+          title={`Con mínimo solo en algunas variantes (${partialMin.length})`}
+          hint="Las variantes sin mínimo (con — en la tabla de cada producto) no avisan. ¿Se dejan así o se les pone el mismo de su hermana?"
+        >
+          {partialMin.map((i) => i.name).join(", ")}
+        </Finding>
+        <Finding
+          title={`Cantidades grandes (${bulk.length})`}
+          hint="Estos se compran por caja, rollo o bolsa. Si me dices cuánto trae cada presentación, el pedido por WhatsApp sale en cajas o rollos y no en unidades sueltas."
+        >
+          <ul className="flex flex-col gap-0.5">
+            {bulk.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        </Finding>
+        <Finding
+          title={`Se prestan y se devuelven, pero tienen mínimo (${returnable.length})`}
+          hint="Su consumo real es menor que lo que salió en el JotForm, porque vuelven. ¿Se bajan los mínimos o se tratan como consumibles?"
+        >
+          {returnable.map((i) => i.name).join(", ")}
+        </Finding>
       </section>
 
       <section className="flex flex-col gap-3">
@@ -141,6 +190,16 @@ export default async function RevisionPage() {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function Finding({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 border-t border-border pt-3 text-sm">
+      <h3 className="font-semibold text-foreground">{title}</h3>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+      <div className="text-foreground">{children}</div>
     </div>
   );
 }
