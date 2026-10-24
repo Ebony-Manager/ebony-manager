@@ -247,6 +247,26 @@ export async function deleteItem(id: string): Promise<void> {
   if (item?.photo_path) await supabase.storage.from("inventory-photos").remove([item.photo_path]);
 }
 
+export interface VariantLevels {
+  variantId: string;
+  minQty: number | null;
+  reorderQty: number | null;
+}
+
+/** Mínimo y "pedir hasta" de las variantes de un producto, y su nota (pantalla de revisión). */
+export async function saveItemLevels(itemId: string, levels: VariantLevels[], notes: string | null): Promise<void> {
+  const supabase = await createClient();
+  for (const l of levels) {
+    if (l.minQty != null && l.minQty < 0) throw new Error("El mínimo no puede ser negativo.");
+    if (l.reorderQty != null && l.minQty != null && l.reorderQty < l.minQty) throw new Error("\"Pedir hasta\" no puede ser menor que el mínimo.");
+    fail(
+      (await supabase.from("inventory_variants").update({ min_qty: l.minQty, reorder_qty: l.reorderQty }).eq("id", l.variantId).eq("item_id", itemId))
+        .error,
+    );
+  }
+  fail((await supabase.from("inventory_items").update({ notes }).eq("id", itemId)).error);
+}
+
 /** Guarda (o quita) la foto del producto. El archivo ya lo subió el navegador al bucket. */
 export async function setItemPhoto(id: string, path: string | null): Promise<void> {
   const supabase = await createClient();

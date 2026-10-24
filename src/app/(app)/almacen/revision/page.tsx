@@ -1,22 +1,33 @@
 import { AlertTriangle } from "lucide-react";
 
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireModule } from "@/lib/auth/dal";
 import { formatQty, unitLabel } from "@/lib/almacen/inventory";
 import { EXCEL_DELETED, ITEM_PROPOSALS, NEW_PRODUCTS, PROPOSED_SUPPLIERS, type ItemProposal } from "@/lib/almacen/supplier-proposal";
 import { getCatalog, getCategories } from "@/services/almacen";
 import type { InventoryItem } from "@/types/almacen";
-import { ItemThumb } from "../shared";
+import { RevisionRow, type SupplierLine } from "./revision-row";
 
-// Almacén → Revisión (temporal, solo admin): el catálogo como está en la app
-// (foto, variantes, mínimo y "pedir hasta") con los proveedores propuestos a
-// partir del Excel. Solo lectura: se usa para revisar antes de cargarlo.
+// Almacén → Revisión (temporal; Almacén + Compras): el catálogo como está en
+// la app (foto, variantes, mínimo y "pedir hasta") con los proveedores
+// propuestos a partir del Excel. Los mínimos y la nota de cada producto se
+// editan y guardan aquí; los proveedores todavía no se guardan.
 export const dynamic = "force-dynamic";
 
 const SUPPLIER = new Map(PROPOSED_SUPPLIERS.map((s) => [s.key, s]));
 const supplierName = (key: string) => SUPPLIER.get(key)?.name ?? key;
 
+function supplierLine(p: ItemProposal | undefined): SupplierLine {
+  return {
+    primary: p?.primary ? supplierName(p.primary) : null,
+    alternatives: (p?.alternatives ?? []).map(supplierName),
+    excel: p && p.excel !== "—" ? p.excel : null,
+    note: p?.note ?? null,
+    doubt: p?.doubt ?? null,
+  };
+}
+
 export default async function RevisionPage() {
-  await requireAdmin();
+  await requireModule("almacen", "almacen_compras");
   const [items, categories] = await Promise.all([getCatalog(), getCategories()]);
   const active = items.filter((i) => i.active);
   const doubts = active.filter((i) => ITEM_PROPOSALS[i.name]?.doubt);
@@ -54,8 +65,10 @@ export default async function RevisionPage() {
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Almacén · Revisión antes de oficializar</p>
         <h1 className="text-2xl font-semibold text-foreground">Catálogo y proveedores</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Así está hoy cada producto en la app, con los proveedores que salen del Excel &quot;Inventario General&quot;. Nada de esto se guarda todavía: los
-          proveedores se cargan cuando lo apruebes. &quot;Pedir hasta&quot; es la cantidad a la que se repone cuando baja del mínimo.
+          Así está hoy cada producto en la app, con los proveedores que salen del Excel &quot;Inventario General&quot;. En cada producto puedes corregir el
+          mínimo y el &quot;pedir hasta&quot; de cada variante y dejar una nota, y tocar Guardar: eso queda en la app al momento. Los proveedores todavía no se
+          guardan. El mínimo es lo que debe haber siempre; cuando baja de ahí, la app pide comprar hasta llegar a &quot;pedir hasta&quot;. Si dejas &quot;pedir
+          hasta&quot; vacío, se llena solo con el doble del mínimo.
         </p>
         <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Productos" value={active.length} hint={`+${NEW_PRODUCTS.length} nuevos`} />
@@ -184,7 +197,7 @@ export default async function RevisionPage() {
             </h2>
             <ul className="flex flex-col divide-y divide-border border border-border">
               {list.map((item) => (
-                <ProductRow key={item.id} item={item} proposal={ITEM_PROPOSALS[item.name]} />
+                <RevisionRow key={item.id} item={item} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
               ))}
             </ul>
           </section>
@@ -211,72 +224,5 @@ function Stat({ label, value, hint, warn }: { label: string; value: number; hint
       <dd className={`text-xl font-semibold tabular-nums ${warn ? "text-amber-600" : "text-foreground"}`}>{value}</dd>
       {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}
     </div>
-  );
-}
-
-function ProductRow({ item, proposal }: { item: InventoryItem; proposal: ItemProposal | undefined }) {
-  const variants = item.variants.filter((v) => v.active);
-  const unit = unitLabel(item.unit, 2);
-  return (
-    <li className="grid gap-4 p-3 sm:p-4 md:grid-cols-[96px_minmax(0,1fr)_minmax(0,1.1fr)]">
-      <ItemThumb path={item.photoPath} size={96} />
-      <div className="flex min-w-0 flex-col gap-2">
-        <div>
-          <div className="font-semibold text-foreground">{item.name}</div>
-          <div className="text-xs text-muted-foreground">
-            En {unit}
-            {item.kind === "devolvible" && " · se presta y se devuelve"}
-            {!item.photoPath && " · sin foto"}
-          </div>
-        </div>
-        {proposal?.primary ? (
-          <div className="flex flex-col gap-1 text-sm">
-            <div>
-              <span className="text-xs text-muted-foreground">Principal: </span>
-              <span className="font-medium">{supplierName(proposal.primary)}</span>
-            </div>
-            {proposal.alternatives?.length ? (
-              <div>
-                <span className="text-xs text-muted-foreground">Alternativo: </span>
-                {proposal.alternatives.map(supplierName).join(", ")}
-              </div>
-            ) : null}
-            {proposal.excel !== "—" && <div className="text-xs text-muted-foreground">En el Excel: {proposal.excel}</div>}
-            {proposal.note && <div className="text-xs text-muted-foreground">{proposal.note}</div>}
-            {proposal.doubt && (
-              <div className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                {proposal.doubt}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex gap-1.5 text-sm text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            {proposal?.doubt ?? "Sin proveedor"}
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="py-1 pr-3 font-medium">Variante</th>
-              <th className="py-1 pr-3 text-right font-medium">Mínimo</th>
-              <th className="py-1 text-right font-medium">Pedir hasta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {variants.map((v) => (
-              <tr key={v.id} className="border-t border-border/60">
-                <td className="py-1 pr-3">{v.label || "Única"}</td>
-                <td className="py-1 pr-3 text-right tabular-nums">{v.minQty != null ? formatQty(v.minQty) : "—"}</td>
-                <td className="py-1 text-right tabular-nums">{v.reorderQty != null ? formatQty(v.reorderQty) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </li>
   );
 }
