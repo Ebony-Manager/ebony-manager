@@ -112,12 +112,6 @@ export async function linkAttendanceNameAction(name: string, employeeId: string 
   await attendance.setNameLink(foldName(name), employeeId, profile.id);
 }
 
-export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
-  await requireModule("planilla");
-  const copied = await payroll.duplicatePreviousPeriod(year, month, half);
-  return { copied };
-}
-
 // ── Reportes (solo lectura; igual verifican admin) ─────────────────────
 
 export async function getAnnualSummaryAction(year: number) {

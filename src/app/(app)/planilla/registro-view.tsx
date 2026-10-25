@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Copy,
-  MoreHorizontal,
   Download,
   FileText,
   Landmark,
@@ -36,7 +34,7 @@ import { computeRegistroSimpleTotals } from "@/lib/planilla/payroll-registro-tot
 import { matchesEmployeeQuery, numberEmployees } from "@/lib/planilla/employee-search";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { getRegistroAction, upsertPayrollEntryAction, duplicatePreviousPeriodAction } from "./actions";
+import { getRegistroAction, upsertPayrollEntryAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { RegistroKpiCard } from "./registro-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
@@ -89,7 +87,6 @@ export function RegistroView({
   // otra quincena no vuelve, no se pinta nada (ver `visibleRows`).
   const [rows, setRows] = React.useState<{ period: Period; data: Row[] } | null>(null);
   const [pending, startTransition] = React.useTransition();
-  const [duplicating, setDuplicating] = React.useState(false);
   const [bankOpen, setBankOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   // Buscador de empleado: la tabla se queda solo con quien coincida.
@@ -158,17 +155,6 @@ export function RegistroView({
       console.error("Planilla: no se pudo guardar el cambio", err);
       toast.error(tt("save_failed"));
       load();
-    }
-  }
-
-  async function handleDuplicate() {
-    setDuplicating(true);
-    try {
-      const { copied } = await duplicatePreviousPeriodAction(period.year, period.month, period.half);
-      toast.success(`${tt("duplicate_prev")} · ${copied}`);
-      load();
-    } finally {
-      setDuplicating(false);
     }
   }
 
@@ -362,21 +348,6 @@ export function RegistroView({
             <DropdownMenuItem onSelect={exportPdf}>
               <FileText className="size-3.5" />
               {tt("export_pdf")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Acciones poco frecuentes, apartadas a un lado para que no estorben. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={tt("more_actions")} title={tt("more_actions")}>
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={duplicating} onSelect={() => void handleDuplicate()}>
-              <Copy className="size-3.5" />
-              {tt("duplicate_prev")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

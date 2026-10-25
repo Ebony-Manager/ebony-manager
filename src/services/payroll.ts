@@ -47,7 +47,7 @@ import {
   type ReflowMode,
   type PendingInstallment,
 } from "@/lib/planilla/payroll-loans";
-import { previousPeriod, periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
+import { periodOrdinal, currentPeriod, type Period } from "@/lib/planilla/payroll-period";
 import {
   earliestSalary,
   monthlySalaryAt,
@@ -399,51 +399,6 @@ export async function getRegistroForPeriod(year: number, month: number, half: 1 
       monthlySalaryCents: monthlySalaryAt(changes, year, month, half),
     };
   });
-}
-
-/** "Duplicar quincena anterior": crea la fila en la quincena destino
- *  para cada empleado activo que tuvo fila en la previa y aún no la
- *  tiene acá, copiando el método de pago. La base la deriva `upsertEntry`
- *  del historial de sueldos. Nunca pisa una edición ya hecha. */
-export async function duplicatePreviousPeriod(year: number, month: number, half: 1 | 2): Promise<number> {
-  const prev = previousPeriod(year, month, half);
-  const supabase = await createClient();
-  const employees = (await getPayrollEmployees()).filter((e) => e.status === "ACTIVE");
-
-  const { data: prevRows, error: prevErr } = await supabase
-    .from("payroll_entries")
-    .select("employee_id, payment_method")
-    .eq("period_year", prev.year)
-    .eq("period_month", prev.month)
-    .eq("period_half", prev.half);
-  if (prevErr) throw new Error(prevErr.message);
-
-  const { data: targetRows, error: targetErr } = await supabase
-    .from("payroll_entries")
-    .select("employee_id")
-    .eq("period_year", year)
-    .eq("period_month", month)
-    .eq("period_half", half);
-  if (targetErr) throw new Error(targetErr.message);
-
-  const prevByEmployee = new Map((prevRows ?? []).map((r) => [r.employee_id, r]));
-  const targetSet = new Set((targetRows ?? []).map((r) => r.employee_id));
-
-  let copied = 0;
-  for (const employee of employees) {
-    if (targetSet.has(employee.id)) continue;
-    const src = prevByEmployee.get(employee.id);
-    if (!src) continue;
-    await upsertEntry({
-      employeeId: employee.id,
-      periodYear: year,
-      periodMonth: month,
-      periodHalf: half,
-      paymentMethod: (src.payment_method as PaymentMethod) ?? "transferencia",
-    });
-    copied += 1;
-  }
-  return copied;
 }
 
 // ============================================================================

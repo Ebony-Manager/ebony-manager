@@ -402,7 +402,6 @@ export const strings = {
 
     quincena_1: { es: "1ra Quincena", en: "1st Half" },
     quincena_2: { es: "2da Quincena", en: "2nd Half" },
-    duplicate_prev: { es: "Duplicar quincena anterior", en: "Copy previous period" },
     columns: { es: "Columnas", en: "Columns" },
 
     col_empleado: { es: "Empleado", en: "Employee" },
@@ -534,7 +533,6 @@ export const strings = {
       es: "Incluye cédulas y cuentas bancarias: cuida a quién se la entregas.",
       en: "Includes ID numbers and bank accounts: be careful who you hand it to.",
     },
-    more_actions: { es: "Más acciones", en: "More actions" },
     save_failed: { es: "No se pudo guardar el cambio. Se restauró lo guardado.", en: "Could not save the change. Saved data was restored." },
     ls_total_given: { es: "Total otorgado", en: "Total lent" },
     ls_total_paid: { es: "Total descontado", en: "Total repaid" },
