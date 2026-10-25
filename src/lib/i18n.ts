@@ -48,13 +48,12 @@ export const strings = {
     settings: { es: "Settings", en: "Settings" },
     usuarios: { es: "Usuarios", en: "Users" },
     notificaciones: { es: "Notificaciones", en: "Notifications" },
-    // Panel "Almacén": existencias, salidas, compras (cualquiera pide), proveedores y ajustes.
+    // Panel "Almacén": inventario, salidas, compras (cualquiera pide) y proveedores.
     almacen: { es: "Almacén", en: "Warehouse" },
-    existencias: { es: "Existencias", en: "Stock" },
+    existencias: { es: "Inventario", en: "Inventory" },
     salidas: { es: "Salidas", en: "Issues" },
     compras: { es: "Compras", en: "Purchasing" },
     proveedores: { es: "Proveedores", en: "Suppliers" },
-    ajustes: { es: "Ajustes", en: "Adjustments" },
     // Menú de perfil, abajo a la izquierda del rail (ver user-menu.tsx).
     profile: { es: "Mi perfil", en: "My profile" },
     language: { es: "Idioma", en: "Language" },
@@ -2342,7 +2341,24 @@ export const strings = {
     stock_now: { es: "Hay", en: "In stock" },
     auto: { es: "Automática", en: "Automatic" },
     // Existencias
-    stock_title: { es: "Existencias", en: "Stock" },
+    stock_title: { es: "Inventario", en: "Inventory" },
+    // Movimientos (historial) y ajustes, desde Inventario
+    movements_btn: { es: "Movimientos", en: "Movements" },
+    adjust: { es: "Ajustar", en: "Adjust" },
+    mov_title: { es: "Movimientos", en: "Movements" },
+    mov_subtitle: {
+      es: "Todo lo que entró, salió o se ajustó en el inventario, lo más nuevo arriba.",
+      en: "Everything that came in, went out or was adjusted, newest first.",
+    },
+    mov_search_ph: { es: "Buscar producto, persona o proveedor", en: "Search product, person or supplier" },
+    mov_filter_out: { es: "Salidas", en: "Out" },
+    mov_filter_in: { es: "Entradas", en: "In" },
+    mov_filter_adj: { es: "Ajustes", en: "Adjustments" },
+    mov_kind_out: { es: "Salida", en: "Out" },
+    mov_kind_in: { es: "Entrada", en: "In" },
+    mov_kind_adj: { es: "Ajuste", en: "Adjustment" },
+    mov_left: { es: "quedan", en: "left" },
+    mov_empty: { es: "Todavía no hay movimientos.", en: "No movements yet." },
     stock_subtitle: {
       es: "Lo que hay en el almacén, por producto y variante. En rojo lo que está sin stock; en ámbar lo que está bajo stock (llegó al mínimo).",
       en: "What's in the warehouse, by product and variant. Red is out of stock; amber reached the minimum.",
@@ -2549,14 +2565,8 @@ export const strings = {
     f_address: { es: "Dirección", en: "Address" },
     open_whatsapp: { es: "Abrir WhatsApp", en: "Open WhatsApp" },
     // Ajustes
-    adj_title: { es: "Ajustes de inventario", en: "Stock adjustments" },
-    adj_subtitle: {
-      es: "Conteos y correcciones. La carga inicial se hace aquí con un conteo de todo.",
-      en: "Counts and corrections. The initial load is done here with a full count.",
-    },
     new_adjustment: { es: "Nuevo ajuste", en: "New adjustment" },
     adj_saved: { es: "Ajuste registrado", en: "Adjustment recorded" },
-    adj_empty: { es: "Todavía no hay ajustes.", en: "No adjustments yet." },
     f_reason_adj: { es: "Motivo", en: "Reason" },
     r_conteo: { es: "Conteo", en: "Count" },
     r_inicial: { es: "Carga inicial", en: "Initial load" },
@@ -2570,8 +2580,6 @@ export const strings = {
     difference: { es: "Diferencia", en: "Difference" },
     add_category: { es: "Agregar toda una categoría", en: "Add a whole category" },
     adj_no_changes: { es: "No hubo cambios: lo contado es igual a lo que había.", en: "No changes: the count matches the stock." },
-    col_reason: { es: "Motivo", en: "Reason" },
-    col_changes: { es: "Cambios", en: "Changes" },
   },
 
   // Settings → Notificaciones: avisos automáticos de la app.

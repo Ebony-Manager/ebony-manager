@@ -9,6 +9,7 @@ import type {
   InventoryCategory,
   InventoryIssue,
   InventoryItem,
+  InventoryMovement,
   InventoryPerson,
   InventoryUnit,
   ItemKind,
@@ -481,6 +482,43 @@ export async function cancelPurchaseOrder(orderId: string): Promise<void> {
 }
 
 // ── Ajustes ─────────────────────────────────────────────────────────────
+
+/** Historial de movimientos (salidas, entradas por compra y ajustes), lo más nuevo primero. */
+export async function getMovements(limit = 500): Promise<InventoryMovement[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inventory_movements")
+    .select(
+      "id, variant_id, kind, qty, stock_after, moved_on, created_by_name, created_at, inventory_issues(recipient_employee_id, recipient_contractor_id, project_id, internal_use), inventory_adjustments(reason, notes), purchase_order_lines(purchase_orders(supplier_id))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  fail(error);
+  return (data ?? []).map((r) => {
+    const issue = r.inventory_issues;
+    const adj = r.inventory_adjustments;
+    return {
+      id: r.id,
+      variantId: r.variant_id,
+      kind: r.kind as InventoryMovement["kind"],
+      qty: Number(r.qty),
+      stockAfter: Number(r.stock_after),
+      movedOn: r.moved_on,
+      createdByName: r.created_by_name,
+      createdAt: r.created_at,
+      issue: issue
+        ? {
+            employeeId: issue.recipient_employee_id,
+            contractorId: issue.recipient_contractor_id,
+            projectId: issue.project_id,
+            internalUse: issue.internal_use as InternalUse | null,
+          }
+        : null,
+      supplierId: r.purchase_order_lines?.purchase_orders?.supplier_id ?? null,
+      adjustment: adj ? { reason: adj.reason as AdjustmentReason, notes: adj.notes } : null,
+    };
+  });
+}
 
 export async function getAdjustments(limit = 100): Promise<InventoryAdjustment[]> {
   const supabase = await createClient();

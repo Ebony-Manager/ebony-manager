@@ -150,6 +150,25 @@ export interface PurchaseOrder {
   lines: PurchaseOrderLine[];
 }
 
+/** Un movimiento del inventario (historial): de dónde vino y cómo quedó. */
+export interface InventoryMovement {
+  id: string;
+  variantId: string;
+  kind: "salida" | "recepcion" | "ajuste";
+  /** Con signo: negativo sale, positivo entra. */
+  qty: number;
+  stockAfter: number;
+  movedOn: string;
+  createdByName: string | null;
+  createdAt: string;
+  /** Salida: a quién y para qué. */
+  issue: { employeeId: string | null; contractorId: string | null; projectId: string | null; internalUse: InternalUse | null } | null;
+  /** Recepción de compra: el proveedor del pedido. */
+  supplierId: string | null;
+  /** Ajuste: motivo y nota. */
+  adjustment: { reason: AdjustmentReason; notes: string | null } | null;
+}
+
 export interface InventoryAdjustment {
   id: string;
   adjustedOn: string;

@@ -15,7 +15,6 @@ import {
   PackageMinus,
   ShoppingCart,
   Truck,
-  ClipboardCheck,
   Bell,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +33,8 @@ export interface NavItem {
   adminOnly?: boolean;
   /** Activo solo en su ruta exacta, no en sus sub-rutas (el Resumen en /personal, que no debe marcarse en /personal/staff). */
   exact?: boolean;
+  /** Otras rutas que cuentan como esta (ej. Movimientos es parte de Inventario). */
+  alsoActive?: string[];
 }
 
 /** El menú solo muestra lo que el usuario puede abrir; el gate real es requireModule() + RLS. */
@@ -86,7 +87,7 @@ export const PERSONAL_PANEL: NavPanel = {
   ],
 };
 
-// Almacén — existencias, salidas, compras, proveedores y ajustes. Compras
+// Almacén — inventario (con sus movimientos y ajustes), salidas, compras y proveedores. Compras
 // lo ve cualquiera (para pedir lo que haga falta; quien no tiene Compras ve
 // solo sus solicitudes), así que todos ven el ícono.
 export const ALMACEN_PANEL: NavPanel = {
@@ -94,11 +95,10 @@ export const ALMACEN_PANEL: NavPanel = {
   icon: Warehouse,
   title: strings.nav.almacen,
   items: [
-    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true },
+    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
     { href: "/almacen/proveedores", icon: Truck, label: strings.nav.proveedores, modules: ["almacen"] },
-    { href: "/almacen/ajustes", icon: ClipboardCheck, label: strings.nav.ajustes, modules: ["almacen_ajustes"] },
   ],
 };
 
@@ -116,7 +116,11 @@ export const SETTINGS_PANEL: NavPanel = {
 export const NAV_PANELS: NavPanel[] = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL];
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
-  return pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`));
+  return (
+    pathname === item.href ||
+    (!item.exact && pathname.startsWith(`${item.href}/`)) ||
+    (item.alsoActive ?? []).some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  );
 }
 
 /**

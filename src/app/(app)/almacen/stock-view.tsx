@@ -2,7 +2,8 @@
 
 import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { History, Plus, SlidersHorizontal } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, Supplier } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatQty, formatUnitCost, stockStatus } from "@/lib/almacen/inventory";
+import { PAGE_CLASS } from "@/components/shared/page-header";
 import { ItemDialog } from "./item-dialog";
+import { AdjustmentDialog } from "./adjustment-dialog";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, StockBadge, qtyWithUnit, useTa } from "./shared";
 
 type Filter = "all" | "low" | "out";
@@ -26,18 +29,22 @@ export function StockView({
   suppliers,
   canEdit,
   canCosts,
+  canAdjust,
 }: {
   items: InventoryItem[];
   categories: InventoryCategory[];
   suppliers: Supplier[];
   canEdit: boolean;
   canCosts: boolean;
+  /** Con "Ajustes de inventario": botón Ajustar (conteo, daño, pérdida, corrección). */
+  canAdjust: boolean;
 }) {
   const { ta, lang } = useTa();
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState("all");
   const [filter, setFilter] = React.useState<Filter>("all");
   const [editing, setEditing] = React.useState<InventoryItem | "new" | null>(null);
+  const [adjusting, setAdjusting] = React.useState(false);
 
   const catName = React.useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
   const catOrder = React.useMemo(() => new Map(categories.map((c) => [c.id, c.sortOrder])), [categories]);
@@ -65,17 +72,32 @@ export function StockView({
   );
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
+    <div className={PAGE_CLASS}>
       <PageHeader
         title={ta("stock_title")}
         subtitle={ta("stock_subtitle")}
         action={
-          canEdit && (
-            <Button size="sm" onClick={() => setEditing("new")}>
-              <Plus className="size-3.5" />
-              {ta("new_item")}
+          <>
+            {/* Historial y ajustes: en el celular solo el ícono. */}
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/almacen/movimientos" aria-label={ta("movements_btn")} title={ta("movements_btn")}>
+                <History className="size-3.5" />
+                <span className="hidden sm:inline">{ta("movements_btn")}</span>
+              </Link>
             </Button>
-          )
+            {canAdjust && (
+              <Button size="sm" variant="outline" onClick={() => setAdjusting(true)} aria-label={ta("adjust")} title={ta("adjust")}>
+                <SlidersHorizontal className="size-3.5" />
+                <span className="hidden sm:inline">{ta("adjust")}</span>
+              </Button>
+            )}
+            {canEdit && (
+              <Button size="sm" onClick={() => setEditing("new")}>
+                <Plus className="size-3.5" />
+                {ta("new_item")}
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -196,6 +218,7 @@ export function StockView({
         </>
       )}
 
+      {canAdjust && <AdjustmentDialog open={adjusting} onOpenChange={setAdjusting} items={items} categories={categories} />}
       <ItemDialog item={editing} categories={categories} suppliers={suppliers} canEdit={canEdit} canCosts={canCosts} onClose={() => setEditing(null)} />
     </div>
   );
