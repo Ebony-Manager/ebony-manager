@@ -62,7 +62,7 @@ export function PurchasesView({
     <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageHeader
         title={ta("purchases_title")}
-        subtitle={canPurchase ? ta("purchases_subtitle") : ta("my_requests_subtitle")}
+        subtitle={canPurchase ? ta("purchases_subtitle") : canWarehouse ? ta("warehouse_requests_subtitle") : ta("my_requests_subtitle")}
         action={
           <Button size="sm" onClick={() => setRequesting(true)}>
             <Plus className="size-3.5" />
@@ -88,6 +88,8 @@ export function PurchasesView({
             projectName={projectName}
             onBuild={(supplierId, requestIds) => setBuilding({ supplierId, requestIds })}
           />
+        ) : canWarehouse ? (
+          <WarehouseRequests requests={requests} userId={userId} index={index} projectName={projectName} />
         ) : (
           <MyRequests requests={requests.filter((r) => r.createdBy === userId)} index={index} projectName={projectName} />
         )
@@ -278,7 +280,46 @@ function PendingRow({
 function MyRequests({ requests, index, projectName }: { requests: PurchaseRequest[]; index: Map<string, VariantRef>; projectName: Map<string, string> }) {
   const { ta } = useTa();
   if (requests.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
-  return <RequestsTable requests={requests} index={index} projectName={projectName} canCancelPending />;
+  return <RequestsTable requests={requests} index={index} projectName={projectName} canCancel={() => true} />;
+}
+
+// ── Almacén sin Compras: todas las solicitudes con su estado ────────────
+
+function WarehouseRequests({
+  requests,
+  userId,
+  index,
+  projectName,
+}: {
+  requests: PurchaseRequest[];
+  userId: string;
+  index: Map<string, VariantRef>;
+  projectName: Map<string, string>;
+}) {
+  const { ta } = useTa();
+  const [filter, setFilter] = React.useState<ReqFilter>("all");
+  return (
+    <div className="flex flex-col gap-4">
+      <SegmentedFilter
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: "all", label: ta("filter_all") },
+          { value: "pendiente", label: ta("st_pendiente") },
+          { value: "pedido", label: ta("st_pedido") },
+          { value: "recibido", label: ta("st_recibido") },
+          { value: "cancelado", label: ta("st_cancelado") },
+        ]}
+      />
+      <RequestsTable
+        requests={requests.filter((r) => filter === "all" || r.status === filter)}
+        index={index}
+        projectName={projectName}
+        showWho
+        canCancel={(r) => r.createdBy === userId}
+      />
+    </div>
+  );
 }
 
 function RequestsTable({
@@ -286,13 +327,14 @@ function RequestsTable({
   index,
   projectName,
   showWho,
-  canCancelPending,
+  canCancel,
 }: {
   requests: PurchaseRequest[];
   index: Map<string, VariantRef>;
   projectName: Map<string, string>;
   showWho?: boolean;
-  canCancelPending?: boolean;
+  /** Puede cancelar esta solicitud si sigue pendiente (las propias). */
+  canCancel?: (r: PurchaseRequest) => boolean;
 }) {
   const { ta, lang } = useTa();
   if (requests.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
@@ -323,7 +365,7 @@ function RequestsTable({
               <td className="px-3.5 py-2.5 text-right">
                 <span className="inline-flex items-center gap-2">
                   <StatusBadge status={r.status} />
-                  {canCancelPending && r.status === "pendiente" && (
+                  {canCancel?.(r) && r.status === "pendiente" && (
                     <ConfirmButton
                       iconOnly
                       icon={X}

@@ -30,7 +30,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const pathname = usePathname();
   const access = { role, modules };
   const tl = (label: NavItem["label"]) => t(lang, label);
-  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0);
+  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
 
   const modulesList = RAIL_ITEMS.filter((i) => canSeeNavItem(i, access));
   const panels = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL]

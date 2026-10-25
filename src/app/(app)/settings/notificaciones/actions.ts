@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth/dal";
-import { saveNotificationSetting } from "@/services/notifications";
+import { markNoticesSeen, saveNotificationSetting } from "@/services/notifications";
 
 export async function saveNotificationSettingAction(key: string, input: { enabled: boolean; days: number[]; recipients: string[] | null }) {
   const me = await requireAdmin();
@@ -14,4 +14,11 @@ export async function saveNotificationSettingAction(key: string, input: { enable
   }
   revalidatePath("/settings/notificaciones");
   return { ok: true as const };
+}
+
+/** Marca los avisos como vistos (se llama al abrir la página). */
+export async function markNoticesSeenAction() {
+  await requireAdmin();
+  await markNoticesSeen();
+  revalidatePath("/", "layout");
 }

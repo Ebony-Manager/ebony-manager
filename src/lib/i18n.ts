@@ -2345,8 +2345,8 @@ export const strings = {
     },
     mod_asistencia: { es: "Asistencia", en: "Attendance" },
     mod_asistencia_hint: {
-      es: "Importar el reloj y el Jotform a las horas de la quincena.",
-      en: "Import the time clock and Jotform into pay-period hours.",
+      es: "Ver las ponchadas y ajustar días (justificar o corregir horas). Sin Planilla no ve dinero; subir el reloj y pasar a la quincena es de Planilla. Cada ajuste le avisa al admin.",
+      en: "See punches and adjust days (excuse or fix times). Without Payroll sees no money; uploading the clock and applying to the pay period is Payroll's. Each adjustment notifies the admin.",
     },
     mod_contratistas: { es: "Contratistas", en: "Contractors" },
     mod_contratistas_hint: {
@@ -2642,6 +2642,10 @@ export const strings = {
       es: "Pide lo que haga falta, del catálogo o lo que sea. Aquí ves el estado de tus solicitudes.",
       en: "Request whatever is needed, from the catalog or anything else. Here you see your requests' status.",
     },
+    warehouse_requests_subtitle: {
+      es: "Pide lo que haga falta y mira en qué va cada solicitud: pendiente, pedida o recibida.",
+      en: "Request what's needed and see where each request stands: pending, ordered or received.",
+    },
     tab_requests: { es: "Solicitudes", en: "Requests" },
     tab_orders: { es: "Pedidos", en: "Orders" },
     new_request: { es: "Nueva solicitud", en: "New request" },
@@ -2764,10 +2768,19 @@ export const strings = {
 
   // Settings → Notificaciones: avisos automáticos de la app.
   notificaciones: {
+    notices_title: { es: "Avisos", en: "Alerts" },
+    notices_hint: {
+      es: "Lo que pasó y conviene que sepas, por ejemplo cuando alguien que no es admin ajusta la asistencia. Se marcan como vistos al abrir esta página.",
+      en: "Things worth knowing, e.g. when a non-admin adjusts attendance. They're marked as seen when you open this page.",
+    },
+    notices_empty: { es: "No hay avisos todavía.", en: "No alerts yet." },
+    notices_new: { es: "Nuevo", en: "New" },
+    notices_open: { es: "Ver", en: "Open" },
+    emails_title: { es: "Correos automáticos", en: "Automatic emails" },
     title: { es: "Notificaciones", en: "Notifications" },
     subtitle: {
-      es: "Los avisos que la app manda sola por correo: si están prendidos, qué días y a quién.",
-      en: "The emails the app sends on its own: whether they're on, which days and to whom.",
+      es: "Los avisos de la app y los correos que manda sola: si están prendidos, qué días y a quién.",
+      en: "App alerts and the emails it sends on its own: whether they're on, which days and to whom.",
     },
     almacen_title: { es: "Resumen diario del almacén", en: "Daily warehouse summary" },
     almacen_desc: {

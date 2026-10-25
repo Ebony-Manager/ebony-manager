@@ -92,7 +92,7 @@ export const PERSONAL_PANEL: NavPanel = {
   items: [
     { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, anyModules: ["planilla", "contratistas"], exact: true },
     { href: "/personal/staff", icon: Contact, label: strings.nav.staff, modules: ["documentos"] },
-    { href: "/personal/pagos", icon: Wallet, label: strings.nav.pagos, anyModules: ["planilla", "contratistas"] },
+    { href: "/personal/pagos", icon: Wallet, label: strings.nav.pagos, anyModules: ["planilla", "contratistas", "asistencia"] },
   ],
 };
 

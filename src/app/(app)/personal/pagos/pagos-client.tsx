@@ -90,10 +90,11 @@ export function PagosClient({
 
   const TABS = (
     [
-      { value: "asistencia", show: canEmployees && canAttendance },
+      // Asistencia no pide Planilla: sin ella se ve sin dinero (ver AsistenciaView).
+      { value: "asistencia", show: canAttendance },
       { value: "quincena", show: canEmployees },
       { value: "contratistas", show: canContractors },
-      { value: "prestamos", show: true },
+      { value: "prestamos", show: canEmployees || canContractors },
       { value: "historial", show: canEmployees },
       { value: "contratos", show: canContractors },
     ] as const
@@ -101,7 +102,7 @@ export function PagosClient({
 
   const [tab, setTabState] = React.useState<PagosTab>(() => {
     const found = TABS.find((x) => x.value === initialTab);
-    return found ? found.value : canEmployees ? "quincena" : "contratistas";
+    return found ? found.value : canEmployees ? "quincena" : canContractors ? "contratistas" : "asistencia";
   });
   const setTab = React.useCallback((value: PagosTab) => {
     setTabState(value);
@@ -211,9 +212,9 @@ export function PagosClient({
         )}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as PagosTab)}>
-          {canEmployees && canAttendance && (
+          {canAttendance && (
             <TabsContent value="asistencia" className="pt-0">
-              <AsistenciaView onApplied={reload} />
+              <AsistenciaView onApplied={reload} canPayroll={canEmployees} />
             </TabsContent>
           )}
           {canEmployees && (

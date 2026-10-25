@@ -161,3 +161,28 @@ export async function deleteResolution(employeeId: string, date: string): Promis
   const { error } = await supabase.from("attendance_day_resolutions").delete().eq("employee_id", employeeId).eq("day", date);
   if (error) throw new Error(error.message);
 }
+
+/** Empleado activo para armar la asistencia sin Planilla: sin salario ni nada de dinero. */
+export interface RosterEmployee {
+  id: string;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+  categoria: "taller" | "administrativo";
+  startDate: string | null;
+  endDate: string | null;
+}
+
+/** Lista mínima de empleados activos (RPC `attendance_roster`, pide Asistencia). */
+export async function getAttendanceRoster(): Promise<RosterEmployee[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("attendance_roster");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+    categoria: r.categoria === "administrativo" ? "administrativo" : "taller",
+    startDate: r.start_date,
+    endDate: r.end_date,
+  }));
+}

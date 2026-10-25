@@ -18,8 +18,8 @@ export const APP_MODULES = [
   "proyectos",
   "documentos",
   "planilla",
-  "asistencia",
   "contratistas",
+  "asistencia",
   "almacen",
   "almacen_compras",
   "almacen_costos",
@@ -31,8 +31,9 @@ export type AppModule = (typeof APP_MODULES)[number];
 
 /**
  * Sub-permisos: `costos` vive dentro del Cotizador (precios y catálogo);
- * Planilla y Contratistas dentro de Personal (`documentos`), y `asistencia`
- * dentro de Planilla (Pagos → Asistencia). Compras, Costos del almacén y
+ * Planilla, Contratistas y `asistencia` dentro de Personal (`documentos`).
+ * Asistencia sin Planilla ve ponchadas y ajusta días, sin ver dinero
+ * (Pagos → Asistencia). Compras, Costos del almacén y
  * Ajustes de inventario viven dentro de Almacén. Sin el padre no hay forma
  * de llegar a ellos.
  */
@@ -40,7 +41,7 @@ export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   costos: "cotizacion",
   planilla: "documentos",
   contratistas: "documentos",
-  asistencia: "planilla",
+  asistencia: "documentos",
   almacen_compras: "almacen",
   almacen_costos: "almacen",
   almacen_ajustes: "almacen",

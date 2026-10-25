@@ -12,9 +12,10 @@ describe("normalizeModules", () => {
     expect(normalizeModules(["asistencia", "planilla", "documentos"])).toEqual(["documentos", "planilla", "asistencia"]);
   });
 
-  it("Planilla y Contratistas viven dentro de Personal (y Asistencia dentro de Planilla)", () => {
+  it("Planilla, Contratistas y Asistencia viven dentro de Personal (Asistencia no pide Planilla)", () => {
     expect(normalizeModules(["planilla", "contratistas"])).toEqual([]);
     expect(normalizeModules(["asistencia", "planilla"])).toEqual([]);
+    expect(normalizeModules(["asistencia", "documentos"])).toEqual(["documentos", "asistencia"]);
     expect(normalizeModules(["documentos", "contratistas"])).toEqual(["documentos", "contratistas"]);
   });
 

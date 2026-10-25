@@ -2,16 +2,19 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Bell, Eye, Send } from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronRight, Eye, Send } from "lucide-react";
 
 import type { AppUser } from "@/types/usuarios";
-import type { NotificationSetting } from "@/services/notifications";
+import type { AppNotice, NotificationSetting } from "@/services/notifications";
 import { Button } from "@/components/ui/button";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { saveNotificationSettingAction } from "./actions";
-import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { markNoticesSeenAction, saveNotificationSettingAction } from "./actions";
+import { EmptyState, PAGE_CLASS, PageHeader, SectionHeader } from "@/components/shared/page-header";
+import { formatDateCompact } from "@/lib/planilla/format";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
@@ -25,13 +28,61 @@ const CATALOG: Record<string, { title: keyof typeof strings.notificaciones; desc
  * eligen los días y quién lo recibe ("automático" = admins y quien tiene
  * Compras). Se puede ver un ejemplo y mandar una prueba.
  */
-export function NotificacionesClient({ settings, users }: { settings: NotificationSetting[]; users: AppUser[] }) {
+export function NotificacionesClient({ settings, users, notices }: { settings: NotificationSetting[]; users: AppUser[]; notices: AppNotice[] }) {
   const { lang } = useLang();
   const tn = (k: keyof typeof strings.notificaciones) => t(lang, strings.notificaciones[k]);
+  const anyUnseen = notices.some((n) => !n.seenAt);
+
+  // Al abrir la página, los avisos quedan vistos (se apaga el número rojo del menú).
+  React.useEffect(() => {
+    if (anyUnseen) void markNoticesSeenAction().catch(() => undefined);
+  }, [anyUnseen]);
 
   return (
     <div className={PAGE_CLASS}>
       <PageHeader title={tn("title")} subtitle={tn("subtitle")} />
+
+      <section className="flex flex-col gap-2">
+        <SectionHeader title={tn("notices_title")} subtitle={tn("notices_hint")} />
+        {notices.length === 0 ? (
+          <EmptyState>{tn("notices_empty")}</EmptyState>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+            {notices.map((n) => {
+              const when = new Date(n.createdAt);
+              const time = when.toLocaleTimeString(lang === "en" ? "en-US" : "es-PA", { hour: "numeric", minute: "2-digit", timeZone: "America/Panama" });
+              const content = (
+                <>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      {!n.seenAt && <span className="size-2 shrink-0 rounded-full bg-primary" aria-label={tn("notices_new")} />}
+                      {n.title}
+                    </span>
+                    {n.body && <span className="block text-sm text-foreground/80">{n.body}</span>}
+                    <span className="block text-xs text-muted-foreground">
+                      {[n.actorName, `${formatDateCompact(lang, todayInPanama(when))} ${time}`].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  {n.href && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
+                </>
+              );
+              return (
+                <li key={n.id} className={!n.seenAt ? "bg-primary/5" : undefined}>
+                  {n.href ? (
+                    <Link href={n.href} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-muted/40">
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-3 px-3.5 py-2.5">{content}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <SectionHeader title={tn("emails_title")} />
       {settings
         .filter((s) => CATALOG[s.key])
         .map((s) => (

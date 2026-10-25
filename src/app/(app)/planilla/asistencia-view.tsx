@@ -17,6 +17,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
   getAttendanceAction,
+  getAttendanceRosterAction,
   getRegistroAction,
   importPunchesAction,
   linkAttendanceNameAction,
@@ -32,7 +33,9 @@ import { AttendanceSummaryView } from "./attendance-summary-view";
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
   period: Period;
+  /** Filas de la Quincena (solo con Planilla; sin ella, vacío). */
   rows: Row[];
+  employees: ProposalEmployee[];
   punches: RawPunch[];
   links: Record<string, string | null>;
   status: AttendanceStatus;
@@ -76,8 +79,14 @@ async function readRows(file: File): Promise<string[][]> {
  * la entrada o la salida se revisa a mano (`AttendanceDayDialog`): mientras
  * no, esa persona no pasa a la Quincena. "Pasar a la Quincena" abre la
  * propuesta (`AttendanceImportDialog`) para aplicarla.
+ *
+ * Sin Planilla (`canPayroll` falso, ej. la jefa de taller) se ve la misma
+ * quincena y se revisan días, pero sin nada de dinero: la lista de empleados
+ * sale de `attendance_roster` (sin salarios) y no hay subir archivos,
+ * vincular nombres, "Pasar a la Quincena" ni el resumen en dinero. Cada día
+ * que revisa le deja un aviso al admin (trigger en la base).
  */
-export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
+export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: () => void; canPayroll?: boolean }) {
   const { lang } = useLang();
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
@@ -96,10 +105,25 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
     const p = period;
     const range = periodDateRange(p.year, p.month, p.half);
     startTransition(async () => {
-      const [rows, att] = await Promise.all([getRegistroAction(p.year, p.month, p.half), getAttendanceAction(range.from, range.to)]);
-      setLoaded({ period: p, rows, ...att });
+      const [rows, att, roster] = await Promise.all([
+        canPayroll ? getRegistroAction(p.year, p.month, p.half) : Promise.resolve([] as Row[]),
+        getAttendanceAction(range.from, range.to),
+        canPayroll ? Promise.resolve(null) : getAttendanceRosterAction(),
+      ]);
+      const employees: ProposalEmployee[] = roster
+        ? roster.map((e) => ({ ...e, monthlySalaryCents: 0 }))
+        : rows.map((r) => ({
+            id: r.employee.id,
+            name: r.employee.name,
+            status: r.employee.status,
+            categoria: r.employee.categoria,
+            startDate: r.employee.startDate,
+            endDate: r.employee.endDate,
+            monthlySalaryCents: r.monthlySalaryCents,
+          }));
+      setLoaded({ period: p, rows, employees, ...att });
     });
-  }, [period]);
+  }, [period, canPayroll]);
 
   React.useEffect(() => {
     load();
@@ -108,19 +132,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const ready = loaded && loaded.period.year === period.year && loaded.period.month === period.month && loaded.period.half === period.half;
   const range = periodDateRange(period.year, period.month, period.half);
   const links = React.useMemo(() => new Map(Object.entries(loaded?.links ?? {})), [loaded]);
-  const employees: ProposalEmployee[] = React.useMemo(
-    () =>
-      (loaded?.rows ?? []).map((r) => ({
-        id: r.employee.id,
-        name: r.employee.name,
-        status: r.employee.status,
-        categoria: r.employee.categoria,
-        startDate: r.employee.startDate,
-        endDate: r.employee.endDate,
-        monthlySalaryCents: r.monthlySalaryCents,
-      })),
-    [loaded]
-  );
+  const employees: ProposalEmployee[] = React.useMemo(() => loaded?.employees ?? [], [loaded]);
   const { proposals, unmatched } = React.useMemo(
     () =>
       ready
@@ -228,7 +240,8 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
           onPrev={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}
           onNext={() => setPeriod((p) => nextPeriod(p))}
         />
-        {/* Celular: las dos subidas lado a lado y "Pasar a la Quincena" a todo el ancho. */}
+        {/* Celular: las dos subidas lado a lado y "Pasar a la Quincena" a todo el ancho. Solo con Planilla. */}
+        {canPayroll && (
         <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           <label className={`${uploadBtn} ${uploading ? "pointer-events-none opacity-50" : ""}`}>
             <Upload className="size-3.5" />
@@ -244,6 +257,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
             {tg("att_to_quincena")}
           </Button>
         </div>
+        )}
       </div>
 
       {ready && (
@@ -276,9 +290,9 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       )}
 
       {/* El resumen del mes / año (quién falta más…), plegado para no estorbar. */}
-      <AttendanceSummaryView collapsible from="registro" />
+      {canPayroll && <AttendanceSummaryView collapsible from="registro" />}
 
-      {ready && unmatched.length > 0 && (
+      {canPayroll && ready && unmatched.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
           <p className="text-sm font-medium text-foreground">{tg("att_unmatched_title")}</p>
           <p className="mb-2 text-xs text-muted-foreground">{tg("att_unmatched_hint")}</p>
@@ -325,7 +339,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
         </div>
       )}
 
-      {ready && Object.keys(loaded.links).length > 0 && (
+      {canPayroll && ready && Object.keys(loaded.links).length > 0 && (
         <details className="rounded-lg border border-border px-4 py-2 text-sm">
           <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
             {tg("att_links_title")} ({Object.keys(loaded.links).length})
@@ -367,7 +381,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                   <th className={`${th} text-right`}>{tg("att_col_early")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_absent")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_review")}</th>
-                  <th className={`${th} text-right`}>{tg("att_col_in_quincena")}</th>
+                  {canPayroll && <th className={`${th} text-right`}>{tg("att_col_in_quincena")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -401,11 +415,11 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                         <td className="px-3 py-2 text-right tabular-nums">
                           {p.blockingDays ? <span className="font-medium text-amber-600 dark:text-amber-400">{p.blockingDays}</span> : "–"}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>
+                        {canPayroll && <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>}
                       </tr>
                       {isOpen && (
                         <tr className="border-b border-border bg-muted/20">
-                          <td colSpan={8} className="px-3 py-2">
+                          <td colSpan={canPayroll ? 8 : 7} className="px-3 py-2">
                             <DayTable
                               proposal={p}
                               onReview={(day) => setReviewing({ employee: { id: p.employeeId, name: p.name }, day })}
@@ -424,7 +438,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       </div>
       <p className="text-[11px] text-muted-foreground">{tp("att_footnote")}</p>
 
-      {ready && (
+      {canPayroll && ready && (
         <AttendanceImportDialog
           open={applyOpen}
           onOpenChange={setApplyOpen}

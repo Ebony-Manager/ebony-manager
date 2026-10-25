@@ -48,7 +48,7 @@ function useNav(pending: PendingCounts) {
   const { role, modules } = useAuth();
   const pathname = usePathname();
   const access = { role, modules };
-  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0);
+  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
   const visiblePanel = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
 
   const destinations: Destination[] = [];

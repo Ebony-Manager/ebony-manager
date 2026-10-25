@@ -21,6 +21,8 @@ export interface PendingCounts {
   intakes: number;
   /** "Solicitudes de dinero" (JotForm) → Planilla. */
   moneyRequests: number;
+  /** Avisos de la app sin ver (solo admin). */
+  notices: number;
 }
 
 export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose: () => void; pending: PendingCounts }) {
@@ -38,7 +40,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
   const openPanel = [almacenPanel, personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
   // Qué ítem del panel lleva cada indicador.
   const pendingFor = (href: string) =>
-    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0;
+    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0;
   const panelPending = (panel: NavPanel) => panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0);
 
   // Ícono del rail para un panel: un Link normal al primer ítem que el

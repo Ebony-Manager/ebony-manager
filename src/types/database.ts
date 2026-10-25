@@ -26,6 +26,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_notifications: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          body: string | null
+          created_at: string
+          href: string | null
+          id: string
+          kind: string
+          seen_at: string | null
+          title: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind: string
+          seen_at?: string | null
+          title: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind?: string
+          seen_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       allowed_emails: {
         Row: {
           created_at: string
@@ -2609,6 +2645,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attendance_roster: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          status: string
+          categoria: string
+          start_date: string | null
+          end_date: string | null
+          sort_order: number
+        }[]
+      }
       register_inventory_issue: {
         Args: {
           p_issued_on: string | null
