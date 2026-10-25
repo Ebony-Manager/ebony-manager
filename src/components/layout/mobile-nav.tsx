@@ -130,7 +130,7 @@ export function MobileBottomNav({ pending, onOpenMenu }: { pending: PendingCount
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[15] border-t border-sidebar-border bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       aria-label={t(lang, strings.nav.menu)}
     >
       <div className="flex h-[var(--mobile-nav-h)] items-stretch px-1">
