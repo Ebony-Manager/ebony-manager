@@ -46,7 +46,18 @@ export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stock
 }
 
 /** Foto del producto (o un ícono si no tiene). `size="fill"` ocupa todo el espacio del contenedor. */
-export function ItemThumb({ path, size = 40, className }: { path: string | null; size?: number | "fill"; className?: string }) {
+export function ItemThumb({
+  path,
+  size = 40,
+  className,
+  eager = false,
+}: {
+  path: string | null;
+  size?: number | "fill";
+  className?: string;
+  /** Cargar ya (ej. hoja para imprimir: una foto sin cargar sale en blanco). */
+  eager?: boolean;
+}) {
   const url = inventoryPhotoUrl(path);
   return (
     <span
@@ -55,7 +66,7 @@ export function ItemThumb({ path, size = 40, className }: { path: string | null;
     >
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element -- foto pública de Supabase Storage; next/image no aplica.
-        <img src={url} alt="" loading="lazy" className="size-full object-contain" />
+        <img src={url} alt="" loading={eager ? "eager" : "lazy"} className="size-full object-contain" />
       ) : (
         <Package className="size-1/2 text-muted-foreground/40" />
       )}

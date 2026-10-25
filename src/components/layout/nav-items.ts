@@ -97,7 +97,7 @@ export const ALMACEN_PANEL: NavPanel = {
   icon: Warehouse,
   title: strings.nav.almacen,
   items: [
-    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/revision"] },
+    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/conteo", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
   ],

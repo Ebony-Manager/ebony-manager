@@ -86,7 +86,7 @@ export function MobileTopBar({ pending }: { pending: PendingCounts }) {
   const title = panel ? t(lang, panel.title) : (crumbs[0] ?? "Ebony Manager");
 
   return (
-    <header className="shrink-0 border-b border-sidebar-border bg-sidebar pt-[env(safe-area-inset-top)] md:hidden">
+    <header className="shrink-0 border-b border-sidebar-border bg-sidebar pt-[env(safe-area-inset-top)] md:hidden print:hidden">
       <div className="flex h-12 items-center gap-2.5 px-4">
         <EbonyMark size={26} />
         <h1 className="truncate text-[15px] font-semibold text-sidebar-foreground">{title}</h1>
@@ -130,7 +130,7 @@ export function MobileBottomNav({ pending, onOpenMenu }: { pending: PendingCount
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-sidebar-border bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden"
       aria-label={t(lang, strings.nav.menu)}
     >
       <div className="flex h-[var(--mobile-nav-h)] items-stretch px-1">

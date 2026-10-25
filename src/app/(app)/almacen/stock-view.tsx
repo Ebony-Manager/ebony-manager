@@ -3,7 +3,7 @@
 import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import Link from "next/link";
-import { History, Plus, SlidersHorizontal } from "lucide-react";
+import { ClipboardList, History, Plus, SlidersHorizontal } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, Supplier } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +78,13 @@ export function StockView({
         subtitle={ta("stock_subtitle")}
         action={
           <>
-            {/* Historial y ajustes: en el celular solo el ícono. */}
+            {/* Conteo, historial y ajustes: en el celular solo el ícono. */}
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/almacen/conteo" aria-label={ta("count_btn")} title={ta("count_btn")}>
+                <ClipboardList className="size-3.5" />
+                <span className="hidden sm:inline">{ta("count_btn")}</span>
+              </Link>
+            </Button>
             <Button size="sm" variant="outline" asChild>
               <Link href="/almacen/movimientos" aria-label={ta("movements_btn")} title={ta("movements_btn")}>
                 <History className="size-3.5" />

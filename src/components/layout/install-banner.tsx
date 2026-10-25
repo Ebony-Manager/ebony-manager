@@ -107,7 +107,7 @@ export function InstallBanner() {
       role="dialog"
       aria-label={tn("install_title")}
       aria-hidden={!shown}
-      className={`fixed inset-x-3 bottom-[calc(var(--app-bottom)+0.75rem)] z-30 transition-all duration-300 ease-out md:hidden ${
+      className={`fixed inset-x-3 bottom-[calc(var(--app-bottom)+0.75rem)] z-30 print:hidden transition-all duration-300 ease-out md:hidden ${
         shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >

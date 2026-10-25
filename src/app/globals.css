@@ -509,3 +509,19 @@ a,
     display: none;
   }
 }
+
+/* Impresión (ej. la hoja de conteo del Almacén): solo el contenido, en blanco,
+   sin barras de la app. Las piezas de la app llevan print:hidden. */
+@media print {
+  @page {
+    size: letter;
+    margin: 12mm 10mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

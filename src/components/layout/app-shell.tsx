@@ -24,15 +24,15 @@ export function AppShell({ children, pending }: { children: React.ReactNode; pen
   const moreOpen = openAt === pathname;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">
       <NavigationProgress />
       {/* En celular el rail no se usa (isOpen siempre false): lo reemplazan las barras y "Más". */}
       <Sidebar isOpen={false} onClose={() => setOpenAt(null)} pending={pending} />
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden print:block print:overflow-visible">
         <MobileTopBar pending={pending} />
         <InstallBanner />
-        <PullToRefresh className="flex-1 overflow-y-auto pb-[var(--app-bottom)]">{children}</PullToRefresh>
+        <PullToRefresh className="flex-1 overflow-y-auto pb-[var(--app-bottom)] print:overflow-visible print:pb-0">{children}</PullToRefresh>
         <MobileBottomNav pending={pending} onOpenMenu={() => setOpenAt(pathname)} />
         <MobileMoreSheet open={moreOpen} onClose={() => setOpenAt(null)} pending={pending} />
       </div>
