@@ -33,7 +33,7 @@ describe("buildSummaryEmail", () => {
       "https://app",
     );
     expect(e.hasContent).toBe(true);
-    expect(e.subject).toBe("Almacén · sábado, 24 de octubre: 1 bajo el mínimo, 1 por pedir, 1 pedidos por llegar");
+    expect(e.subject).toBe("Almacén · sábado, 24 de octubre: 1 bajo stock, 1 por pedir, 1 pedidos por llegar");
     expect(e.html).toContain("Riel de gaveta");
     expect(e.html).toContain("0 pares");
     expect(e.html).toContain("Escobas &lt;x&gt;");

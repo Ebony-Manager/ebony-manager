@@ -49,7 +49,7 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
   const hasContent = s.low_stock.length > 0 || s.pending_requests.length > 0 || s.open_orders.length > 0 || s.yesterday.issues > 0;
   const counts =
     [
-      s.low_stock.length ? `${s.low_stock.length} bajo el mínimo` : null,
+      s.low_stock.length ? `${s.low_stock.length} bajo stock` : null,
       s.pending_requests.length ? `${s.pending_requests.length} por pedir` : null,
       s.open_orders.length ? `${s.open_orders.length} pedidos por llegar` : null,
     ]
@@ -63,8 +63,8 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
   if (s.low_stock.length) {
     const shown = s.low_stock.slice(0, MAX_LOW);
     sections.push(
-      `<h2 style="font-size:16px;margin:0 0 4px">Bajo el mínimo (${s.low_stock.length})</h2>
-<p style="margin:0 0 4px;color:#6b625a;font-size:13px">${out.length} sin existencia. Los marcados con ✓ ya tienen solicitud de compra.</p>` +
+      `<h2 style="font-size:16px;margin:0 0 4px">Bajo stock (${s.low_stock.length})</h2>
+<p style="margin:0 0 4px;color:#6b625a;font-size:13px">${out.length} sin stock. Los marcados con ✓ ya tienen solicitud de compra.</p>` +
         table(
           ["Producto", "Hay", "Mínimo", "Pedir hasta", ""],
           shown.map((x) => [
@@ -116,7 +116,7 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
       y.issues === 0
         ? "No hubo salidas."
         : `${y.issues} ${y.issues === 1 ? "salida" : "salidas"} con ${y.lines} ${y.lines === 1 ? "producto" : "productos"}.` +
-          (y.short.length ? `<br><span style="color:#b54708">Salieron sin existencia suficiente (revisar en el próximo conteo): ${y.short.map(esc).join(", ")}.</span>` : "")
+          (y.short.length ? `<br><span style="color:#b54708">Salieron sin stock suficiente (revisar en el próximo conteo): ${y.short.map(esc).join(", ")}.</span>` : "")
     }</p>`,
   );
   text.push(`SALIDAS DE AYER: ${y.issues}`, "");
