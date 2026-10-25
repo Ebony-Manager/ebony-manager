@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Copy, MessageCircle } from "lucide-react";
+import { Copy } from "lucide-react";
+import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
 import type { PurchaseOrder, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -178,7 +179,7 @@ export function OrderDialog({
               {wa ? (
                 <Button asChild size="sm">
                   <a href={wa} target="_blank" rel="noreferrer">
-                    <MessageCircle className="size-4" />
+                    <WhatsAppIcon className="size-4" />
                     {ta("send_whatsapp")}
                   </a>
                 </Button>

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Mail, MessageCircle, Phone, Plus } from "lucide-react";
+import { Mail, Phone, Plus } from "lucide-react";
+import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
 import { ALL_SUPPLIER_RUBROS, SUPPLIER_RUBROS, type Supplier, type SupplierKind, type SupplierRubro } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -162,8 +163,8 @@ function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () =
       </button>
       <span className="flex shrink-0 items-center">
         {wa && (
-          <a href={wa} target="_blank" rel="noreferrer" className={cn(iconLink, "text-walnut")} title={ta("open_whatsapp")} aria-label={ta("open_whatsapp")}>
-            <MessageCircle className="size-4" />
+          <a href={wa} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_whatsapp")} aria-label={ta("open_whatsapp")}>
+            <WhatsAppIcon brand className="size-[18px]" />
           </a>
         )}
         {tel && (

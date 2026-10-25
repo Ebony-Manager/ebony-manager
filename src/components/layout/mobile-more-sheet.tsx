@@ -56,8 +56,14 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   };
 
   return (
-    <div className={`fixed inset-0 z-40 md:hidden ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
-      <div className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
+    // Cerrado queda invisible (después de la animación): el Safari del iPhone
+    // toma el color de lo que está fijo arriba para pintar la barra de estado,
+    // y un velo transparente pero presente la dejaba gris.
+    <div
+      className={`fixed inset-0 z-40 transition-[visibility] duration-200 md:hidden ${open ? "visible" : "pointer-events-none invisible"}`}
+      aria-hidden={!open}
+    >
+      <div className={`absolute inset-0 transition-opacity duration-200 ${open ? "bg-black/40 opacity-100" : "bg-transparent opacity-0"}`} onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
