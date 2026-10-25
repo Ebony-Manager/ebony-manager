@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { AttendanceEmployee, AttendancePeriodRow } from "@/lib/planilla/attendance-summary";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { Database } from "@/types/database";
 import type {
@@ -512,6 +513,31 @@ async function loadHistory(employeeId: string): Promise<EmployeeHistory | null> 
 export async function getAnnualSummary(year: number): Promise<PayrollEmployeeAnnualSummary[]> {
   const histories = await loadAllHistories();
   return histories.map((h) => computeAnnualSummary(h, year));
+}
+
+/** Lo descontado por asistencia en cada quincena del año, por empleado
+ *  (para el Resumen de asistencia: quién falta más, quién llega tarde). */
+export async function getAttendanceSummary(year: number): Promise<{ employees: AttendanceEmployee[]; rows: AttendancePeriodRow[] }> {
+  const supabase = await createClient();
+  const [emps, entries] = await Promise.all([
+    getPayrollEmployees(),
+    supabase
+      .from("payroll_entries")
+      .select("employee_id, period_month, period_half, horas_descontadas, dias_descontados, horas_descontadas_cents, dias_descontados_cents")
+      .eq("period_year", year),
+  ]);
+  if (entries.error) throw new Error(entries.error.message);
+  return {
+    employees: emps.map((e) => ({ id: e.id, name: e.name, categoria: e.categoria, active: e.status === "ACTIVE", sortOrder: e.sortOrder })),
+    rows: (entries.data ?? []).map((r) => ({
+      employeeId: r.employee_id,
+      month: r.period_month,
+      half: r.period_half as 1 | 2,
+      hours: Number(r.horas_descontadas ?? 0),
+      days: Number(r.dias_descontados ?? 0),
+      cents: (r.horas_descontadas_cents ?? 0) + (r.dias_descontados_cents ?? 0),
+    })),
+  };
 }
 
 /** Fuente de Auditoría: 24 quincenas × empleado, por concepto, más los

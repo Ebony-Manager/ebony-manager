@@ -9,6 +9,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { AdminDashboardView } from "./admin-dashboard-view";
 import { DashboardView } from "../planilla/dashboard-view";
+import { AttendanceSummaryView } from "../planilla/attendance-summary-view";
 import { ContractorsDashboardView, type ContractorsDashboardInput } from "../contratistas/contractors-dashboard-view";
 
 export type ResumenView = "todos" | "empleados" | "contratistas";
@@ -60,6 +61,8 @@ export function ResumenClient({
       {view === "todos" && <AdminDashboardView />}
       {view === "empleados" && <DashboardView year={year} onYearChange={setYear} />}
       {view === "contratistas" && contractorsDashboard && <ContractorsDashboardView input={contractorsDashboard} />}
+      {/* Asistencia es de empleados (reloj y ponchadas): va dentro de Todos y de Empleados, no aparte. */}
+      {canEmployees && (view === "todos" || view === "empleados") && <AttendanceSummaryView />}
     </div>
   );
 }

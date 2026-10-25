@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Clock, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
+import { CalendarX2, ChevronDown, CircleCheck, Clock, TriangleAlert, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { BLOCKING_FLAGS, type DayFlag, type DayResult, type RawPunch } from "@/lib/attendance/types";
@@ -26,6 +26,8 @@ import {
 import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { AttendanceDayDialog } from "./attendance-day-dialog";
 import { Stepper } from "@/components/shared/page-header";
+import { KpiCard } from "@/components/shared/kpi-card";
+import { AttendanceSummaryView } from "./attendance-summary-view";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
@@ -194,6 +196,24 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       return next;
     });
 
+  // Para las tarjetas: días con tardanza, minutos tarde, faltas, días por revisar y % de días a tiempo.
+  const kpis = React.useMemo(() => {
+    let lateDays = 0;
+    let lateMinutes = 0;
+    let absent = 0;
+    let review = 0;
+    let worked = 0;
+    for (const p of proposals) {
+      const days = p.days.filter((d) => d.arrival !== null || d.departure !== null);
+      worked += days.length;
+      lateDays += days.filter((d) => d.lateMinutes > 0).length;
+      lateMinutes += p.lateMinutes;
+      absent += p.absentWeekdays + p.absentSaturdays;
+      review += p.blockingDays;
+    }
+    return { lateDays, lateMinutes, absent, review, punctual: worked ? Math.round(((worked - lateDays) / worked) * 100) : null };
+  }, [proposals]);
+
   const label = `${monthLabel(lang, period.month)} · ${period.half === 1 ? tp("quincena_1") : tp("quincena_2")} ${period.year}`;
   const when = (s: { date: string; minutes: number } | null) => (s ? `${formatDateCompact(lang, s.date)} ${hm(s.minutes)}` : tg("att_never"));
   const th = "px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap";
@@ -238,6 +258,25 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
           </span>
         </div>
       )}
+
+      {/* Tarjetas de trabajo de la quincena: lo que hay que mirar antes de pasar a la Quincena. */}
+      {ready && proposals.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            icon={Clock}
+            tone="warning"
+            label={tg("att_kpi_late")}
+            value={kpis.lateDays}
+            sublabel={kpis.lateMinutes ? `${hm(kpis.lateMinutes)} h` : undefined}
+          />
+          <KpiCard icon={CalendarX2} tone="negative" label={tg("att_kpi_absent")} value={kpis.absent} />
+          <KpiCard icon={TriangleAlert} tone={kpis.review ? "warning" : "positive"} label={tg("att_kpi_review")} value={kpis.review} />
+          <KpiCard icon={CircleCheck} tone="positive" label={tg("att_kpi_punctual")} value={kpis.punctual === null ? "—" : `${kpis.punctual}%`} sublabel={tg("att_kpi_punctual_hint")} />
+        </div>
+      )}
+
+      {/* El resumen del mes / año (quién falta más…), plegado para no estorbar. */}
+      <AttendanceSummaryView collapsible from="registro" />
 
       {ready && unmatched.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">

@@ -144,6 +144,28 @@ export const strings = {
     },
   },
 
+  // Resumen de asistencia (Personal → Resumen y Pagos → Asistencia).
+  attSummary: {
+    title: { es: "Asistencia", en: "Attendance" },
+    subtitle: {
+      es: "Lo descontado por faltas y tardanzas: quién falta más y quién llega tarde más. La misma regla para todos.",
+      en: "What was docked for absences and lateness: who misses most and who is late most. Same rule for everyone.",
+    },
+    scope_month: { es: "Mes", en: "Month" },
+    scope_year: { es: "Año", en: "Year" },
+    of_absence: { es: "de falta", en: "absent" },
+    of_lateness: { es: "de tardanza", en: "late" },
+    deducted: { es: "descontado", en: "docked" },
+    most_absences: { es: "Más días de falta", en: "Most days absent" },
+    most_lateness: { es: "Más tardanzas", en: "Most lateness" },
+    no_absences: { es: "Nadie faltó en este período.", en: "No absences in this period." },
+    no_lateness: { es: "Nadie llegó tarde en este período.", en: "No lateness in this period." },
+    spotless: { es: "Sin faltas ni tardanzas:", en: "No absences or lateness:" },
+    empty: { es: "No hay quincenas registradas en este período.", en: "No pay periods recorded in this period." },
+    see_all: { es: "Ver todos", en: "See all" },
+    see_less: { es: "Ver menos", en: "See less" },
+  },
+
   // Personal → Resumen (Planilla + Contratistas juntos).
   adminDash: {
     title: { es: "Resumen de Personal", en: "People summary" },
@@ -227,6 +249,11 @@ export const strings = {
     att_last_jotform: { es: "Jotform (llega solo): última ponchada", en: "Jotform (arrives on its own): last punch" },
     att_last_clock: { es: "Reloj (se sube el archivo): última ponchada", en: "Clock (file upload): last punch" },
     att_never: { es: "ninguna todavía", en: "none yet" },
+    att_kpi_late: { es: "Llegadas tarde", en: "Late arrivals" },
+    att_kpi_absent: { es: "Días de falta", en: "Days absent" },
+    att_kpi_review: { es: "Días por revisar", en: "Days to review" },
+    att_kpi_punctual: { es: "Puntualidad", en: "Punctuality" },
+    att_kpi_punctual_hint: { es: "días trabajados sin tardanza", en: "days worked without lateness" },
     att_unmatched_title: { es: "Nombres sin vincular", en: "Unlinked names" },
     att_unmatched_hint: {
       es: "Estas ponchadas no coinciden con ningún empleado. Elige a quién corresponden y confirma con \"Vincular\" (se recuerda; se puede deshacer abajo, en \"Nombres vinculados a mano\").",

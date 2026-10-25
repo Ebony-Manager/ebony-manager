@@ -119,6 +119,11 @@ export async function getAnnualSummaryAction(year: number) {
   return payroll.getAnnualSummary(year);
 }
 
+export async function getAttendanceSummaryAction(year: number) {
+  await requireModule("planilla");
+  return payroll.getAttendanceSummary(year);
+}
+
 export async function getAuditoriaDataAction(year: number) {
   await requireModule("planilla");
   return payroll.getAuditoriaData(year);
