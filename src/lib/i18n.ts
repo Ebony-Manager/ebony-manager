@@ -2565,6 +2565,7 @@ export const strings = {
     ru_madera_laminas: { es: "Madera y láminas", en: "Wood and boards" },
     ru_iluminacion: { es: "Iluminación", en: "Lighting" },
     ru_pintura: { es: "Pintura", en: "Paint" },
+    ru_vidrios: { es: "Vidrios y espejos", en: "Glass and mirrors" },
     ru_tecnico_maquinaria: { es: "Técnico de maquinaria", en: "Machinery technician" },
     ru_mecanico: { es: "Mecánico", en: "Mechanic" },
     ru_transporte: { es: "Transporte", en: "Transport" },

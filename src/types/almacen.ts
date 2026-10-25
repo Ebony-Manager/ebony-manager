@@ -34,13 +34,14 @@ export type SupplierRubro =
   | "madera_laminas"
   | "iluminacion"
   | "pintura"
+  | "vidrios"
   | "tecnico_maquinaria"
   | "mecanico"
   | "transporte"
   | "mantenimiento"
   | "subcontrato";
 export const SUPPLIER_RUBROS: Record<SupplierKind, SupplierRubro[]> = {
-  materiales: ["ferreteria", "herrajes", "madera_laminas", "iluminacion", "pintura"],
+  materiales: ["ferreteria", "herrajes", "madera_laminas", "iluminacion", "pintura", "vidrios"],
   servicio: ["tecnico_maquinaria", "mecanico", "transporte", "mantenimiento", "subcontrato"],
 };
 export const ALL_SUPPLIER_RUBROS: SupplierRubro[] = [...SUPPLIER_RUBROS.materiales, ...SUPPLIER_RUBROS.servicio];
