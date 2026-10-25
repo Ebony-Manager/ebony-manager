@@ -489,15 +489,17 @@ export async function cancelPurchaseOrder(orderId: string): Promise<void> {
 // ── Ajustes ─────────────────────────────────────────────────────────────
 
 /** Historial de movimientos (salidas, entradas por compra y ajustes), lo más nuevo primero. */
-export async function getMovements(limit = 500): Promise<InventoryMovement[]> {
+export async function getMovements(limit = 500, since?: string): Promise<InventoryMovement[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("inventory_movements")
     .select(
-      "id, variant_id, kind, qty, stock_after, moved_on, created_by_name, created_at, inventory_issues(recipient_employee_id, recipient_contractor_id, project_id, internal_use), inventory_adjustments(reason, notes), purchase_order_lines(purchase_orders(supplier_id))",
+      "id, variant_id, kind, qty, stock_after, moved_on, created_by_name, created_at, issue_id, inventory_issues(recipient_employee_id, recipient_contractor_id, project_id, internal_use), inventory_adjustments(reason, notes), purchase_order_lines(purchase_orders(supplier_id))",
     )
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (since) query = query.gte("moved_on", since);
+  const { data, error } = await query;
   fail(error);
   return (data ?? []).map((r) => {
     const issue = r.inventory_issues;
@@ -511,6 +513,7 @@ export async function getMovements(limit = 500): Promise<InventoryMovement[]> {
       movedOn: r.moved_on,
       createdByName: r.created_by_name,
       createdAt: r.created_at,
+      issueId: r.issue_id,
       issue: issue
         ? {
             employeeId: issue.recipient_employee_id,

@@ -184,6 +184,8 @@ export interface InventoryMovement {
   movedOn: string;
   createdByName: string | null;
   createdAt: string;
+  /** La salida a la que pertenece (varias líneas = una salida). */
+  issueId: string | null;
   /** Salida: a quién y para qué. */
   issue: { employeeId: string | null; contractorId: string | null; projectId: string | null; internalUse: InternalUse | null } | null;
   /** Recepción de compra: el proveedor del pedido. */
