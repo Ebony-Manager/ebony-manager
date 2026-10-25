@@ -10,6 +10,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import type { CatalogItem, Finish, QuoteLine, Unit } from "@/types/cotizador";
 import { NumField } from "../num-field";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 const ON_WALL = ["rev", "rev2", "rev55", "mod", "esp"];
 const FINISHES: (Finish | null)[] = ["aglomerado", "blanco", "pintado", "chapilla", null];
@@ -84,9 +85,7 @@ export function LineRow({
             <ArrowLeftRight className="size-3" />
           </button>
         )}
-        <button type="button" aria-label={tt("line_remove")} title={tt("line_remove")} onClick={onRemove} className="p-0.5 hover:bg-muted/60 hover:text-destructive">
-          <X className="size-3.5" />
-        </button>
+        <ConfirmButton iconOnly icon={X} label={tt("line_remove")} confirmLabel={tt("line_remove_confirm")} onConfirm={onRemove} className="p-0.5 hover:bg-muted/60" />
       </div>
 
       {free ? (

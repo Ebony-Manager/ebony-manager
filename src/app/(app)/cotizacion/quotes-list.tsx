@@ -13,6 +13,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
 import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 const STATUS_STYLE: Record<QuoteStatus, string> = {
   BORRADOR: "bg-stone-200 text-ink-700",
@@ -31,7 +32,6 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
   const [filter, setFilter] = React.useState<QuoteStatus | "all">("all");
   const [search, setSearch] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
   const shown = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -60,7 +60,6 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
   async function onDelete(id: string) {
     const before = quotes;
     setQuotes((list) => list.filter((x) => x.id !== id));
-    setConfirmDelete(null);
     try {
       await deleteQuoteAction(id);
       toast.success(tt("deleted"));
@@ -142,25 +141,12 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               <span className="w-24 text-xs text-ink-700">{date(q.quoteDate)}</span>
               <span className={cn("px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
               <span className="ml-auto w-28 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
-              {confirmDelete === q.id ? (
-                <span className="flex items-center gap-1.5 text-xs">
-                  <button type="button" onClick={() => onDelete(q.id)} className="border border-destructive px-2 py-0.5 font-medium text-destructive">
-                    {tt("delete")}
-                  </button>
-                  <button type="button" onClick={() => setConfirmDelete(null)} className="border border-input px-2 py-0.5 font-medium">
-                    {tt("cancel")}
-                  </button>
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === q.id} onClick={() => onDuplicate(q.id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">
-                    <Copy className="size-3.5" />
-                  </button>
-                  <button type="button" title={tt("delete")} aria-label={tt("delete")} onClick={() => setConfirmDelete(q.id)} className="p-1.5 text-muted-foreground hover:text-destructive">
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </span>
-              )}
+              <span className="flex items-center">
+                <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === q.id} onClick={() => onDuplicate(q.id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">
+                  <Copy className="size-3.5" />
+                </button>
+                <ConfirmButton iconOnly icon={Trash2} label={tt("delete")} confirmLabel={tt("delete_confirm")} onConfirm={() => onDelete(q.id)} className="p-1.5" />
+              </span>
             </li>
           ))}
         </ul>

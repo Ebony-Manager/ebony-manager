@@ -6,6 +6,7 @@ import { Copy, MessageCircle } from "lucide-react";
 
 import type { PurchaseOrder, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
@@ -250,9 +251,7 @@ export function OrderDialog({
 
         {canPurchase && order.status === "pedido" && nothingReceived && (
           <div className="flex justify-end border-t border-ink-900/8 pt-3">
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={doCancel} disabled={busy}>
-              {ta("cancel_order")}
-            </Button>
+            <ConfirmButton label={ta("cancel_order")} confirmLabel={ta("cancel_order_confirm")} onConfirm={() => void doCancel()} disabled={busy} />
           </div>
         )}
       </DialogContent>

@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
@@ -265,14 +266,15 @@ function PendingRow({
         </span>
       </div>
       <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
-      <button
-        type="button"
-        title={ta("cancel_request")}
-        onClick={() => cancelRequest(r.id, ta)}
-        className="flex size-7 items-center justify-center text-muted-foreground hover:text-destructive"
-      >
-        <X className="size-4" />
-      </button>
+      <ConfirmButton
+        iconOnly
+        icon={X}
+        iconClassName="size-4"
+        label={ta("cancel_request")}
+        confirmLabel={ta("cancel_request_confirm")}
+        onConfirm={() => cancelRequest(r.id, ta)}
+        className="min-h-7 min-w-7"
+      />
     </li>
   );
 }
@@ -328,9 +330,14 @@ function RequestsTable({
                 <span className="inline-flex items-center gap-2">
                   <StatusBadge status={r.status} />
                   {canCancelPending && r.status === "pendiente" && (
-                    <button type="button" title={ta("cancel_request")} onClick={() => cancelRequest(r.id, ta)} className="text-muted-foreground hover:text-destructive">
-                      <X className="size-4" />
-                    </button>
+                    <ConfirmButton
+                      iconOnly
+                      icon={X}
+                      iconClassName="size-4"
+                      label={ta("cancel_request")}
+                      confirmLabel={ta("cancel_request_confirm")}
+                      onConfirm={() => cancelRequest(r.id, ta)}
+                    />
                   )}
                 </span>
               </td>

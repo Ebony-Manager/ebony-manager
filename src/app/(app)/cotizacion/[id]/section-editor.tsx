@@ -18,6 +18,7 @@ import {
 } from "@/types/cotizador";
 import { NumField } from "../num-field";
 import { LineRow } from "./line-row";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 type BlockKey = "eb" | "sb" | "ex" | "mg";
 
@@ -90,8 +91,10 @@ export function SectionEditor({
   const patch = (p: Partial<QuoteSection>) => onChange({ ...section, ...p });
   const setLines = (lines: QuoteLine[]) => onChange({ ...section, lines });
   const patchLine = (id: string, p: Partial<QuoteLine>) => setLines(section.lines.map((l) => (l.id === id ? { ...l, ...p } : l)));
-  const removeLine = (id: string) =>
-    setLines(section.lines.filter((l) => l.id !== id).map((l) => (l.hostLineId === id ? { ...l, hostLineId: null } : l)));
+  // Al quitar renglones, los que iban montados sobre ellos (hostLineId) quedan sueltos.
+  const removeLines = (ids: Set<string>) =>
+    setLines(section.lines.filter((l) => !ids.has(l.id)).map((l) => (l.hostLineId && ids.has(l.hostLineId) ? { ...l, hostLineId: null } : l)));
+  const removeLine = (id: string) => removeLines(new Set([id]));
 
   const active = React.useMemo(() => catalog.filter((c) => c.active), [catalog]);
   const optionsFor = (l: QuoteLine) => {
@@ -121,6 +124,12 @@ export function SectionEditor({
       onRemove={() => removeLine(l.id)}
     />
   );
+
+  // "Vaciar" el bloque: todos sus renglones, en dos toques.
+  const clearer = (lines: QuoteLine[]) =>
+    lines.length > 0 && (
+      <ConfirmButton className="ml-auto h-7" label={tt("block_clear")} confirmLabel={tt("block_clear_confirm")} onConfirm={() => removeLines(new Set(lines.map((l) => l.id)))} />
+    );
 
   const adder = (label: string, onClick: () => void) => (
     <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
@@ -212,6 +221,7 @@ export function SectionEditor({
             <div className="mt-0.5 flex flex-wrap gap-1.5">
               {EBONY_ADDERS.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}
               {adder(tt("cat_libre"), () => setLines([...section.lines, newFreeLine(crypto.randomUUID())]))}
+              {clearer(ebony)}
             </div>
           </>
         )}
@@ -223,7 +233,10 @@ export function SectionEditor({
           <>
             {subs.length === 0 && <p className="text-xs text-muted-foreground">{tt("block_subs_empty")}</p>}
             {subs.map(row)}
-            <div className="mt-0.5 flex flex-wrap gap-1.5">{SUB_CATEGORIES.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}</div>
+            <div className="mt-0.5 flex flex-wrap gap-1.5">
+              {SUB_CATEGORIES.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}
+              {clearer(subs)}
+            </div>
             <div className="mt-1 max-w-[330px]">
               {kv("sb", "subMarginPct", tt("f_sub_margin"), "%")}
               <div className="flex justify-end pt-1.5">{editLink("sb")}</div>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Check, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
+import { Check, Minus, Plus, ShoppingCart, X } from "lucide-react";
 
 import { INTERNAL_USES, type InternalUse, type InventoryCategory, type InventoryItem, type InventoryPerson } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatQty, parseQty, stockStatus } from "@/lib/almacen/inventory";
 import { dimensionCount, optionsAt, reconcile, resolveVariant, selectionOf } from "@/lib/almacen/variant-picker";
@@ -122,7 +123,14 @@ export function IssueShop({
             <span className="truncate">{ta("n_in_cart", { n: count })}</span>
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
-            <ClearCartButton onClear={() => setCart([])} />
+            <ConfirmButton
+              label={ta("clear_cart")}
+              confirmLabel={ta("clear_cart_confirm")}
+              onConfirm={() => {
+                setCart([]);
+                toast(ta("cart_cleared"));
+              }}
+            />
             <Button onClick={() => setSheetOpen(true)}>{ta("view_issue")}</Button>
           </div>
         </div>
@@ -343,10 +351,13 @@ function CartPanel({
           {ta("cart_title")}
         </h2>
         {cart.length > 0 && (
-          <ClearCartButton
+          <ConfirmButton
             className="ml-auto"
-            onClear={() => {
+            label={ta("clear_cart")}
+            confirmLabel={ta("clear_cart_confirm")}
+            onConfirm={() => {
               setCart([]);
+              toast(ta("cart_cleared"));
               onDone();
             }}
           />
@@ -427,38 +438,5 @@ function CartPanel({
         {saving ? ta("saving") : `${ta("register_issue")}${cart.length ? ` (${cart.length})` : ""}`}
       </Button>
     </div>
-  );
-}
-
-/**
- * Vaciar la salida en dos toques, para no perder todo por un toque sin
- * querer: el primero pregunta "¿Vaciar todo?" (3 segundos), el segundo vacía.
- */
-function ClearCartButton({ onClear, className }: { onClear: () => void; className?: string }) {
-  const { ta } = useTa();
-  const [armed, setArmed] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  return (
-    <Button
-      type="button"
-      variant={armed ? "destructive" : "outline"}
-      size="sm"
-      className={`h-9 ${className ?? ""}`}
-      onClick={() => {
-        if (!armed) return setArmed(true);
-        setArmed(false);
-        onClear();
-        toast(ta("cart_cleared"));
-      }}
-    >
-      <Trash2 className="size-3.5" />
-      {armed ? ta("clear_cart_confirm") : ta("clear_cart")}
-    </Button>
   );
 }

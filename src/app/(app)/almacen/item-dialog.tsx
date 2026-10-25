@@ -6,6 +6,7 @@ import { Camera, Loader2, Plus, Trash2, X } from "lucide-react";
 
 import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type ItemKind, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -235,9 +236,7 @@ export function ItemDialog({
                     {photoPath || pendingPhoto ? ta("photo_change") : ta("photo_add")}
                   </Button>
                   {(photoPath || pendingPhoto) && (
-                    <button type="button" title={ta("remove")} onClick={() => void removePhoto()} className="p-1 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    <ConfirmButton iconOnly label={ta("remove")} confirmLabel={ta("remove_photo_confirm")} onConfirm={() => void removePhoto()} className="p-1" />
                   )}
                 </div>
               )}
