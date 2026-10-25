@@ -54,7 +54,7 @@ function DialogContent({
         className={cn(
           // Celular: margen a los lados y alto máximo de la pantalla visible; si no
           // cabe, el contenido se desplaza adentro (no se sale de la pantalla).
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-lg border border-border bg-card p-5 shadow-lg duration-200 data-[state=open]:animate-slide-in sm:w-full sm:p-6",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-lg [&>*]:min-w-0 border border-border bg-card p-5 shadow-lg duration-200 data-[state=open]:animate-slide-in sm:w-full sm:p-6",
           className,
         )}
         {...props}
