@@ -37,8 +37,11 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
     () => computeContractorsDashboard(input.contractors, input.entries, new Map(input.projectNames), period),
     [input, period]
   );
-  // Lista de cuentas: solo activos (a nadie se inactiva sin saldar su saldo).
-  const tableRows = data.contractors.filter((c) => c.contractor.status === "ACTIVE").sort(
+  // Lista de cuentas: los activos y, de los inactivos, quien tenga dinero en el
+  // período o saldo pendiente (el dinero que se movió se ve siempre).
+  const tableRows = data.contractors
+    .filter((c) => c.contractor.status === "ACTIVE" || c.balanceCents !== 0 || c.billedCents || c.deliveredCents || c.materialCents)
+    .sort(
     (a, b) => b.balanceCents - a.balanceCents || b.deliveredCents - a.deliveredCents
   );
 
@@ -106,7 +109,10 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                             >
                               {c.contractor.name}
                             </Link>
-                            <p className="text-[11px] text-muted-foreground">{typeLabel(c)}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {typeLabel(c)}
+                              {c.contractor.status === "INACTIVE" && ` · ${tt("status_inactive")}`}
+                            </p>
                           </div>
                         </div>
                       </td>

@@ -164,6 +164,7 @@ export const strings = {
     empty: { es: "No hay quincenas registradas en este período.", en: "No pay periods recorded in this period." },
     see_all: { es: "Ver todos", en: "See all" },
     see_less: { es: "Ver menos", en: "See less" },
+    inactive: { es: "Inactivo", en: "Inactive" },
   },
 
   // Dashboard de empresa: una sección por módulo que el usuario puede ver.

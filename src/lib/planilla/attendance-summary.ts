@@ -44,7 +44,7 @@ export interface AttendanceSummary {
 /**
  * Suma por persona dentro del período (`month` null = todo el año) y arma
  * los rankings. Solo cuentan empleados con quincena registrada en el
- * período y activos (los inactivos no cuentan); el filtro de categoría
+ * período (activos o no: es lo que pasó); el filtro de categoría
  * (Taller / Administrativo) va aparte.
  */
 export function summarizeAttendance(
@@ -58,8 +58,9 @@ export function summarizeAttendance(
   for (const r of rows) {
     if (month !== null && r.month !== month) continue;
     const employee = byId.get(r.employeeId);
-    // Los inactivos ya no son parte del equipo: no salen en totales ni rankings.
-    if (!employee || !employee.active || (categoria !== "todos" && employee.categoria !== categoria)) continue;
+    // Cuenta todo lo que pasó, también de quien hoy está inactivo: la quincena
+    // registrada dice que estuvo (las pantallas del momento ya solo muestran activos).
+    if (!employee || (categoria !== "todos" && employee.categoria !== categoria)) continue;
     const t = totals.get(r.employeeId) ?? { employee, hours: 0, days: 0, cents: 0, periods: 0 };
     t.hours += r.hours;
     t.days += r.days;

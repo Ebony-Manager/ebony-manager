@@ -75,6 +75,8 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
     label: p.employee.name,
     value,
     display,
+    // Lo que pasó se ve siempre; quien ya no está, marcado.
+    sub: p.employee.active ? undefined : ta("inactive"),
     href: employeeProfilePath(p.employee.id, from),
   });
 
@@ -178,7 +180,7 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
                   <CircleCheck className="mt-0.5 size-4 shrink-0 text-success" />
                   <span>
                     <span className="font-medium">{ta("spotless")}</span>{" "}
-                    <span className="text-muted-foreground">{summary.spotless.map((e) => e.name).join(", ")}</span>
+                    <span className="text-muted-foreground">{summary.spotless.map((e) => (e.active ? e.name : `${e.name} (${ta("inactive")})`)).join(", ")}</span>
                   </span>
                 </p>
               )}
