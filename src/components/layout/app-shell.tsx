@@ -7,6 +7,7 @@ import { MobileBottomNav, MobileTopBar } from "@/components/layout/mobile-nav";
 import { MobileMoreSheet } from "@/components/layout/mobile-more-sheet";
 import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { InstallBanner } from "@/components/layout/install-banner";
 
 /**
  * Client chrome for the protected area. Desktop: the rail on the left, no
@@ -30,6 +31,7 @@ export function AppShell({ children, pending }: { children: React.ReactNode; pen
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <MobileTopBar pending={pending} />
+        <InstallBanner />
         <PullToRefresh className="flex-1 overflow-y-auto pb-[var(--app-bottom)]">{children}</PullToRefresh>
         <MobileBottomNav pending={pending} onOpenMenu={() => setOpenAt(pathname)} />
         <MobileMoreSheet open={moreOpen} onClose={() => setOpenAt(null)} pending={pending} />

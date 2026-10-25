@@ -62,6 +62,19 @@ export const strings = {
     more: { es: "Más", en: "More" },
     close: { es: "Cerrar", en: "Close" },
     loading: { es: "Cargando", en: "Loading" },
+    // Franja para instalar la app en el celular (install-banner.tsx).
+    install_title: { es: "Instala Ebony Manager en tu teléfono", en: "Install Ebony Manager on your phone" },
+    install_body: { es: "Se abre como app, a pantalla completa y sin la barra del navegador.", en: "It opens like an app, full screen, without the browser bar." },
+    install_ios_1: { es: "En Safari, toca «⋯» o", en: "In Safari, tap “⋯” or" },
+    install_share: { es: "Compartir", en: "Share" },
+    install_ios_2: { es: "y luego", en: "and then" },
+    install_ios_3: { es: "Agregar a pantalla de inicio", en: "Add to Home Screen" },
+    install_android: {
+      es: "En Chrome, toca el menú ⋮ y luego «Instalar app» o «Agregar a pantalla de inicio».",
+      en: "In Chrome, tap the ⋮ menu, then “Install app” or “Add to Home screen”.",
+    },
+    install_btn: { es: "Instalar", en: "Install" },
+    install_later: { es: "Ahora no", en: "Not now" },
     pending: { es: "por revisar", en: "to review" },
   },
 
