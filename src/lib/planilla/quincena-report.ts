@@ -9,13 +9,14 @@ import { computeRegistroSimpleTotals } from "./payroll-registro-totals";
  *
  *   neto = base + bonificaciones − descuentos + prestaciones − cuota
  *
- * (la cuota del préstamo es la columna que hace que la suma cuadre con el
- * Total de Registro cuando alguien tiene un descuento de préstamo).
+ * Descuentos es solo asistencia (horas y días). La "cuota" junta lo del
+ * estado de cuenta (préstamos, adelantos, daños…) con los otros descuentos
+ * de la quincena, igual que la columna Préstamos y descuentos de la tabla.
  */
 export interface QuincenaReportInput {
   employee: Pick<PayrollEmployee, "id" | "name">;
   entry: PayrollEntry | null;
-  /** Abono a préstamos descontado en la quincena. */
+  /** Abono a préstamos descontado en la quincena (sin otros descuentos: se suman aquí). */
   loanPaymentCents: number;
   /** Total que ya calcula la app (el neto). */
   netCents: number;
@@ -49,7 +50,7 @@ export function buildQuincenaReport(items: readonly QuincenaReportInput[]): Quin
       bonificacionesCents: s.bonificacionesCents,
       descuentosCents: s.descuentosCents,
       prestacionesCents: s.prestacionesCents,
-      loanPaymentCents: i.loanPaymentCents,
+      loanPaymentCents: i.loanPaymentCents + s.otrosDescuentosCents,
       netCents: i.netCents,
       paid: i.entry?.paid ?? false,
     };

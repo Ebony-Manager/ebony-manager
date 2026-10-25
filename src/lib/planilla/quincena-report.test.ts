@@ -32,6 +32,18 @@ describe("buildQuincenaReport", () => {
     expect(report.lines[0]).toMatchObject({ baseCents: 47500, bonificacionesCents: 15706, descuentosCents: 412, loanPaymentCents: 6000, netCents: 56794 });
   });
 
+  it("otros descuentos van con la cuota, no con asistencia", () => {
+    const r = buildQuincenaReport([
+      {
+        employee: { id: "1", name: "A" },
+        entry: entry({ basePayCents: 30000, diasDescontadosCents: 2000, otherDeductionCents: 500 }),
+        loanPaymentCents: 1000,
+        netCents: 26500,
+      },
+    ]);
+    expect(r.lines[0]).toMatchObject({ descuentosCents: 2000, loanPaymentCents: 1500, netCents: 26500 });
+  });
+
   it("totales", () => {
     expect(report.totals.netCents).toBe(94294);
     expect(report.totals.loanPaymentCents).toBe(6000);

@@ -12,8 +12,7 @@ import {
   Wallet,
   Banknote,
   Award,
-  TrendingDown,
-  Clock,
+  UserX,
   Timer,
   Check,
   Pencil,
@@ -250,15 +249,15 @@ export function RegistroView({
         cents: -s.descuentosCents,
         detail: join(
           line(tt("col_horas_desc"), e?.horasDescontadasCents ?? 0, { n: e?.horasDescontadas ?? 0, unit: "h" }),
-          line(tt("col_dias_desc"), e?.diasDescontadosCents ?? 0, { n: e?.diasDescontados ?? 0, unit: "d" }),
-          line(tt("li_otros_descuentos"), e?.otherDeductionCents ?? 0)
+          line(tt("col_dias_desc"), e?.diasDescontadosCents ?? 0, { n: e?.diasDescontados ?? 0, unit: "d" })
         ),
       },
       prestamos: {
-        cents: -r.total.ledgerPaymentCents,
-        detail: r.deductions
-          .map((d) => `${deductionLabel(d.category)}${d.notes ? ` (${d.notes})` : ""} · ${formatCents(d.amountCents)}`)
-          .join("\n"),
+        cents: -(r.total.ledgerPaymentCents + s.otrosDescuentosCents),
+        detail: join(
+          ...r.deductions.map((d) => `${deductionLabel(d.category)}${d.notes ? ` (${d.notes})` : ""} · ${formatCents(d.amountCents)}`),
+          line(tt("li_otros_descuentos"), s.otrosDescuentosCents)
+        ),
       },
       prestaciones: {
         cents: s.prestacionesCents,
@@ -277,15 +276,16 @@ export function RegistroView({
 
   // Fila de KPIs — derivada de las mismas `rows` que pinta la tabla.
   const totalCents = allRows.reduce((sum, r) => sum + r.total.totalCents, 0);
-  const loansCents = allRows.reduce((sum, r) => sum + r.total.ledgerPaymentCents, 0);
+  const loansCents = allRows.reduce((sum, r) => sum + r.total.ledgerPaymentCents + (r.total.entry?.otherDeductionCents ?? 0), 0);
   const decimoCents = allRows.reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
-  const descuentosCents = allRows.reduce((sum, r) => sum + computeRegistroSimpleTotals(r.total.entry).descuentosCents, 0);
   const pct = (part: number) => (totalCents > 0 ? `${((part / totalCents) * 100).toFixed(1)}% ${tt("kpi_pct_of_total")}` : "—");
-  const tardanzaCents = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadasCents ?? 0), 0);
-  const tardanzaHours = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadas ?? 0), 0);
+  const asistenciaCents = allRows.reduce((sum, r) => sum + computeRegistroSimpleTotals(r.total.entry).descuentosCents, 0);
+  const lateHours = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadas ?? 0), 0);
+  const absentDays = allRows.reduce((sum, r) => sum + (r.total.entry?.diasDescontados ?? 0), 0);
   const overtimeCents = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHoursCents ?? 0), 0);
   const overtimeHours = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHours ?? 0), 0);
   const hoursLabel = (h: number) => `${Number(h.toFixed(2))} h`;
+  const asistenciaLabel = `${hoursLabel(lateHours)} ${tt("kpi_late")} · ${Number(absentDays.toFixed(2))} ${tt("kpi_absent_days")}`;
   const thisYear = currentPeriod().year;
   const yearOptions = Array.from(new Set([...Array.from({ length: 5 }, (_, i) => thisYear - 3 + i), period.year])).sort(
     (a, b) => a - b
@@ -294,12 +294,11 @@ export function RegistroView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 lg:grid-cols-5">
         <RegistroKpiCard icon={Wallet} label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
         <RegistroKpiCard icon={Banknote} label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
         <RegistroKpiCard icon={Award} label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
-        <RegistroKpiCard icon={TrendingDown} label={tt("kpi_deductions")} value={formatCents(descuentosCents)} sublabel={pct(descuentosCents)} />
-        <RegistroKpiCard icon={Clock} label={tt("kpi_tardanza")} value={formatCents(tardanzaCents)} sublabel={hoursLabel(tardanzaHours)} />
+        <RegistroKpiCard icon={UserX} label={tt("kpi_asistencia")} value={formatCents(asistenciaCents)} sublabel={asistenciaLabel} />
         <RegistroKpiCard icon={Timer} label={tt("kpi_overtime")} value={formatCents(overtimeCents)} sublabel={hoursLabel(overtimeHours)} />
       </div>
 

@@ -35,10 +35,10 @@ function makeEntry(over: Partial<PayrollEntry> = {}): PayrollEntry {
   };
 }
 
-/** salario + bonificaciones − descuentos + prestaciones. */
+/** salario + bonificaciones − descuentos − otros descuentos + prestaciones. */
 function fromSimple(e: PayrollEntry): number {
   const t = computeRegistroSimpleTotals(e);
-  return t.baseCents + t.bonificacionesCents - t.descuentosCents + t.prestacionesCents;
+  return t.baseCents + t.bonificacionesCents - t.descuentosCents - t.otrosDescuentosCents + t.prestacionesCents;
 }
 
 describe("computeRegistroSimpleTotals", () => {
@@ -47,6 +47,7 @@ describe("computeRegistroSimpleTotals", () => {
       baseCents: 0,
       bonificacionesCents: 0,
       descuentosCents: 0,
+      otrosDescuentosCents: 0,
       prestacionesCents: 0,
     });
   });
@@ -57,6 +58,7 @@ describe("computeRegistroSimpleTotals", () => {
       baseCents: 0,
       bonificacionesCents: 0,
       descuentosCents: 0,
+      otrosDescuentosCents: 0,
       prestacionesCents: 0,
     });
     expect(fromSimple(e)).toBe(computePeriodTotalFromEntry(e, { debt: 0, payment: 0 }).totalCents);
@@ -68,6 +70,7 @@ describe("computeRegistroSimpleTotals", () => {
       baseCents: 25000,
       bonificacionesCents: 3200,
       descuentosCents: 0,
+      otrosDescuentosCents: 0,
       prestacionesCents: 0,
     });
     expect(fromSimple(e)).toBe(28200);
@@ -87,7 +90,7 @@ describe("computeRegistroSimpleTotals", () => {
     expect(fromSimple(e)).toBe(computePeriodTotalFromEntry(e, { debt: 0, payment: 0 }).totalCents);
   });
 
-  it("con descuentos: horas, días y otros se restan", () => {
+  it("con descuentos: horas y días son asistencia, otros va aparte; todos se restan", () => {
     const e = makeEntry({
       basePayCents: 30000,
       bonusCents: 2000,
@@ -95,7 +98,8 @@ describe("computeRegistroSimpleTotals", () => {
       diasDescontadosCents: 4000,
       otherDeductionCents: 700,
     });
-    expect(computeRegistroSimpleTotals(e).descuentosCents).toBe(6200);
+    expect(computeRegistroSimpleTotals(e).descuentosCents).toBe(5500);
+    expect(computeRegistroSimpleTotals(e).otrosDescuentosCents).toBe(700);
     expect(fromSimple(e)).toBe(25800);
     expect(fromSimple(e)).toBe(computePeriodTotalFromEntry(e, { debt: 0, payment: 0 }).totalCents);
   });

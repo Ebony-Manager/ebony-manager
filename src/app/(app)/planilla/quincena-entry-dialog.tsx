@@ -225,7 +225,7 @@ export function QuincenaEntryDialog({
             {tt("qe_loans_open")}
           </Button>
         </div>
-        {row.deductions.length === 0 ? (
+        {row.deductions.length === 0 && !e?.otherDeductionCents ? (
           <p className="text-xs text-muted-foreground">{tt("qe_loans_none")}</p>
         ) : (
           <ul className="flex flex-col gap-1 text-xs">
@@ -238,6 +238,13 @@ export function QuincenaEntryDialog({
                 <span className="tabular-nums text-foreground">−{formatCents(d.amountCents)}</span>
               </li>
             ))}
+            {/* Otros descuentos de la quincena (no es asistencia): va con préstamos y descuentos. */}
+            {!!e?.otherDeductionCents && (
+              <li className="flex items-center justify-between gap-2">
+                <span className="text-foreground">{tt("li_otros_descuentos")}</span>
+                <span className="tabular-nums text-foreground">−{formatCents(e.otherDeductionCents)}</span>
+              </li>
+            )}
           </ul>
         )}
       </div>
