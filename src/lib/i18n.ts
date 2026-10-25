@@ -394,7 +394,8 @@ export const strings = {
     kpi_loan_installments: { es: "Cuotas de préstamos y descuentos", en: "Loan & deduction installments" },
     kpi_decimo: { es: "Décimo del período", en: "13th month, this period" },
     kpi_deductions: { es: "Descuentos del período", en: "Deductions, this period" },
-    kpi_next_pay: { es: "Próximo pago", en: "Next pay date" },
+    kpi_tardanza: { es: "Descuento por tardanza", en: "Lateness deductions" },
+    kpi_overtime: { es: "Pago de horas extra", en: "Overtime pay" },
     kpi_employees_count: { es: "empleados", en: "employees" },
     kpi_pct_of_total: { es: "del total", en: "of total" },
 

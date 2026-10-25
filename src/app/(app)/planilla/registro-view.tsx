@@ -13,7 +13,8 @@ import {
   Banknote,
   Award,
   TrendingDown,
-  CalendarClock,
+  Clock,
+  Timer,
   Check,
   Pencil,
 } from "lucide-react";
@@ -47,13 +48,6 @@ import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
 
 type Row = RegistroRow;
-
-/** Fecha real de pago de una quincena — el 15 para la 1a mitad, el
- *  último día del mes para la 2a — solo para el label del KPI "Próximo
- *  pago". */
-function periodPayDate(p: { year: number; month: number; half: 1 | 2 }): Date {
-  return p.half === 1 ? new Date(p.year, p.month - 1, 15) : new Date(p.year, p.month, 0);
-}
 
 /** Las columnas del recibo, de izquierda a derecha: Base + Extras −
  *  Asistencia − Préstamos y descuentos + Prestaciones = Neto. */
@@ -287,26 +281,26 @@ export function RegistroView({
   const decimoCents = allRows.reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
   const descuentosCents = allRows.reduce((sum, r) => sum + computeRegistroSimpleTotals(r.total.entry).descuentosCents, 0);
   const pct = (part: number) => (totalCents > 0 ? `${((part / totalCents) * 100).toFixed(1)}% ${tt("kpi_pct_of_total")}` : "—");
-  const upcoming = nextPeriod(period);
+  const tardanzaCents = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadasCents ?? 0), 0);
+  const tardanzaHours = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadas ?? 0), 0);
+  const overtimeCents = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHoursCents ?? 0), 0);
+  const overtimeHours = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHours ?? 0), 0);
+  const hoursLabel = (h: number) => `${Number(h.toFixed(2))} h`;
   const thisYear = currentPeriod().year;
   const yearOptions = Array.from(new Set([...Array.from({ length: 5 }, (_, i) => thisYear - 3 + i), period.year])).sort(
     (a, b) => a - b
   );
-  const nextPayLabel = periodPayDate(upcoming).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
   const th = "whitespace-nowrap px-3 py-[11px] text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase";
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 xl:grid-cols-6">
         <RegistroKpiCard icon={Wallet} label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
         <RegistroKpiCard icon={Banknote} label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
         <RegistroKpiCard icon={Award} label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
         <RegistroKpiCard icon={TrendingDown} label={tt("kpi_deductions")} value={formatCents(descuentosCents)} sublabel={pct(descuentosCents)} />
-        <RegistroKpiCard icon={CalendarClock} label={tt("kpi_next_pay")} value={nextPayLabel} sublabel={quincenaLabel(upcoming.half)} />
+        <RegistroKpiCard icon={Clock} label={tt("kpi_tardanza")} value={formatCents(tardanzaCents)} sublabel={hoursLabel(tardanzaHours)} />
+        <RegistroKpiCard icon={Timer} label={tt("kpi_overtime")} value={formatCents(overtimeCents)} sublabel={hoursLabel(overtimeHours)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
  * tarjeta blanca, barra superior en degradé nogal, el número pintado en
  * degradé. A propósito uniforme: a diferencia de `PayrollKpiCard`
  * (Dashboard, historial del empleado), esta NO tiñe por categoría —
- * Teofilo lo pidió así para las 5 tarjetas de arriba de Registro,
+ * Teofilo lo pidió así para las tarjetas de arriba de Registro,
  * sabiendo que se pierde la diferenciación por color acá. Por eso es un
  * componente aparte y no una reescritura de PayrollKpiCard: ese sigue
  * usando payroll-colors.ts sin cambios en Dashboard y en el historial.
