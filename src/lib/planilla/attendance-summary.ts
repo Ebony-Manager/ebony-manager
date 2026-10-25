@@ -44,7 +44,8 @@ export interface AttendanceSummary {
 /**
  * Suma por persona dentro del período (`month` null = todo el año) y arma
  * los rankings. Solo cuentan empleados con quincena registrada en el
- * período; el filtro de categoría (Taller / Administrativo) va aparte.
+ * período y activos (los inactivos no cuentan); el filtro de categoría
+ * (Taller / Administrativo) va aparte.
  */
 export function summarizeAttendance(
   employees: readonly AttendanceEmployee[],
@@ -57,7 +58,8 @@ export function summarizeAttendance(
   for (const r of rows) {
     if (month !== null && r.month !== month) continue;
     const employee = byId.get(r.employeeId);
-    if (!employee || (categoria !== "todos" && employee.categoria !== categoria)) continue;
+    // Los inactivos ya no son parte del equipo: no salen en totales ni rankings.
+    if (!employee || !employee.active || (categoria !== "todos" && employee.categoria !== categoria)) continue;
     const t = totals.get(r.employeeId) ?? { employee, hours: 0, days: 0, cents: 0, periods: 0 };
     t.hours += r.hours;
     t.days += r.days;
@@ -74,7 +76,7 @@ export function summarizeAttendance(
     byAbsences: list.filter((t) => t.days > 0).sort((a, b) => b.days - a.days || b.hours - a.hours || a.employee.sortOrder - b.employee.sortOrder),
     byLateness: list.filter((t) => t.hours > 0).sort((a, b) => b.hours - a.hours || b.days - a.days || a.employee.sortOrder - b.employee.sortOrder),
     spotless: list
-      .filter((t) => t.days === 0 && t.hours === 0 && t.employee.active)
+      .filter((t) => t.days === 0 && t.hours === 0)
       .map((t) => t.employee)
       .sort((a, b) => a.sortOrder - b.sortOrder),
   };

@@ -50,6 +50,13 @@ describe("summarizeAttendance", () => {
     ]);
   });
 
+  it("los inactivos no cuentan en totales ni rankings", () => {
+    const s = summarizeAttendance(employees, [...rows, row("e4", 10, 2, 4, 3, 9000)], 10);
+    expect(s).toMatchObject({ days: 1, hours: 5, cents: 7500 });
+    expect(s.byAbsences.map((t) => t.employee.id)).toEqual(["e1"]);
+    expect(s.byLateness.map((t) => t.employee.id)).not.toContain("e4");
+  });
+
   it("filtra por categoría", () => {
     const s = summarizeAttendance(employees, rows, 10, "administrativo");
     expect(s.hours).toBe(0);

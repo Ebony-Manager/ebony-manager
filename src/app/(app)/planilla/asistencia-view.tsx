@@ -197,22 +197,27 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
     });
 
   // Para las tarjetas: días con tardanza, minutos tarde, faltas, días por revisar y % de días a tiempo.
+  // Tardanzas, faltas y puntualidad solo de activos: los inactivos siguen en la lista
+  // (para cerrar su última quincena) pero ya no cuentan en los números.
   const kpis = React.useMemo(() => {
+    const active = new Set(employees.filter((e) => e.status === "ACTIVE").map((e) => e.id));
     let lateDays = 0;
     let lateMinutes = 0;
     let absent = 0;
     let review = 0;
     let worked = 0;
     for (const p of proposals) {
+      // Lo pendiente de revisar sí cuenta para todos: hay que cerrar la quincena igual.
+      review += p.blockingDays;
+      if (!active.has(p.employeeId)) continue;
       const days = p.days.filter((d) => d.arrival !== null || d.departure !== null);
       worked += days.length;
       lateDays += days.filter((d) => d.lateMinutes > 0).length;
       lateMinutes += p.lateMinutes;
       absent += p.absentWeekdays + p.absentSaturdays;
-      review += p.blockingDays;
     }
     return { lateDays, lateMinutes, absent, review, punctual: worked ? Math.round(((worked - lateDays) / worked) * 100) : null };
-  }, [proposals]);
+  }, [proposals, employees]);
 
   const label = `${monthLabel(lang, period.month)} · ${period.half === 1 ? tp("quincena_1") : tp("quincena_2")} ${period.year}`;
   const when = (s: { date: string; minutes: number } | null) => (s ? `${formatDateCompact(lang, s.date)} ${hm(s.minutes)}` : tg("att_never"));
