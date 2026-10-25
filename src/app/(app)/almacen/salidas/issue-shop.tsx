@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Check, Minus, Plus, ShoppingCart, X } from "lucide-react";
+import { Check, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 
 import { INTERNAL_USES, type InternalUse, type InventoryCategory, type InventoryItem, type InventoryPerson } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -117,15 +117,18 @@ export function IssueShop({
       {/* Celular: barra abajo que abre la salida. */}
       {count > 0 && (
         <div className="fixed inset-x-0 bottom-[var(--app-bottom)] z-20 flex items-center justify-between gap-3 border-t border-ink-900/8 bg-card px-4 py-3 shadow-lg lg:hidden">
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <ShoppingCart className="size-4" />
-            {ta("n_in_cart", { n: count })}
+          <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+            <ShoppingCart className="size-4 shrink-0" />
+            <span className="truncate">{ta("n_in_cart", { n: count })}</span>
           </span>
-          <Button onClick={() => setSheetOpen(true)}>{ta("view_issue")}</Button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ClearCartButton onClear={() => setCart([])} />
+            <Button onClick={() => setSheetOpen(true)}>{ta("view_issue")}</Button>
+          </div>
         </div>
       )}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto p-4 lg:hidden">
+        <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
           <SheetHeader className="p-0">
             <SheetTitle>{ta("cart_title")}</SheetTitle>
           </SheetHeader>
@@ -255,7 +258,12 @@ function ProductCard({
                   <li key={l.variantId} className="flex items-center gap-1.5 bg-primary/5 px-1.5 py-1 text-xs">
                     <Check className="size-3 shrink-0 text-primary" />
                     <span className="min-w-0 flex-1 truncate">{v?.label ? `${v.label} × ${formatQty(l.qty, lang)}` : `× ${formatQty(l.qty, lang)}`}</span>
-                    <button type="button" aria-label={ta("remove")} onClick={() => onRemove(l.variantId)} className="text-muted-foreground hover:text-destructive">
+                    <button
+                      type="button"
+                      aria-label={ta("remove")}
+                      onClick={() => onRemove(l.variantId)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
                       <X className="size-3" />
                     </button>
                   </li>
@@ -298,7 +306,8 @@ function CartPanel({
   const [error, setError] = React.useState<string | null>(null);
 
   const personOptions = React.useMemo(
-    () => people.filter((p) => p.active).map((p) => ({ value: `${p.kind}:${p.id}`, label: p.name, group: ta(p.kind === "empleado" ? "employee" : "contractor") })),
+    () =>
+      people.filter((p) => p.active).map((p) => ({ value: `${p.kind}:${p.id}`, label: p.name, group: ta(p.kind === "empleado" ? "employee" : "contractor") })),
     [people, ta],
   );
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
@@ -328,10 +337,21 @@ function CartPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="hidden items-center gap-2 font-semibold lg:flex">
-        <ShoppingCart className="size-4" />
-        {ta("cart_title")}
-      </h2>
+      <div className="flex min-h-8 items-center justify-between gap-2">
+        <h2 className="hidden items-center gap-2 font-semibold lg:flex">
+          <ShoppingCart className="size-4" />
+          {ta("cart_title")}
+        </h2>
+        {cart.length > 0 && (
+          <ClearCartButton
+            className="ml-auto"
+            onClear={() => {
+              setCart([]);
+              onDone();
+            }}
+          />
+        )}
+      </div>
 
       {cart.length === 0 ? (
         <p className="border border-dashed border-ink-900/16 px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
@@ -346,9 +366,7 @@ function CartPanel({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-tight font-medium">{ref?.item.name}</p>
                   {ref?.variant.label && <p className="text-xs text-muted-foreground">{ref.variant.label}</p>}
-                  {short && (
-                    <p className="text-xs text-warning">{ta("short_stock", { stock: qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang) })}</p>
-                  )}
+                  {short && <p className="text-xs text-warning">{ta("short_stock", { stock: qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang) })}</p>}
                 </div>
                 <input
                   key={l.qty}
@@ -362,7 +380,12 @@ function CartPanel({
                   aria-label={ta("qty")}
                   className="h-8 w-16 border border-input bg-card px-2 text-right text-sm tabular-nums outline-none focus-visible:border-ring"
                 />
-                <button type="button" aria-label={ta("remove")} onClick={() => setCart((c) => c.filter((x) => x.variantId !== l.variantId))} className="mt-1.5 text-muted-foreground hover:text-destructive">
+                <button
+                  type="button"
+                  aria-label={ta("remove")}
+                  onClick={() => setCart((c) => c.filter((x) => x.variantId !== l.variantId))}
+                  className="mt-1.5 text-muted-foreground hover:text-destructive"
+                >
                   <X className="size-4" />
                 </button>
               </li>
@@ -404,5 +427,38 @@ function CartPanel({
         {saving ? ta("saving") : `${ta("register_issue")}${cart.length ? ` (${cart.length})` : ""}`}
       </Button>
     </div>
+  );
+}
+
+/**
+ * Vaciar la salida en dos toques, para no perder todo por un toque sin
+ * querer: el primero pregunta "¿Vaciar todo?" (3 segundos), el segundo vacía.
+ */
+function ClearCartButton({ onClear, className }: { onClear: () => void; className?: string }) {
+  const { ta } = useTa();
+  const [armed, setArmed] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(id);
+  }, [armed]);
+
+  return (
+    <Button
+      type="button"
+      variant={armed ? "destructive" : "outline"}
+      size="sm"
+      className={`h-9 ${className ?? ""}`}
+      onClick={() => {
+        if (!armed) return setArmed(true);
+        setArmed(false);
+        onClear();
+        toast(ta("cart_cleared"));
+      }}
+    >
+      <Trash2 className="size-3.5" />
+      {armed ? ta("clear_cart_confirm") : ta("clear_cart")}
+    </Button>
   );
 }

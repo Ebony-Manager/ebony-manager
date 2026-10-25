@@ -58,6 +58,12 @@ function DialogContent({
           className,
         )}
         {...props}
+        // En pantallas táctiles no se enfoca el primer campo al abrir: si no,
+        // sale el teclado sin que nadie lo pida y tapa media ventana.
+        onOpenAutoFocus={(e) => {
+          if (window.matchMedia("(pointer: coarse)").matches) e.preventDefault();
+          props.onOpenAutoFocus?.(e);
+        }}
       >
         {children}
         {showCloseButton && (
