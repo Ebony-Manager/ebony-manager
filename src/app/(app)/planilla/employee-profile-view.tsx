@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { ArrowLeft, LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react";
+import { LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react";
 
 import type { ComponentProps } from "react";
 
@@ -40,6 +39,7 @@ import { employeeBackPath, type EmployeeFrom } from "@/lib/personal/paths";
 import { EmployeePhotosProvider } from "./employee-photos-context";
 import { LiquidationDialog } from "./liquidation-dialog";
 import { DeleteEmployeeDialog } from "./delete-employee-dialog";
+import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
 
 function DataItem({
   label,
@@ -135,15 +135,10 @@ export function EmployeeProfileView({
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrl ? { [employee.id]: photoUrl } : {}}>
-      <div className="flex flex-col gap-4 p-4 sm:p-6">
+      <div className={PAGE_CLASS}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-              <Link href={employeeBackPath(from)}>
-                <ArrowLeft className="size-3.5" />
-                {t(lang, strings.common.back)}
-              </Link>
-            </Button>
+            <BackLink href={employeeBackPath(from)} label={t(lang, strings.common.back)} />
 
             {/* Ajustes del empleado: datos personales + cuenta bancaria
                 (discretos) + estado / liquidación / borrar. */}
@@ -211,7 +206,7 @@ export function EmployeeProfileView({
                   <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="xl" />
                 </ProfilePhotoPicker>
                 <div className="flex flex-col gap-1">
-                  <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-foreground">
+                  <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
                     {employee.name}
                     {isInactive && <Badge variant="secondary">{tt("inactive")}</Badge>}
                   </h1>
@@ -231,7 +226,7 @@ export function EmployeeProfileView({
 
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">{tt("base_salary_month")}</p>
-                <p className="text-3xl font-semibold tabular-nums text-foreground">
+                <p className="text-2xl font-semibold tabular-nums text-foreground">
                   {formatCents(employee.baseSalaryCents)}
                 </p>
                 <p className="text-xs text-muted-foreground">{tt("per_month")}</p>

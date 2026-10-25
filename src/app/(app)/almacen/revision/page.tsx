@@ -63,7 +63,7 @@ export default async function RevisionPage() {
     <div className="flex flex-col gap-8 px-4 pt-6 pb-16 sm:px-7">
       <header className="flex flex-col gap-2">
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Almacén · Revisión antes de oficializar</p>
-        <h1 className="text-2xl font-semibold text-foreground">Catálogo y proveedores</h1>
+        <h1 className="text-xl font-semibold text-foreground">Catálogo y proveedores</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Así está hoy cada producto en la app, con los proveedores que salen del Excel &quot;Inventario General&quot;. En cada producto puedes corregir el
           mínimo y el &quot;pedir hasta&quot; de cada variante y dejar una nota, y tocar Guardar: eso queda en la app al momento. Los proveedores todavía no se

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import {
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { cn } from "@/lib/utils";
 import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
@@ -28,6 +27,7 @@ import { ContractDialog, type ContractPerson } from "../../contratistas/contract
 import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { PROJECTS_PATH, projectPath } from "../paths";
+import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
 type SectionKey = "resumen" | "contratos";
 
@@ -81,14 +81,9 @@ export function ProjectHub({
   const isActive = project.status === "ACTIVE";
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-4 pb-10 sm:px-7">
+    <div className={PAGE_CLASS}>
       <div className="flex items-center justify-between gap-2">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-          <Link href={PROJECTS_PATH}>
-            <ArrowLeft className="size-3.5" />
-            {tt("back")}
-          </Link>
-        </Button>
+        <BackLink href={PROJECTS_PATH} label={tt("back")} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={tt("menu")} title={tt("menu")}>
@@ -122,27 +117,7 @@ export function ProjectHub({
         </Button>
       </div>
 
-      {/* Pestañas — las mismas de Pagos: texto con subrayado. */}
-      <div className="flex items-center gap-[22px] overflow-x-auto border-b border-border">
-        {visible.map((s) => {
-          const isActiveTab = tab === s.key;
-          return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => changeTab(s.key)}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5",
-                isActiveTab
-                  ? "border-b-2 border-walnut pb-[10px] text-[13.5px] font-semibold text-walnut"
-                  : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
-              )}
-            >
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
+      <SubTabs value={tab} onChange={changeTab} tabs={visible.map((s) => ({ value: s.key, label: s.label }))} />
 
       {tab === "resumen" && (
         <Overview project={project} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />

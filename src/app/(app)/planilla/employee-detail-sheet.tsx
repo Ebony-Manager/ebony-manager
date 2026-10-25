@@ -11,11 +11,12 @@ import { monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getEmployeeAnnualDetailAction, getLoansAction } from "./actions";
 import { EmployeeChargesTab } from "./employee-charges-tab";
 import { employeeProfilePath } from "@/lib/personal/paths";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { SubTabs } from "@/components/shared/page-header";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
 
@@ -226,7 +227,6 @@ export function EmployeeDetailSheet({
       ? `${tt(base)} (${tt("accrual_on_benefits")} ${formatCents(employee!.benefitsBaseSalaryCents ?? 0)} — ${tt("accrual_benefits_suffix")})`
       : tt(base);
 
-  const tabClass = "px-3 text-xs";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -248,14 +248,14 @@ export function EmployeeDetailSheet({
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 pb-6">
           <Tabs value={tab} onValueChange={setTab} className="gap-3">
-            <TabsList className="h-auto w-full flex-wrap justify-start">
-              <TabsTrigger value="resumen" className={tabClass}>
-                {tt("tab_resumen")}
-              </TabsTrigger>
-              <TabsTrigger value="prestamos" className={tabClass}>
-                {tt("tab_prestamos")}
-              </TabsTrigger>
-            </TabsList>
+            <SubTabs
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { value: "resumen", label: tt("tab_resumen") },
+                { value: "prestamos", label: tt("tab_prestamos") },
+              ]}
+            />
 
             <TabsContent value="resumen" className="mt-0">
               {rows === null && (

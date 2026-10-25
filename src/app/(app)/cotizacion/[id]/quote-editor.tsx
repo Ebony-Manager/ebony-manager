@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Copy, Loader2, Plus, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, Loader2, Plus, TriangleAlert, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { formatMoney, newSection, quoteTotals, sectionTotals, syncDraftPrices } from "@/lib/cotizador/pricing";
@@ -16,6 +16,7 @@ import { NumField } from "../num-field";
 import { ClientView } from "./client-view";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
+import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
 type SaveState = "saved" | "pending" | "saving" | "error";
 const SAVE_DELAY_MS = 700;
@@ -189,14 +190,11 @@ export function QuoteEditor({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-5 pb-12 sm:px-7">
+    <div className={PAGE_CLASS}>
       {/* Encabezado: el cliente es lo que más se ve */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link href="/cotizacion" className="inline-flex items-center gap-1.5 text-sm text-ink-900/50 hover:text-ink-900">
-            <ArrowLeft className="size-3.5" />
-            {tt("title")}
-          </Link>
+          <BackLink href="/cotizacion" label={tt("title")} />
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
               {saveState === "saved" && isPersisted && <Check className="size-3.5 text-[var(--status-ok)]" />}
@@ -240,7 +238,7 @@ export function QuoteEditor({
             onChange={(e) => setHeader({ clientName: e.currentTarget.value })}
             placeholder={tt("f_client_ph")}
             aria-label={tt("f_client")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-2xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-border focus-visible:border-ink-900"
+            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-border focus-visible:border-ink-900"
           />
           <input
             value={quote.projectName}
@@ -278,27 +276,18 @@ export function QuoteEditor({
         </div>
       </header>
 
-      <div className="flex items-center gap-[22px] border-b border-border">
-        {(["edit", "client"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setTab(v)}
-            className={
-              tab === v
-                ? "border-b-2 border-walnut pb-[10px] text-[13.5px] font-semibold text-walnut"
-                : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
-            }
-          >
-            {v === "edit" ? tt("tab_edit") : tt("tab_client")}
-          </button>
-        ))}
-        {canEditCosts && (
-          <Link href="/cotizacion/costos" className="ml-auto pb-[11px] text-xs text-ink-900/35 hover:text-ink-900/70">
-            {tt("costs_link")}
-          </Link>
-        )}
-      </div>
+      <SubTabs
+        value={tab}
+        onChange={setTab}
+        tabs={(["edit", "client"] as const).map((v) => ({ value: v, label: v === "edit" ? tt("tab_edit") : tt("tab_client") }))}
+        end={
+          canEditCosts && (
+            <Link href="/cotizacion/costos" className="text-xs text-muted-foreground hover:text-foreground">
+              {tt("costs_link")}
+            </Link>
+          )
+        }
+      />
 
       {tab === "client" ? (
         <ClientView quote={quote} onDetail={(pdfDetail) => setHeader({ pdfDetail })} />

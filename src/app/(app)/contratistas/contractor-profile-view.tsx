@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Banknote,
   ChevronDown,
   ChevronLeft,
@@ -117,6 +115,7 @@ import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
 /** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
@@ -481,15 +480,10 @@ export function ContractorProfileView({
   const emergency = [contractor.emergencyContactName, contractor.emergencyContactPhone].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
+    <div className={PAGE_CLASS}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-            <Link href={contractorBackPath(from)}>
-              <ArrowLeft className="size-3.5" />
-              {t(lang, strings.common.back)}
-            </Link>
-          </Button>
+          <BackLink href={contractorBackPath(from)} label={t(lang, strings.common.back)} />
 
           {/* Ajustes del contratista: datos personales (discretos) +
               inactivar / liquidar / reactivar / eliminar. Nada de esto va
@@ -560,7 +554,7 @@ export function ContractorProfileView({
                 <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="xl" />
               </ProfilePhotoPicker>
               <div>
-                <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
                   {contractor.name}
                   {isInactive && <Badge variant="secondary">{tt("inactive_badge")}</Badge>}
                 </h1>

@@ -48,12 +48,7 @@ export function PageHeader({
   return (
     <div className={cn("flex items-start justify-between gap-3", className)}>
       <div className="min-w-0 flex-1">
-        {back && (
-          <Link href={back.href} className="mb-1 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-3.5" />
-            {back.label}
-          </Link>
-        )}
+        {back && <BackLink href={back.href} label={back.label} className="mb-1" />}
         {showCrumbs && <p className="mb-0.5 hidden text-xs text-muted-foreground md:block">{path.slice(0, -1).join(" / ")}</p>}
         <h1 className="flex flex-wrap items-center gap-x-2 text-xl font-semibold text-foreground">
           {title}
@@ -63,6 +58,18 @@ export function PageHeader({
       </div>
       {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>
+  );
+}
+
+/** "← Volver" arriba de las fichas y subpantallas: el mismo en todas. */
+export function BackLink({ href, label, className }: { href: string; label: string; className?: string }) {
+  return (
+    <Button asChild variant="ghost" size="sm" className={cn("-ml-2 self-start text-muted-foreground", className)}>
+      <Link href={href}>
+        <ArrowLeft className="size-3.5" />
+        {label}
+      </Link>
+    </Button>
   );
 }
 
@@ -144,10 +151,13 @@ export function SubTabs<T extends string>({
   value,
   onChange,
   tabs,
+  end,
 }: {
   value: T;
   onChange: (value: T) => void;
   tabs: { value: T; label: React.ReactNode; badge?: React.ReactNode }[];
+  /** Algo a la derecha de la fila (ej. un enlace). */
+  end?: React.ReactNode;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -178,6 +188,7 @@ export function SubTabs<T extends string>({
           </button>
         );
       })}
+      {end && <div className="ml-auto shrink-0 pb-2.5 pl-4">{end}</div>}
     </div>
   );
 }
