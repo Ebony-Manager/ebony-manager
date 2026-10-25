@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { EbonyMark } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
@@ -45,7 +45,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
   // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
   // la ruta. Sin ítems visibles, no hay ícono.
   function panelLink(panel: NavPanel) {
-    const [first] = panel.items;
+    const first = panelHome(panel);
     if (!first) return null;
     const Icon = panel.icon;
     return (

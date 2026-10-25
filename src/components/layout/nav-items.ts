@@ -72,6 +72,13 @@ export interface NavPanel {
   icon: LucideIcon;
   title: (typeof strings.nav)[keyof typeof strings.nav];
   items: NavItem[];
+  /** A dónde lleva el ícono si el usuario lo ve (si no, al primer ítem): el trabajo del día, no el resumen. */
+  home?: string;
+}
+
+/** A dónde lleva el ícono de un panel (con sus ítems ya filtrados por permiso). */
+export function panelHome(panel: NavPanel): NavItem | undefined {
+  return panel.items.find((i) => i.href === panel.home) ?? panel.items[0];
 }
 
 // Personal — en el rail, debajo de los módulos de trabajo: Resumen (uno
@@ -96,6 +103,7 @@ export const ALMACEN_PANEL: NavPanel = {
   key: "almacen",
   icon: Warehouse,
   title: strings.nav.almacen,
+  home: "/almacen",
   items: [
     { href: "/almacen/resumen", icon: Layers, label: strings.nav.resumenPersonal, modules: ["almacen"] },
     { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/conteo", "/almacen/revision"] },

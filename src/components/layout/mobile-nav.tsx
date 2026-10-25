@@ -18,6 +18,7 @@ import {
   breadcrumbFor,
   canSeeNavItem,
   isNavItemActive,
+  panelHome,
   type NavPanel,
 } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
@@ -62,7 +63,7 @@ function useNav(pending: PendingCounts) {
     });
   }
   for (const panel of [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL].map(visiblePanel)) {
-    const [first] = panel.items;
+    const first = panelHome(panel);
     if (!first) continue;
     destinations.push({
       key: panel.key,
