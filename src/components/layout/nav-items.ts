@@ -7,7 +7,7 @@ import {
   Wallet,
   Layers,
   UserCog,
-  Briefcase,
+  Users,
   Settings,
   Contact,
   Warehouse,
@@ -77,7 +77,7 @@ export interface NavPanel {
 // pestaña de adentro pide su propio módulo.
 export const PERSONAL_PANEL: NavPanel = {
   key: "personal",
-  icon: Briefcase,
+  icon: Users,
   title: strings.nav.personal,
   items: [
     { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, anyModules: ["planilla", "contratistas"], exact: true },
