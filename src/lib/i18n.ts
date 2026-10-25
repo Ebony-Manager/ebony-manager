@@ -1917,6 +1917,7 @@ export const strings = {
     done: { es: "Listo", en: "Done" },
     deleted: { es: "Cotización eliminada", en: "Quote deleted" },
     duplicate: { es: "Duplicar", en: "Duplicate" },
+    more_actions: { es: "Más acciones", en: "More actions" },
     duplicate_hint: { es: "Crea una copia en borrador, para una nueva versión", en: "Creates a draft copy, for a new version" },
     duplicated: { es: "Copia creada", en: "Copy created" },
     costs_link: { es: "Costos", en: "Costs" },

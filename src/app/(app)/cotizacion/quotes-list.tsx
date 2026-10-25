@@ -14,7 +14,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
 import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
-import { ConfirmButton } from "@/components/shared/confirm-button";
+import { RowMenu } from "@/components/shared/row-menu";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
@@ -72,13 +72,15 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
     }
   }
 
+  // Duplicar y eliminar dentro del "⋯" de cada fila (no como íconos sueltos).
   const actions = (id: string) => (
-    <>
-      <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === id} onClick={() => onDuplicate(id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">
-        <Copy className="size-3.5" />
-      </button>
-      <ConfirmButton iconOnly icon={Trash2} label={tt("delete")} confirmLabel={tt("delete_confirm")} onConfirm={() => onDelete(id)} className="p-1.5" />
-    </>
+    <RowMenu
+      label={tt("more_actions")}
+      items={[
+        { label: tt("duplicate"), icon: Copy, disabled: busy === id, onSelect: () => void onDuplicate(id) },
+        { label: tt("delete"), icon: Trash2, confirmLabel: tt("delete_confirm"), onSelect: () => void onDelete(id) },
+      ]}
+    />
   );
   const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -163,8 +165,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                 <span className="w-24 shrink-0 text-xs text-ink-700">{date(q.quoteDate)}</span>
                 <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
                 <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
-                {/* Ancho fijo: al pedir confirmación el botón crece sin mover la fila. */}
-                <span className="flex w-28 shrink-0 items-center justify-end">{actions(q.id)}</span>
+                <span className="flex shrink-0 items-center">{actions(q.id)}</span>
               </div>
             </li>
           ))}
