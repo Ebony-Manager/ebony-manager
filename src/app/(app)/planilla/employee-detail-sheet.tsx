@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployeeAnnualDetailAction, getLoansAction } from "./actions";
 import { EmployeeChargesTab } from "./employee-charges-tab";
 import { employeeProfilePath } from "@/lib/personal/paths";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
 
@@ -279,22 +280,14 @@ export function EmployeeDetailSheet({
               {withActivity.length > 0 && (
                 <>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
-                      {(["quincena", "month"] as const).map((v) => (
-                        <Button
-                          key={v}
-                          size="sm"
-                          variant={summaryView === v ? "secondary" : "ghost"}
-                          className="h-7 px-2.5 text-xs"
-                          onClick={() => {
-                            setSummaryView(v);
-                            setShowAll(false);
-                          }}
-                        >
-                          {tt(v === "quincena" ? "sum_view_quincena" : "sum_view_month")}
-                        </Button>
-                      ))}
-                    </div>
+                    <SegmentedFilter
+                      value={summaryView}
+                      onChange={(v) => {
+                        setSummaryView(v);
+                        setShowAll(false);
+                      }}
+                      options={(["quincena", "month"] as const).map((v) => ({ value: v, label: tt(v === "quincena" ? "sum_view_quincena" : "sum_view_month") }))}
+                    />
                     <p className="text-xs text-muted-foreground">
                       {tt("total_year")} {year}:{" "}
                       <span className="font-medium tabular-nums text-foreground">

@@ -36,8 +36,8 @@ export function AdjustmentsView({
         title={ta("adj_title")}
         subtitle={ta("adj_subtitle")}
         action={
-          <Button onClick={() => setAdding(true)}>
-            <Plus className="size-4" />
+          <Button size="sm" onClick={() => setAdding(true)}>
+            <Plus className="size-3.5" />
             {ta("new_adjustment")}
           </Button>
         }
@@ -46,15 +46,15 @@ export function AdjustmentsView({
       {adjustments.length === 0 ? (
         <EmptyBox>{ta("adj_empty")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
-          <table className="w-full min-w-[520px] border-collapse text-sm">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full border-collapse text-sm sm:min-w-[520px]">
             <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="w-8" />
                 <th className="px-3 py-2 text-left font-medium">{ta("date")}</th>
                 <th className="px-3 py-2 text-left font-medium">{ta("col_reason")}</th>
                 <th className="px-3 py-2 text-right font-medium">{ta("col_changes")}</th>
-                <th className="px-3.5 py-2 text-left font-medium">{ta("by")}</th>
+                <th className="hidden px-3.5 py-2 text-left font-medium sm:table-cell">{ta("by")}</th>
               </tr>
             </thead>
             <tbody>
@@ -62,15 +62,15 @@ export function AdjustmentsView({
                 const isOpen = open === a.id;
                 return (
                   <React.Fragment key={a.id}>
-                    <tr onClick={() => setOpen(isOpen ? null : a.id)} className="cursor-pointer border-b border-ink-900/8 hover:bg-muted/30">
+                    <tr onClick={() => setOpen(isOpen ? null : a.id)} className="cursor-pointer border-b border-border hover:bg-muted/30">
                       <td className="pl-3 text-muted-foreground">{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDateCompact(lang, a.adjustedOn)}</td>
                       <td className="px-3 py-2.5 font-medium">{ta(`r_${a.reason}`)}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums">{a.lines.length}</td>
-                      <td className="px-3.5 py-2.5 text-muted-foreground">{a.createdByName ?? "—"}</td>
+                      <td className="hidden px-3.5 py-2.5 text-muted-foreground sm:table-cell">{a.createdByName ?? "—"}</td>
                     </tr>
                     {isOpen && (
-                      <tr className="border-b border-ink-900/8 bg-muted/20">
+                      <tr className="border-b border-border bg-muted/20">
                         <td />
                         <td colSpan={4} className="px-3 py-2.5">
                           <ul className="flex flex-col gap-1">

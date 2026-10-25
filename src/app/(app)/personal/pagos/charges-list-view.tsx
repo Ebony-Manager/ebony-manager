@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Ban, CheckCircle2, HandCoins, Hourglass, ListChecks, Percent, Trash2 } from "lucide-react";
+import { Ban, CheckCircle2, HandCoins, Hourglass, ListChecks, Percent } from "lucide-react";
 
 import type { LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
 import type { ContractorLedgerCategory } from "@/types/contractors";
@@ -26,6 +26,8 @@ import {
   deleteContractorLoanAction,
   type ContractorLoanResult,
 } from "../../contratistas/actions";
+import { ShowToggle } from "@/components/shared/page-header";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"]);
 
@@ -225,36 +227,31 @@ export function ChargesListView({
   const actions = (r: ChargeRow) => (
     <>
       {r.contractorLoanId && !r.cancelled && r.pendingCents > 0 && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7 text-muted-foreground"
-          title={tg("cl_cancel")}
+        <ConfirmButton
+          iconOnly
+          icon={Ban}
+          className="p-1.5"
+          label={tg("cl_cancel")}
+          confirmLabel={t(lang, strings.nav.confirm_cancel)}
           disabled={busy === r.contractorLoanId}
-          onClick={() => {
+          onConfirm={() => {
             const id = r.contractorLoanId;
-            if (!id || !window.confirm(tg("cl_cancel_confirm"))) return;
-            void run(id, () => cancelContractorLoanAction(id), tg("cl_cancelled"));
+            if (id) void run(id, () => cancelContractorLoanAction(id), tg("cl_cancelled"));
           }}
-        >
-          <Ban className="size-3.5" />
-        </Button>
+        />
       )}
       {r.contractorLoanId && r.paidCount === 0 && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7 text-muted-foreground hover:text-destructive"
-          title={tg("cl_delete")}
+        <ConfirmButton
+          iconOnly
+          className="p-1.5"
+          label={tg("cl_delete")}
+          confirmLabel={t(lang, strings.nav.confirm_delete)}
           disabled={busy === r.contractorLoanId}
-          onClick={() => {
+          onConfirm={() => {
             const id = r.contractorLoanId;
-            if (!id || !window.confirm(tg("cl_delete_confirm"))) return;
-            void run(id, () => deleteContractorLoanAction(id), tg("cl_deleted"));
+            if (id) void run(id, () => deleteContractorLoanAction(id), tg("cl_deleted"));
           }}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        />
       )}
     </>
   );
@@ -279,10 +276,7 @@ export function ChargesListView({
         />
       </div>
 
-      <label className="flex cursor-pointer items-center justify-end gap-2 text-xs text-muted-foreground">
-        <input type="checkbox" checked={history} onChange={(e) => setHistory(e.target.checked)} />
-        {tp("lo_show_history")}
-      </label>
+      <ShowToggle className="self-end" checked={history} onChange={setHistory} label={tp("lo_show_history")} />
 
       {failed ? (
         <div className="py-8 text-center text-sm text-muted-foreground">

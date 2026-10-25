@@ -96,7 +96,7 @@ export function IssueShop({
         ) : (
           groups.map((g) => (
             <div key={g.category.id || "none"} className="flex flex-col">
-              <h2 className="mb-3 border-b border-ink-900/8 pb-1.5 text-sm font-semibold text-foreground">{g.category.name}</h2>
+              <h2 className="mb-3 border-b border-border pb-1.5 text-sm font-semibold text-foreground">{g.category.name}</h2>
               <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3">
                 {g.items.map((item) => (
                   <ProductCard
@@ -114,11 +114,11 @@ export function IssueShop({
       </section>
 
       {/* Computadora: la salida al lado, fija. */}
-      <aside className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-ink-900/8 bg-card p-4 lg:block">{panel}</aside>
+      <aside className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-4 lg:block">{panel}</aside>
 
       {/* Celular: barra abajo que abre la salida. */}
       {count > 0 && (
-        <div className="fixed inset-x-0 bottom-[var(--app-bottom)] z-20 flex items-center justify-between gap-3 border-t border-ink-900/8 bg-card px-4 py-3 shadow-lg lg:hidden">
+        <div className="fixed inset-x-0 bottom-[var(--app-bottom)] z-20 flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-lg lg:hidden">
           <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="size-4 shrink-0" />
             <span className="truncate">{ta("n_in_cart", { n: count })}</span>
@@ -193,8 +193,8 @@ function ProductCard({
   // Tarjeta: foto, nombre y existencia arriba; menús de variante en el medio;
   // cantidad y "Agregar" siempre al pie, alineados en toda la fila.
   return (
-    <li className={`flex flex-col rounded-lg overflow-hidden border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-ink-900/8"}`}>
-      <div className="flex h-28 items-center justify-center border-b border-ink-900/8 bg-white p-2 sm:h-36">
+    <li className={`flex flex-col rounded-lg overflow-hidden border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-border"}`}>
+      <div className="flex h-28 items-center justify-center border-b border-border bg-white p-2 sm:h-36">
         <ItemThumb path={item.photoPath} size="fill" className="size-full border-0" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
@@ -366,7 +366,7 @@ function CartPanel({
       </div>
 
       {cart.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-ink-900/16 px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
+        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {cart.map((l) => {

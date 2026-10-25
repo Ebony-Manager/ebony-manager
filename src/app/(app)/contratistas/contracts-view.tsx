@@ -1,10 +1,11 @@
 "use client";
 
-import { SearchInput } from "@/components/shared/search-input";
+import { ListToolbar, SearchInput } from "@/components/shared/search-input";
+import { EmptyState } from "@/components/shared/page-header";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Folder, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
@@ -27,14 +28,16 @@ export function ContractsView({
   contractors,
   projects,
   laborRates,
-  actions,
+  addOpen,
+  onAddOpenChange,
 }: {
   contracts: ContractorContract[];
   contractors: ContractPerson[];
   projects: Project[];
   laborRates: LaborRate[];
-  /** Botones extra junto a "Nuevo contrato" (ej. Tarifas). */
-  actions?: React.ReactNode;
+  /** "Nuevo contrato" abierto: el botón vive en el encabezado de Pagos. */
+  addOpen: boolean;
+  onAddOpenChange: (open: boolean) => void;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -43,7 +46,8 @@ export function ContractsView({
   const [query, setQuery] = React.useState("");
   const [showCompleted, setShowCompleted] = React.useState(false);
   const [editing, setEditing] = React.useState<ContractorContract | null>(null);
-  const [adding, setAdding] = React.useState(false);
+  const adding = addOpen;
+  const setAdding = onAddOpenChange;
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,24 +72,17 @@ export function ContractsView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button asChild size="sm" variant="ghost" className="text-muted-foreground">
+      <ListToolbar>
+        <SearchInput value={query} onChange={setQuery} placeholder={tt("ct_search_ph")} className="min-w-0 flex-1 sm:max-w-xs" />
+        <Button asChild size="sm" variant="ghost" className="shrink-0 text-muted-foreground">
           <Link href={PROJECTS_PATH}>
             <Folder className="size-3.5" />
             {tt("ct_tab_projects")}
           </Link>
         </Button>
-        <div className="flex items-center gap-2">
-          {actions}
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-3.5" />
-            {tt("ct_add")}
-          </Button>
-        </div>
-      </div>
+      </ListToolbar>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SearchInput value={query} onChange={setQuery} placeholder={tt("ct_search_ph")} className="max-w-sm flex-1" />
+      <div className="-mt-2">
         <p className="text-xs text-muted-foreground">
           {tt("ct_active_totals")}: {formatCents(totals.value)} · {tt("ct_col_pending").toLowerCase()}{" "}
           <span className="font-medium text-foreground">{formatCents(totals.pending)}</span>
@@ -93,21 +90,15 @@ export function ContractsView({
       </div>
 
       {contracts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-10 text-center text-sm text-muted-foreground">
-          {tt("ct_empty")}
-        </div>
+        <EmptyState>{tt("ct_empty")}</EmptyState>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-10 text-center text-sm text-muted-foreground">
-          {tt("no_results")}
-        </div>
+        <EmptyState>{tt("no_results")}</EmptyState>
       ) : (
         <>
           {active.length > 0 ? (
             <ContractsTable contracts={active} onOpen={setEditing} showContractor />
           ) : (
-            <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-6 text-center text-sm text-muted-foreground">
-              {tt("ct_no_active")}
-            </div>
+            <EmptyState className="py-6">{tt("ct_no_active")}</EmptyState>
           )}
           {completed.length > 0 && (
             <div className="flex flex-col gap-3">

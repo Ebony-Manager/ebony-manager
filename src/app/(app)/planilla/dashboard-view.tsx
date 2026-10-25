@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Wallet, CalendarClock, HandCoins, Users } from "lucide-react";
+import { Wallet, CalendarClock, HandCoins, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { currentPeriod, formatCents, monthLabel, periodKey } from "@/lib/planilla/payroll-period";
@@ -14,6 +14,7 @@ import { EmployeeAvatar } from "./employee-avatar";
 import { PayrollKpiCard } from "./payroll-kpi-card";
 import { MonthlyPayrollChart } from "./monthly-payroll-chart";
 import { employeeProfilePath } from "@/lib/personal/paths";
+import { SectionHeader, Stepper } from "@/components/shared/page-header";
 
 /**
  * Dashboard de Planilla — cuatro números, un gráfico y dos listas cortas:
@@ -69,21 +70,11 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-medium text-foreground">{tt("tab_dashboard")}</p>
-          <p className="text-xs text-muted-foreground">{tt("dashboard_subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year - 1)}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-16 text-center text-sm font-medium text-foreground">{year}</span>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year + 1)}>
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title={tt("tab_dashboard")}
+        subtitle={tt("dashboard_subtitle")}
+        action={<Stepper label={year} onPrev={() => onYearChange(year - 1)} onNext={() => onYearChange(year + 1)} className="[&>span]:min-w-14" />}
+      />
 
       {failed ? (
         <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">

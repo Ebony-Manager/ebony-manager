@@ -60,7 +60,7 @@ export function LineRow({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-ink-900/8 bg-card px-2 pt-1.5 pb-2">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-border bg-card px-2 pt-1.5 pb-2">
       <div className="flex basis-full items-center gap-2 text-[11px] tracking-[0.03em] text-muted-foreground">
         <span>{tt(`cat_${line.category}`)}</span>
         {cornerMode && ON_WALL.includes(line.shape) && (

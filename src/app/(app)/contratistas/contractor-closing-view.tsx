@@ -35,13 +35,14 @@ import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
-import { PeriodStepper } from "@/app/(app)/planilla/period-stepper";
+import { Stepper } from "@/components/shared/page-header";
 import {
   closeContractorPayPeriodAction,
   getContractorClosingAction,
   reopenContractorPayPeriodAction,
   setContractorPayLineAction,
 } from "./actions";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 
 type Half = 1 | 2;
 interface PeriodSel {
@@ -95,6 +96,7 @@ export function ContractorClosingView({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
   const [sel, setSel] = React.useState<PeriodSel>(currentQuincena);
   const [data, setData] = React.useState<ContractorClosingData | null>(null);
@@ -198,7 +200,7 @@ export function ContractorClosingView({
 
   async function markPaid() {
     if (!data?.period) return;
-    if (!window.confirm(tt("cl_confirm_paid"))) return;
+    if (!(await confirm({ title: tt("cl_mark_paid"), message: tt("cl_confirm_paid"), confirmLabel: tt("cl_mark_paid") }))) return;
     setBusy(true);
     const res = await closeContractorPayPeriodAction(data.period.id);
     setBusy(false);
@@ -210,7 +212,7 @@ export function ContractorClosingView({
 
   async function reopen() {
     if (!data?.period) return;
-    if (!window.confirm(tt("cl_confirm_reopen"))) return;
+    if (!(await confirm({ title: tt("cl_reopen"), message: tt("cl_confirm_reopen"), confirmLabel: tt("cl_reopen"), destructive: true }))) return;
     setBusy(true);
     const res = await reopenContractorPayPeriodAction(data.period.id);
     setBusy(false);
@@ -236,7 +238,8 @@ export function ContractorClosingView({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <PeriodStepper
+        <Stepper
+          fill
           label={stepperLabel}
           onPrev={() => setSel((p) => previousPeriod(p.year, p.month, p.half))}
           onNext={() => setSel((p) => nextPeriod(p) as PeriodSel)}
@@ -252,16 +255,16 @@ export function ContractorClosingView({
       </div>
 
       {!data ? (
-        <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">{tt("loading")}</p>
+        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">{tt("loading")}</p>
       ) : rows.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
           {paid ? tt("cl_paid_empty") : tt("cl_empty")}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full border-collapse text-sm sm:min-w-[720px]">
             <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="px-3 py-2 text-left font-medium">{tt("ct_f_contractor")}</th>
                 <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("cl_col_pending")}</th>
                 <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("pay_sum_abonos")}</th>
@@ -448,6 +451,7 @@ export function ContractorClosingView({
         </DialogContent>
       </Dialog>
 
+      {dialog}
       {chargeFor && (
         <AddChargeDialog
           open

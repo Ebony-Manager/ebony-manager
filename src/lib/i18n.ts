@@ -15,6 +15,12 @@ interface Entry {
 
 export const strings = {
   nav: {
+    // Segundo toque de borrar / cancelar / quitar / deshacer (ConfirmButton).
+    confirm_delete: { es: "¿Borrar?", en: "Delete?" },
+    confirm_cancel: { es: "¿Cancelar?", en: "Cancel?" },
+    confirm_remove: { es: "¿Quitar?", en: "Remove?" },
+    confirm_undo: { es: "¿Deshacer?", en: "Undo?" },
+    confirm_back: { es: "No, volver", en: "No, go back" },
     cotizacion: { es: "Cotización", en: "Quote" },
     proyectos: { es: "Proyectos", en: "Projects" },
     cronograma: { es: "Cronograma", en: "Schedule" },

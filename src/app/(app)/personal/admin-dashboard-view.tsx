@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Building2, CalendarClock, ChevronLeft, ChevronRight, HandCoins, Hammer, Receipt, Users, Wallet } from "lucide-react";
+import { Building2, CalendarClock, HandCoins, Hammer, Receipt, Users, Wallet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import { t, strings } from "@/lib/i18n";
 import { getAdminDashboardAction } from "./actions";
 import { ADMIN_SERIES, AdminMonthlyChart, type AdminSeriesKey } from "./admin-monthly-chart";
 import { contractorProfilePath, employeeProfilePath } from "@/lib/personal/paths";
+import { Stepper } from "@/components/shared/page-header";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 type Data = Awaited<ReturnType<typeof getAdminDashboardAction>>;
 type RankScope = "month" | "year";
@@ -88,31 +90,17 @@ export function AdminDashboardView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[19px] font-bold text-ink-900">{tt("title")}</h1>
-          <p className="hidden text-xs text-muted-foreground sm:block">{tt("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setMonth((x) => Math.max(1, x - 1))} disabled={month === 1}>
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="min-w-24 text-center text-sm font-medium text-foreground">{monthLabel(lang, month)}</span>
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setMonth((x) => Math.min(12, x + 1))} disabled={month === 12}>
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => changeYear(year - 1)}>
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="min-w-14 text-center text-sm font-medium text-foreground">{year}</span>
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => changeYear(year + 1)}>
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
+      {/* Mes y año, con el mismo selector de flechas de toda la app. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Stepper
+          label={monthLabel(lang, month)}
+          onPrev={() => setMonth((x) => Math.max(1, x - 1))}
+          onNext={() => setMonth((x) => Math.min(12, x + 1))}
+          prevDisabled={month === 1}
+          nextDisabled={month === 12}
+          className="flex-1 sm:flex-none [&>span]:flex-1 sm:[&>span]:min-w-24"
+        />
+        <Stepper label={year} onPrev={() => changeYear(year - 1)} onNext={() => changeYear(year + 1)} className="[&>span]:min-w-14" />
       </div>
 
       {failed ? (
@@ -207,13 +195,11 @@ export function AdminDashboardView() {
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-foreground">{tt("rank_title")}</p>
-                <div className="flex items-center gap-1">
-                  {(["month", "year"] as const).map((s) => (
-                    <Button key={s} size="sm" variant={scope === s ? "secondary" : "ghost"} className="h-7 px-2.5 text-xs" onClick={() => setScope(s)}>
-                      {s === "month" ? monthLabel(lang, month) : `${tt("scope_year")} ${year}`}
-                    </Button>
-                  ))}
-                </div>
+                <SegmentedFilter
+                  value={scope}
+                  onChange={setScope}
+                  options={(["month", "year"] as const).map((s) => ({ value: s, label: s === "month" ? monthLabel(lang, month) : `${tt("scope_year")} ${year}` }))}
+                />
               </div>
 
               <p className="mb-1 text-xs font-medium text-muted-foreground">{tt("rank_employees")}</p>

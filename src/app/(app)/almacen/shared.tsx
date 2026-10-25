@@ -30,21 +30,8 @@ export function useTa() {
   return { ta, lang };
 }
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="max-w-2xl">
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        <p className="hidden text-sm text-muted-foreground sm:block">{subtitle}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-export function EmptyBox({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{children}</div>;
-}
+// Encabezado y recuadro vacío: los comunes de toda la app.
+export { PageHeader, EmptyState as EmptyBox } from "@/components/shared/page-header";
 
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return <SearchInput value={value} onChange={onChange} placeholder={placeholder} className="w-full flex-[1_1_200px] sm:max-w-xs" />;
@@ -63,7 +50,7 @@ export function ItemThumb({ path, size = 40, className }: { path: string | null;
   const url = inventoryPhotoUrl(path);
   return (
     <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink-900/8 bg-white ${className ?? ""}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white ${className ?? ""}`}
       style={size === "fill" ? undefined : { width: size, height: size }}
     >
       {url ? (

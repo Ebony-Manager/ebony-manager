@@ -25,7 +25,7 @@ import {
 } from "./actions";
 import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { AttendanceDayDialog } from "./attendance-day-dialog";
-import { PeriodStepper } from "./period-stepper";
+import { Stepper } from "@/components/shared/page-header";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
@@ -202,7 +202,8 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <PeriodStepper
+        <Stepper
+          fill
           label={label}
           onPrev={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}
           onNext={() => setPeriod((p) => nextPeriod(p))}

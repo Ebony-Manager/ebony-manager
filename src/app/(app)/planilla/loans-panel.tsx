@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Pencil, SkipForward, Trash2, X } from "lucide-react";
+import { ChevronDown, Pencil, SkipForward, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { LoanCategory, PayrollLoanInstallment, PayrollLoanWithSchedule } from "@/types/planilla";
@@ -15,6 +15,7 @@ import { cancelLoanAction, deleteLoanAction, reflowLoanInstallmentAction } from 
 import { LoanDialog } from "./loan-dialog";
 import { EditInstallmentDialog } from "./edit-installment-dialog";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 function ordinalOf(p: { year: number; month: number; half: 1 | 2 }): number {
   return p.year * 24 + (p.month - 1) * 2 + (p.half - 1);
@@ -69,14 +70,10 @@ function LoanCard({
   }
 
   function handleCancel() {
-    if (!window.confirm(tt("loan_cancel_confirm"))) return;
     void run(() => cancelLoanAction(loan.id), tt("loan_cancelled_done"));
   }
 
   function handleDelete() {
-    if (!window.confirm(`${tt("loan_delete_confirm")}\n\n${formatCents(loan.principalCents)} · ${formatDate(lang, loan.requestDate)}`)) {
-      return;
-    }
     void run(() => deleteLoanAction(loan.id), tt("loan_deleted"));
   }
 
@@ -143,29 +140,24 @@ function LoanCard({
             </Button>
           )}
           {canCancel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-foreground"
-              title={tt("loan_cancel_btn")}
-              aria-label={tt("loan_cancel_btn")}
+            <ConfirmButton
+              iconOnly
+              icon={X}
+              className="p-1.5"
+              label={tt("loan_cancel_btn")}
+              confirmLabel={t(lang, strings.nav.confirm_cancel)}
               disabled={busy}
-              onClick={handleCancel}
-            >
-              <X className="size-3.5" />
-            </Button>
+              onConfirm={handleCancel}
+            />
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-muted-foreground hover:text-destructive"
-            title={tt("loan_delete")}
-            aria-label={tt("loan_delete")}
+          <ConfirmButton
+            iconOnly
+            className="p-1.5"
+            label={tt("loan_delete")}
+            confirmLabel={t(lang, strings.nav.confirm_delete)}
             disabled={busy}
-            onClick={handleDelete}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
+            onConfirm={handleDelete}
+          />
         </div>
       </div>
 

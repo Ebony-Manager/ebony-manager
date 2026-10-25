@@ -79,7 +79,7 @@ export function IntakeInbox({
   if (intakes.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
       <div className="flex items-center gap-2">
         <Inbox className="size-4 text-primary" />
         <h2 className="text-sm font-semibold text-foreground">

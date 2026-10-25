@@ -25,7 +25,7 @@ export function RegistroKpiCard({
   className?: string;
 }) {
   return (
-    <div className={cn("relative overflow-hidden rounded-xl border border-ink-900/8 bg-card px-4 py-4", className)}>
+    <div className={cn("relative overflow-hidden rounded-lg border border-border bg-card px-4 py-4", className)}>
       <div
         className="absolute inset-x-0 top-0 h-1"
         style={{

@@ -7,10 +7,11 @@ import { Bell, Eye, Send } from "lucide-react";
 import type { AppUser } from "@/types/usuarios";
 import type { NotificationSetting } from "@/services/notifications";
 import { Button } from "@/components/ui/button";
-import { PageBreadcrumb, SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { saveNotificationSettingAction } from "./actions";
+import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
@@ -29,12 +30,8 @@ export function NotificacionesClient({ settings, users }: { settings: Notificati
   const tn = (k: keyof typeof strings.notificaciones) => t(lang, strings.notificaciones[k]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
-      <PageBreadcrumb />
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">{tn("title")}</h1>
-        <p className="hidden text-sm text-muted-foreground sm:block">{tn("subtitle")}</p>
-      </div>
+    <div className={PAGE_CLASS}>
+      <PageHeader title={tn("title")} subtitle={tn("subtitle")} />
       {settings
         .filter((s) => CATALOG[s.key])
         .map((s) => (
@@ -95,7 +92,7 @@ function NotificationCard({
   }
 
   return (
-    <section className="flex max-w-2xl flex-col gap-4 rounded-lg border border-ink-900/8 bg-card p-4 sm:p-5">
+    <section className="flex max-w-2xl flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-3">
           <Bell className="mt-0.5 size-5 shrink-0 text-walnut" />
@@ -156,7 +153,7 @@ function NotificationCard({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink-900/8 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <a href={`${meta.route}?ver=1`} target="_blank" rel="noreferrer">

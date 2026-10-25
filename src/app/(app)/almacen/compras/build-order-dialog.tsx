@@ -67,7 +67,7 @@ export function BuildOrderDialog({
           <Field label={ta("f_supplier")}>
             <Combo options={options} value={supplierId} onChange={setSupplierId} placeholder={ta("pick_supplier")} />
           </Field>
-          <ul className="flex flex-col gap-1 rounded-lg border border-ink-900/8 bg-muted/20 px-3 py-2 text-sm">
+          <ul className="flex flex-col gap-1 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm">
             {picked.map((r) => (
               <li key={r.id} className="flex justify-between gap-3">
                 <span className="min-w-0 truncate">{requestName(r, index)}</span>

@@ -7,15 +7,15 @@ import { Plus, Tags } from "lucide-react";
 import type { PayrollEmployee } from "@/types/planilla";
 import type { Contractor, ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { MoneyRequest } from "@/types/money-requests";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageBreadcrumb, SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { AUDITORIA_VIEW_KEY, readSavedView } from "@/lib/planilla/saved-view";
 import { AsistenciaView } from "../../planilla/asistencia-view";
 import { RegistroView } from "../../planilla/registro-view";
@@ -86,6 +86,7 @@ export function PagosClient({
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const tc = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const TABS = (
     [
@@ -122,14 +123,11 @@ export function PagosClient({
   const [auditoriaCategoria, setAuditoriaCategoria] = React.useState<CategoriaFilter>("todos");
   const [loansFilter, setLoansFilter] = React.useState<LoansFilter>(canEmployees ? "todos" : "contratistas");
   const [ratesOpen, setRatesOpen] = React.useState(false);
+  const [contractAddOpen, setContractAddOpen] = React.useState(false);
+  const [contractorsView, setContractorsView] = React.useState<"cierre" | "saldos">("cierre");
   const [chargeType, setChargeType] = React.useState<ChargeTypeFilter>("all");
   const [addChargeOpen, setAddChargeOpen] = React.useState(false);
   const router = useRouter();
-  // En el celular la fila de pestañas se desliza: la elegida queda a la vista.
-  const tabsRef = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    tabsRef.current?.querySelector("[data-active]")?.scrollIntoView({ block: "nearest", inline: "center" });
-  }, [tab]);
   // A quiénes se les puede agregar un préstamo o descuento: los activos.
   const chargePeople = React.useMemo<ChargePerson[]>(
     () =>
@@ -170,61 +168,47 @@ export function PagosClient({
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrls}>
-      <div className="flex flex-col gap-4 px-4 pt-4 pb-10 sm:gap-5 sm:px-7 sm:pt-6">
-        <PageBreadcrumb />
-
-        {/* Pestañas — texto simple con subrayado, sin franja de color. En el
-            celular se deslizan de borde a borde y la elegida queda a la vista. */}
-        <div
-          ref={tabsRef}
-          className="-mx-4 flex items-center gap-[22px] overflow-x-auto border-b border-ink-900/8 px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
-        >
-          {TABS.map(({ value }) => {
-            const isActive = tab === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                data-active={isActive || undefined}
-                onClick={() => setTab(value)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5",
-                  isActive
-                    ? "border-b-2 border-walnut pb-[10px] text-[13.5px] font-semibold text-walnut"
-                    : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
-                )}
-              >
-                {tg(`tab_${value}`)}
-                {value === "prestamos" && <PendingBadge count={moneyRequests.length} title={tp("mr_title")} />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Título con su acción en la misma línea; el filtro debajo en el celular. */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-[17px] font-bold text-ink-900 sm:text-[19px]">{tg(`tab_${tab}`)}</h1>
-              <p className="hidden text-xs text-muted-foreground sm:block">{tg(`sub_${tab}`)}</p>
-            </div>
-            {tab === "prestamos" && (
-              <Button size="sm" className="shrink-0 sm:hidden" onClick={() => setAddChargeOpen(true)}>
+      <div className={PAGE_CLASS}>
+        <PageHeader
+          title={tg("title")}
+          subtitle={tg(`sub_${tab}`)}
+          action={
+            tab === "prestamos" ? (
+              <Button size="sm" onClick={() => setAddChargeOpen(true)}>
                 <Plus className="size-3.5" />
                 {tg("add")}
               </Button>
-            )}
-          </div>
-          {tab === "quincena" && (
-            <SegmentedFilter fill value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />
-          )}
-          {tab === "historial" && (
-            <SegmentedFilter fill value={auditoriaCategoria} options={CATEGORIA_FILTERS} onChange={setAuditoriaCategoria} />
-          )}
-          {tab === "prestamos" && LOANS_FILTERS.length > 1 && (
-            <SegmentedFilter fill value={loansFilter} options={LOANS_FILTERS} onChange={setLoansFilter} />
-          )}
-        </div>
+            ) : tab === "contratos" ? (
+              <>
+                <Button size="sm" variant="outline" onClick={() => setRatesOpen(true)}>
+                  <Tags className="size-3.5" />
+                  {tg("rates")}
+                </Button>
+                <Button size="sm" onClick={() => setContractAddOpen(true)}>
+                  <Plus className="size-3.5" />
+                  {tc("ct_add")}
+                </Button>
+              </>
+            ) : null
+          }
+        />
+
+        <SubTabs
+          value={tab}
+          onChange={setTab}
+          tabs={TABS.map(({ value }) => ({
+            value,
+            label: tg(`tab_${value}`),
+            badge: value === "prestamos" ? <PendingBadge count={moneyRequests.length} title={tp("mr_title")} /> : undefined,
+          }))}
+        />
+
+        {/* El filtro de cada pestaña, a todo el ancho en el celular. */}
+        {tab === "quincena" && <SegmentedFilter fill value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />}
+        {tab === "historial" && <SegmentedFilter fill value={auditoriaCategoria} options={CATEGORIA_FILTERS} onChange={setAuditoriaCategoria} />}
+        {tab === "prestamos" && LOANS_FILTERS.length > 1 && (
+          <SegmentedFilter fill value={loansFilter} options={LOANS_FILTERS} onChange={setLoansFilter} />
+        )}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as PagosTab)}>
           {canEmployees && canAttendance && (
@@ -255,12 +239,8 @@ export function PagosClient({
             </>
           )}
           <TabsContent value="prestamos" className="pt-0">
-            <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="mb-4">
               <ChargeTypeChips value={chargeType} onChange={setChargeType} />
-              <Button size="sm" className="hidden shrink-0 sm:inline-flex" onClick={() => setAddChargeOpen(true)}>
-                <Plus className="size-3.5" />
-                {tg("add")}
-              </Button>
             </div>
             <MoneyRequestInbox
               requests={moneyRequests}
@@ -286,22 +266,22 @@ export function PagosClient({
             <>
               <TabsContent value="contratistas" className="pt-0">
                 {/* Cierre de la quincena (como la Quincena de empleados) y los saldos. */}
-                <Tabs defaultValue="cierre" className="gap-4">
-                  <TabsList className="h-8 self-start">
-                    <TabsTrigger value="cierre" className="px-3 text-xs">
-                      {tg("sub_tab_closing")}
-                    </TabsTrigger>
-                    <TabsTrigger value="saldos" className="px-3 text-xs">
-                      {tg("sub_tab_balances")}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="cierre" className="pt-0">
+                <div className="flex flex-col gap-4">
+                  <SegmentedFilter
+                    fill
+                    value={contractorsView}
+                    onChange={setContractorsView}
+                    options={[
+                      { value: "cierre", label: tg("sub_tab_closing") },
+                      { value: "saldos", label: tg("sub_tab_balances") },
+                    ]}
+                  />
+                  {contractorsView === "cierre" ? (
                     <ContractorClosingView />
-                  </TabsContent>
-                  <TabsContent value="saldos" className="pt-0">
-                    {contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />}
-                  </TabsContent>
-                </Tabs>
+                  ) : (
+                    contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />
+                  )}
+                </div>
               </TabsContent>
               <TabsContent value="contratos" className="pt-0">
                 <ContractsView
@@ -309,12 +289,8 @@ export function PagosClient({
                   contractors={contractors.map((c) => ({ id: c.id, name: c.name, contractorType: c.contractorType }))}
                   projects={projects}
                   laborRates={laborRates}
-                  actions={
-                    <Button size="sm" variant="outline" onClick={() => setRatesOpen(true)}>
-                      <Tags className="size-3.5" />
-                      {tg("rates")}
-                    </Button>
-                  }
+                  addOpen={contractAddOpen}
+                  onAddOpenChange={setContractAddOpen}
                 />
               </TabsContent>
             </>

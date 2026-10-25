@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ import {
 } from "@/types/cotizador";
 import { createCatalogItemAction, updateCatalogItemAction, updateCostInputAction } from "../actions";
 import { NumField } from "../num-field";
+import { PAGE_CLASS, PageHeader, ShowToggle } from "@/components/shared/page-header";
 
 const CATEGORIES = [...EBONY_CATEGORIES.filter((c) => c !== "libre"), ...SUB_CATEGORIES] as CatalogCategory[];
 const UNIT_LABEL: Record<Unit, string> = { m2: "m²", ml: "ML", unidad: "u" };
@@ -124,15 +124,15 @@ export function CostosClient({
   const currentRecipe = current ? recipeOf.get(current.id) : undefined;
   const parts = currentRecipe ? recipeParts(currentRecipe, ins) : null;
 
-  const panel = "border border-ink-900/8 bg-card";
-  const panelTitle = "border-b border-ink-900/8 px-3.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase";
-  const formInput = "h-8 min-w-0 border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring";
+  const panel = "overflow-hidden rounded-lg border border-border bg-card";
+  const panelTitle = "border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase";
+  const formInput = "h-8 min-w-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring";
 
   const inputList = (kind: CostInput["kind"]) =>
     inputs
       .filter((i) => i.kind === kind)
       .map((i) => (
-        <div key={i.key} className="flex min-h-[32px] items-center justify-between gap-3 border-b border-ink-900/8 text-xs text-ink-700 last:border-0">
+        <div key={i.key} className="flex min-h-[32px] items-center justify-between gap-3 border-b border-border text-xs text-ink-700 last:border-0">
           <span>{inputLabel(i)}</span>
           <NumField
             value={i.value}
@@ -146,33 +146,26 @@ export function CostosClient({
       ));
 
   const recipeRow = (label: string, value: string, strong = false) => (
-    <div key={label} className={cn("flex justify-between gap-3", strong && "mt-1 border-t border-ink-900/8 pt-2 text-base font-bold")}>
+    <div key={label} className={cn("flex justify-between gap-3", strong && "mt-1 border-t border-border pt-2 text-base font-bold")}>
       <span className={strong ? "" : "text-ink-700"}>{label}</span>
       <span className="text-right tabular-nums">{value}</span>
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-4 pb-12 sm:px-7 sm:pt-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/cotizacion" className="inline-flex items-center gap-1.5 text-sm text-ink-900/50 hover:text-ink-900">
-            <ArrowLeft className="size-3.5" />
-            {tt("title")}
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold text-foreground">{tt("cost_title")}</h1>
-          <p className="text-sm text-muted-foreground">{tt("cost_subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" onClick={() => setShowInactive((v) => !v)}>
-            {showInactive ? `✓ ${tt("cost_show_inactive")}` : tt("cost_show_inactive")}
-          </Button>
+    <div className={PAGE_CLASS}>
+      <PageHeader
+        back={{ href: "/cotizacion", label: tt("title") }}
+        title={tt("cost_title")}
+        subtitle={tt("cost_subtitle")}
+        action={
           <Button size="sm" onClick={() => setAdding((v) => !v)}>
             <Plus className="size-3.5" />
             {tt("cost_add_item")}
           </Button>
-        </div>
-      </div>
+        }
+      />
+      <ShowToggle className="-mt-2 self-end" checked={showInactive} onChange={setShowInactive} label={tt("cost_show_inactive")} />
 
       {adding && (
         <div className={cn(panel, "flex flex-wrap items-end gap-2.5 p-3.5")}>
@@ -225,7 +218,7 @@ export function CostosClient({
         <div className={cn(panel, "overflow-x-auto")}>
           <table className="w-full min-w-[620px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-ink-900/16 text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
+              <tr className="border-b border-border text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
                 <th className="px-3 py-2 text-left font-semibold">{tt("cost_col_item")}</th>
                 <th className="px-3 py-2 text-left font-semibold">{tt("cost_col_unit")}</th>
                 <th className="px-3 py-2 text-right font-semibold">{tt("cost_col_calc")}</th>
@@ -255,7 +248,7 @@ export function CostosClient({
                           ref={isSel ? selectedRow : undefined}
                           aria-selected={isSel}
                           onClick={() => setSelected(c.id)}
-                          className={cn("cursor-pointer border-b border-ink-900/8 last:border-0", isSel ? "bg-cream-100/70" : "hover:bg-muted/30", !c.active && "opacity-50")}
+                          className={cn("cursor-pointer border-b border-border last:border-0", isSel ? "bg-cream-100/70" : "hover:bg-muted/30", !c.active && "opacity-50")}
                         >
                           <td className="px-3 py-1.5">{c.name}</td>
                           <td className="px-3 py-1.5 text-muted-foreground">{UNIT_LABEL[c.unit]}</td>
@@ -322,7 +315,7 @@ export function CostosClient({
                   {recipeRow(tt("rc_labor"), formatMoney(currentRecipe.labor))}
                   {currentRecipe.hardwarePct > 0 && recipeRow(`${tt("rc_hardware")} ${(currentRecipe.hardwarePct * 100).toLocaleString("en-US")}%`, formatMoney(parts.hardware))}
                   {currentRecipe.fixed > 0 && recipeRow(currentRecipe.fixedLabel ?? tt("rc_fixed"), formatMoney(currentRecipe.fixed))}
-                  <div className="mt-1 flex justify-between gap-3 border-t border-ink-900/8 pt-2 text-xs text-ink-700">
+                  <div className="mt-1 flex justify-between gap-3 border-t border-border pt-2 text-xs text-ink-700">
                     <span>
                       {tt("rc_piece_cost")}
                       {currentRecipe.baseM2 !== 1 && ` ÷ ${currentRecipe.baseM2} m²`}
@@ -342,13 +335,13 @@ export function CostosClient({
           <div className={panel}>
             <h2 className={panelTitle}>{tt("cost_inputs_title")}</h2>
             <div className="px-3.5 py-2">{inputList("insumo")}</div>
-            <p className="border-t border-ink-900/8 px-3.5 py-2.5 text-xs text-muted-foreground">{tt("cost_inputs_note")}</p>
+            <p className="border-t border-border px-3.5 py-2.5 text-xs text-muted-foreground">{tt("cost_inputs_note")}</p>
           </div>
 
           <div className={panel}>
             <h2 className={panelTitle}>{tt("cost_defaults_title")}</h2>
             <div className="px-3.5 py-2">{inputList("default")}</div>
-            <p className="border-t border-ink-900/8 px-3.5 py-2.5 text-xs text-muted-foreground">{tt("cost_defaults_note")}</p>
+            <p className="border-t border-border px-3.5 py-2.5 text-xs text-muted-foreground">{tt("cost_defaults_note")}</p>
           </div>
         </div>
       </div>

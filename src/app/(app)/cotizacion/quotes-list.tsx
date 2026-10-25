@@ -15,6 +15,8 @@ import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
 import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 const STATUS_STYLE: Record<QuoteStatus, string> = {
   BORRADOR: "bg-stone-200 text-ink-700",
@@ -73,57 +75,54 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
   const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
-          <p className="hidden text-sm text-muted-foreground sm:block">{tt("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {canEditCosts && (
-            <Link href="/cotizacion/costos" className="text-xs text-ink-900/40 hover:text-ink-900/70">
-              {tt("costs_link")}
-            </Link>
-          )}
-          <Button size="sm" onClick={onNew} disabled={busy === "new"}>
-            <Plus className="size-3.5" />
-            {tt("new_quote")}
-          </Button>
-        </div>
-      </div>
+    <div className={PAGE_CLASS}>
+      <PageHeader
+        title={tt("title")}
+        subtitle={tt("subtitle")}
+        action={
+          <>
+            {canEditCosts && (
+              <Button size="sm" variant="ghost" asChild>
+                <Link href="/cotizacion/costos">{tt("costs_link")}</Link>
+              </Button>
+            )}
+            <Button size="sm" onClick={onNew} disabled={busy === "new"}>
+              <Plus className="size-3.5" />
+              {tt("new_quote")}
+            </Button>
+          </>
+        }
+      />
 
       <ListToolbar>
         <SearchInput value={search} onChange={setSearch} placeholder={tt("search_ph")} className="w-full flex-[1_1_220px] sm:max-w-xs" />
-        {/* En el celular los estados se deslizan de lado en una sola línea. */}
-        <div className="flex w-full items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:w-auto sm:flex-wrap [&::-webkit-scrollbar]:hidden">
-          {(["all", ...QUOTE_STATUSES] as const).map((f) => (
-            <Button key={f} size="sm" className="shrink-0" variant={filter === f ? "secondary" : "ghost"} onClick={() => setFilter(f)}>
-              {f === "all" ? tt("filter_all") : tt(`status_${f}`)}
-            </Button>
-          ))}
-        </div>
+        <SegmentedFilter
+          value={filter}
+          onChange={setFilter}
+          options={(["all", ...QUOTE_STATUSES] as const).map((f) => ({ value: f, label: f === "all" ? tt("filter_all") : tt(`status_${f}`) }))}
+        />
       </ListToolbar>
 
       {quotes.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-ink-900/16 px-6 py-14 text-center">
-          <div className="flex size-14 items-center justify-center bg-cream-100">
+        <EmptyState className="py-14">
+          <div className="flex size-14 items-center justify-center rounded-full bg-cream-100">
             <FileText className="size-6 text-walnut" />
           </div>
           <div>
-            <p className="font-semibold">{tt("empty_title")}</p>
-            <p className="text-sm text-muted-foreground">{tt("empty_body")}</p>
+            <p className="font-semibold text-foreground">{tt("empty_title")}</p>
+            <p>{tt("empty_body")}</p>
           </div>
           <Button size="sm" onClick={onNew} disabled={busy === "new"}>
             <Plus className="size-3.5" />
             {tt("new_quote")}
           </Button>
-        </div>
+        </EmptyState>
       ) : shown.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{tt("no_results")}</div>
+        <EmptyState>{tt("no_results")}</EmptyState>
       ) : (
-        <ul className="flex flex-col rounded-lg overflow-hidden border border-ink-900/8 bg-card">
+        <ul className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           {shown.map((q) => (
-            <li key={q.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-ink-900/8 px-3.5 py-2.5 last:border-0 hover:bg-muted/30">
+            <li key={q.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-3.5 py-2.5 last:border-0 hover:bg-muted/30">
               <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-[1_1_260px] flex-col">
                 <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
                 <span className="truncate text-xs text-muted-foreground">

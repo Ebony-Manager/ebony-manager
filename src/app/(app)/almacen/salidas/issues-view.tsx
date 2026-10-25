@@ -52,7 +52,7 @@ export function IssuesView({
     <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageHeader title={ta("issues_title")} subtitle={ta("issues_subtitle")} />
 
-      <div className="flex gap-5 border-b border-ink-900/8">
+      <div className="flex gap-5 border-b border-border">
         {(["shop", "history"] as const).map((k) => (
           <button
             key={k}
@@ -76,16 +76,16 @@ export function IssuesView({
       {shown.length === 0 ? (
         <EmptyBox>{issues.length === 0 ? ta("issues_empty") : ta("no_results")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
-          <table className="w-full min-w-[620px] border-collapse text-sm">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full border-collapse text-sm sm:min-w-[620px]">
             <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="w-8" />
                 <th className="px-3 py-2 text-left font-medium">{ta("date")}</th>
                 <th className="px-3 py-2 text-left font-medium">{ta("col_recipient")}</th>
-                <th className="px-3 py-2 text-left font-medium">{ta("col_destination")}</th>
+                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{ta("col_destination")}</th>
                 <th className="px-3 py-2 text-left font-medium">{ta("col_items")}</th>
-                <th className="px-3.5 py-2 text-left font-medium">{ta("by")}</th>
+                <th className="hidden px-3.5 py-2 text-left font-medium sm:table-cell">{ta("by")}</th>
               </tr>
             </thead>
             <tbody>
@@ -95,14 +95,14 @@ export function IssuesView({
                 const short = i.lines.some((l) => l.stockAfter < 0);
                 return (
                   <React.Fragment key={i.id}>
-                    <tr onClick={() => setOpen(isOpen ? null : i.id)} className="cursor-pointer border-b border-ink-900/8 hover:bg-muted/30">
+                    <tr onClick={() => setOpen(isOpen ? null : i.id)} className="cursor-pointer border-b border-border hover:bg-muted/30">
                       <td className="pl-3 text-muted-foreground">{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDateCompact(lang, i.issuedOn)}</td>
                       <td className="px-3 py-2.5">
                         <span className="block font-semibold text-foreground">{person?.name ?? "—"}</span>
                         <span className="block text-xs text-muted-foreground">{person ? ta(person.kind === "empleado" ? "employee" : "contractor") : ""}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{destination(i)}</td>
+                      <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{destination(i)}</td>
                       <td className="max-w-0 px-3 py-2.5">
                         <span className="flex items-center gap-1.5">
                           {short && <AlertTriangle className="size-3.5 shrink-0 text-warning" />}
@@ -111,10 +111,10 @@ export function IssuesView({
                           </span>
                         </span>
                       </td>
-                      <td className="px-3.5 py-2.5 text-muted-foreground">{i.createdByName ?? "—"}</td>
+                      <td className="hidden px-3.5 py-2.5 text-muted-foreground sm:table-cell">{i.createdByName ?? "—"}</td>
                     </tr>
                     {isOpen && (
-                      <tr className="border-b border-ink-900/8 bg-muted/20">
+                      <tr className="border-b border-border bg-muted/20">
                         <td />
                         <td colSpan={5} className="px-3 py-2.5">
                           <ul className="flex flex-col gap-1">
@@ -134,6 +134,10 @@ export function IssuesView({
                               );
                             })}
                           </ul>
+                          {/* Celular: lo que no cabe en la fila. */}
+                          <p className="mt-2 text-xs text-muted-foreground sm:hidden">
+                            {destination(i)} · {ta("by")} {i.createdByName ?? "—"}
+                          </p>
                           {i.notes && <p className="mt-2 text-xs text-muted-foreground">{i.notes}</p>}
                         </td>
                       </tr>

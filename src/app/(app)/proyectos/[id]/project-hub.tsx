@@ -123,7 +123,7 @@ export function ProjectHub({
       </div>
 
       {/* Pestañas — las mismas de Pagos: texto con subrayado. */}
-      <div className="flex items-center gap-[22px] overflow-x-auto border-b border-ink-900/8">
+      <div className="flex items-center gap-[22px] overflow-x-auto border-b border-border">
         {visible.map((s) => {
           const isActiveTab = tab === s.key;
           return (

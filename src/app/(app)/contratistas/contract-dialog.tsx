@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { ContractorContract, ContractorLedgerEntry, ContractorType, LaborRate, Project } from "@/types/contractors";
@@ -41,6 +40,7 @@ import {
   workDraftToInput,
   type WorkDraft,
 } from "./work-editor";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 export interface ContractPerson {
   id: string;
@@ -193,7 +193,7 @@ export function ContractDialog({
   }
 
   async function onDelete() {
-    if (!contract || !window.confirm(tt("ct_delete_confirm"))) return;
+    if (!contract) return;
     setSubmitting(true);
     const res = await deleteContractAction(contract.id);
     setSubmitting(false);
@@ -339,16 +339,13 @@ export function ContractDialog({
 
             <DialogFooter className="gap-2 sm:justify-between">
               {contract ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={onDelete}
+                <ConfirmButton
+                  className="text-muted-foreground"
+                  label={tt("ct_delete")}
+                  confirmLabel={t(lang, strings.nav.confirm_delete)}
                   disabled={submitting}
-                >
-                  <Trash2 className="size-3.5" />
-                  {tt("ct_delete")}
-                </Button>
+                  onConfirm={() => void onDelete()}
+                />
               ) : (
                 <span />
               )}

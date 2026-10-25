@@ -289,7 +289,7 @@ export function RegistroView({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex w-full items-center gap-1 rounded-lg border border-border px-1 sm:w-auto">
+        <div className="flex w-full items-center gap-1 rounded-lg border border-border bg-card px-1 sm:w-auto">
           <Button variant="ghost" size="icon" className="size-8 sm:size-7" onClick={() => shiftPeriod(-1)}>
             <ChevronLeft className="size-4" />
           </Button>
@@ -356,10 +356,10 @@ export function RegistroView({
       {/* Buscador de empleado: solo, en su propia fila, sobre la tabla. */}
       <EmployeeSearchInput value={query} onChange={setQuery} className="w-full max-w-md" />
 
-      <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[860px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-ink-900/8 bg-muted/40">
+            <tr className="border-b border-border bg-muted/40">
               <th className={`${th} sticky left-0 z-20 bg-muted text-left`}>{tt("col_empleado")}</th>
               {columns.map((c) => (
                 <th key={c.key} className={`${th} text-right`} style={{ color: payrollCategoryInk(c.category) }}>
@@ -379,7 +379,7 @@ export function RegistroView({
               return (
                 <tr
                   key={`${employee.id}-${dataPeriod.year}-${dataPeriod.month}-${dataPeriod.half}`}
-                  className="group/row cursor-pointer border-b border-ink-900/6 transition-colors last:border-0 hover:bg-muted/40"
+                  className="group/row cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40"
                   onClick={() => setEditingId(employee.id)}
                   title={tt("qe_row_hint")}
                 >
@@ -444,7 +444,7 @@ export function RegistroView({
           </tbody>
           {visibleRows && shownRows.length > 0 && (
             <tfoot>
-              <tr className={`border-t border-ink-900/8 ${PAYROLL_FOOT_BG_CLASS}`}>
+              <tr className={`border-t border-border ${PAYROLL_FOOT_BG_CLASS}`}>
                 <td className="py-3 pr-3 pl-3 text-right text-[12.5px] font-semibold text-ink-900/60" colSpan={1 + columns.length}>
                   {searching ? `${tt("emp_search_total")} (${shownRows.length})` : tt("total_quincena")}
                 </td>

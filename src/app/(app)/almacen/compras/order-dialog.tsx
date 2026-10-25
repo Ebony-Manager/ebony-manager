@@ -127,10 +127,10 @@ export function OrderDialog({
 
         {/* Líneas + recepción */}
         <section className="flex flex-col gap-2">
-          <div className="overflow-x-auto rounded-lg border border-ink-900/8">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[460px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+                <tr className="border-b border-border text-xs text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">{ta("product")}</th>
                   <th className="px-3 py-2 text-right font-medium">{ta("col_ordered")}</th>
                   <th className="px-3 py-2 text-right font-medium">{ta("col_received")}</th>
@@ -139,7 +139,7 @@ export function OrderDialog({
               </thead>
               <tbody>
                 {order.lines.map((l) => (
-                  <tr key={l.id} className="border-b border-ink-900/8 last:border-0">
+                  <tr key={l.id} className="border-b border-border last:border-0">
                     <td className="px-3 py-2">
                       {lineName(l)}
                       {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
@@ -250,7 +250,7 @@ export function OrderDialog({
         )}
 
         {canPurchase && order.status === "pedido" && nothingReceived && (
-          <div className="flex justify-end border-t border-ink-900/8 pt-3">
+          <div className="flex justify-end border-t border-border pt-3">
             <ConfirmButton label={ta("cancel_order")} confirmLabel={ta("cancel_order_confirm")} onConfirm={() => void doCancel()} disabled={busy} />
           </div>
         )}

@@ -13,6 +13,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateLaborRateAction } from "./actions";
 import { LaborRateFormDialog } from "./labor-rate-form-dialog";
+import { ShowToggle } from "@/components/shared/page-header";
 
 type TypeFilter = "all" | ContractorType;
 
@@ -81,14 +82,11 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
           <Plus className="size-3.5" />
           {tt("add_rate")}
         </Button>
-        <label className="flex w-full cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-          <input type="checkbox" className="size-4" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-          {tt("rates_show_inactive")}
-        </label>
+        <ShowToggle checked={showInactive} onChange={setShowInactive} label={tt("rates_show_inactive")} />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-900/8 px-6 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
           {tt("rates_empty")}
         </div>
       ) : (
@@ -98,7 +96,7 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
             {filtered.map((r) => (
               <li
                 key={r.id}
-                className={`flex flex-col gap-2 rounded-xl border border-ink-900/8 bg-card p-3 ${r.activo ? "" : "opacity-60"}`}
+                className={`flex flex-col gap-2 rounded-lg border border-border bg-card p-3 ${r.activo ? "" : "opacity-60"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -126,10 +124,10 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
               </li>
             ))}
           </ul>
-          <div className="hidden overflow-x-auto rounded-xl border border-ink-900/8 bg-card sm:block">
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+                <tr className="border-b border-border text-xs text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">{tt("rates_col_description")}</th>
                   <th className="px-3 py-2 text-left font-medium">{tt("rates_col_phase")}</th>
                   <th className="px-3 py-2 text-left font-medium">{tt("rates_col_unit")}</th>

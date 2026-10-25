@@ -14,6 +14,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getEmployeeAnnualDetailAction, updateEmployeeAction, upsertPayrollEntryAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
 type Concept = "decimo" | "vacacion" | "prima";
@@ -111,7 +112,6 @@ export function EmployeeBenefitsSection({
   }
 
   async function undoPayment(c: (typeof CONCEPTS)[number], r: DetailRow) {
-    if (!window.confirm(tt("benefits_undo_confirm"))) return;
     setBusy(true);
     try {
       await upsertPayrollEntryAction({
@@ -196,16 +196,15 @@ export function EmployeeBenefitsSection({
                   <p className="flex items-center gap-1 text-xs text-muted-foreground">
                     <BadgeCheck className="size-3.5 shrink-0" />
                     {tt("benefits_last_paid")}: {shortPeriodLabel(lang, lastPaid)} · {formatCents(c.paid(lastPaid))}
-                    <button
-                      type="button"
-                      className="ml-auto text-muted-foreground hover:text-destructive"
-                      title={tt("benefits_undo")}
-                      aria-label={tt("benefits_undo")}
+                    <ConfirmButton
+                      iconOnly
+                      icon={Undo2}
+                      className="ml-auto p-1"
+                      label={tt("benefits_undo")}
+                      confirmLabel={t(lang, strings.nav.confirm_undo)}
                       disabled={busy}
-                      onClick={() => void undoPayment(c, lastPaid)}
-                    >
-                      <Undo2 className="size-3.5" />
-                    </button>
+                      onConfirm={() => void undoPayment(c, lastPaid)}
+                    />
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">{tt("benefits_never_paid")}</p>

@@ -80,7 +80,7 @@ export function StockView({
       />
 
       {canCosts && items.length > 0 && (
-        <div className="flex flex-col gap-0.5 self-start rounded-lg border border-ink-900/8 bg-card px-4 py-3">
+        <div className="flex flex-col gap-0.5 self-start rounded-lg border border-border bg-card px-4 py-3">
           <span className="text-xs text-muted-foreground">{ta("inventory_value")}</span>
           <span className="text-lg font-semibold tabular-nums">{formatCents(Math.round(totalValueCents))}</span>
           <span className="text-xs text-muted-foreground">{ta("value_note")}</span>
@@ -126,7 +126,7 @@ export function StockView({
                 <button
                   type="button"
                   onClick={() => setEditing(item)}
-                  className="flex w-full items-start gap-3 rounded-lg border border-ink-900/8 bg-card px-3.5 py-3 text-left"
+                  className="flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3.5 py-3 text-left"
                 >
                   <ItemThumb path={item.photoPath} size={48} />
                   <span className="min-w-0 flex-1">
@@ -144,10 +144,10 @@ export function StockView({
               </li>
             ))}
           </ul>
-          <div className="hidden overflow-x-auto rounded-lg border border-ink-900/8 bg-card sm:block">
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+                <tr className="border-b border-border text-xs text-muted-foreground">
                   <th className="px-3.5 py-2 text-left font-medium">{ta("col_product")}</th>
                   <th className="px-3 py-2 text-right font-medium">{ta("col_stock")}</th>
                   <th className="px-3 py-2 text-right font-medium">{ta("col_min")}</th>
@@ -158,7 +158,7 @@ export function StockView({
               </thead>
               <tbody>
                 {rows.map(({ item, variant }) => (
-                  <tr key={variant.id} onClick={() => setEditing(item)} className="cursor-pointer border-b border-ink-900/8 last:border-0 hover:bg-muted/30">
+                  <tr key={variant.id} onClick={() => setEditing(item)} className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/30">
                     <td className="min-w-[260px] px-3.5 py-2">
                       <span className="flex items-center gap-3">
                         <ItemThumb path={item.photoPath} size={40} />

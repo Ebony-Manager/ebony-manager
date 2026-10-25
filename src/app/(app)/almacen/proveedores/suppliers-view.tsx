@@ -65,12 +65,12 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
       {shown.length === 0 ? (
         <EmptyBox>{suppliers.length === 0 ? ta("suppliers_empty") : ta("no_results")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
-          <table className="w-full min-w-[560px] border-collapse text-sm">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full border-collapse text-sm sm:min-w-[560px]">
             <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="px-3.5 py-2 text-left font-medium">{ta("col_supplier")}</th>
-                <th className="px-3 py-2 text-left font-medium">{ta("f_contact")}</th>
+                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{ta("f_contact")}</th>
                 <th className="px-3 py-2 text-left font-medium">{ta("f_whatsapp")}</th>
                 <th className="px-3.5 py-2 text-right font-medium">{ta("col_status")}</th>
               </tr>
@@ -82,13 +82,13 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
                   <tr
                     key={s.id}
                     onClick={() => setEditing(s)}
-                    className="cursor-pointer border-b border-ink-900/8 last:border-0 hover:bg-muted/30"
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/30"
                   >
                     <td className="max-w-0 px-3.5 py-2.5">
                       <span className="block truncate font-semibold text-foreground">{s.name}</span>
                       <span className="block truncate text-xs text-muted-foreground">{ta(`sk_${s.kind}`)}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
+                    <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">
                       <span className="block">{s.contactName || "—"}</span>
                       {s.phone && <span className="block text-xs">{s.phone}</span>}
                     </td>
@@ -103,7 +103,7 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
                           title={ta("open_whatsapp")}
                         >
                           <MessageCircle className="size-4" />
-                          {s.whatsapp}
+                          <span className="hidden sm:inline">{s.whatsapp}</span>
                         </a>
                       ) : (
                         <span className="text-muted-foreground">—</span>

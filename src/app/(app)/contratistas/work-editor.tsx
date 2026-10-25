@@ -12,6 +12,7 @@ import { lineAmountCents } from "@/lib/contractors/contractor-ledger";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { Field } from "./field";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 /** Línea de trabajo en construcción — `cantidad` queda como texto (igual
  *  que los demás inputs numéricos) hasta guardar, donde se convierte y se
@@ -309,22 +310,14 @@ export function WorkEditor({
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
-            <Button
-              type="button"
-              size="sm"
-              variant={draft.amountMode === "flat" ? "default" : "outline"}
-              onClick={() => onChange({ ...draft, amountMode: "flat" })}
-            >
-              {tt("amount_mode_flat")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={draft.amountMode === "area" ? "default" : "outline"}
-              onClick={() => onChange({ ...draft, amountMode: "area" })}
-            >
-              {tt("amount_mode_area")}
-            </Button>
+            <SegmentedFilter
+              value={draft.amountMode}
+              onChange={(m) => onChange({ ...draft, amountMode: m })}
+              options={[
+                { value: "flat" as const, label: tt("amount_mode_flat") },
+                { value: "area" as const, label: tt("amount_mode_area") },
+              ]}
+            />
           </div>
 
           {draft.amountMode === "flat" ? (

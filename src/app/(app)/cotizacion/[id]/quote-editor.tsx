@@ -240,14 +240,14 @@ export function QuoteEditor({
             onChange={(e) => setHeader({ clientName: e.currentTarget.value })}
             placeholder={tt("f_client_ph")}
             aria-label={tt("f_client")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-2xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-ink-900/16 focus-visible:border-ink-900"
+            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-2xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-border focus-visible:border-ink-900"
           />
           <input
             value={quote.projectName}
             onChange={(e) => setHeader({ projectName: e.currentTarget.value })}
             placeholder={tt("f_project_ph")}
             aria-label={tt("f_project")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pt-1 pb-0.5 text-sm text-ink-700 outline-none placeholder:text-ink-900/30 hover:border-ink-900/16 focus-visible:border-ink-900"
+            className="w-full min-w-0 border-b border-transparent bg-transparent pt-1 pb-0.5 text-sm text-ink-700 outline-none placeholder:text-ink-900/30 hover:border-border focus-visible:border-ink-900"
           />
         </div>
 
@@ -278,7 +278,7 @@ export function QuoteEditor({
         </div>
       </header>
 
-      <div className="flex items-center gap-[22px] border-b border-ink-900/8">
+      <div className="flex items-center gap-[22px] border-b border-border">
         {(["edit", "client"] as const).map((v) => (
           <button
             key={v}
@@ -333,7 +333,7 @@ export function QuoteEditor({
                       }}
                       className={cn(
                         "grid min-w-[128px] rounded-lg border py-2 pr-8 pl-3 text-left",
-                        section?.id === s.id ? "border-primary bg-primary text-primary-foreground" : "border-ink-900/16 bg-card hover:border-ink-700"
+                        section?.id === s.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-ink-700"
                       )}
                     >
                       <span className={cn("text-[10px] tracking-[0.1em] uppercase", section?.id === s.id ? "text-stone-400" : "text-muted-foreground")}>
@@ -366,7 +366,7 @@ export function QuoteEditor({
             </div>
 
             {section ? (
-              <div className="rounded-lg border border-ink-900/8 bg-card p-3.5">
+              <div className="rounded-lg border border-border bg-card p-3.5">
                 <SectionEditor
                   key={section.id}
                   section={section}
@@ -378,7 +378,7 @@ export function QuoteEditor({
                 />
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-12 text-center text-sm text-muted-foreground">{tt("sec_empty")}</div>
+              <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">{tt("sec_empty")}</div>
             )}
           </div>
 
@@ -400,8 +400,8 @@ export function QuoteEditor({
             )}
 
             {section && secTotals && (
-              <div className="rounded-lg overflow-hidden border border-ink-900/8 bg-card">
-                <h2 className={cn(panelTitle, "border-b border-ink-900/8 px-3.5 py-2.5")}>{tt("breakdown_title")}</h2>
+              <div className="rounded-lg overflow-hidden border border-border bg-card">
+                <h2 className={cn(panelTitle, "border-b border-border px-3.5 py-2.5")}>{tt("breakdown_title")}</h2>
                 <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3.5 text-sm">
                   <dt className="text-ink-700">{tt("block_ebony")}</dt>
                   <dd className={money}>{formatMoney(secTotals.ebony)}</dd>
@@ -433,14 +433,14 @@ export function QuoteEditor({
                     {tt("bk_ccf")} {section.ccfPct}%
                   </dt>
                   <dd className={cn(money, "text-[11px] text-muted-foreground")}>+{formatMoney(secTotals.ccf)}</dd>
-                  <dt className="mt-1.5 border-t border-ink-900/8 pt-2">{nameCell(section)}</dt>
-                  <dd className={cn(money, "mt-1.5 border-t border-ink-900/8 pt-2 text-base font-bold")}>{formatMoney(secTotals.total)}</dd>
+                  <dt className="mt-1.5 border-t border-border pt-2">{nameCell(section)}</dt>
+                  <dd className={cn(money, "mt-1.5 border-t border-border pt-2 text-base font-bold")}>{formatMoney(secTotals.total)}</dd>
                 </dl>
               </div>
             )}
 
-            <div className="rounded-lg overflow-hidden border border-ink-900/8 bg-card">
-              <h2 className={cn(panelTitle, "border-b border-ink-900/8 px-3.5 py-2.5")}>{tt("total_title")}</h2>
+            <div className="rounded-lg overflow-hidden border border-border bg-card">
+              <h2 className={cn(panelTitle, "border-b border-border px-3.5 py-2.5")}>{tt("total_title")}</h2>
               <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 p-3.5 text-sm">
                 {quote.sections.map((s) => (
                   <React.Fragment key={s.id}>
@@ -448,8 +448,8 @@ export function QuoteEditor({
                     <dd className={money}>{formatMoney(sectionTotals(s).total)}</dd>
                   </React.Fragment>
                 ))}
-                <dt className="mt-1 border-t border-ink-900/8 pt-2 text-ink-700">{tt("subtotal")}</dt>
-                <dd className={cn(money, "mt-1 border-t border-ink-900/8 pt-2")}>{formatMoney(totals.subtotal)}</dd>
+                <dt className="mt-1 border-t border-border pt-2 text-ink-700">{tt("subtotal")}</dt>
+                <dd className={cn(money, "mt-1 border-t border-border pt-2")}>{formatMoney(totals.subtotal)}</dd>
                 <dt className="flex items-center gap-2 text-ink-700">
                   {tt("discount")}
                   <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
@@ -467,8 +467,8 @@ export function QuoteEditor({
                 <dd className={money}>{totals.discount > 0 ? `−${formatMoney(totals.discount)}` : "—"}</dd>
                 <dt className="text-[11px] text-muted-foreground">ITBMS {quote.itbmsPct}%</dt>
                 <dd className={cn(money, "text-[11px] text-muted-foreground")}>{formatMoney(totals.tax)}</dd>
-                <dt className="mt-1 border-t border-ink-900/8 pt-2 font-semibold">{tt("total")}</dt>
-                <dd className={cn(money, "mt-1 border-t border-ink-900/8 pt-2 text-lg font-bold")}>{formatMoney(totals.total)}</dd>
+                <dt className="mt-1 border-t border-border pt-2 font-semibold">{tt("total")}</dt>
+                <dd className={cn(money, "mt-1 border-t border-border pt-2 text-lg font-bold")}>{formatMoney(totals.total)}</dd>
               </dl>
             </div>
           </aside>
