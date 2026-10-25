@@ -16,7 +16,7 @@ import { t, strings } from "@/lib/i18n";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { getLoansOverviewAction } from "../../planilla/actions";
 import { EmployeeAvatar } from "../../planilla/employee-avatar";
-import { PayrollKpiCard } from "../../planilla/payroll-kpi-card";
+import { KpiCard } from "@/components/shared/kpi-card";
 import { LEDGER_CATEGORY_LABEL_KEY } from "../../planilla/ledger-labels";
 import type { ChargeTypeFilter } from "../../planilla/employee-charges-tab";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
@@ -259,17 +259,19 @@ export function ChargesListView({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <PayrollKpiCard icon={HandCoins} label={tp("lo_kpi_lent")} value={formatCents(kpiLent)} />
-        <PayrollKpiCard icon={CheckCircle2} label={tp("lo_kpi_collected")} value={formatCents(kpiCollected)} />
-        <PayrollKpiCard
+        <KpiCard icon={HandCoins} tone="primary" label={tp("lo_kpi_lent")} value={formatCents(kpiLent)} />
+        <KpiCard icon={CheckCircle2} tone="positive" label={tp("lo_kpi_collected")} value={formatCents(kpiCollected)} />
+        <KpiCard
           icon={Hourglass}
+          tone="warning"
           label={tp("lo_kpi_pending")}
           value={formatCents(kpiPending)}
           sublabel={thirdPartyPending > 0 ? `${tp("lo_kpi_third_party")} ${formatCents(thirdPartyPending)}` : undefined}
         />
-        <PayrollKpiCard icon={ListChecks} label={tp("lo_kpi_count")} value={String(active.length)} />
-        <PayrollKpiCard
+        <KpiCard icon={ListChecks} label={tp("lo_kpi_count")} value={String(active.length)} />
+        <KpiCard
           icon={Percent}
+          tone="positive"
           label={tp("lo_kpi_interest")}
           value={formatCents(interestCollected)}
           sublabel={`${tp("lo_kpi_interest_of")} ${formatCents(interestAgreed)}`}

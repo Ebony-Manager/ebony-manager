@@ -16,6 +16,7 @@ import { ADMIN_SERIES, AdminMonthlyChart, type AdminSeriesKey } from "./admin-mo
 import { contractorProfilePath, employeeProfilePath } from "@/lib/personal/paths";
 import { Stepper } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { KpiCard } from "@/components/shared/kpi-card";
 
 type Data = Awaited<ReturnType<typeof getAdminDashboardAction>>;
 type RankScope = "month" | "year";
@@ -115,16 +116,18 @@ export function AdminDashboardView() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <PayrollKpiCard
+            {/* Gasto: subir sale en rojo y bajar en verde. */}
+            <KpiCard
               icon={CalendarClock}
+              tone="primary"
               label={`${tt("kpi_total")} · ${monthLabel(lang, month)}`}
               value={formatCents(m.totalCents)}
-              sublabel={delta === null ? undefined : `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta).toFixed(0)}% ${tt("vs_prev")}`}
+              trend={delta === null ? undefined : { pct: delta, goodWhen: "down", label: tt("vs_prev") }}
             />
             <PayrollKpiCard icon={Users} label={tt("ad_series_taller")} value={formatCents(m.tallerCents)} sublabel={pctOf(m.tallerCents, m.totalCents)} category="salario" />
             <PayrollKpiCard icon={Building2} label={tt("ad_series_admin")} value={formatCents(m.adminCents)} sublabel={pctOf(m.adminCents, m.totalCents)} category="bonos" />
             <PayrollKpiCard icon={Hammer} label={tt("ad_series_contractors")} value={formatCents(m.contractorsCents)} sublabel={pctOf(m.contractorsCents, m.totalCents)} category="decimo" />
-            <PayrollKpiCard icon={Receipt} label={tt("kpi_owed")} value={formatCents(data.contractorsOwedCents)} sublabel={tt("kpi_owed_hint")} />
+            <KpiCard icon={Receipt} tone="warning" label={tt("kpi_owed")} value={formatCents(data.contractorsOwedCents)} sublabel={tt("kpi_owed_hint")} />
             <PayrollKpiCard
               icon={Users}
               label={tt("kpi_people_paid")}
@@ -132,8 +135,9 @@ export function AdminDashboardView() {
               sublabel={`${m.employeesPaid} ${tt("employees_word")} · ${m.contractorsPaid} ${tt("contractors_word")}`}
             />
             <PayrollKpiCard icon={Wallet} label={`${tt("kpi_ytd")} ${year}`} value={formatCents(dash.ytd.totalCents)} sublabel={tt("kpi_ytd_hint")} />
-            <PayrollKpiCard
+            <KpiCard
               icon={HandCoins}
+              tone="warning"
               label={tt("kpi_loans")}
               value={formatCents(data.loansReceivableCents + data.contractorsOwingCents)}
               sublabel={`${formatCents(data.loansReceivableCents)} ${tt("employees_word")} · ${formatCents(data.contractorsOwingCents)} ${tt("contractors_word")}`}

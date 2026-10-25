@@ -36,7 +36,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getRegistroAction, upsertPayrollEntryAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
-import { RegistroKpiCard } from "./registro-kpi-card";
+import { PayrollKpiCard } from "./payroll-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
 import { BankExportDialog } from "./bank-export-dialog";
 import { QuincenaEntryDialog } from "./quincena-entry-dialog";
@@ -281,11 +281,11 @@ export function RegistroView({
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 lg:grid-cols-5">
-        <RegistroKpiCard icon={Wallet} label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
-        <RegistroKpiCard icon={Banknote} label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
-        <RegistroKpiCard icon={Award} label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
-        <RegistroKpiCard icon={UserX} label={tt("kpi_asistencia")} value={formatCents(asistenciaCents)} sublabel={asistenciaLabel} />
-        <RegistroKpiCard icon={Timer} label={tt("kpi_overtime")} value={formatCents(overtimeCents)} sublabel={hoursLabel(overtimeHours)} />
+        <PayrollKpiCard icon={Wallet} color="var(--payroll-total-due)" label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
+        <PayrollKpiCard icon={Banknote} category="descuentoPrestamos" label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
+        <PayrollKpiCard icon={Award} category="decimo" label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
+        <PayrollKpiCard icon={UserX} category="descuentos" label={tt("kpi_asistencia")} value={formatCents(asistenciaCents)} sublabel={asistenciaLabel} />
+        <PayrollKpiCard icon={Timer} category="bonos" label={tt("kpi_overtime")} value={formatCents(overtimeCents)} sublabel={hoursLabel(overtimeHours)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
