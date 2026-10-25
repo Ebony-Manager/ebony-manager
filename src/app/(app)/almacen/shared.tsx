@@ -34,7 +34,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="max-w-2xl">
         <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
+        <p className="hidden text-sm text-muted-foreground sm:block">{subtitle}</p>
       </div>
       {action}
     </div>

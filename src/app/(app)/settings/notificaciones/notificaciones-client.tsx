@@ -29,11 +29,11 @@ export function NotificacionesClient({ settings, users }: { settings: Notificati
   const tn = (k: keyof typeof strings.notificaciones) => t(lang, strings.notificaciones[k]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageBreadcrumb />
       <div>
         <h1 className="text-xl font-semibold text-foreground">{tn("title")}</h1>
-        <p className="text-sm text-muted-foreground">{tn("subtitle")}</p>
+        <p className="hidden text-sm text-muted-foreground sm:block">{tn("subtitle")}</p>
       </div>
       {settings
         .filter((s) => CATALOG[s.key])

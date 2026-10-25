@@ -58,7 +58,7 @@ export function PurchasesView({
   const order = orderId ? (orders.find((o) => o.id === orderId) ?? null) : null;
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageHeader
         title={ta("purchases_title")}
         subtitle={canPurchase ? ta("purchases_subtitle") : ta("my_requests_subtitle")}

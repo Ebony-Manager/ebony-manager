@@ -7,7 +7,7 @@
 export default function Loading() {
   const block = "animate-pulse rounded-md bg-muted";
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7" aria-busy="true">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6" aria-busy="true">
       <div className="flex flex-col gap-2">
         <div className={`${block} h-3 w-28`} />
         <div className={`${block} h-6 w-56`} />

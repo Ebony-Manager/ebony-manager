@@ -53,7 +53,7 @@ export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: 
   }
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       {crumbs.length > 0 && (
         <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
           {crumbs.map((crumb, i) => {
@@ -71,7 +71,7 @@ export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-ink-900">{tt("title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{tt("subtitle")}</p>
+          <p className="mt-1 hidden max-w-2xl text-sm text-muted-foreground sm:block">{tt("subtitle")}</p>
         </div>
         <Button size="sm" onClick={() => setInviteOpen(true)}>
           <MailPlus className="size-3.5" />

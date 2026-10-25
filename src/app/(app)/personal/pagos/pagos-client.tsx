@@ -194,7 +194,7 @@ export function PagosClient({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-[19px] font-bold text-ink-900">{tg(`tab_${tab}`)}</h1>
-            <p className="text-xs text-muted-foreground">{tg(`sub_${tab}`)}</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">{tg(`sub_${tab}`)}</p>
           </div>
           {tab === "quincena" && (
             <SegmentedFilter value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />

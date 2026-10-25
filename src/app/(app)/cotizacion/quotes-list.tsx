@@ -72,11 +72,11 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
   const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
-          <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
+          <p className="hidden text-sm text-muted-foreground sm:block">{tt("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEditCosts && (

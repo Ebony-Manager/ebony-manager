@@ -34,7 +34,7 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
   }, [suppliers, query, filter]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageHeader
         title={ta("suppliers_title")}
         subtitle={ta("suppliers_subtitle")}

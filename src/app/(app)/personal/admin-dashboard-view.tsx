@@ -91,7 +91,7 @@ export function AdminDashboardView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[19px] font-bold text-ink-900">{tt("title")}</h1>
-          <p className="text-xs text-muted-foreground">{tt("subtitle")}</p>
+          <p className="hidden text-xs text-muted-foreground sm:block">{tt("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-border px-1">

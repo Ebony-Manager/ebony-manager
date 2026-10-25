@@ -145,7 +145,7 @@ export function StaffClient({
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrls}>
-      <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+      <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
         {crumbs.length > 0 && (
           <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
             {crumbs.map((crumb, i) => {
@@ -168,7 +168,7 @@ export function StaffClient({
                 {activeTotal} {tt("active_count")}
               </span>
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{tt("subtitle")}</p>
+            <p className="mt-1 hidden max-w-2xl text-sm text-muted-foreground sm:block">{tt("subtitle")}</p>
           </div>
           {!canEdit ? null : canEmployees && canContractors ? (
             <DropdownMenu>
@@ -208,10 +208,11 @@ export function StaffClient({
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="w-full max-w-xs" />
+        {/* Celular: buscador y descargas (solo ícono) en una línea; el filtro abajo. */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="order-1 min-w-0 flex-1 sm:w-full sm:max-w-xs sm:flex-none" />
           {showKindFilter && (
-            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
+            <div className="order-3 flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px] sm:order-2">
               {FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -227,10 +228,16 @@ export function StaffClient({
               ))}
             </div>
           )}
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant={selecting ? "secondary" : "outline"} onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>
+          <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
+            <Button
+              size="sm"
+              variant={selecting ? "secondary" : "outline"}
+              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+              aria-label={selecting ? td("cancel_select") : td("download")}
+              title={selecting ? td("cancel_select") : td("download")}
+            >
               {selecting ? <X className="size-3.5" /> : <IdCard className="size-3.5" />}
-              {selecting ? td("cancel_select") : td("download")}
+              <span className="hidden sm:inline">{selecting ? td("cancel_select") : td("download")}</span>
             </Button>
             {canEdit && (
               <StaffRosterExport
@@ -405,23 +412,18 @@ function TeamList({
                   {/* Los contratistas no tienen puesto: va su oficio (Ebanista / Pintor). */}
                   {m.position ?? (m.kind === "contractor" ? tt(`group_${m.group}`) : "—")}
                 </div>
+                {/* En el celular la fecha de ingreso va en esta misma línea. */}
+                {m.startDate && (
+                  <div className="text-xs text-muted-foreground md:hidden">
+                    · {tt("col_since")} {formatDateCompact(lang, m.startDate)}
+                  </div>
+                )}
               </div>
 
               <div
-                className={cn(
-                  "col-span-2 text-xs text-muted-foreground md:col-span-1 md:col-start-5 md:row-start-1",
-                  !m.startDate && "hidden md:block"
-                )}
+                className="hidden text-xs text-muted-foreground md:col-span-1 md:col-start-5 md:row-start-1 md:block"
               >
-                {m.startDate ? (
-                  <>
-                    {/* En el celular no hay encabezado de columna: la fecha lleva su etiqueta. */}
-                    <span className="md:hidden">{tt("col_since")} </span>
-                    {formatDateCompact(lang, m.startDate)}
-                  </>
-                ) : (
-                  "—"
-                )}
+                {m.startDate ? formatDateCompact(lang, m.startDate) : "—"}
               </div>
             </Link>
           </li>

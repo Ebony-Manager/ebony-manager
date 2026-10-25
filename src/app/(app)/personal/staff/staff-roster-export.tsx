@@ -124,9 +124,9 @@ export function StaffRosterExport({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" size="sm" variant="outline">
+        <Button type="button" size="sm" variant="outline" aria-label={tt("roster_pdf")} title={tt("roster_pdf")}>
           <FileDown className="size-3.5" />
-          {tt("roster_pdf")}
+          <span className="hidden sm:inline">{tt("roster_pdf")}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

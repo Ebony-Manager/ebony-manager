@@ -153,7 +153,7 @@ export function CostosClient({
   );
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-12 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-12 sm:px-7 sm:pt-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href="/cotizacion" className="inline-flex items-center gap-1.5 text-sm text-ink-900/50 hover:text-ink-900">

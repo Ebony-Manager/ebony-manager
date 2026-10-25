@@ -54,11 +54,11 @@ export function ProjectsList({
   }, [projects, query, status]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
+    <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{tt("title")}</h1>
-          <p className="text-sm text-muted-foreground">{tt("subtitle")}</p>
+          <p className="hidden text-sm text-muted-foreground sm:block">{tt("subtitle")}</p>
         </div>
         <Button size="sm" onClick={() => setAdding(true)}>
           <Plus className="size-3.5" />
