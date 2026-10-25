@@ -202,6 +202,7 @@ export const strings = {
     a_value: { es: "Valor del inventario", en: "Inventory value" },
     a_value_hint: { es: "al último costo", en: "at last cost" },
     a_products: { es: "{n} productos", en: "{n} products" },
+    a_products_label: { es: "Productos en catálogo", en: "Products in catalog" },
     a_out: { es: "Sin Stock", en: "Out of stock" },
     a_low: { es: "Bajo Stock", en: "Low stock" },
     a_issues: { es: "Salidas", en: "Issues" },

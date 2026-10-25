@@ -35,6 +35,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     planilla: hasModule(profile, "planilla"),
     contractors: hasModule(profile, "contratistas"),
     almacen: hasModule(profile, "almacen"),
+    // Costos del almacén (valor del inventario): solo Compras o Costos.
+    almacenCosts: hasAnyModule(profile, ["almacen_compras", "almacen_costos"]),
   };
   const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
@@ -90,7 +92,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   let almacen: CompanyDashboardData["almacen"] = null;
   if (items && movements) {
     const cur = summarizeConsumption(movements, items, { year, month });
-    almacen = { stock: stockSnapshot(items), issues: cur.issues, products: cur.products };
+    almacen = { stock: stockSnapshot(items), issues: cur.issues, products: cur.products, canCosts: can.almacenCosts };
   }
 
   return (

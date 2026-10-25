@@ -50,7 +50,8 @@ export interface CompanyDashboardData {
     loansReceivableCents: number | null;
     contractorsOwedCents: number | null;
   } | null;
-  almacen: { stock: StockSnapshot; issues: number; products: number } | null;
+  /** `canCosts` falso (sin Compras ni Costos): ni una tarjeta de dinero. */
+  almacen: { stock: StockSnapshot; issues: number; products: number; canCosts: boolean } | null;
 }
 
 /** "3 h 20 min", "45 min", "2 h" (igual que el resumen de asistencia). */
@@ -223,13 +224,17 @@ export function CompanyDashboardView({ data }: { data: CompanyDashboardData }) {
               )}
               {almacen && (
                 <Section icon={Warehouse} title={td("sec_almacen")} href="/almacen/resumen" more={more}>
-                  <KpiCard
-                    icon={Warehouse}
-                    tone="primary"
-                    label={td("a_value")}
-                    value={almacen.stock.valueCents == null ? "—" : formatCents(almacen.stock.valueCents)}
-                    sublabel={almacen.stock.valueCents == null ? td("a_products", { n: almacen.stock.variants }) : td("a_value_hint")}
-                  />
+                  {almacen.canCosts ? (
+                    <KpiCard
+                      icon={Warehouse}
+                      tone="primary"
+                      label={td("a_value")}
+                      value={almacen.stock.valueCents == null ? "—" : formatCents(almacen.stock.valueCents)}
+                      sublabel={td("a_value_hint")}
+                    />
+                  ) : (
+                    <KpiCard icon={Warehouse} tone="primary" label={td("a_products_label")} value={almacen.stock.variants} />
+                  )}
                   <KpiCard
                     icon={ArrowUpFromLine}
                     label={td("a_issues")}

@@ -27,6 +27,7 @@ type Scope = "month" | "year";
  * - Compras: pedidos y gasto por proveedor.
  */
 export function AlmacenSummaryView({
+  canCosts,
   movements,
   items,
   people,
@@ -34,6 +35,8 @@ export function AlmacenSummaryView({
   suppliers,
   orders,
 }: {
+  /** Con Compras o Costos; sin eso no hay tarjetas de dinero. */
+  canCosts: boolean;
   movements: InventoryMovement[];
   items: InventoryItem[];
   people: InventoryPerson[];
@@ -122,14 +125,21 @@ export function AlmacenSummaryView({
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard icon={ArrowUpFromLine} tone="primary" label={ta("sum_kpi_issues")} value={consumption.issues} sublabel={`${consumption.lines} ${ta("sum_lines")}`} />
             <KpiCard icon={Boxes} label={ta("sum_kpi_products")} value={consumption.products} />
+            {canCosts && (
+              <KpiCard
+                icon={CircleDollarSign}
+                tone="negative"
+                label={ta("sum_kpi_value")}
+                value={consumption.valueCents == null ? "—" : formatCents(consumption.valueCents)}
+                sublabel={consumption.valueCents == null ? ta("sum_no_costs") : ta("sum_at_last_cost")}
+              />
+            )}
             <KpiCard
-              icon={CircleDollarSign}
-              tone="negative"
-              label={ta("sum_kpi_value")}
-              value={consumption.valueCents == null ? "—" : formatCents(consumption.valueCents)}
-              sublabel={consumption.valueCents == null ? ta("sum_no_costs") : ta("sum_at_last_cost")}
+              icon={Folder}
+              label={ta("sum_kpi_projects")}
+              value={consumption.byProject.filter((p) => !p.key.startsWith("uso:") && p.key !== "none").length}
+              className={canCosts ? undefined : "col-span-2 lg:col-span-1"}
             />
-            <KpiCard icon={Folder} label={ta("sum_kpi_projects")} value={consumption.byProject.filter((p) => !p.key.startsWith("uso:") && p.key !== "none").length} />
           </div>
 
           <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:p-4">
@@ -178,17 +188,19 @@ export function AlmacenSummaryView({
 
       {view === "stock" && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className={`grid grid-cols-2 gap-3 ${canCosts ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
             <KpiCard icon={PackageX} tone="negative" label={ta("status_out")} value={out.length} />
             <KpiCard icon={AlertTriangle} tone="warning" label={ta("status_low")} value={low.length} />
             <KpiCard icon={Snowflake} tone="primary" label={ta("sum_kpi_idle")} value={idle.length} sublabel={ta("sum_idle_hint")} />
-            <KpiCard
-              icon={CircleDollarSign}
-              tone="warning"
-              label={ta("sum_kpi_idle_value")}
-              value={anyCost ? formatCents(idleValue) : "—"}
-              sublabel={anyCost ? ta("sum_at_last_cost") : ta("sum_no_costs")}
-            />
+            {canCosts ? (
+              <KpiCard
+                icon={CircleDollarSign}
+                tone="warning"
+                label={ta("sum_kpi_idle_value")}
+                value={anyCost ? formatCents(idleValue) : "—"}
+                sublabel={anyCost ? ta("sum_at_last_cost") : ta("sum_no_costs")}
+              />
+            ) : null}
           </div>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <RankList
@@ -224,16 +236,18 @@ export function AlmacenSummaryView({
 
       {view === "compras" && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <div className={`grid grid-cols-2 gap-3 ${canCosts ? "lg:grid-cols-3" : ""}`}>
             <KpiCard icon={ShoppingCart} tone="primary" label={ta("sum_kpi_orders")} value={spend.reduce((s, r) => s + r.orders, 0)} />
-            <KpiCard
-              icon={CircleDollarSign}
-              tone="negative"
-              label={ta("sum_kpi_spend")}
-              value={anySpend ? formatCents(spendTotal) : "—"}
-              sublabel={anySpend ? ta("sum_invoiced") : ta("sum_no_costs")}
-            />
-            <KpiCard icon={Truck} label={ta("sum_kpi_suppliers")} value={spend.length} className="col-span-2 lg:col-span-1" />
+            {canCosts && (
+              <KpiCard
+                icon={CircleDollarSign}
+                tone="negative"
+                label={ta("sum_kpi_spend")}
+                value={anySpend ? formatCents(spendTotal) : "—"}
+                sublabel={anySpend ? ta("sum_invoiced") : ta("sum_no_costs")}
+              />
+            )}
+            <KpiCard icon={Truck} label={ta("sum_kpi_suppliers")} value={spend.length} className={canCosts ? "col-span-2 lg:col-span-1" : undefined} />
           </div>
           <RankList
             title={ta("sum_by_supplier")}
@@ -241,9 +255,9 @@ export function AlmacenSummaryView({
             items={spend.map((r) => ({
               key: r.supplierId,
               label: supplierName.get(r.supplierId) ?? "—",
-              value: r.totalCents ?? r.orders,
-              display: r.totalCents != null ? formatCents(r.totalCents) : `${r.orders}`,
-              sub: `${r.orders} ${ta("sum_orders_word")}`,
+              value: canCosts && r.totalCents != null ? r.totalCents : r.orders,
+              display: canCosts && r.totalCents != null ? formatCents(r.totalCents) : `${r.orders} ${ta("sum_orders_word")}`,
+              sub: canCosts ? `${r.orders} ${ta("sum_orders_word")}` : undefined,
               href: "/directorio",
             }))}
             empty={ta("sum_no_orders")}
