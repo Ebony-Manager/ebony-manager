@@ -133,9 +133,10 @@ export function EmployeeDetailSheet({
       key: "descuentos",
       labelKey: "br_descuentos",
       sign: -1,
-      pick: (r) => (r.entry ? r.entry.horasDescontadasCents + r.entry.diasDescontadosCents + r.entry.otherDeductionCents : 0),
+      pick: (r) => (r.entry ? r.entry.horasDescontadasCents + r.entry.diasDescontadosCents : 0),
     },
-    { key: "abono", labelKey: "br_abono", sign: -1, pick: (r) => r.ledgerPaymentCents },
+    // "Otros descuentos" no es asistencia: va con préstamos y descuentos (como en Quincena).
+    { key: "abono", labelKey: "br_abono", sign: -1, pick: (r) => r.ledgerPaymentCents + (r.entry?.otherDeductionCents ?? 0) },
   ];
 
   function renderAccrualRow(
