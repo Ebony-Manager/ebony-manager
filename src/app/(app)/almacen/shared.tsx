@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronDown, Package } from "lucide-react";
+import { SearchInput } from "@/components/shared/search-input";
 
 import type { InventoryItem, InventoryVariant } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -46,15 +47,7 @@ export function EmptyBox({ children }: { children: React.ReactNode }) {
 }
 
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.currentTarget.value)}
-      placeholder={placeholder}
-      aria-label={placeholder}
-      className="h-8 w-full flex-[1_1_200px] border border-input bg-card px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 sm:max-w-xs"
-    />
-  );
+  return <SearchInput value={value} onChange={onChange} placeholder={placeholder} className="w-full flex-[1_1_200px] sm:max-w-xs" />;
 }
 
 export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stockQty" | "minQty"> }) {

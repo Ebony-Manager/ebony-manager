@@ -1,9 +1,10 @@
 "use client";
 
+import { SearchInput, ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, FileText, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, FileText, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -91,25 +92,17 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative flex-[1_1_220px] sm:max-w-xs">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            placeholder={tt("search_ph")}
-            aria-label={tt("search_ph")}
-            className="h-8 w-full border border-input bg-card pr-2.5 pl-8 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-1">
+      <ListToolbar>
+        <SearchInput value={search} onChange={setSearch} placeholder={tt("search_ph")} className="w-full flex-[1_1_220px] sm:max-w-xs" />
+        {/* En el celular los estados se deslizan de lado en una sola línea. */}
+        <div className="flex w-full items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:w-auto sm:flex-wrap [&::-webkit-scrollbar]:hidden">
           {(["all", ...QUOTE_STATUSES] as const).map((f) => (
-            <Button key={f} size="sm" variant={filter === f ? "secondary" : "ghost"} onClick={() => setFilter(f)}>
+            <Button key={f} size="sm" className="shrink-0" variant={filter === f ? "secondary" : "ghost"} onClick={() => setFilter(f)}>
               {f === "all" ? tt("filter_all") : tt(`status_${f}`)}
             </Button>
           ))}
         </div>
-      </div>
+      </ListToolbar>
 
       {quotes.length === 0 ? (
         <div className="flex flex-col items-center gap-3 border border-dashed border-ink-900/16 px-6 py-14 text-center">

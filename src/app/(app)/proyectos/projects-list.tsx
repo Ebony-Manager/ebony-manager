@@ -1,8 +1,9 @@
 "use client";
 
+import { SearchInput, ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Folder, Plus, Search } from "lucide-react";
+import { Folder, Plus } from "lucide-react";
 
 import type { ContractorContract, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
@@ -66,17 +67,8 @@ export function ProjectsList({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative flex-[1_1_220px] sm:max-w-xs">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.currentTarget.value)}
-            placeholder={tt("search_ph")}
-            aria-label={tt("search_ph")}
-            className="h-8 w-full border border-input bg-card pr-2.5 pl-8 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
-          />
-        </label>
+      <ListToolbar>
+        <SearchInput value={query} onChange={setQuery} placeholder={tt("search_ph")} className="w-full flex-[1_1_220px] sm:max-w-xs" />
         <SegmentedFilter
           value={status}
           onChange={setStatus}
@@ -86,7 +78,7 @@ export function ProjectsList({
             { value: "all", label: tt("filter_all") },
           ]}
         />
-      </div>
+      </ListToolbar>
 
       {projects.length === 0 ? (
         <div className="flex flex-col items-center gap-3 border border-dashed border-ink-900/16 px-6 py-14 text-center">

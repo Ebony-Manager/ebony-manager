@@ -1,5 +1,6 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 
@@ -68,9 +69,9 @@ export function IssuesView({
         <IssueShop items={items} categories={categories} people={people} projects={projects} />
       ) : (
         <>
-      <div className="flex flex-wrap items-center gap-2">
+      <ListToolbar>
         <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
-      </div>
+      </ListToolbar>
 
       {shown.length === 0 ? (
         <EmptyBox>{issues.length === 0 ? ta("issues_empty") : ta("no_results")}</EmptyBox>

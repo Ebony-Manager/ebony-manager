@@ -1,13 +1,13 @@
 "use client";
 
+import { SearchInput } from "@/components/shared/search-input";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Folder, Plus, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder, Plus } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { useLang } from "@/context/language-context";
@@ -85,10 +85,7 @@ export function ContractsView({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder={tt("ct_search_ph")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-8" />
-        </div>
+        <SearchInput value={query} onChange={setQuery} placeholder={tt("ct_search_ph")} className="max-w-sm flex-1" />
         <p className="text-xs text-muted-foreground">
           {tt("ct_active_totals")}: {formatCents(totals.value)} · {tt("ct_col_pending").toLowerCase()}{" "}
           <span className="font-medium text-foreground">{formatCents(totals.pending)}</span>

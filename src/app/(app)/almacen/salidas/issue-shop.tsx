@@ -1,5 +1,6 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import toast from "react-hot-toast";
 import { Check, Minus, Plus, ShoppingCart, X } from "lucide-react";
@@ -73,10 +74,10 @@ export function IssueShop({
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <section className="flex min-w-0 flex-col gap-4 pb-20 lg:pb-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <ListToolbar>
           <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-8 w-auto min-w-48">
+            <SelectTrigger className="h-9 w-auto min-w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -88,7 +89,7 @@ export function IssueShop({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </ListToolbar>
 
         {groups.length === 0 ? (
           <EmptyBox>{items.length === 0 ? ta("stock_empty") : ta("no_results")}</EmptyBox>

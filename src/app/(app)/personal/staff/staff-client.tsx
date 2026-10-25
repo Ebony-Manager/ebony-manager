@@ -1,5 +1,7 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -208,26 +210,10 @@ export function StaffClient({
           />
         )}
 
-        {/* Celular: buscador y descargas (solo ícono) en una línea; el filtro abajo. */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="order-1 min-w-0 flex-1 sm:w-full sm:max-w-xs sm:flex-none" />
-          {showKindFilter && (
-            <div className="order-3 flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px] sm:order-2">
-              {FILTERS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setKind(value)}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-[12.5px] transition-colors",
-                    kind === value ? "bg-primary font-semibold text-primary-foreground" : "font-medium text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Celular: buscador y descargas (solo ícono) en una línea, pegada arriba al bajar; el filtro abajo, a lo ancho. */}
+        <ListToolbar>
+          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="order-1 min-w-0 flex-1 sm:max-w-xs" />
+          {showKindFilter && <SegmentedFilter value={kind} onChange={setKind} options={FILTERS} fill className="order-3 sm:order-2" />}
           <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
             <Button
               size="sm"
@@ -248,7 +234,7 @@ export function StaffClient({
               />
             )}
           </div>
-        </div>
+        </ListToolbar>
 
         {selecting && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">

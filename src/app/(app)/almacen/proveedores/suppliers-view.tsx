@@ -1,5 +1,6 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import toast from "react-hot-toast";
 import { MessageCircle, Plus } from "lucide-react";
@@ -48,7 +49,7 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <ListToolbar>
         <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
         <SegmentedFilter
           value={filter}
@@ -59,7 +60,7 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
             { value: "all", label: ta("filter_all") },
           ]}
         />
-      </div>
+      </ListToolbar>
 
       {shown.length === 0 ? (
         <EmptyBox>{suppliers.length === 0 ? ta("suppliers_empty") : ta("no_results")}</EmptyBox>

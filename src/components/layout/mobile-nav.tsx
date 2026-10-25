@@ -92,20 +92,20 @@ export function MobileTopBar({ pending }: { pending: PendingCounts }) {
         <h1 className="truncate text-[15px] font-semibold text-sidebar-foreground">{title}</h1>
       </div>
       {panel && panel.items.length > 1 && (
-        <nav className="-mt-1 flex gap-1.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={title}>
+        // Pestañas subrayadas: llevan a otra pantalla de la sección (los filtros
+        // de cada pantalla son controles segmentados grises, ver SegmentedFilter).
+        <nav className="-mt-1 flex gap-5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={title}>
           {panel.items.map((item) => {
             const active = isNavItemActive(item, pathname);
-            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors ${
-                  active ? "border-primary bg-primary font-semibold text-primary-foreground" : "border-sidebar-border bg-card text-sidebar-foreground/70"
+                className={`flex h-10 shrink-0 items-center gap-1.5 border-b-2 text-[14px] whitespace-nowrap transition-colors ${
+                  active ? "border-primary font-semibold text-foreground" : "border-transparent font-medium text-sidebar-foreground/55"
                 }`}
               >
-                <Icon size={14} strokeWidth={1.8} />
                 {t(lang, item.label)}
                 <PendingBadge count={pendingFor(item.href)} title={t(lang, strings.nav.pending)} />
               </Link>

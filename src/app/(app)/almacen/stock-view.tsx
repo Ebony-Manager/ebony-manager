@@ -1,5 +1,6 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import { Plus } from "lucide-react";
 
@@ -86,10 +87,10 @@ export function StockView({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <ListToolbar>
         <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="h-8 w-auto min-w-48">
+          <SelectTrigger className="h-9 w-auto min-w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -110,7 +111,7 @@ export function StockView({
             { value: "out", label: ta("filter_out") },
           ]}
         />
-      </div>
+      </ListToolbar>
 
       {items.length === 0 ? (
         <EmptyBox>{ta("stock_empty")}</EmptyBox>
