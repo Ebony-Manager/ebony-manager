@@ -48,7 +48,14 @@ export function SegmentedFilter<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="group" className={cn("flex items-center gap-0.5 rounded-lg bg-muted p-[3px]", fill && "w-full sm:w-auto", className)}>
+    <div
+      role="group"
+      className={cn(
+        "flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        fill && "w-full sm:w-auto",
+        className,
+      )}
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -56,7 +63,7 @@ export function SegmentedFilter<T extends string>({
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
+            "shrink-0 rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
             fill && "flex-1 sm:flex-none",
             value === o.value ? "bg-card font-semibold text-foreground shadow-sm" : "font-medium text-muted-foreground hover:text-foreground",
           )}

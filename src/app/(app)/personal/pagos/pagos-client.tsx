@@ -125,6 +125,11 @@ export function PagosClient({
   const [chargeType, setChargeType] = React.useState<ChargeTypeFilter>("all");
   const [addChargeOpen, setAddChargeOpen] = React.useState(false);
   const router = useRouter();
+  // En el celular la fila de pestañas se desliza: la elegida queda a la vista.
+  const tabsRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    tabsRef.current?.querySelector("[data-active]")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [tab]);
   // A quiénes se les puede agregar un préstamo o descuento: los activos.
   const chargePeople = React.useMemo<ChargePerson[]>(
     () =>
@@ -165,17 +170,22 @@ export function PagosClient({
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrls}>
-      <div className="flex flex-col gap-5 px-7 pt-6 pb-10">
+      <div className="flex flex-col gap-4 px-4 pt-4 pb-10 sm:gap-5 sm:px-7 sm:pt-6">
         <PageBreadcrumb />
 
-        {/* Pestañas — texto simple con subrayado, sin franja de color. */}
-        <div className="flex items-center gap-[22px] overflow-x-auto border-b border-ink-900/8">
+        {/* Pestañas — texto simple con subrayado, sin franja de color. En el
+            celular se deslizan de borde a borde y la elegida queda a la vista. */}
+        <div
+          ref={tabsRef}
+          className="-mx-4 flex items-center gap-[22px] overflow-x-auto border-b border-ink-900/8 px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+        >
           {TABS.map(({ value }) => {
             const isActive = tab === value;
             return (
               <button
                 key={value}
                 type="button"
+                data-active={isActive || undefined}
                 onClick={() => setTab(value)}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5",
@@ -191,19 +201,28 @@ export function PagosClient({
           })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[19px] font-bold text-ink-900">{tg(`tab_${tab}`)}</h1>
-            <p className="hidden text-xs text-muted-foreground sm:block">{tg(`sub_${tab}`)}</p>
+        {/* Título con su acción en la misma línea; el filtro debajo en el celular. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-[17px] font-bold text-ink-900 sm:text-[19px]">{tg(`tab_${tab}`)}</h1>
+              <p className="hidden text-xs text-muted-foreground sm:block">{tg(`sub_${tab}`)}</p>
+            </div>
+            {tab === "prestamos" && (
+              <Button size="sm" className="shrink-0 sm:hidden" onClick={() => setAddChargeOpen(true)}>
+                <Plus className="size-3.5" />
+                {tg("add")}
+              </Button>
+            )}
           </div>
           {tab === "quincena" && (
-            <SegmentedFilter value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />
+            <SegmentedFilter fill value={registroCategoria} options={CATEGORIA_FILTERS} onChange={setRegistroCategoria} />
           )}
           {tab === "historial" && (
-            <SegmentedFilter value={auditoriaCategoria} options={CATEGORIA_FILTERS} onChange={setAuditoriaCategoria} />
+            <SegmentedFilter fill value={auditoriaCategoria} options={CATEGORIA_FILTERS} onChange={setAuditoriaCategoria} />
           )}
           {tab === "prestamos" && LOANS_FILTERS.length > 1 && (
-            <SegmentedFilter value={loansFilter} options={LOANS_FILTERS} onChange={setLoansFilter} />
+            <SegmentedFilter fill value={loansFilter} options={LOANS_FILTERS} onChange={setLoansFilter} />
           )}
         </div>
 
@@ -236,9 +255,9 @@ export function PagosClient({
             </>
           )}
           <TabsContent value="prestamos" className="pt-0">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="mb-4 flex items-center justify-between gap-2">
               <ChargeTypeChips value={chargeType} onChange={setChargeType} />
-              <Button size="sm" onClick={() => setAddChargeOpen(true)}>
+              <Button size="sm" className="hidden shrink-0 sm:inline-flex" onClick={() => setAddChargeOpen(true)}>
                 <Plus className="size-3.5" />
                 {tg("add")}
               </Button>

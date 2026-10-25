@@ -303,8 +303,8 @@ export function RegistroView({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => shiftPeriod(-1)}>
+        <div className="flex w-full items-center gap-1 rounded-lg border border-border px-1 sm:w-auto">
+          <Button variant="ghost" size="icon" className="size-8 sm:size-7" onClick={() => shiftPeriod(-1)}>
             <ChevronLeft className="size-4" />
           </Button>
           {/* Ir directo a una quincena: año + mes/quincena. */}
@@ -327,7 +327,7 @@ export function RegistroView({
               setPeriod((p) => ({ ...p, month: m, half: h as 1 | 2 }));
             }}
           >
-            <SelectTrigger aria-label={tt("period_pick_label")} className="h-7 w-[200px] border-0 bg-transparent px-2 text-sm font-medium shadow-none">
+            <SelectTrigger aria-label={tt("period_pick_label")} className="h-7 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm font-medium shadow-none sm:w-[200px] sm:flex-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-80">
@@ -342,7 +342,7 @@ export function RegistroView({
               })}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => shiftPeriod(1)}>
+          <Button variant="ghost" size="icon" className="size-8 sm:size-7" onClick={() => shiftPeriod(1)}>
             <ChevronRight className="size-4" />
           </Button>
         </div>

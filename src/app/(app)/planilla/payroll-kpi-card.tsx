@@ -42,18 +42,19 @@ export function PayrollKpiCard({
   const accentTextStyle: React.CSSProperties | undefined = isNeutral ? undefined : { color: resolvedColor };
   return (
     <div
-      className={cn("flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3", className)}
+      className={cn("flex items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3", className)}
       style={cardStyle}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={iconTintStyle}>
+      {/* En el celular sin ícono: así el título y el monto caben enteros. */}
+      <div className="hidden size-9 shrink-0 items-center justify-center rounded-lg sm:flex" style={iconTintStyle}>
         <Icon className="size-4" style={accentTextStyle} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium" style={accentTextStyle ?? { color: "var(--muted-foreground)" }}>
+        <p className="line-clamp-2 text-xs font-medium sm:truncate" style={accentTextStyle ?? { color: "var(--muted-foreground)" }}>
           {label}
         </p>
         <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
-        {sublabel && <p className="truncate text-[11px] text-muted-foreground">{sublabel}</p>}
+        {sublabel && <p className="text-[11px] text-muted-foreground sm:truncate">{sublabel}</p>}
       </div>
     </div>
   );

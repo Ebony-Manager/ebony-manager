@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 
 import type { LoanCategory, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { LoansPanel } from "./loans-panel";
@@ -18,13 +19,7 @@ export function ChargeTypeChips({ value, onChange }: { value: ChargeTypeFilter; 
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      {(["all", ...CHARGE_TYPES] as const).map((v) => (
-        <Button key={v} size="sm" variant={value === v ? "secondary" : "ghost"} className="h-7 px-2.5 text-xs" onClick={() => onChange(v)}>
-          {tg(`type_${v}`)}
-        </Button>
-      ))}
-    </div>
+    <SegmentedFilter value={value} onChange={onChange} options={(["all", ...CHARGE_TYPES] as const).map((v) => ({ value: v, label: tg(`type_${v}`) }))} />
   );
 }
 

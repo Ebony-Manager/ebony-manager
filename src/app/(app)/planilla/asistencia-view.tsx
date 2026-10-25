@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
+import { ChevronDown, Clock, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { BLOCKING_FLAGS, type DayFlag, type DayResult, type RawPunch } from "@/lib/attendance/types";
@@ -25,6 +25,7 @@ import {
 } from "./actions";
 import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { AttendanceDayDialog } from "./attendance-day-dialog";
+import { PeriodStepper } from "./period-stepper";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
@@ -196,21 +197,18 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const label = `${monthLabel(lang, period.month)} · ${period.half === 1 ? tp("quincena_1") : tp("quincena_2")} ${period.year}`;
   const when = (s: { date: string; minutes: number } | null) => (s ? `${formatDateCompact(lang, s.date)} ${hm(s.minutes)}` : tg("att_never"));
   const th = "px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap";
-  const uploadBtn = "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted/50";
+  const uploadBtn = "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border sm:h-8 border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted/50";
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-52 text-center text-sm font-medium text-foreground">{label}</span>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPeriod((p) => nextPeriod(p))}>
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <PeriodStepper
+          label={label}
+          onPrev={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}
+          onNext={() => setPeriod((p) => nextPeriod(p))}
+        />
+        {/* Celular: las dos subidas lado a lado y "Pasar a la Quincena" a todo el ancho. */}
+        <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           <label className={`${uploadBtn} ${uploading ? "pointer-events-none opacity-50" : ""}`}>
             <Upload className="size-3.5" />
             {tg("att_upload_clock")}
@@ -221,7 +219,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
             {tg("att_upload_jotform")}
             <input type="file" accept=".xlsx,.xls" className="sr-only" onChange={(e) => void onFile("jotform", e.currentTarget)} />
           </label>
-          <Button size="sm" disabled={!ready} onClick={() => setApplyOpen(true)}>
+          <Button size="sm" className="col-span-2 h-9 sm:h-8" disabled={!ready} onClick={() => setApplyOpen(true)}>
             {tg("att_to_quincena")}
           </Button>
         </div>
@@ -322,7 +320,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
             <table className="w-full min-w-[840px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className={th}>{tp("col_empleado")}</th>
+                  <th className={`${th} sticky left-0 z-10 bg-card`}>{tp("col_empleado")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_days")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_late_count")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_late")}</th>
@@ -347,8 +345,9 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                     .join(" · ");
                   return (
                     <React.Fragment key={p.employeeId}>
-                      <tr className="cursor-pointer border-b border-border hover:bg-muted/30" onClick={() => toggle(p.employeeId)}>
-                        <td className="px-3 py-2 font-medium text-foreground">
+                      <tr className="group/row cursor-pointer border-b border-border hover:bg-muted/30" onClick={() => toggle(p.employeeId)}>
+                        {/* Nombre fijo a la izquierda al deslizar la tabla (celular). */}
+                        <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium text-foreground group-hover/row:bg-muted/30">
                           <span className="inline-flex items-center gap-1.5">
                             <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
                             {p.name}
