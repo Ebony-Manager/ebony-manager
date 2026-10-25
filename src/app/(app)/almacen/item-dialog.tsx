@@ -404,14 +404,26 @@ export function ItemDialog({
                         {v.label || ta("variant_single")} <span className="text-[11px] tabular-nums">· {qtyWithUnit(v.stockQty, unit, lang)}</span>
                       </span>
                       {!readOnly && (
-                        <button
-                          type="button"
-                          onClick={() => patchVariant(v.key, { active: true })}
-                          className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
-                        >
-                          <RotateCcw className="size-3" />
-                          {ta("variant_reactivate")}
-                        </button>
+                        <span className="flex shrink-0 items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => patchVariant(v.key, { active: true })}
+                            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <RotateCcw className="size-3" />
+                            {ta("variant_reactivate")}
+                          </button>
+                          {/* Si no tiene historial se borra al guardar; si tiene, sigue desactivada. */}
+                          <button
+                            type="button"
+                            title={ta("variant_remove")}
+                            aria-label={ta("variant_remove")}
+                            onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))}
+                            className="flex size-7 items-center justify-center text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="size-4" />
+                          </button>
+                        </span>
                       )}
                     </div>
                   ))}

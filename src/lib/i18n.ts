@@ -2559,8 +2559,8 @@ export const strings = {
     variant_remove: { es: "Quitar variante", en: "Remove variant" },
     variants_inactive: { es: "Desactivadas", en: "Deactivated" },
     variants_inactive_hint: {
-      es: "Tienen historial (salidas, compras o ajustes), por eso no se borran.",
-      en: "They have history (issues, purchases or adjustments), so they can't be deleted.",
+      es: "No salen en salidas ni pedidos. Al quitarlas se borran, salvo las que tienen historial.",
+      en: "Not shown in issues or orders. Removing deletes them, except those with history.",
     },
     variant_reactivate: { es: "Reactivar", en: "Reactivate" },
     variants_deactivated_toast: {
