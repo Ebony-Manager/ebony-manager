@@ -186,7 +186,8 @@ function itemRow(input: ItemInput) {
   };
 }
 
-async function saveItemChildren(itemId: string, input: ItemInput): Promise<void> {
+/** Devuelve cuántas variantes quitadas quedaron desactivadas (tenían historial). */
+async function saveItemChildren(itemId: string, input: ItemInput): Promise<number> {
   const supabase = await createClient();
   const { data: existing, error } = await supabase.from("inventory_variants").select("id").eq("item_id", itemId);
   fail(error);
@@ -199,8 +200,16 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<void>
       : await supabase.from("inventory_variants").insert({ ...row, item_id: itemId });
     fail(res.error);
   }
-  const gone = (existing ?? []).map((v) => v.id).filter((id) => !keep.has(id));
-  if (gone.length) fail((await supabase.from("inventory_variants").update({ active: false }).in("id", gone)).error);
+  // Las que se quitaron se borran; si ya tienen historial (movimientos,
+  // pedidos o solicitudes, la base lo impide) quedan desactivadas.
+  let deactivated = 0;
+  for (const id of (existing ?? []).map((v) => v.id).filter((id) => !keep.has(id))) {
+    const del = await supabase.from("inventory_variants").delete().eq("id", id);
+    if (!del.error) continue;
+    if (del.error.code !== "23503") fail(del.error);
+    fail((await supabase.from("inventory_variants").update({ active: false }).eq("id", id)).error);
+    deactivated += 1;
+  }
 
   fail((await supabase.from("inventory_item_suppliers").delete().eq("item_id", itemId)).error);
   if (input.suppliers.length) {
@@ -213,6 +222,7 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<void>
     }));
     fail((await supabase.from("inventory_item_suppliers").insert(rows)).error);
   }
+  return deactivated;
 }
 
 export async function createItem(input: ItemInput): Promise<string> {
@@ -223,10 +233,11 @@ export async function createItem(input: ItemInput): Promise<string> {
   return data!.id;
 }
 
-export async function updateItem(id: string, input: ItemInput): Promise<void> {
+/** Devuelve cuántas variantes quitadas quedaron desactivadas en vez de borradas. */
+export async function updateItem(id: string, input: ItemInput): Promise<number> {
   const supabase = await createClient();
   fail((await supabase.from("inventory_items").update(itemRow(input)).eq("id", id)).error);
-  await saveItemChildren(id, input);
+  return saveItemChildren(id, input);
 }
 
 /**
