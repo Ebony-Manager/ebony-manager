@@ -127,7 +127,7 @@ export function OrderDialog({
 
         {/* Líneas + recepción */}
         <section className="flex flex-col gap-2">
-          <div className="overflow-x-auto border border-ink-900/8">
+          <div className="overflow-x-auto rounded-lg border border-ink-900/8">
             <table className="w-full min-w-[460px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

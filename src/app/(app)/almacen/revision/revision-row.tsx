@@ -127,7 +127,7 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
                           onChange={(e) => set(v.id, "min", e.target.value)}
                           onBlur={() => suggestReorder(v.id)}
                           placeholder="—"
-                          className="h-8 w-20 border border-input bg-background px-2 text-right tabular-nums"
+                          className="h-8 w-20 rounded-md border border-input bg-background px-2 text-right tabular-nums"
                         />
                       </td>
                       <td className="py-1 text-right">
@@ -138,7 +138,7 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
                           value={levels[v.id].reorder}
                           onChange={(e) => set(v.id, "reorder", e.target.value)}
                           placeholder="—"
-                          className="h-8 w-20 border border-input bg-background px-2 text-right tabular-nums"
+                          className="h-8 w-20 rounded-md border border-input bg-background px-2 text-right tabular-nums"
                         />
                       </td>
                     </>
@@ -162,7 +162,7 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Nota: cómo viene (caja de 1,000, rollo de 50 m…), comentarios"
-              className="w-full border border-input bg-background px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
             />
             <div className="flex items-center justify-end gap-2">
               {dirty && <span className="text-xs text-amber-700 dark:text-amber-400">Sin guardar</span>}

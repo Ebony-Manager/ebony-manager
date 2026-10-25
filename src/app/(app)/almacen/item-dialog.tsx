@@ -224,7 +224,7 @@ export function ItemDialog({
             <div className="flex flex-col items-center gap-1.5">
               {pendingPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element -- vista previa local antes de subir.
-                <img src={pendingPhoto.preview} alt="" className="size-24 border border-ink-900/8 object-contain" />
+                <img src={pendingPhoto.preview} alt="" className="size-24 rounded-md border border-ink-900/8 object-contain" />
               ) : (
                 <ItemThumb path={photoPath} size={96} />
               )}

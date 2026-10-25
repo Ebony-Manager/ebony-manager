@@ -192,7 +192,7 @@ function PurchasingRequests({
           groups.map(([supplierId, list]) => {
             const picked = list.filter((r) => !unchecked.has(r.id)).map((r) => r.id);
             return (
-              <section key={supplierId || "none"} className="border border-ink-900/8 bg-card">
+              <section key={supplierId || "none"} className="rounded-lg overflow-hidden border border-ink-900/8 bg-card">
                 <header className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/8 px-3.5 py-2.5">
                   <h3 className="font-semibold">{supplierId ? supplierById.get(supplierId)?.name : ta("no_supplier")}</h3>
                   <Button size="sm" disabled={picked.length === 0} onClick={() => onBuild(supplierId || null, picked)}>
@@ -303,7 +303,7 @@ function RequestsTable({
   const { ta, lang } = useTa();
   if (requests.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
   return (
-    <div className="overflow-x-auto border border-ink-900/8 bg-card">
+    <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
@@ -355,7 +355,7 @@ function OrdersList({ orders, supplierById, onOpen }: { orders: PurchaseOrder[];
   const { ta, lang } = useTa();
   if (orders.length === 0) return <EmptyBox>{ta("orders_empty")}</EmptyBox>;
   return (
-    <div className="overflow-x-auto border border-ink-900/8 bg-card">
+    <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

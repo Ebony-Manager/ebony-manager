@@ -35,7 +35,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         <select
           value={detail}
           onChange={(e) => onDetail(e.currentTarget.value as PdfDetail)}
-          className="h-8 border border-input bg-card px-2 text-xs outline-none focus-visible:border-ring"
+          className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:border-ring"
         >
           <option value="section">{tt("cv_detail_section")}</option>
           <option value="line">{tt("cv_detail_line")}</option>
@@ -43,7 +43,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         </select>
       </label>
 
-      <article className="mx-auto w-full max-w-[860px] border border-ink-900/8 bg-card px-5 py-7 sm:px-10 sm:py-10">
+      <article className="mx-auto w-full max-w-[860px] rounded-lg border border-ink-900/8 bg-card px-5 py-7 sm:px-10 sm:py-10">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-ink-900/16 pb-5">
           <div className="flex flex-col gap-1.5">
             <EbonyLogo variant="wordmark" tone="black" height={34} />

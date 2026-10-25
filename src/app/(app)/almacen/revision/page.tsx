@@ -78,7 +78,7 @@ export default async function RevisionPage() {
         </dl>
       </header>
 
-      <section className="flex flex-col gap-3 border border-amber-500/40 bg-amber-500/5 p-4 sm:p-5">
+      <section className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 sm:p-5">
         <h2 className="flex items-center gap-2 font-semibold text-foreground">
           <AlertTriangle className="size-4 text-amber-600" />
           Preguntas antes de cargar
@@ -91,7 +91,7 @@ export default async function RevisionPage() {
         <p className="text-xs text-muted-foreground">También salen en el Excel, pero ya se eliminaron de la app: {EXCEL_DELETED.join(", ")}.</p>
       </section>
 
-      <section className="flex flex-col gap-4 border border-border bg-card p-4 sm:p-5">
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:p-5">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Para afinar los mínimos</h2>
           <p className="max-w-3xl text-sm text-muted-foreground">
@@ -128,7 +128,7 @@ export default async function RevisionPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-foreground">Proveedores</h2>
-        <div className="overflow-x-auto border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
@@ -159,7 +159,7 @@ export default async function RevisionPage() {
           Productos nuevos{" "}
           <span className="text-sm font-normal text-muted-foreground">({NEW_PRODUCTS.length}, se agregan al aprobar; luego les ponemos foto y mínimo)</span>
         </h2>
-        <div className="overflow-x-auto border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
@@ -199,7 +199,7 @@ export default async function RevisionPage() {
             <h2 className="text-lg font-semibold text-foreground">
               {c.name} <span className="text-sm font-normal text-muted-foreground">({list.length})</span>
             </h2>
-            <ul className="flex flex-col divide-y divide-border border border-border">
+            <ul className="flex flex-col divide-y divide-border rounded-lg overflow-hidden border border-border">
               {list.map((item) => (
                 <RevisionRow key={item.id} item={item} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
               ))}
@@ -223,7 +223,7 @@ function Finding({ title, hint, children }: { title: string; hint: string; child
 
 function Stat({ label, value, hint, warn }: { label: string; value: number; hint?: string; warn?: boolean }) {
   return (
-    <div className="flex flex-col border border-border bg-card px-3 py-2">
+    <div className="flex flex-col rounded-lg border border-border bg-card px-3 py-2">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={`text-xl font-semibold tabular-nums ${warn ? "text-amber-600" : "text-foreground"}`}>{value}</dd>
       {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}

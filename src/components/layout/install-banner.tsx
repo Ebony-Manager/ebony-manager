@@ -63,24 +63,34 @@ function subscribe(onChange: () => void) {
 }
 
 /**
- * Franja en el celular que invita a instalar Ebony Manager como app (abre a
- * pantalla completa, sin la barra del navegador). En Android con Chrome trae
- * el botón "Instalar" del sistema; en el iPhone, que no lo permite, explica
- * los dos toques (Compartir → Agregar a pantalla de inicio). "Ahora no" la
- * esconde 30 días; instalada, no vuelve a salir.
+ * Tarjeta flotante abajo (solo celular), como en la mayoría de las páginas,
+ * que invita a instalar Ebony Manager como app (abre a pantalla completa, sin
+ * la barra del navegador). Sube a los 2 segundos de abrir. En Android con
+ * Chrome trae el botón "Instalar" del sistema; en el iPhone, que no lo
+ * permite, explica los toques (Compartir → Agregar a pantalla de inicio).
+ * "Ahora no" la esconde 30 días; instalada, no vuelve a salir.
  */
 export function InstallBanner() {
   const { lang } = useLang();
   const mode = React.useSyncExternalStore(subscribe, currentMode, () => "hidden" as Mode);
+  const [shown, setShown] = React.useState(false);
+
+  React.useEffect(() => {
+    if (mode === "hidden") return;
+    const id = setTimeout(() => setShown(true), 2000);
+    return () => clearTimeout(id);
+  }, [mode]);
+
   if (mode === "hidden") return null;
 
   const later = () => {
+    setShown(false);
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
       // Sin almacenamiento (modo privado): se esconde solo por ahora.
     }
-    window.dispatchEvent(new Event(CHANGE));
+    setTimeout(() => window.dispatchEvent(new Event(CHANGE)), 250);
   };
   const install = async () => {
     if (!deferred) return;
@@ -93,44 +103,58 @@ export function InstallBanner() {
   const tn = (k: keyof typeof strings.nav) => t(lang, strings.nav[k]);
 
   return (
-    <div className="flex shrink-0 items-start gap-3 border-b border-sidebar-border bg-primary/8 px-4 py-2.5 md:hidden" role="region" aria-label={tn("install_title")}>
-      <EbonyMark size={32} className="mt-0.5" />
-      <div className="min-w-0 flex-1 text-[13px] leading-snug">
-        <p className="font-semibold text-foreground">{tn("install_title")}</p>
-        {mode === "ios" ? (
-          <p className="text-muted-foreground">
-            {tn("install_ios_1")}{" "}
-            <span className="font-medium whitespace-nowrap text-foreground">
-              <Share className="inline size-3.5 -translate-y-px text-primary" /> {tn("install_share")}
-            </span>
-            , {tn("install_ios_2")}{" "}
-            <span className="font-medium whitespace-nowrap text-foreground">
-              <SquarePlus className="inline size-3.5 -translate-y-px" /> {tn("install_ios_3")}
-            </span>
-            .
-          </p>
-        ) : mode === "android" ? (
-          <p className="text-muted-foreground">{tn("install_android")}</p>
-        ) : (
-          <p className="text-muted-foreground">{tn("install_body")}</p>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        {mode === "prompt" && (
-          <Button size="sm" className="h-8" onClick={() => void install()}>
-            <Download className="size-3.5" />
-            {tn("install_btn")}
+    <div
+      role="dialog"
+      aria-label={tn("install_title")}
+      aria-hidden={!shown}
+      className={`fixed inset-x-3 bottom-[calc(var(--app-bottom)+0.75rem)] z-30 transition-all duration-300 ease-out md:hidden ${
+        shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
+      }`}
+    >
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl">
+        <div className="flex items-start gap-3">
+          <EbonyMark size={40} />
+          <div className="min-w-0 flex-1 text-[13px] leading-snug">
+            <p className="text-[15px] font-semibold text-foreground">{tn("install_title")}</p>
+            {mode === "ios" ? (
+              <p className="mt-0.5 text-muted-foreground">
+                {tn("install_ios_1")}{" "}
+                <span className="font-medium whitespace-nowrap text-foreground">
+                  <Share className="inline size-3.5 -translate-y-px text-primary" /> {tn("install_share")}
+                </span>
+                , {tn("install_ios_2")}{" "}
+                <span className="font-medium whitespace-nowrap text-foreground">
+                  <SquarePlus className="inline size-3.5 -translate-y-px" /> {tn("install_ios_3")}
+                </span>
+                .
+              </p>
+            ) : mode === "android" ? (
+              <p className="mt-0.5 text-muted-foreground">{tn("install_android")}</p>
+            ) : (
+              <p className="mt-0.5 text-muted-foreground">{tn("install_body")}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={later}
+            aria-label={tn("install_later")}
+            title={tn("install_later")}
+            className="-mt-1 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" className="h-9" onClick={later}>
+            {tn("install_later")}
           </Button>
-        )}
-        <button
-          type="button"
-          onClick={later}
-          aria-label={tn("install_later")}
-          title={tn("install_later")}
-          className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-        >
-          <X className="size-4" />
-        </button>
+          {mode === "prompt" && (
+            <Button size="sm" className="h-9" onClick={() => void install()}>
+              <Download className="size-3.5" />
+              {tn("install_btn")}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

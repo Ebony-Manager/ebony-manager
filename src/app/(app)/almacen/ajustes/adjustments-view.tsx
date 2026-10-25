@@ -46,7 +46,7 @@ export function AdjustmentsView({
       {adjustments.length === 0 ? (
         <EmptyBox>{ta("adj_empty")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto border border-ink-900/8 bg-card">
+        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

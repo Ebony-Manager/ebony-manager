@@ -81,7 +81,7 @@ export function ProjectsList({
       </ListToolbar>
 
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 border border-dashed border-ink-900/16 px-6 py-14 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-ink-900/16 px-6 py-14 text-center">
           <div className="flex size-14 items-center justify-center bg-cream-100">
             <Folder className="size-6 text-walnut" />
           </div>
@@ -92,11 +92,11 @@ export function ProjectsList({
           </Button>
         </div>
       ) : shown.length === 0 ? (
-        <div className="border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">
           {tt("no_results")}
         </div>
       ) : (
-        <div className="overflow-x-auto border border-ink-900/8 bg-card">
+        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

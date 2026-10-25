@@ -95,7 +95,7 @@ function NotificationCard({
   }
 
   return (
-    <section className="flex max-w-2xl flex-col gap-4 border border-ink-900/8 bg-card p-4 sm:p-5">
+    <section className="flex max-w-2xl flex-col gap-4 rounded-lg border border-ink-900/8 bg-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-3">
           <Bell className="mt-0.5 size-5 shrink-0 text-walnut" />
@@ -118,7 +118,7 @@ function NotificationCard({
               key={d}
               type="button"
               onClick={() => toggleDay(d)}
-              className={`h-8 min-w-11 border px-2 text-sm ${days.includes(d) ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground"}`}
+              className={`h-8 min-w-11 rounded-md border px-2 text-sm ${days.includes(d) ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground"}`}
             >
               {tn(`day_${d}` as keyof typeof strings.notificaciones)}
             </button>

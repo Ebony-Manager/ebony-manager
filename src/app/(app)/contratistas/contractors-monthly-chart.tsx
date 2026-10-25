@@ -109,7 +109,7 @@ export function ContractorsMonthlyChart({ months }: { months: MonthPoint[] }) {
 
           {hovered && hover !== null && (
             <div
-              className="pointer-events-none absolute top-2 z-10 w-60 border border-border bg-popover p-4 shadow-md"
+              className="pointer-events-none absolute top-2 z-10 w-60 rounded-lg border border-border bg-popover p-4 shadow-md"
               style={
                 hover < months.length / 2
                   ? { left: `${((hover + 1) / months.length) * 100}%` }

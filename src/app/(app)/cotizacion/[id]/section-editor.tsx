@@ -63,7 +63,7 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
       rows={2}
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
-      className="w-full resize-none overflow-hidden border border-input bg-card px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+      className="w-full resize-none overflow-hidden rounded-md border border-input bg-card px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
     />
   );
 }
@@ -132,7 +132,7 @@ export function SectionEditor({
     );
 
   const adder = (label: string, onClick: () => void) => (
-    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
+    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
       <Plus className="size-3" />
       {label}
     </button>
@@ -141,7 +141,7 @@ export function SectionEditor({
   const block = (key: BlockKey, title: string, summary: string, body: React.ReactNode) => {
     const st = BLOCK_STYLE[key];
     return (
-      <section key={key} className={cn("border", st.rule, st.body)}>
+      <section key={key} className={cn("rounded-lg overflow-hidden border", st.rule, st.body)}>
         <button type="button" aria-expanded={open[key]} onClick={() => onToggle(key)} className={cn("flex w-full items-center justify-between gap-3 px-3 py-2 text-left", st.head)}>
           <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em] uppercase">
             <ChevronRight className={cn("size-3.5 transition-transform", open[key] && "rotate-90")} />

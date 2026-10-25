@@ -76,7 +76,7 @@ export function IssuesView({
       {shown.length === 0 ? (
         <EmptyBox>{issues.length === 0 ? ta("issues_empty") : ta("no_results")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto border border-ink-900/8 bg-card">
+        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
           <table className="w-full min-w-[620px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

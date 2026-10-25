@@ -60,7 +60,7 @@ export function LineRow({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border border-ink-900/8 bg-card px-2 pt-1.5 pb-2">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-ink-900/8 bg-card px-2 pt-1.5 pb-2">
       <div className="flex basis-full items-center gap-2 text-[11px] tracking-[0.03em] text-muted-foreground">
         <span>{tt(`cat_${line.category}`)}</span>
         {cornerMode && ON_WALL.includes(line.shape) && (
@@ -95,13 +95,13 @@ export function LineRow({
             onChange={(e) => onChange({ name: e.currentTarget.value })}
             placeholder={tt("line_free_ph")}
             aria-label={tt("line_free_ph")}
-            className="h-7 min-w-0 flex-1 border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring"
+            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring"
           />
           <select
             value={line.unit}
             aria-label={tt("line_unit")}
             onChange={(e) => onChange({ unit: e.currentTarget.value as Unit, mode: "dir" })}
-            className="h-7 border border-input bg-card px-1 text-[13px] outline-none focus-visible:border-ring"
+            className="h-7 rounded-md border border-input bg-card px-1 text-[13px] outline-none focus-visible:border-ring"
           >
             {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
               <option key={u} value={u}>
@@ -118,7 +118,7 @@ export function LineRow({
             const next = options.find((o) => o.id === e.currentTarget.value);
             if (next) onSwap(next);
           }}
-          className="h-7 min-w-0 flex-[1_1_150px] border border-input bg-card px-1.5 text-[13px] outline-none focus-visible:border-ring"
+          className="h-7 min-w-0 flex-[1_1_150px] rounded-md border border-input bg-card px-1.5 text-[13px] outline-none focus-visible:border-ring"
         >
           {!catalogItem && <option value="">{line.name}</option>}
           {byFinish.length > 1

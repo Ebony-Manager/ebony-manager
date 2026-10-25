@@ -105,7 +105,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
       </ListToolbar>
 
       {quotes.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 border border-dashed border-ink-900/16 px-6 py-14 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-ink-900/16 px-6 py-14 text-center">
           <div className="flex size-14 items-center justify-center bg-cream-100">
             <FileText className="size-6 text-walnut" />
           </div>
@@ -119,9 +119,9 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
           </Button>
         </div>
       ) : shown.length === 0 ? (
-        <div className="border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{tt("no_results")}</div>
+        <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{tt("no_results")}</div>
       ) : (
-        <ul className="flex flex-col border border-ink-900/8 bg-card">
+        <ul className="flex flex-col rounded-lg overflow-hidden border border-ink-900/8 bg-card">
           {shown.map((q) => (
             <li key={q.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-ink-900/8 px-3.5 py-2.5 last:border-0 hover:bg-muted/30">
               <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-[1_1_260px] flex-col">
@@ -132,7 +132,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               </Link>
               <span className="w-16 text-xs text-ink-700 tabular-nums">{q.number ? `Nº ${q.number}` : "—"}</span>
               <span className="w-24 text-xs text-ink-700">{date(q.quoteDate)}</span>
-              <span className={cn("px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+              <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
               <span className="ml-auto w-28 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
               <span className="flex items-center">
                 <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === q.id} onClick={() => onDuplicate(q.id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">

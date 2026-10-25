@@ -134,7 +134,7 @@ export function MonthlyPayrollChart({ composition, year }: { composition: MonthC
 
           {hovered && hover !== null && (
             <div
-              className="pointer-events-none absolute top-2 z-10 w-64 border border-border bg-popover p-4 shadow-md"
+              className="pointer-events-none absolute top-2 z-10 w-64 rounded-lg border border-border bg-popover p-4 shadow-md"
               style={hover < 6 ? { left: `${((hover + 1) / 12) * 100}%` } : { right: `${((12 - hover) / 12) * 100}%` }}
             >
               <p className="text-base font-semibold text-foreground">

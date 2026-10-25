@@ -114,7 +114,7 @@ export function IssueShop({
       </section>
 
       {/* Computadora: la salida al lado, fija. */}
-      <aside className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto border border-ink-900/8 bg-card p-4 lg:block">{panel}</aside>
+      <aside className="sticky top-4 hidden max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-ink-900/8 bg-card p-4 lg:block">{panel}</aside>
 
       {/* Celular: barra abajo que abre la salida. */}
       {count > 0 && (
@@ -193,7 +193,7 @@ function ProductCard({
   // Tarjeta: foto, nombre y existencia arriba; menús de variante en el medio;
   // cantidad y "Agregar" siempre al pie, alineados en toda la fila.
   return (
-    <li className={`flex flex-col border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-ink-900/8"}`}>
+    <li className={`flex flex-col rounded-lg overflow-hidden border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-ink-900/8"}`}>
       <div className="flex h-28 items-center justify-center border-b border-ink-900/8 bg-white p-2 sm:h-36">
         <ItemThumb path={item.photoPath} size="fill" className="size-full border-0" />
       </div>
@@ -234,7 +234,7 @@ function ProductCard({
               type="button"
               aria-label="-"
               onClick={() => bump(-1)}
-              className="flex size-9 shrink-0 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
+              className="flex size-9 shrink-0 items-center justify-center rounded-l-md border border-input bg-card text-muted-foreground hover:text-foreground"
             >
               <Minus className="size-3.5" />
             </button>
@@ -250,7 +250,7 @@ function ProductCard({
               type="button"
               aria-label="+"
               onClick={() => bump(1)}
-              className="flex size-9 shrink-0 items-center justify-center border border-input bg-card text-muted-foreground hover:text-foreground"
+              className="flex size-9 shrink-0 items-center justify-center rounded-r-md border border-input bg-card text-muted-foreground hover:text-foreground"
             >
               <Plus className="size-3.5" />
             </button>
@@ -366,7 +366,7 @@ function CartPanel({
       </div>
 
       {cart.length === 0 ? (
-        <p className="border border-dashed border-ink-900/16 px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
+        <p className="rounded-lg border border-dashed border-ink-900/16 px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {cart.map((l) => {
@@ -390,7 +390,7 @@ function CartPanel({
                     setCart((c) => c.map((x) => (x.variantId === l.variantId ? { ...x, qty: n } : x)));
                   }}
                   aria-label={ta("qty")}
-                  className="h-8 w-16 border border-input bg-card px-2 text-right text-sm tabular-nums outline-none focus-visible:border-ring"
+                  className="h-8 w-16 rounded-md border border-input bg-card px-2 text-right text-sm tabular-nums outline-none focus-visible:border-ring"
                 />
                 <button
                   type="button"

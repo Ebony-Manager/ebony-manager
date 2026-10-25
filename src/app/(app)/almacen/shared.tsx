@@ -43,7 +43,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 }
 
 export function EmptyBox({ children }: { children: React.ReactNode }) {
-  return <div className="border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{children}</div>;
+  return <div className="rounded-lg border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
@@ -63,7 +63,7 @@ export function ItemThumb({ path, size = 40, className }: { path: string | null;
   const url = inventoryPhotoUrl(path);
   return (
     <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-ink-900/8 bg-white ${className ?? ""}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink-900/8 bg-white ${className ?? ""}`}
       style={size === "fill" ? undefined : { width: size, height: size }}
     >
       {url ? (

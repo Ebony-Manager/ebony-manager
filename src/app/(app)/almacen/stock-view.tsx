@@ -80,7 +80,7 @@ export function StockView({
       />
 
       {canCosts && items.length > 0 && (
-        <div className="flex flex-col gap-0.5 self-start border border-ink-900/8 bg-card px-4 py-3">
+        <div className="flex flex-col gap-0.5 self-start rounded-lg border border-ink-900/8 bg-card px-4 py-3">
           <span className="text-xs text-muted-foreground">{ta("inventory_value")}</span>
           <span className="text-lg font-semibold tabular-nums">{formatCents(Math.round(totalValueCents))}</span>
           <span className="text-xs text-muted-foreground">{ta("value_note")}</span>
@@ -126,7 +126,7 @@ export function StockView({
                 <button
                   type="button"
                   onClick={() => setEditing(item)}
-                  className="flex w-full items-start gap-3 border border-ink-900/8 bg-card px-3.5 py-3 text-left"
+                  className="flex w-full items-start gap-3 rounded-lg border border-ink-900/8 bg-card px-3.5 py-3 text-left"
                 >
                   <ItemThumb path={item.photoPath} size={48} />
                   <span className="min-w-0 flex-1">
@@ -144,7 +144,7 @@ export function StockView({
               </li>
             ))}
           </ul>
-          <div className="hidden overflow-x-auto border border-ink-900/8 bg-card sm:block">
+          <div className="hidden overflow-x-auto rounded-lg border border-ink-900/8 bg-card sm:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

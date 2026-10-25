@@ -65,7 +65,7 @@ export function SuppliersView({ suppliers, canEdit }: { suppliers: Supplier[]; c
       {shown.length === 0 ? (
         <EmptyBox>{suppliers.length === 0 ? ta("suppliers_empty") : ta("no_results")}</EmptyBox>
       ) : (
-        <div className="overflow-x-auto border border-ink-900/8 bg-card">
+        <div className="overflow-x-auto rounded-lg border border-ink-900/8 bg-card">
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">

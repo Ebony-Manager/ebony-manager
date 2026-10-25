@@ -274,9 +274,9 @@ export function CostosClient({
                             {diff === null ? (
                               <span className="text-xs text-muted-foreground">{tt("cost_no_recipe")}</span>
                             ) : Math.abs(diff) < 0.01 ? (
-                              <span className="bg-[color-mix(in_srgb,var(--status-ok)_16%,white)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--status-ok)]">{tt("cost_match")}</span>
+                              <span className="rounded-md bg-[color-mix(in_srgb,var(--status-ok)_16%,white)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--status-ok)]">{tt("cost_match")}</span>
                             ) : (
-                              <span className="bg-[color-mix(in_srgb,var(--status-error)_13%,white)] px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[var(--status-error)] tabular-nums">
+                              <span className="rounded-md bg-[color-mix(in_srgb,var(--status-error)_13%,white)] px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[var(--status-error)] tabular-nums">
                                 {diff > 0 ? "+" : "−"}
                                 {formatMoney(Math.abs(diff))}
                               </span>

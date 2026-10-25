@@ -241,7 +241,7 @@ export function AttendanceImportDialog({
           <DialogDescription>{tt("att_desc")}</DialogDescription>
         </DialogHeader>
 
-        <details className="border border-border">
+        <details className="rounded-lg overflow-hidden border border-border">
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-foreground">
             {tt("att_ot_title")} ({overtime.length})
           </summary>
@@ -293,12 +293,12 @@ export function AttendanceImportDialog({
         ) : (
           <>
             {unmatched.length > 0 && (
-              <p className="border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 {tt("att_unmatched")}: <span className="font-medium text-foreground">{unmatched.join(", ")}</span>
               </p>
             )}
 
-            <div className="overflow-x-auto border border-border">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[980px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
