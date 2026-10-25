@@ -72,6 +72,14 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
     }
   }
 
+  const actions = (id: string) => (
+    <>
+      <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === id} onClick={() => onDuplicate(id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">
+        <Copy className="size-3.5" />
+      </button>
+      <ConfirmButton iconOnly icon={Trash2} label={tt("delete")} confirmLabel={tt("delete_confirm")} onConfirm={() => onDelete(id)} className="p-1.5" />
+    </>
+  );
   const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
@@ -122,23 +130,42 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
       ) : (
         <ul className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           {shown.map((q) => (
-            <li key={q.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-3.5 py-2.5 last:border-0 hover:bg-muted/30">
-              <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-[1_1_260px] flex-col">
-                <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {[q.projectName, q.designerName].filter(Boolean).join(" · ") || tt("no_project")}
+            <li key={q.id} className="border-b border-border px-3.5 py-2.5 last:border-0 hover:bg-muted/30">
+              {/* Celular: cliente y total arriba; fecha, número, estado y acciones abajo. */}
+              <div className="flex flex-col gap-1.5 sm:hidden">
+                <div className="flex items-start gap-3">
+                  <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {[q.projectName, q.designerName].filter(Boolean).join(" · ") || tt("no_project")}
+                    </span>
+                  </Link>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
+                </div>
+                <div className="flex min-w-0 items-center gap-2 text-xs text-ink-700">
+                  <span className="shrink-0">{date(q.quoteDate)}</span>
+                  {q.number && <span className="min-w-0 truncate tabular-nums">· Nº {q.number}</span>}
+                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                  <span className="ml-auto flex shrink-0 items-center">{actions(q.id)}</span>
+                </div>
+              </div>
+              {/* Computadora: todo en una fila. */}
+              <div className="hidden items-center gap-x-4 sm:flex">
+                <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {[q.projectName, q.designerName].filter(Boolean).join(" · ") || tt("no_project")}
+                  </span>
+                </Link>
+                <span className="w-24 shrink-0 truncate text-xs text-ink-700 tabular-nums" title={q.number ?? undefined}>
+                  {q.number ? `Nº ${q.number}` : "—"}
                 </span>
-              </Link>
-              <span className="w-16 text-xs text-ink-700 tabular-nums">{q.number ? `Nº ${q.number}` : "—"}</span>
-              <span className="w-24 text-xs text-ink-700">{date(q.quoteDate)}</span>
-              <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
-              <span className="ml-auto w-28 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
-              <span className="flex items-center">
-                <button type="button" title={tt("duplicate")} aria-label={tt("duplicate")} disabled={busy === q.id} onClick={() => onDuplicate(q.id)} className="p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40">
-                  <Copy className="size-3.5" />
-                </button>
-                <ConfirmButton iconOnly icon={Trash2} label={tt("delete")} confirmLabel={tt("delete_confirm")} onConfirm={() => onDelete(q.id)} className="p-1.5" />
-              </span>
+                <span className="w-24 shrink-0 text-xs text-ink-700">{date(q.quoteDate)}</span>
+                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
+                {/* Ancho fijo: al pedir confirmación el botón crece sin mover la fila. */}
+                <span className="flex w-28 shrink-0 items-center justify-end">{actions(q.id)}</span>
+              </div>
             </li>
           ))}
         </ul>
