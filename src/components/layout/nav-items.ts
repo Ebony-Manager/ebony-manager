@@ -14,7 +14,7 @@ import {
   Boxes,
   PackageMinus,
   ShoppingCart,
-  Truck,
+  BookUser,
   Bell,
   type LucideIcon,
 } from "lucide-react";
@@ -54,6 +54,8 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 export const RAIL_ITEMS: NavItem[] = [
   { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
+  // Directorio de proveedores (materiales y servicios): de la empresa, no solo del Almacén.
+  { href: "/directorio", icon: BookUser, label: strings.nav.directorio, anyModules: ["almacen", "directorio"] },
   { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
   { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
@@ -87,7 +89,7 @@ export const PERSONAL_PANEL: NavPanel = {
   ],
 };
 
-// Almacén — inventario (con sus movimientos y ajustes), salidas, compras y proveedores. Compras
+// Almacén — inventario (con sus movimientos y ajustes), salidas y compras (los proveedores viven en el Directorio). Compras
 // lo ve cualquiera (para pedir lo que haga falta; quien no tiene Compras ve
 // solo sus solicitudes), así que todos ven el ícono.
 export const ALMACEN_PANEL: NavPanel = {
@@ -98,7 +100,6 @@ export const ALMACEN_PANEL: NavPanel = {
     { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
-    { href: "/almacen/proveedores", icon: Truck, label: strings.nav.proveedores, modules: ["almacen"] },
   ],
 };
 

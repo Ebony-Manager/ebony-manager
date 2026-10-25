@@ -24,6 +24,7 @@ export const APP_MODULES = [
   "almacen_compras",
   "almacen_costos",
   "almacen_ajustes",
+  "directorio",
 ] as const;
 
 export type AppModule = (typeof APP_MODULES)[number];

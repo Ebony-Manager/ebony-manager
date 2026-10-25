@@ -2565,6 +2565,8 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rubros: string[]
+          specialty: string | null
           updated_at: string
           whatsapp: string | null
         }
@@ -2579,6 +2581,8 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rubros?: string[]
+          specialty?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
@@ -2593,6 +2597,8 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rubros?: string[]
+          specialty?: string | null
           updated_at?: string
           whatsapp?: string | null
         }

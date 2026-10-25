@@ -19,6 +19,7 @@ import type {
   RequestStatus,
   Supplier,
   SupplierKind,
+  SupplierRubro,
 } from "@/types/almacen";
 
 /**
@@ -50,6 +51,8 @@ function mapSupplier(r: SupplierRow): Supplier {
     id: r.id,
     name: r.name,
     kind: r.kind as SupplierKind,
+    rubros: (r.rubros ?? []) as SupplierRubro[],
+    specialty: r.specialty,
     contactName: r.contact_name,
     phone: r.phone,
     whatsapp: r.whatsapp,
@@ -74,6 +77,8 @@ function supplierRow(input: SupplierInput) {
   return {
     name: input.name.trim(),
     kind: input.kind,
+    rubros: input.rubros,
+    specialty: clean(input.specialty),
     contact_name: clean(input.contactName),
     phone: clean(input.phone),
     whatsapp: clean(input.whatsapp),

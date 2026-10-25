@@ -27,10 +27,32 @@ export type OrderStatus = "pedido" | "parcial" | "recibido" | "cancelado";
 export type AdjustmentReason = "inicial" | "conteo" | "dano" | "perdida" | "correccion";
 export const ADJUSTMENT_REASONS: AdjustmentReason[] = ["conteo", "inicial", "dano", "perdida", "correccion"];
 
+/** Rubros del Directorio (lista fija; la base la valida igual). */
+export type SupplierRubro =
+  | "ferreteria"
+  | "herrajes"
+  | "madera_laminas"
+  | "iluminacion"
+  | "pintura"
+  | "tecnico_maquinaria"
+  | "mecanico"
+  | "transporte"
+  | "mantenimiento"
+  | "subcontrato";
+export const SUPPLIER_RUBROS: Record<SupplierKind, SupplierRubro[]> = {
+  materiales: ["ferreteria", "herrajes", "madera_laminas", "iluminacion", "pintura"],
+  servicio: ["tecnico_maquinaria", "mecanico", "transporte", "mantenimiento", "subcontrato"],
+};
+export const ALL_SUPPLIER_RUBROS: SupplierRubro[] = [...SUPPLIER_RUBROS.materiales, ...SUPPLIER_RUBROS.servicio];
+
 export interface Supplier {
   id: string;
   name: string;
   kind: SupplierKind;
+  /** Uno o varios; el primero es el principal (agrupa la lista). */
+  rubros: SupplierRubro[];
+  /** Texto libre: de qué es técnico, qué marca maneja… */
+  specialty: string | null;
   contactName: string | null;
   phone: string | null;
   whatsapp: string | null;

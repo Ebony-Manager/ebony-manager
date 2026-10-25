@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireModule, requireProfile } from "@/lib/auth/dal";
+import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal";
 import * as almacen from "@/services/almacen";
 import type { AdjustmentReason, RequestStatus } from "@/types/almacen";
 
@@ -25,12 +25,12 @@ async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
 // ── Proveedores (Compras) ───────────────────────────────────────────────
 
 export async function createSupplierAction(input: almacen.SupplierInput) {
-  await requireModule("almacen", "almacen_compras");
+  await requireAnyModule("almacen_compras", "directorio");
   return run(() => almacen.createSupplier(input));
 }
 
 export async function updateSupplierAction(id: string, input: almacen.SupplierInput) {
-  await requireModule("almacen", "almacen_compras");
+  await requireAnyModule("almacen_compras", "directorio");
   return run(() => almacen.updateSupplier(id, input));
 }
 
