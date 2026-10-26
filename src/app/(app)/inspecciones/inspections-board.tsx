@@ -3,12 +3,13 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 import type { Inspection, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -127,65 +128,8 @@ export function InspectionsBoard({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Agrupar + estado */}
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedFilter
-          value={groupBy}
-          onChange={setGroupBy}
-          options={[
-            { value: "visita", label: ti("view_by_visit") },
-            { value: "area", label: ti("group_area") },
-            { value: "junto", label: ti("view_all") },
-          ]}
-        />
-        <SegmentedFilter
-          value={filters.onlyPending ? "p" : "t"}
-          onChange={(v) => setFilter({ onlyPending: v === "p" })}
-          options={[
-            { value: "p", label: `${ti("show_pending")} (${counts.pending})` },
-            { value: "t", label: `${ti("show_all")} (${counts.pending + counts.resolved})` },
-          ]}
-        />
-      </div>
-
-      {/* Filtros: tipo, pintor, responsable */}
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterSelect
-          value={filters.kind}
-          onChange={(kind) => setFilter({ kind: kind as ItemFilters["kind"], painterId: kind === "pintura" || kind === "todos" ? filters.painterId : "todos" })}
-          options={[
-            { value: "todos", label: ti("all_kinds") },
-            { value: "pintura", label: ti("kind_pintura") },
-            { value: "carpinteria", label: ti("kind_carpinteria") },
-            { value: "otro", label: ti("kind_otro") },
-            { value: "sin", label: ti("kind_sin") },
-          ]}
-        />
-        {painters.length > 0 && (filters.kind === "todos" || filters.kind === "pintura") && (
-          <FilterSelect
-            value={filters.painterId}
-            onChange={(painterId) => setFilter({ painterId })}
-            options={[{ value: "todos", label: ti("all_painters") }, ...painters.map((p) => ({ value: p.id, label: p.name }))]}
-          />
-        )}
-        <FilterSelect
-          value={filters.responsible}
-          onChange={(responsible) => setFilter({ responsible: responsible as ItemFilters["responsible"] })}
-          options={[
-            { value: "todos", label: ti("all_responsible") },
-            { value: "ebony", label: ti("resp_ebony") },
-            { value: "tercero", label: ti("resp_tercero") },
-          ]}
-        />
-        {hasExtraFilters(filters) && (
-          <button type="button" onClick={() => setFilters((f) => ({ ...DEFAULT_FILTERS, onlyPending: f.onlyPending }))} className="text-xs font-medium text-primary hover:underline">
-            {ti("clear_filters")}
-          </button>
-        )}
-      </div>
-
-      {/* Acciones (o la barra de selección) */}
+    <div className="flex flex-col gap-3 pb-16 sm:pb-0">
+      {/* Una sola fila: cómo agrupar y, a la derecha, filtros, seleccionar, PDF (y en computadora, Nueva visita). */}
       {selected ? (
         <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-card px-3 py-2 shadow-sm">
           <span className="text-sm font-semibold">{ti("selected_n", { n: selected.size })}</span>
@@ -206,20 +150,43 @@ export function InspectionsBoard({
           </div>
         </div>
       ) : (
-        <div className="flex w-full items-center gap-2 sm:justify-end">
-          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => setSelected(new Set())} disabled={shownIds.length === 0}>
-            <CheckSquare className="size-4" />
-            {ti("select")}
-          </Button>
-          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => openPdf()} disabled={shownIds.length === 0}>
-            <FileDown className="size-4" />
-            {ti("pdf")}
-          </Button>
-          <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setVisitDialog({ visit: null })}>
-            <Plus className="size-4" />
-            {ti("new_visit")}
-          </Button>
+        <div className="flex items-center gap-2">
+          <SegmentedFilter
+            className="min-w-0"
+            value={groupBy}
+            onChange={setGroupBy}
+            options={[
+              { value: "visita", label: ti("g_visit_short") },
+              { value: "area", label: ti("g_area_short") },
+              { value: "junto", label: ti("g_all_short") },
+            ]}
+          />
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <FiltersButton filters={filters} counts={counts} painters={painters} onChange={setFilter} onClear={() => setFilters(DEFAULT_FILTERS)} />
+            <IconAction label={ti("select")} icon={CheckSquare} disabled={shownIds.length === 0} onClick={() => setSelected(new Set())} />
+            <IconAction label={ti("pdf")} icon={FileDown} disabled={shownIds.length === 0} onClick={() => openPdf()} />
+            <Button size="sm" className="hidden sm:inline-flex" onClick={() => setVisitDialog({ visit: null })}>
+              <Plus className="size-4" />
+              {ti("new_visit")}
+            </Button>
+          </div>
         </div>
+      )}
+
+      {/* Solo lo que cambia lo que se ve: chips que se quitan con un toque. */}
+      <ActiveFilters filters={filters} painterName={painterName} onChange={setFilter} />
+
+      {/* Celular: Nueva visita como botón flotante, sobre la barra de abajo. */}
+      {!selected && (
+        <Button
+          size="icon"
+          onClick={() => setVisitDialog({ visit: null })}
+          aria-label={ti("new_visit")}
+          title={ti("new_visit")}
+          className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg sm:hidden"
+        >
+          <Plus className="size-6" />
+        </Button>
       )}
 
       {inspections.length === 0 ? (
@@ -352,21 +319,162 @@ export function InspectionsBoard({
   );
 }
 
-/** Un filtro compacto (desplegable). */
-function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+/** Botón de solo ícono (con su nombre para lectores de pantalla y al pasar el mouse). */
+function IconAction({ label, icon: Icon, onClick, disabled }: { label: string; icon: typeof FileDown; onClick: () => void; disabled?: boolean }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("h-8 w-auto min-w-0 gap-1.5 text-xs", value !== "todos" && "border-primary/60 bg-primary/5 font-semibold")}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Button size="icon" variant="outline" className="size-9" onClick={onClick} disabled={disabled} aria-label={label} title={label}>
+      <Icon className="size-4" />
+    </Button>
+  );
+}
+
+/** Pastillas de a una (estado, tipo, responsable) dentro del panel de filtros. */
+function Pills<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+            value === o.value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** El embudo: estado, tipo, pintor y responsable en un panel; el puntito dice cuántos hay puestos. */
+function FiltersButton({
+  filters,
+  counts,
+  painters,
+  onChange,
+  onClear,
+}: {
+  filters: ItemFilters;
+  counts: { pending: number; resolved: number };
+  painters: InspectionPainter[];
+  onChange: (patch: Partial<ItemFilters>) => void;
+  onClear: () => void;
+}) {
+  const { ti } = useTi();
+  const active = activeFilterCount(filters);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="icon" variant="outline" className={cn("relative size-9", active > 0 && "border-primary/60 bg-primary/5 text-primary")} aria-label={ti("filters")} title={ti("filters")}>
+          <SlidersHorizontal className="size-4" />
+          {active > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">{active}</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="flex w-72 flex-col gap-3 p-3">
+        <FilterBlock label={ti("f_status")}>
+          <Pills
+            value={filters.onlyPending ? "p" : "t"}
+            onChange={(v) => onChange({ onlyPending: v === "p" })}
+            options={[
+              { value: "p", label: `${ti("show_pending")} (${counts.pending})` },
+              { value: "t", label: `${ti("show_all")} (${counts.pending + counts.resolved})` },
+            ]}
+          />
+        </FilterBlock>
+        <FilterBlock label={ti("f_kind")}>
+          <Pills
+            value={filters.kind}
+            onChange={(kind) => onChange({ kind, painterId: kind === "pintura" || kind === "todos" ? filters.painterId : "todos" })}
+            options={[
+              { value: "todos", label: ti("all_short") },
+              { value: "pintura", label: ti("kind_pintura") },
+              { value: "carpinteria", label: ti("kind_carpinteria") },
+              { value: "otro", label: ti("kind_otro") },
+              { value: "sin", label: ti("kind_sin") },
+            ]}
+          />
+        </FilterBlock>
+        {painters.length > 0 && (filters.kind === "todos" || filters.kind === "pintura") && (
+          <FilterBlock label={ti("f_painter")}>
+            <Select value={filters.painterId} onValueChange={(painterId) => onChange({ painterId })}>
+              <SelectTrigger className="h-8 w-full text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">{ti("all_painters")}</SelectItem>
+                {painters.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBlock>
+        )}
+        <FilterBlock label={ti("f_responsible")}>
+          <Pills
+            value={filters.responsible}
+            onChange={(responsible) => onChange({ responsible })}
+            options={[
+              { value: "todos", label: ti("all_short") },
+              { value: "ebony", label: ti("resp_ebony") },
+              { value: "tercero", label: ti("resp_tercero") },
+            ]}
+          />
+        </FilterBlock>
+        {active > 0 && (
+          <button type="button" onClick={onClear} className="self-start text-xs font-medium text-primary hover:underline">
+            {ti("clear_filters")}
+          </button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Cuántos filtros cambian lo que se ve (Pendientes es lo normal: no cuenta). */
+function activeFilterCount(f: ItemFilters): number {
+  return (f.onlyPending ? 0 : 1) + (f.kind !== "todos" ? 1 : 0) + (f.painterId !== "todos" ? 1 : 0) + (f.responsible !== "todos" ? 1 : 0);
+}
+
+/** Los filtros puestos, como chips que se quitan con la X. */
+function ActiveFilters({ filters, painterName, onChange }: { filters: ItemFilters; painterName: (id: string) => string; onChange: (patch: Partial<ItemFilters>) => void }) {
+  const { ti } = useTi();
+  const chips: { key: string; label: string; clear: Partial<ItemFilters> }[] = [];
+  if (!filters.onlyPending) chips.push({ key: "status", label: ti("status_all"), clear: { onlyPending: true } });
+  if (filters.kind !== "todos") chips.push({ key: "kind", label: filters.kind === "sin" ? ti("kind_sin") : ti(KIND_KEY[filters.kind]), clear: { kind: "todos" } });
+  if (filters.painterId !== "todos") chips.push({ key: "painter", label: painterName(filters.painterId), clear: { painterId: "todos" } });
+  if (filters.responsible !== "todos") chips.push({ key: "resp", label: ti(filters.responsible === "ebony" ? "resp_ebony" : "resp_tercero"), clear: { responsible: "todos" } });
+  if (chips.length === 0) return null;
+  return (
+    <div className="-mt-1 flex flex-wrap gap-1.5">
+      {chips.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={() => onChange(c.clear)}
+          className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/5 py-0.5 pr-1.5 pl-2.5 text-xs font-medium text-foreground"
+        >
+          {c.label}
+          <X className="size-3 text-muted-foreground" />
+        </button>
+      ))}
+    </div>
   );
 }
 
