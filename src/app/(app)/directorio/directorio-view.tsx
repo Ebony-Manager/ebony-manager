@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Mail, MapPin, Phone, Plus } from "lucide-react";
+import { Mail, MapPin, Plus, X } from "lucide-react";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
-import { ALL_SUPPLIER_RUBROS, SUPPLIER_RUBROS, type Supplier, type SupplierKind, type SupplierRubro } from "@/types/almacen";
+import { ALL_SUPPLIER_RUBROS, SUPPLIER_RUBROS, type Supplier, type SupplierContact, type SupplierKind, type SupplierRubro } from "@/types/almacen";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,10 +139,13 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
 /** Una tarjeta del directorio: nombre, rubros, especialidad y contacto. */
 function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () => void }) {
   const { ta } = useTa();
-  const wa = whatsappUrl(s.whatsapp, "");
+  // Los contactos con WhatsApp: uno → directo; varios → menú para elegir a quién.
+  const reachable = s.contacts.filter((c) => whatsappUrl(c.whatsapp, ""));
   const maps = mapsUrl(s.address);
-  const tel = s.phone ? `tel:${s.phone.replace(/[^\d+]/g, "")}` : null;
-  const contact = [s.contactName, s.phone].filter(Boolean).join(" · ");
+  const contact = s.contacts
+    .filter((c) => c.name || c.role)
+    .map((c) => (c.name && c.role ? `${c.name} (${c.role})` : c.name || c.role))
+    .join(" · ");
   const iconLink = "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground";
   return (
     <li className={cn("flex items-center gap-3 px-3.5 py-3 active:bg-muted/40", !s.active && "opacity-60")}>
@@ -163,15 +167,32 @@ function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () =
         {contact && <span className="truncate text-xs text-muted-foreground">{contact}</span>}
       </button>
       <span className="flex shrink-0 items-center">
-        {wa && (
-          <a href={wa} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_whatsapp")} aria-label={ta("open_whatsapp")}>
+        {reachable.length === 1 && (
+          <a href={whatsappUrl(reachable[0].whatsapp, "")!} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_whatsapp")} aria-label={ta("open_whatsapp")}>
             <WhatsAppIcon brand className="size-[18px]" />
           </a>
         )}
-        {tel && (
-          <a href={tel} className={iconLink} title={s.phone ?? undefined} aria-label={ta("f_phone")}>
-            <Phone className="size-4" />
-          </a>
+        {reachable.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={iconLink} title={ta("open_whatsapp")} aria-label={ta("open_whatsapp")}>
+                <WhatsAppIcon brand className="size-[18px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {reachable.map((c, i) => (
+                <DropdownMenuItem key={i} asChild>
+                  <a href={whatsappUrl(c.whatsapp, "")!} target="_blank" rel="noreferrer">
+                    <WhatsAppIcon brand className="size-4" />
+                    <span>
+                      <span className="block font-medium">{c.name || c.whatsapp}</span>
+                      {c.role && <span className="block text-xs text-muted-foreground">{c.role}</span>}
+                    </span>
+                  </a>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         {maps && (
           <a href={maps} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_maps")} aria-label={ta("open_maps")}>
@@ -195,6 +216,8 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
     name: "",
     rubros: [] as SupplierRubro[],
     specialty: "",
+    contacts: [] as SupplierContact[],
+    // Teléfono y contacto viejos: no se editan (casi todo es WhatsApp); se conservan.
     contactName: "",
     whatsapp: "",
     phone: "",
@@ -213,6 +236,7 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
       name: current?.name ?? "",
       rubros: current?.rubros ?? [],
       specialty: current?.specialty ?? "",
+      contacts: current?.contacts.length ? current.contacts : [{ name: "", role: "", whatsapp: "" }],
       contactName: current?.contactName ?? "",
       whatsapp: current?.whatsapp ?? "",
       phone: current?.phone ?? "",
@@ -226,6 +250,8 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const setContact = (i: number, patch: Partial<SupplierContact>) =>
+    setForm((f) => ({ ...f, contacts: f.contacts.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
   const toggleRubro = (r: SupplierRubro) =>
     setForm((f) => ({ ...f, rubros: f.rubros.includes(r) ? f.rubros.filter((x) => x !== r) : [...f.rubros, r] }));
   const readOnly = !canEdit;
@@ -287,17 +313,48 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
             <Field label={ta("f_specialty")}>
               <Input value={form.specialty} onChange={(e) => set("specialty", e.target.value)} placeholder={ta("f_specialty_ph")} />
             </Field>
-            <Field label={ta("f_contact")}>
-              <Input value={form.contactName} onChange={(e) => set("contactName", e.target.value)} placeholder={ta("optional")} />
+            <Field label={ta("f_contacts")} hint={ta("f_contacts_hint")}>
+              <div className="flex flex-col gap-2">
+                {form.contacts.map((c, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr_28px] items-center gap-2 rounded-lg border border-border p-2 sm:grid-cols-[1fr_1fr_1fr_28px]">
+                    <Input className="h-9" value={c.name} onChange={(e) => setContact(i, { name: e.target.value })} placeholder={ta("c_name")} aria-label={ta("c_name")} />
+                    <Input className="h-9" value={c.role} onChange={(e) => setContact(i, { role: e.target.value })} placeholder={ta("c_role")} aria-label={ta("c_role")} />
+                    <Input
+                      className="col-span-2 h-9 sm:col-span-1"
+                      inputMode="tel"
+                      value={c.whatsapp}
+                      onChange={(e) => setContact(i, { whatsapp: e.target.value })}
+                      placeholder={`${ta("f_whatsapp")} 6000-0000`}
+                      aria-label={ta("f_whatsapp")}
+                    />
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        title={ta("remove_contact")}
+                        aria-label={ta("remove_contact")}
+                        onClick={() => setForm((f) => ({ ...f, contacts: f.contacts.filter((_, j) => j !== i) }))}
+                        className="row-start-1 flex size-7 items-center justify-center text-muted-foreground hover:text-destructive sm:row-start-auto"
+                        style={{ gridColumn: "-2 / -1" }}
+                      >
+                        <X className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => setForm((f) => ({ ...f, contacts: [...f.contacts, { name: "", role: "", whatsapp: "" }] }))}
+                  >
+                    <Plus className="size-3.5" />
+                    {ta("add_contact")}
+                  </Button>
+                )}
+              </div>
             </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={ta("f_whatsapp")} hint={ta("f_whatsapp_hint")}>
-                <Input inputMode="tel" value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="6000-0000" />
-              </Field>
-              <Field label={ta("f_phone")}>
-                <Input inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder={ta("optional")} />
-              </Field>
-            </div>
             <Field label={ta("f_email")}>
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={ta("optional")} />
             </Field>

@@ -47,10 +47,42 @@ export function MapsButton({ supplier, className }: { supplier: Supplier | null 
 /** El mensaje del pedido para el proveedor: editable, por WhatsApp o copiado. */
 export function OrderMessageBox({ supplier, lines, notes }: { supplier: Supplier | null; lines: OrderMessageLine[]; notes?: string | null }) {
   const { ta } = useTa();
-  const [message, setMessage] = React.useState(() => orderMessage(supplier?.contactName ?? null, lines, notes));
-  const wa = whatsappUrl(supplier?.whatsapp, message);
+  // A quién: los contactos con WhatsApp (el principal primero); sin ninguno, el WhatsApp viejo del proveedor.
+  const people = (supplier?.contacts ?? []).filter((c) => whatsappUrl(c.whatsapp, ""));
+  const [who, setWho] = React.useState(0);
+  const person = people[who] ?? null;
+  const [message, setMessage] = React.useState(() => orderMessage(person?.name || supplier?.contactName || null, lines, notes));
+  const wa = whatsappUrl(person?.whatsapp ?? supplier?.whatsapp, message);
+
+  function pick(i: number) {
+    setWho(i);
+    // Cambia el saludo al nombre de esa persona.
+    setMessage(orderMessage(people[i]?.name || null, lines, notes));
+  }
+
   return (
     <div className="flex flex-col gap-2">
+      {people.length > 1 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">{ta("pick_contact")}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {people.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-pressed={i === who}
+                onClick={() => pick(i)}
+                className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                  i === who ? "border-primary bg-primary/10 font-semibold text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c.name || c.whatsapp}
+                {c.role ? ` · ${c.role}` : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <Textarea rows={8} value={message} onChange={(e) => setMessage(e.target.value)} className="text-sm" />
       <div className="flex flex-wrap items-center gap-2">
         {wa ? (

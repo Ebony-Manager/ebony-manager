@@ -48,6 +48,14 @@ export const SUPPLIER_RUBROS: Record<SupplierKind, SupplierRubro[]> = {
 };
 export const ALL_SUPPLIER_RUBROS: SupplierRubro[] = [...SUPPLIER_RUBROS.materiales, ...SUPPLIER_RUBROS.servicio];
 
+/** Una persona del proveedor (oficina, dueña, vendedora, gerente…); casi todo es por WhatsApp. */
+export interface SupplierContact {
+  name: string;
+  /** Cargo o de qué se encarga ("Oficina", "Dueña"…). */
+  role: string;
+  whatsapp: string;
+}
+
 export interface Supplier {
   id: string;
   name: string;
@@ -56,6 +64,8 @@ export interface Supplier {
   rubros: SupplierRubro[];
   /** Texto libre: de qué es técnico, qué marca maneja… */
   specialty: string | null;
+  /** Contactos; el primero es el principal (su nombre y WhatsApp se copian a `contactName` / `whatsapp`). */
+  contacts: SupplierContact[];
   contactName: string | null;
   phone: string | null;
   whatsapp: string | null;

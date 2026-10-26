@@ -2594,6 +2594,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          contacts: Json
           active: boolean
           address: string | null
           contact_name: string | null
@@ -2610,6 +2611,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          contacts?: Json
           active?: boolean
           address?: string | null
           contact_name?: string | null
@@ -2626,6 +2628,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          contacts?: Json
           active?: boolean
           address?: string | null
           contact_name?: string | null

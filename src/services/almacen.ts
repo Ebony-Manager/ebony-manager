@@ -19,6 +19,7 @@ import type {
   PurchaseRequest,
   RequestStatus,
   Supplier,
+  SupplierContact,
   SupplierKind,
   SupplierRubro,
 } from "@/types/almacen";
@@ -47,6 +48,13 @@ function fail(error: { message: string } | null): void {
 
 // ── Proveedores ─────────────────────────────────────────────────────────
 
+function parseContacts(raw: unknown): SupplierContact[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === "object")
+    .map((c) => ({ name: String(c.name ?? ""), role: String(c.role ?? ""), whatsapp: String(c.whatsapp ?? "") }));
+}
+
 function mapSupplier(r: SupplierRow): Supplier {
   return {
     id: r.id,
@@ -54,6 +62,7 @@ function mapSupplier(r: SupplierRow): Supplier {
     kind: r.kind as SupplierKind,
     rubros: (r.rubros ?? []) as SupplierRubro[],
     specialty: r.specialty,
+    contacts: parseContacts(r.contacts),
     contactName: r.contact_name,
     phone: r.phone,
     whatsapp: r.whatsapp,
@@ -75,14 +84,20 @@ export type SupplierInput = Omit<Supplier, "id">;
 
 function supplierRow(input: SupplierInput) {
   const clean = (s: string | null) => (s?.trim() ? s.trim() : null);
+  // Contactos sin nada se descartan; el primero manda en contact_name / whatsapp.
+  const contacts = input.contacts
+    .map((c) => ({ name: c.name.trim(), role: c.role.trim(), whatsapp: c.whatsapp.trim() }))
+    .filter((c) => c.name || c.whatsapp);
+  const main = contacts[0];
   return {
     name: input.name.trim(),
     kind: input.kind,
     rubros: input.rubros,
     specialty: clean(input.specialty),
-    contact_name: clean(input.contactName),
+    contacts,
+    contact_name: main ? clean(main.name) : null,
     phone: clean(input.phone),
-    whatsapp: clean(input.whatsapp),
+    whatsapp: main ? clean(main.whatsapp) : null,
     email: clean(input.email),
     address: clean(input.address),
     notes: clean(input.notes),
