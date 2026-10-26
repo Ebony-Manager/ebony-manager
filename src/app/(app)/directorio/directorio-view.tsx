@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Mail, Phone, Plus } from "lucide-react";
+import { Mail, MapPin, Phone, Plus } from "lucide-react";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
 import { ALL_SUPPLIER_RUBROS, SUPPLIER_RUBROS, type Supplier, type SupplierKind, type SupplierRubro } from "@/types/almacen";
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ListToolbar } from "@/components/shared/search-input";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { PAGE_CLASS, ShowToggle } from "@/components/shared/page-header";
-import { whatsappUrl } from "@/lib/almacen/inventory";
+import { mapsUrl, whatsappUrl } from "@/lib/almacen/inventory";
 import { cn } from "@/lib/utils";
 import { Field } from "../contratistas/field";
 import { createSupplierAction, updateSupplierAction } from "../almacen/actions";
@@ -139,6 +139,7 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
 function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () => void }) {
   const { ta } = useTa();
   const wa = whatsappUrl(s.whatsapp, "");
+  const maps = mapsUrl(s.address);
   const tel = s.phone ? `tel:${s.phone.replace(/[^\d+]/g, "")}` : null;
   const contact = [s.contactName, s.phone].filter(Boolean).join(" · ");
   const iconLink = "flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground";
@@ -170,6 +171,11 @@ function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () =
         {tel && (
           <a href={tel} className={iconLink} title={s.phone ?? undefined} aria-label={ta("f_phone")}>
             <Phone className="size-4" />
+          </a>
+        )}
+        {maps && (
+          <a href={maps} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_maps")} aria-label={ta("open_maps")}>
+            <MapPin className="size-4" />
           </a>
         )}
         {s.email && (
@@ -295,8 +301,8 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
             <Field label={ta("f_email")}>
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={ta("optional")} />
             </Field>
-            <Field label={ta("f_address")}>
-              <Input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={ta("optional")} />
+            <Field label={ta("f_location")} hint={ta("f_location_hint")}>
+              <Input inputMode="url" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={ta("f_location_ph")} />
             </Field>
             <Field label={ta("notes")}>
               <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />

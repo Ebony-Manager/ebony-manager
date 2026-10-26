@@ -17,7 +17,7 @@ import { StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { BuildOrderDialog } from "./build-order-dialog";
 import { OrderDialog } from "./order-dialog";
-import { DeliveryBadge, MarkOrderedButton, OrderMessageDialog } from "./order-message";
+import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import type { OrderMessageLine } from "@/lib/almacen/inventory";
 import { SectionHeader, SubTabs } from "@/components/shared/page-header";
@@ -447,16 +447,14 @@ function InTransit({
                 {ago(o.orderedOn)} · {formatDateCompact(lang, o.orderedOn)}
                 {o.createdByName ? ` · ${o.createdByName}` : ""}
               </p>
-              {/* Para el mensajero: dónde ir (del Directorio). */}
-              {o.delivery === "retiro" && supplierById.get(o.supplierId)?.address && (
-                <p className="text-xs text-muted-foreground">
-                  {ta("pickup_at")}: <span className="text-foreground">{supplierById.get(o.supplierId)?.address}</span>
-                </p>
-              )}
             </div>
-            <Button size="sm" variant={canWarehouse ? "default" : "outline"} onClick={() => onOpen(o.id)}>
-              {canWarehouse ? ta("receive") : ta("view_order")}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Para el mensajero: un toque y va a Google Maps (ubicación del Directorio). */}
+              {o.delivery === "retiro" && <MapsButton supplier={supplierById.get(o.supplierId)} />}
+              <Button size="sm" variant={canWarehouse ? "default" : "outline"} onClick={() => onOpen(o.id)}>
+                {canWarehouse ? ta("receive") : ta("view_order")}
+              </Button>
+            </div>
           </header>
           <ul>
             {o.lines.map((l) => {

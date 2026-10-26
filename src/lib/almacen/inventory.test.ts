@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatQty, formatUnitCost, orderMessage, parseQty, stockStatus, suggestedOrderQty, unitLabel, variantName, whatsappNumber, whatsappUrl } from "./inventory";
+import { formatQty, formatUnitCost, mapsUrl, orderMessage, parseQty, stockStatus, suggestedOrderQty, unitLabel, variantName, whatsappNumber, whatsappUrl } from "./inventory";
 
 describe("stockStatus", () => {
   it("sin existencia, bajo el mínimo (incluido) o bien", () => {
@@ -61,5 +61,14 @@ describe("WhatsApp", () => {
     expect(msg).toContain("Hola Juan");
     expect(msg).toContain("• 200 metros — Canto pintable · 0.80 x 22mm");
     expect(msg).toContain("• 1 unidad — High Tack");
+  });
+});
+
+describe("mapsUrl", () => {
+  it("un enlace se usa tal cual; una dirección se busca en Maps; vacío es null", () => {
+    expect(mapsUrl(" https://maps.app.goo.gl/abc ")).toBe("https://maps.app.goo.gl/abc");
+    expect(mapsUrl("Vía España, Panamá")).toBe("https://www.google.com/maps/search/?api=1&query=V%C3%ADa%20Espa%C3%B1a%2C%20Panam%C3%A1");
+    expect(mapsUrl("  ")).toBeNull();
+    expect(mapsUrl(null)).toBeNull();
   });
 });

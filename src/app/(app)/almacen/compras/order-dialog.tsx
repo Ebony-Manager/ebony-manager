@@ -18,7 +18,7 @@ import { Field } from "../../contratistas/field";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, qtyWithUnit, useTa, type VariantRef } from "../shared";
 import { StatusBadge } from "./common";
-import { DeliveryBadge, OrderMessageBox } from "./order-message";
+import { DeliveryBadge, MapsButton, OrderMessageBox } from "./order-message";
 
 /**
  * Un pedido: cómo llega (lo traen / por retirar), la recepción (Almacén,
@@ -142,11 +142,7 @@ export function OrderDialog({
             </div>
           )
         )}
-        {order.delivery === "retiro" && open && supplier?.address && (
-          <p className="text-xs text-muted-foreground">
-            {ta("pickup_at")}: <span className="text-foreground">{supplier.address}</span>
-          </p>
-        )}
+        {order.delivery === "retiro" && open && <MapsButton supplier={supplier} className="self-start" />}
 
         {/* Líneas + recepción */}
         <section className="flex flex-col gap-2">

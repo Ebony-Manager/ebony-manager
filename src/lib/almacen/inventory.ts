@@ -79,6 +79,18 @@ export function whatsappUrl(raw: string | null | undefined, text: string): strin
   return number ? `https://wa.me/${number}?text=${encodeURIComponent(text)}` : null;
 }
 
+/**
+ * Ubicación del proveedor → enlace para abrir Google Maps: si ya es un enlace
+ * (lo normal: "Compartir → Copiar enlace" en Maps) se usa tal cual; si es
+ * una dirección escrita, se busca en Maps. Vacío = null.
+ */
+export function mapsUrl(raw: string | null | undefined): string | null {
+  const v = raw?.trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`;
+}
+
 export interface OrderMessageLine {
   name: string;
   qty: number;

@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
-import { orderMessage, whatsappUrl, type OrderMessageLine } from "@/lib/almacen/inventory";
+import { mapsUrl, orderMessage, whatsappUrl, type OrderMessageLine } from "@/lib/almacen/inventory";
 import { useTa } from "../shared";
 
 export const DELIVERY_ICON: Record<OrderDelivery, LucideIcon> = { entrega: Truck, retiro: MapPin };
@@ -26,6 +26,21 @@ export function DeliveryBadge({ delivery }: { delivery: OrderDelivery | null }) 
       <Icon className="size-3" />
       {ta(delivery === "retiro" ? "delivery_retiro" : "delivery_entrega")}
     </Badge>
+  );
+}
+
+/** «Abrir en Maps» con la ubicación del proveedor (Directorio); nada si no la tiene. */
+export function MapsButton({ supplier, className }: { supplier: Supplier | null | undefined; className?: string }) {
+  const { ta } = useTa();
+  const url = mapsUrl(supplier?.address);
+  if (!url) return null;
+  return (
+    <Button asChild size="sm" variant="outline" className={className}>
+      <a href={url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+        <MapPin className="size-4" />
+        {ta("open_maps")}
+      </a>
+    </Button>
   );
 }
 

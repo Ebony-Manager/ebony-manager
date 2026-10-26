@@ -2676,7 +2676,6 @@ export const strings = {
     delivery_retiro: { es: "Por retirar", en: "To pick up" },
     delivery_entrega_hint: { es: "El proveedor lo trae al taller", en: "The supplier delivers it" },
     delivery_retiro_hint: { es: "Hay que ir a buscarlo (mensajero)", en: "Our courier picks it up" },
-    pickup_at: { es: "Retirar en", en: "Pick up at" },
     whatsapp_short: { es: "WhatsApp", en: "WhatsApp" },
     order_message_hint: {
       es: "Mándalo al proveedor. Cuando confirme (y se pague), toca «Pedido ✓» para pasarlo a En camino.",
@@ -2785,6 +2784,10 @@ export const strings = {
     f_phone: { es: "Teléfono", en: "Phone" },
     f_email: { es: "Correo", en: "Email" },
     f_address: { es: "Dirección", en: "Address" },
+    f_location: { es: "Ubicación (Google Maps)", en: "Location (Google Maps)" },
+    f_location_ph: { es: "Pega el enlace de Google Maps", en: "Paste the Google Maps link" },
+    f_location_hint: { es: "En Google Maps: Compartir → Copiar enlace. Así se abre con un toque.", en: "In Google Maps: Share → Copy link. Opens with one tap." },
+    open_maps: { es: "Abrir en Maps", en: "Open in Maps" },
     open_whatsapp: { es: "Abrir WhatsApp", en: "Open WhatsApp" },
     // Ajustes
     new_adjustment: { es: "Nuevo ajuste", en: "New adjustment" },
