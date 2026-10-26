@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronRight, Plus } from "lucide-react";
 
-import { formatMoney, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
+import { formatMoney, golaItemFor, isGolaItem, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -25,7 +25,14 @@ type BlockKey = "eb" | "sb" | "ex" | "mg";
 // Cada bloque tiene su color de encabezado y un fondo muy tenue del mismo
 // tono, para saber de un vistazo en qué parte del ítem se está trabajando.
 const BLOCK_STYLE: Record<BlockKey, { head: string; body: string; rule: string }> = {
-  eb: { head: "bg-cream-100", body: "bg-[color-mix(in_srgb,var(--cream-100)_38%,white)]", rule: "border-[color-mix(in_srgb,var(--walnut)_22%,white)]" },
+  // Renglones Ebony en amarillo, un poco más fuerte que el resto: es el
+  // bloque principal y con el tema azul el tono crema se perdía. Se mezcla
+  // con el color de tarjeta del tema para que funcione en modo oscuro.
+  eb: {
+    head: "bg-[color-mix(in_srgb,#e9b949_48%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,#e9b949_18%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,#e9b949_70%,var(--card))]",
+  },
   sb: { head: "bg-[color-mix(in_srgb,var(--status-ok)_16%,white)]", body: "bg-[color-mix(in_srgb,var(--status-ok)_5%,white)]", rule: "border-[color-mix(in_srgb,var(--status-ok)_24%,white)]" },
   ex: { head: "bg-[color-mix(in_srgb,var(--status-error)_14%,white)]", body: "bg-[color-mix(in_srgb,var(--status-error)_4%,white)]", rule: "border-[color-mix(in_srgb,var(--status-error)_22%,white)]" },
   mg: { head: "bg-stone-200", body: "bg-[color-mix(in_srgb,var(--stone-200)_32%,white)]", rule: "border-stone-400/60" },
@@ -98,8 +105,11 @@ export function SectionEditor({
 
   const active = React.useMemo(() => catalog.filter((c) => c.active), [catalog]);
   const optionsFor = (l: QuoteLine) => {
-    const list = active.filter((c) => c.category === l.category);
     const current = l.itemId ? catalog.find((c) => c.id === l.itemId) : undefined;
+    // La gola se agrega dentro de la puerta o gaveta, así que no se ofrece
+    // como renglón (salvo en cotizaciones viejas que ya la tienen aparte).
+    const golaLine = !!current && isGolaItem(current);
+    const list = active.filter((c) => c.category === l.category && isGolaItem(c) === golaLine);
     return current && !current.active ? [current, ...list] : list;
   };
   const addLine = (category: CatalogCategory) => {
@@ -120,8 +130,19 @@ export function SectionEditor({
       cornerMode={section.wallShape === "L"}
       canEditCosts={canEditCosts}
       onChange={(p) => patchLine(l.id, p)}
-      onSwap={(item) => setLines(section.lines.map((x) => (x.id === l.id ? swapLineItem(x, item) : x)))}
+      onSwap={(item) =>
+        setLines(
+          section.lines.map((x) => {
+            if (x.id !== l.id) return x;
+            const next = swapLineItem(x, item);
+            // Al cambiar de acabado, la gola toma el precio del acabado nuevo.
+            const g = next.golaMl > 0 ? golaItemFor(catalog, next) : null;
+            return next.golaMl > 0 ? { ...next, golaMl: g ? next.golaMl : 0, golaPrice: g ? g.price : 0 } : next;
+          })
+        )
+      }
       onRemove={() => removeLine(l.id)}
+      gola={golaItemFor(catalog, l)}
     />
   );
 

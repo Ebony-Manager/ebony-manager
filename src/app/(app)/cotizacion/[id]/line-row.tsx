@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeftRight, Pencil, X } from "lucide-react";
 
-import { formatMoney, lineAmount, lineQty } from "@/lib/cotizador/pricing";
+import { formatMoney, golaAmount, lineAmount, lineQty } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -31,8 +31,11 @@ export function LineRow({
   onChange,
   onSwap,
   onRemove,
+  gola = null,
 }: {
   line: QuoteLine;
+  /** La gola del catálogo que le toca a esta puerta o gaveta (null si no aplica). */
+  gola?: CatalogItem | null;
   /** Ítems activos de la misma categoría que el renglón. */
   options: CatalogItem[];
   cornerMode: boolean;
@@ -74,6 +77,16 @@ export function LineRow({
           </button>
         )}
         <span className="flex-1" />
+        {gola && !(line.golaMl > 0) && (
+          <button
+            type="button"
+            title={tt("line_gola_hint")}
+            onClick={() => onChange({ golaMl: Math.max(0.01, Math.round((line.mode === "med" ? line.width * (line.pieces || 1) : 1) * 100) / 100), golaPrice: gola.price })}
+            className="rounded px-1 font-medium text-foreground/70 hover:bg-muted/60 hover:text-foreground"
+          >
+            + {tt("line_gola")}
+          </button>
+        )}
         {line.unit !== "unidad" && (
           <button
             type="button"
@@ -189,6 +202,29 @@ export function LineRow({
 
         <span className="min-w-[78px] text-right text-sm font-semibold whitespace-nowrap tabular-nums">{formatMoney(lineAmount(line))}</span>
       </div>
+
+      {line.golaMl > 0 && (
+        // Anexo de la puerta o gaveta, en chico: su metraje y su precio. El
+        // importe de la derecha del renglón ya incluye la gola.
+        <div className="ml-auto flex basis-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="rounded bg-muted/70 px-1.5 py-0.5 font-medium text-foreground/70">{tt("line_gola")}</span>
+          <NumField
+            value={line.golaMl}
+            onChange={(n) => onChange({ golaMl: n })}
+            suffix="ML"
+            inputWidth={34}
+            className="h-6"
+            aria-label={tt("line_gola_ml")}
+            title={tt("line_gola_ml")}
+          />
+          <span className="tabular-nums">× {formatMoney(line.golaPrice)}</span>
+          <span className="tabular-nums">= {formatMoney(golaAmount(line))}</span>
+          <span className="text-muted-foreground/70">· {tt("line_gola_included")}</span>
+          <button type="button" aria-label={tt("line_gola_remove")} title={tt("line_gola_remove")} onClick={() => onChange({ golaMl: 0 })} className="p-0.5 hover:text-destructive">
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
