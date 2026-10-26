@@ -6,6 +6,7 @@ import { ChevronRight, Plus, Search, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { Input } from "@/components/ui/input";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { formatDateCompact } from "@/lib/planilla/format";
@@ -13,7 +14,7 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatQty, parseQty } from "@/lib/almacen/inventory";
 import { createPurchaseOrderAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
-import { StatusBadge, requestName } from "./common";
+import { RequestOrigin, StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { BuildOrderDialog } from "./build-order-dialog";
 import { OrderDialog } from "./order-dialog";
@@ -113,10 +114,7 @@ export function PurchasesView({
                 }
               />
             ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs text-muted-foreground">{ta("to_order_hint")}</p>
-                <RequestsTable requests={pending} index={index} projectName={projectName} showWho canCancel={(r) => r.createdBy === userId} />
-              </div>
+              <WarehousePending pending={pending} index={index} projectName={projectName} userId={userId} />
             ))}
           {tab === "encamino" && (
             <InTransit orders={open} requests={requests} index={index} supplierById={supplierById} canWarehouse={canWarehouse} onOpen={setOrderId} />
@@ -182,18 +180,21 @@ function ToOrder({
 }) {
   const { ta, lang } = useTa();
   const [unchecked, setUnchecked] = React.useState<Set<string>>(new Set());
+  const [origin, setOrigin] = React.useState<Origin>("all");
+  const shown = requests.filter((r) => matchesOrigin(r, origin));
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const groups = React.useMemo(() => {
     const map = new Map<string, PurchaseRequest[]>();
-    for (const r of requests) {
+    for (const r of shown) {
       const ref = r.variantId ? index.get(r.variantId) : undefined;
       const primary = ref?.item.suppliers.find((s) => s.isPrimary) ?? ref?.item.suppliers[0];
       const key = primary && supplierById.has(primary.supplierId) ? primary.supplierId : "";
       map.set(key, [...(map.get(key) ?? []), r]);
     }
     return [...map.entries()].sort(([a], [b]) => (a ? (supplierById.get(a)?.name ?? "") : "zzz").localeCompare(b ? (supplierById.get(b)?.name ?? "") : "zzz"));
-  }, [requests, index, supplierById]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `shown` sale de requests + origin.
+  }, [requests, origin, index, supplierById]);
 
   const toggle = (id: string) =>
     setUnchecked((s) => {
@@ -212,10 +213,12 @@ function ToOrder({
     else toast.error(res.error);
   }
 
-  if (groups.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
+  if (requests.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{ta("to_order_hint_purchase")}</p>
+      <OriginFilter requests={requests} value={origin} onChange={setOrigin} />
+      {groups.length === 0 && <EmptyBox>{ta("requests_empty")}</EmptyBox>}
       {groups.map(([supplierId, list]) => {
         const pickedRequests = list.filter((r) => !unchecked.has(r.id));
         const picked = pickedRequests.map((r) => r.id);
@@ -263,6 +266,58 @@ function ToOrder({
   );
 }
 
+// ── Origen: automáticas (llegó al mínimo) o manuales ────────────────────
+
+type Origin = "all" | "auto" | "manual";
+const matchesOrigin = (r: PurchaseRequest, o: Origin) => o === "all" || (o === "auto" ? r.auto : !r.auto);
+
+function OriginFilter({ requests, value, onChange }: { requests: PurchaseRequest[]; value: Origin; onChange: (o: Origin) => void }) {
+  const { ta } = useTa();
+  const auto = requests.filter((r) => r.auto).length;
+  // Solo tiene sentido si hay de los dos tipos.
+  if (auto === 0 || auto === requests.length) return null;
+  return (
+    <SegmentedFilter
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: "all", label: `${ta("origin_all")} (${requests.length})` },
+        { value: "auto", label: `${ta("origin_auto")} (${auto})` },
+        { value: "manual", label: `${ta("origin_manual")} (${requests.length - auto})` },
+      ]}
+    />
+  );
+}
+
+/** Por pedir sin Compras: la lista con su origen, filtrable. */
+function WarehousePending({
+  pending,
+  index,
+  projectName,
+  userId,
+}: {
+  pending: PurchaseRequest[];
+  index: Map<string, VariantRef>;
+  projectName: Map<string, string>;
+  userId: string;
+}) {
+  const { ta } = useTa();
+  const [origin, setOrigin] = React.useState<Origin>("all");
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">{ta("to_order_hint")}</p>
+      <OriginFilter requests={pending} value={origin} onChange={setOrigin} />
+      <RequestsTable
+        requests={pending.filter((r) => matchesOrigin(r, origin))}
+        index={index}
+        projectName={projectName}
+        showWho
+        canCancel={(r) => r.createdBy === userId}
+      />
+    </div>
+  );
+}
+
 function PendingRow({
   r,
   index,
@@ -293,10 +348,12 @@ function PendingRow({
       <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} />
       <div className="min-w-0">
         <span className="block truncate font-medium">{requestName(r, index)}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <RequestOrigin r={r} />
+        </span>
         <span className="block truncate text-xs text-muted-foreground">
           {[
             ref ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}` : ta("free_item"),
-            r.auto ? ta("auto") : r.createdByName,
             r.projectId ? projectName.get(r.projectId) : null,
             r.reason && !r.auto ? r.reason : null,
             formatDateCompact(lang, todayInPanama(new Date(r.createdAt))),
@@ -360,12 +417,18 @@ function RequestsTable({
             <tr key={r.id} className="border-b border-border last:border-0">
               <td className="max-w-0 px-3.5 py-2.5">
                 <span className="block truncate font-medium">{requestName(r, index)}</span>
+                {/* En el celular no está la columna "Pidió": el origen va acá. Las automáticas siempre. */}
+                {(r.auto || showWho) && (
+                  <span className={`mt-0.5 flex ${r.auto ? "" : "sm:hidden"}`}>
+                    <RequestOrigin r={r} />
+                  </span>
+                )}
                 <span className="block truncate text-xs text-muted-foreground">
                   {[r.projectId ? projectName.get(r.projectId) : null, r.auto ? null : r.reason].filter(Boolean).join(" · ")}
                 </span>
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{qtyWithUnit(r.qty, r.unit, lang)}</td>
-              {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? ta("auto") : (r.createdByName ?? "—")}</td>}
+              {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? "—" : (r.createdByName ?? "—")}</td>}
               <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{formatDateCompact(lang, todayInPanama(new Date(r.createdAt)))}</td>
               <td className="px-3.5 py-2.5 text-right">
                 <span className="inline-flex items-center gap-2">
@@ -424,7 +487,7 @@ function InTransit({
     const map = new Map<string, string[]>();
     for (const r of requests) {
       if (!r.orderLineId) continue;
-      const who = r.auto ? ta("auto") : (r.createdByName ?? "");
+      const who = r.auto ? ta("auto_badge") : (r.createdByName ?? "");
       if (who) map.set(r.orderLineId, [...new Set([...(map.get(r.orderLineId) ?? []), who])]);
     }
     return map;

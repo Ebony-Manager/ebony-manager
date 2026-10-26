@@ -2443,6 +2443,11 @@ export const strings = {
     add_line: { es: "Agregar producto", en: "Add product" },
     stock_now: { es: "Hay", en: "In stock" },
     auto: { es: "Automática", en: "Automatic" },
+    auto_badge: { es: "Automática · bajo mínimo", en: "Automatic · below minimum" },
+    auto_hint: { es: "La creó la app porque el producto llegó a su mínimo.", en: "Created by the app because the product hit its minimum." },
+    origin_all: { es: "Todas", en: "All" },
+    origin_auto: { es: "Automáticas", en: "Automatic" },
+    origin_manual: { es: "Manuales", en: "Manual" },
     // Existencias
     stock_title: { es: "Inventario", en: "Inventory" },
     // Movimientos (historial) y ajustes, desde Inventario
