@@ -242,6 +242,22 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<numbe
   return deactivated;
 }
 
+/**
+ * Deja al proveedor como principal de los productos que todavía no tienen
+ * ninguno (al pedirles por primera vez). A los que ya tienen, no les toca nada.
+ */
+export async function linkSupplierToItems(supplierId: string, itemIds: string[]): Promise<number> {
+  const ids = [...new Set(itemIds)];
+  if (ids.length === 0) return 0;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("inventory_item_suppliers").select("item_id").in("item_id", ids);
+  fail(error);
+  const linked = new Set((data ?? []).map((r) => r.item_id));
+  const rows = ids.filter((id) => !linked.has(id)).map((item_id) => ({ item_id, supplier_id: supplierId, is_primary: true }));
+  if (rows.length) fail((await supabase.from("inventory_item_suppliers").insert(rows)).error);
+  return rows.length;
+}
+
 export async function createItem(input: ItemInput): Promise<string> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("inventory_items").insert(itemRow(input)).select("id").single();

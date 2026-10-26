@@ -253,9 +253,10 @@ function ToOrder({
                   <MarkOrderedButton count={picked.length} disabled={picked.length === 0 || busy === supplierId} onPick={(d) => void markOrdered(supplierId, picked, d)} />
                 </>
               ) : (
-                // Sin proveedor: primero se elige (y ahí mismo cómo llega).
+                // Sin proveedor: primero se elige, y ahí mismo sale el WhatsApp y «Pedido ✓».
                 <Button size="sm" className="col-span-2" disabled={picked.length === 0} onClick={() => onPick(null, picked)}>
-                  {ta("mark_ordered")} ({picked.length})
+                  <WhatsAppIcon className="size-4" />
+                  {ta("choose_supplier")} ({picked.length})
                 </Button>
               )}
             </footer>

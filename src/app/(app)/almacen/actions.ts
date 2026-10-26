@@ -56,6 +56,11 @@ export async function setItemPhotoAction(id: string, path: string | null) {
   return run(() => almacen.setItemPhoto(id, path));
 }
 
+export async function linkSupplierToItemsAction(supplierId: string, itemIds: string[]) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.linkSupplierToItems(supplierId, itemIds));
+}
+
 export async function saveItemLevelsAction(itemId: string, levels: almacen.VariantLevels[], notes: string | null) {
   await requireModule("almacen", "almacen_compras");
   return run(() => almacen.saveItemLevels(itemId, levels, notes));
