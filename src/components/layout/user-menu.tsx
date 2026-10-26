@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
+import { visibleQuickLinks } from "./quick-links";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,7 @@ const THEME_OPTIONS: { value: ThemePref; icon: typeof Sun; label: keyof typeof s
  * sesión.
  */
 export function UserMenu() {
-  const { user, role, signOut } = useAuth();
+  const { user, role, modules, signOut } = useAuth();
   const { lang, toggle } = useLang();
   const { theme, setTheme } = useTheme();
   // Cerrar sesión: el primer toque pregunta (el menú sigue abierto), el segundo sale.
@@ -66,6 +67,24 @@ export function UserMenu() {
           {roleLabel && <span className="text-xs text-muted-foreground">{roleLabel}</span>}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {/* Formularios de JotForm (según permiso). */}
+        {visibleQuickLinks({ role, modules }).length > 0 && (
+          <>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(lang, strings.nav.forms)}</DropdownMenuLabel>
+            {visibleQuickLinks({ role, modules }).map((f) => {
+              const Icon = f.icon;
+              return (
+                <DropdownMenuItem key={f.key} asChild>
+                  <a href={f.href} target="_blank" rel="noreferrer">
+                    <Icon className="size-3.5" />
+                    {t(lang, f.label)}
+                  </a>
+                </DropdownMenuItem>
+              );
+            })}
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(lang, strings.nav.theme)}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemePref)}>
           {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (

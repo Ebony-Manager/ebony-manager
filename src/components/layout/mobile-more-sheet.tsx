@@ -12,6 +12,7 @@ import { PendingBadge } from "@/components/shared/pending-badge";
 import type { LucideIcon } from "lucide-react";
 import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
+import { visibleQuickLinks } from "./quick-links";
 
 const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.nav }[] = [
   { value: "light", icon: Sun, label: "theme_light" },
@@ -83,6 +84,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const pick = (keys: string[]) => keys.map((k) => entries.find((e) => e.key === k)).filter((e): e is Entry => !!e);
   const big = pick(BIG);
   const small = pick(SMALL);
+  const forms = visibleQuickLinks(access);
 
   return (
     // Cerrado queda invisible (después de la animación): el Safari del iPhone
@@ -153,6 +155,31 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
                 );
               })}
             </nav>
+          )}
+
+          {/* Formularios de JotForm (según permiso): abren en otra pestaña. */}
+          {forms.length > 0 && (
+            <section className="flex flex-col gap-2 border-t border-border py-3" aria-label={t(lang, strings.nav.forms)}>
+              <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t(lang, strings.nav.forms)}</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {forms.map((f) => {
+                  const Icon = f.icon;
+                  return (
+                    <a
+                      key={f.key}
+                      href={f.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={close}
+                      className="flex min-h-12 items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground active:bg-muted"
+                    >
+                      <Icon size={18} strokeWidth={1.8} className="shrink-0 text-primary" />
+                      <span className="leading-tight">{t(lang, f.label)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
           {/* Accesos chicos. */}

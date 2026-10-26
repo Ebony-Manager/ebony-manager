@@ -37,6 +37,9 @@ export const strings = {
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     pagos: { es: "Pagos", en: "Payments" },
     asistencia: { es: "Asistencia", en: "Attendance" },
+    forms: { es: "Formularios", en: "Forms" },
+    form_pintura: { es: "Autorización a Pintura", en: "Painting authorization" },
+    form_embalaje: { es: "Autorización a Embalaje", en: "Packing authorization" },
     documentos: { es: "Documentos", en: "Documents" },
     // Resumen único de Personal, con filtro Todos / Empleados / Contratistas.
     // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
