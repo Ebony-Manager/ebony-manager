@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { CatalogItem, Quote, QuoteLine, QuoteSection } from "@/types/cotizador";
 import { SEED_INPUTS, SEED_ITEMS } from "./catalog-seed";
 import {
+  golaItemFor,
+  isGolaItem,
+  lineAmount,
   defaultsFromInputs,
   lineQty,
   newLine,
@@ -202,5 +205,34 @@ describe("newQuote", () => {
     });
     expect(q.sections).toHaveLength(1);
     expect(q.sections[0]).toMatchObject({ id: "s1", lines: [] });
+  });
+});
+
+describe("gola dentro de puertas y gavetas", () => {
+  const golas: CatalogItem[] = [
+    { id: "pta-go-pi", code: "pta-go-pi", category: "puertas", finish: "pintado", name: "Gola para puertas pintadas", unit: "ml", price: 16.93, shape: "none", active: true, sortOrder: 256 },
+    { id: "pta-go-ag", code: "pta-go-ag", category: "puertas", finish: "aglomerado", name: "Gola para puertas aglomeradas", unit: "ml", price: 11.2, shape: "none", active: true, sortOrder: 255 },
+  ];
+  const all = [...catalog, ...golas];
+
+  it("elige la gola según la categoría y el acabado", () => {
+    expect(golaItemFor(all, item("pta-pi"))?.code).toBe("pta-go-pi");
+    expect(golaItemFor(all, item("gav-fr-ag"))?.code).toBe("gav-go-ag");
+    expect(golaItemFor(all, item("rev-pi"))).toBeNull();
+    expect(isGolaItem(item("gav-go-pi"))).toBe(true);
+    expect(isGolaItem(item("gav-fr-pi"))).toBe(false);
+  });
+
+  it("suma la gola al importe del renglón y al costo Ebony", () => {
+    const door = { ...med("pta-pi", 0.9, 0.72, 1), golaMl: 0.9, golaPrice: 16.93 };
+    expect(lineAmount(door)).toBeCloseTo(0.65 * 127.23 + 0.9 * 16.93, 6);
+    const s = section("puerta", [door]);
+    expect(sectionTotals(s).ebony).toBeCloseTo(lineAmount(door), 6);
+  });
+
+  it("en un borrador la gola sigue el precio del catálogo", () => {
+    const door = { ...med("pta-pi", 0.9, 0.72, 1), golaMl: 0.9, golaPrice: 15 };
+    const q = { id: "q", number: "", clientName: "", designerName: "", projectName: "", quoteDate: "2026-10-26", deliveryDays: 65, status: "BORRADOR" as const, lang: "es" as const, pdfDetail: "section" as const, discountType: "pct" as const, discountValue: 0, itbmsPct: 7, notes: "", sections: [section("x", [door])], plans: [] };
+    expect(syncDraftPrices(q, all).sections[0].lines[0].golaPrice).toBe(16.93);
   });
 });

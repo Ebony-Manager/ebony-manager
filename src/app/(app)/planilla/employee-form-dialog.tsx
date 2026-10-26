@@ -91,6 +91,9 @@ export type EmployeePrefill = Partial<
     | "bankAccountType"
     | "bankAccountNumber"
     | "notes"
+    | "idDocument"
+    | "idDocumentType"
+    | "nationality"
   >
 >;
 

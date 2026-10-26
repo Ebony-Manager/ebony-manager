@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { getUser, getProfile } from "@/lib/auth/dal";
@@ -29,6 +29,24 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Ebony Manager",
   description: "Sistema de gestión para Ebony Custom Woodwork.",
+  applicationName: "Ebony Manager",
+  // Instalada en el iPhone (Compartir → Agregar a inicio) abre a pantalla
+  // completa, como app. El manifiesto (manifest.ts) hace lo mismo en Android.
+  appleWebApp: { capable: true, title: "Ebony", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+};
+
+// viewportFit "cover": la app usa toda la pantalla y respeta la muesca y la
+// barra de gestos con env(safe-area-inset-*). El color de la barra del
+// sistema sigue al tema claro / oscuro.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#141618" },
+  ],
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -142,7 +142,7 @@ export function ManagePositionsDialog({
             return (
               <div
                 key={position.id}
-                className={`flex items-center gap-2 border border-border px-2.5 py-2 text-sm ${
+                className={`flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-sm ${
                   position.active ? "" : "opacity-50"
                 }`}
               >

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Copy, FileScan, Loader2, Plus, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, FileScan, Loader2, Plus, TriangleAlert, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { formatMoney, newSection, quoteTotals, sectionTotals, syncDraftPrices } from "@/lib/cotizador/pricing";
@@ -18,6 +18,7 @@ import { ClientView } from "./client-view";
 import { MetrajePanel } from "./metraje-panel";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
+import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
 type SaveState = "saved" | "pending" | "saving" | "error";
 const SAVE_DELAY_MS = 700;
@@ -222,14 +223,11 @@ export function QuoteEditor({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-5 pb-12 sm:px-7">
+    <div className={PAGE_CLASS}>
       {/* Encabezado: el cliente es lo que más se ve */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link href="/cotizacion" className="inline-flex items-center gap-1.5 text-sm text-ink-900/50 hover:text-ink-900">
-            <ArrowLeft className="size-3.5" />
-            {tt("title")}
-          </Link>
+          <BackLink href="/cotizacion" label={tt("title")} />
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
               {saveState === "saved" && isPersisted && <Check className="size-3.5 text-[var(--status-ok)]" />}
@@ -273,14 +271,14 @@ export function QuoteEditor({
             onChange={(e) => setHeader({ clientName: e.currentTarget.value })}
             placeholder={tt("f_client_ph")}
             aria-label={tt("f_client")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-2xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-ink-900/16 focus-visible:border-ink-900"
+            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-border focus-visible:border-ink-900"
           />
           <input
             value={quote.projectName}
             onChange={(e) => setHeader({ projectName: e.currentTarget.value })}
             placeholder={tt("f_project_ph")}
             aria-label={tt("f_project")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pt-1 pb-0.5 text-sm text-ink-700 outline-none placeholder:text-ink-900/30 hover:border-ink-900/16 focus-visible:border-ink-900"
+            className="w-full min-w-0 border-b border-transparent bg-transparent pt-1 pb-0.5 text-sm text-ink-700 outline-none placeholder:text-ink-900/30 hover:border-border focus-visible:border-ink-900"
           />
         </div>
 
@@ -311,27 +309,18 @@ export function QuoteEditor({
         </div>
       </header>
 
-      <div className="flex items-center gap-[22px] border-b border-ink-900/8">
-        {(["edit", "client"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setTab(v)}
-            className={
-              tab === v
-                ? "border-b-2 border-walnut pb-[10px] text-[13.5px] font-semibold text-walnut"
-                : "pb-[11px] text-[13.5px] font-medium text-ink-900/40 hover:text-ink-900/60"
-            }
-          >
-            {v === "edit" ? tt("tab_edit") : tt("tab_client")}
-          </button>
-        ))}
-        {canEditCosts && (
-          <Link href="/cotizacion/costos" className="ml-auto pb-[11px] text-xs text-ink-900/35 hover:text-ink-900/70">
-            {tt("costs_link")}
-          </Link>
-        )}
-      </div>
+      <SubTabs
+        value={tab}
+        onChange={setTab}
+        tabs={(["edit", "client"] as const).map((v) => ({ value: v, label: v === "edit" ? tt("tab_edit") : tt("tab_client") }))}
+        end={
+          canEditCosts && (
+            <Link href="/cotizacion/costos" className="text-xs text-muted-foreground hover:text-foreground">
+              {tt("costs_link")}
+            </Link>
+          )
+        }
+      />
 
       {tab === "client" ? (
         <ClientView quote={quote} onDetail={(pdfDetail) => setHeader({ pdfDetail })} />
@@ -342,15 +331,15 @@ export function QuoteEditor({
             <div className="flex flex-wrap gap-1.5">
               {quote.sections.map((s) =>
                 confirmDelete === s.id ? (
-                  <div key={s.id} className="flex flex-col justify-center gap-1.5 border border-destructive bg-[color-mix(in_srgb,var(--status-error)_8%,white)] px-2.5 py-2 text-xs">
+                  <div key={s.id} className="flex flex-col justify-center gap-1.5 rounded-lg border border-destructive bg-[color-mix(in_srgb,var(--status-error)_8%,white)] px-2.5 py-2 text-xs">
                     <span>
                       {tt("sec_delete_confirm")} <b>{s.name || tt("sec_unnamed")}</b>?
                     </span>
                     <span className="flex gap-1.5">
-                      <button type="button" onClick={() => removeSection(s.id)} className="border border-destructive bg-card px-2 py-0.5 font-medium text-destructive">
+                      <button type="button" onClick={() => removeSection(s.id)} className="rounded-md border border-destructive bg-card px-2 py-0.5 font-medium text-destructive">
                         {tt("delete")}
                       </button>
-                      <button type="button" onClick={() => setConfirmDelete(null)} className="border border-input bg-card px-2 py-0.5 font-medium">
+                      <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-md border border-input bg-card px-2 py-0.5 font-medium">
                         {tt("cancel")}
                       </button>
                     </span>
@@ -367,8 +356,8 @@ export function QuoteEditor({
                         setConfirmDelete(null);
                       }}
                       className={cn(
-                        "grid min-w-[128px] border py-2 pr-8 pl-3 text-left",
-                        section?.id === s.id ? "border-primary bg-primary text-primary-foreground" : "border-ink-900/16 bg-card hover:border-ink-700"
+                        "grid min-w-[128px] rounded-lg border py-2 pr-8 pl-3 text-left",
+                        section?.id === s.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-ink-700"
                       )}
                     >
                       <span className={cn("text-[10px] tracking-[0.1em] uppercase", section?.id === s.id ? "text-stone-400" : "text-muted-foreground")}>
@@ -394,7 +383,7 @@ export function QuoteEditor({
                   </div>
                 )
               )}
-              <button type="button" onClick={addSection} className="inline-flex items-center gap-1 border border-dashed border-ink-900/25 px-3 text-xs font-medium text-ink-700 hover:border-ink-700">
+              <button type="button" onClick={addSection} className="inline-flex items-center gap-1 rounded-lg border border-dashed border-ink-900/25 px-3 text-xs font-medium text-ink-700 hover:border-ink-700">
                 <Plus className="size-3.5" />
                 {tt("sec_add")}
               </button>
@@ -427,7 +416,7 @@ export function QuoteEditor({
             </div>
 
             {section ? (
-              <div className="border border-ink-900/8 bg-card p-3.5">
+              <div className="rounded-lg border border-border bg-card p-3.5">
                 <SectionEditor
                   key={section.id}
                   section={section}
@@ -450,7 +439,7 @@ export function QuoteEditor({
                 />
               </div>
             ) : (
-              <div className="border border-dashed border-ink-900/16 px-6 py-12 text-center text-sm text-muted-foreground">{tt("sec_empty")}</div>
+              <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">{tt("sec_empty")}</div>
             )}
           </div>
 
@@ -477,8 +466,8 @@ export function QuoteEditor({
             )}
 
             {section && secTotals && (
-              <div className="border border-ink-900/8 bg-card">
-                <h2 className={cn(panelTitle, "border-b border-ink-900/8 px-3.5 py-2.5")}>{tt("breakdown_title")}</h2>
+              <div className="rounded-lg overflow-hidden border border-border bg-card">
+                <h2 className={cn(panelTitle, "border-b border-border px-3.5 py-2.5")}>{tt("breakdown_title")}</h2>
                 <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3.5 text-sm">
                   <dt className="text-ink-700">{tt("block_ebony")}</dt>
                   <dd className={money}>{formatMoney(secTotals.ebony)}</dd>
@@ -510,16 +499,16 @@ export function QuoteEditor({
                     {tt("bk_ccf")} {section.ccfPct}%
                   </dt>
                   <dd className={cn(money, "text-[11px] text-muted-foreground")}>+{formatMoney(secTotals.ccf)}</dd>
-                  <dt className="mt-1.5 border-t border-ink-900/8 pt-2">{nameCell(section)}</dt>
-                  <dd className={cn(money, "mt-1.5 border-t border-ink-900/8 pt-2 text-base font-bold")}>{formatMoney(secTotals.total)}</dd>
+                  <dt className="mt-1.5 border-t border-border pt-2">{nameCell(section)}</dt>
+                  <dd className={cn(money, "mt-1.5 border-t border-border pt-2 text-base font-bold")}>{formatMoney(secTotals.total)}</dd>
                 </dl>
               </div>
             )}
 
             {section && <MetrajePanel section={section} plan={plan} />}
 
-            <div className="border border-ink-900/8 bg-card">
-              <h2 className={cn(panelTitle, "border-b border-ink-900/8 px-3.5 py-2.5")}>{tt("total_title")}</h2>
+            <div className="rounded-lg overflow-hidden border border-border bg-card">
+              <h2 className={cn(panelTitle, "border-b border-border px-3.5 py-2.5")}>{tt("total_title")}</h2>
               <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 p-3.5 text-sm">
                 {quote.sections.map((s) => (
                   <React.Fragment key={s.id}>
@@ -527,11 +516,11 @@ export function QuoteEditor({
                     <dd className={money}>{formatMoney(sectionTotals(s).total)}</dd>
                   </React.Fragment>
                 ))}
-                <dt className="mt-1 border-t border-ink-900/8 pt-2 text-ink-700">{tt("subtotal")}</dt>
-                <dd className={cn(money, "mt-1 border-t border-ink-900/8 pt-2")}>{formatMoney(totals.subtotal)}</dd>
+                <dt className="mt-1 border-t border-border pt-2 text-ink-700">{tt("subtotal")}</dt>
+                <dd className={cn(money, "mt-1 border-t border-border pt-2")}>{formatMoney(totals.subtotal)}</dd>
                 <dt className="flex items-center gap-2 text-ink-700">
                   {tt("discount")}
-                  <span className="inline-flex h-7 items-center border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
+                  <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
                     <NumField value={quote.discountValue} onChange={(n) => setHeader({ discountValue: n })} locked={false} inputWidth={46} className="h-auto border-0 px-0 focus-within:ring-0" aria-label={tt("discount")} />
                     <button
                       type="button"
@@ -546,8 +535,8 @@ export function QuoteEditor({
                 <dd className={money}>{totals.discount > 0 ? `−${formatMoney(totals.discount)}` : "—"}</dd>
                 <dt className="text-[11px] text-muted-foreground">ITBMS {quote.itbmsPct}%</dt>
                 <dd className={cn(money, "text-[11px] text-muted-foreground")}>{formatMoney(totals.tax)}</dd>
-                <dt className="mt-1 border-t border-ink-900/8 pt-2 font-semibold">{tt("total")}</dt>
-                <dd className={cn(money, "mt-1 border-t border-ink-900/8 pt-2 text-lg font-bold")}>{formatMoney(totals.total)}</dd>
+                <dt className="mt-1 border-t border-border pt-2 font-semibold">{tt("total")}</dt>
+                <dd className={cn(money, "mt-1 border-t border-border pt-2 text-lg font-bold")}>{formatMoney(totals.total)}</dd>
               </dl>
             </div>
           </aside>

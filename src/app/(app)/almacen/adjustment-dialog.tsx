@@ -2,110 +2,17 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
-import { ADJUSTMENT_REASONS, type AdjustmentReason, type InventoryAdjustment, type InventoryCategory, type InventoryItem } from "@/types/almacen";
+import { ADJUSTMENT_REASONS, type AdjustmentReason, type InventoryCategory, type InventoryItem } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatDateCompact } from "@/lib/planilla/format";
 import { formatQty, parseQty } from "@/lib/almacen/inventory";
-import { Field } from "../../contratistas/field";
-import { registerAdjustmentAction } from "../actions";
-import { Combo, EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
-
-/** Historial de ajustes y el diálogo de conteo / ajuste. */
-export function AdjustmentsView({
-  adjustments,
-  items,
-  categories,
-}: {
-  adjustments: InventoryAdjustment[];
-  items: InventoryItem[];
-  categories: InventoryCategory[];
-}) {
-  const { ta, lang } = useTa();
-  const [adding, setAdding] = React.useState(false);
-  const [open, setOpen] = React.useState<string | null>(null);
-  const index = useVariantIndex(items);
-
-  return (
-    <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
-      <PageHeader
-        title={ta("adj_title")}
-        subtitle={ta("adj_subtitle")}
-        action={
-          <Button onClick={() => setAdding(true)}>
-            <Plus className="size-4" />
-            {ta("new_adjustment")}
-          </Button>
-        }
-      />
-
-      {adjustments.length === 0 ? (
-        <EmptyBox>{ta("adj_empty")}</EmptyBox>
-      ) : (
-        <div className="overflow-x-auto border border-ink-900/8 bg-card">
-          <table className="w-full min-w-[520px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
-                <th className="w-8" />
-                <th className="px-3 py-2 text-left font-medium">{ta("date")}</th>
-                <th className="px-3 py-2 text-left font-medium">{ta("col_reason")}</th>
-                <th className="px-3 py-2 text-right font-medium">{ta("col_changes")}</th>
-                <th className="px-3.5 py-2 text-left font-medium">{ta("by")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adjustments.map((a) => {
-                const isOpen = open === a.id;
-                return (
-                  <React.Fragment key={a.id}>
-                    <tr onClick={() => setOpen(isOpen ? null : a.id)} className="cursor-pointer border-b border-ink-900/8 hover:bg-muted/30">
-                      <td className="pl-3 text-muted-foreground">{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDateCompact(lang, a.adjustedOn)}</td>
-                      <td className="px-3 py-2.5 font-medium">{ta(`r_${a.reason}`)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{a.lines.length}</td>
-                      <td className="px-3.5 py-2.5 text-muted-foreground">{a.createdByName ?? "—"}</td>
-                    </tr>
-                    {isOpen && (
-                      <tr className="border-b border-ink-900/8 bg-muted/20">
-                        <td />
-                        <td colSpan={4} className="px-3 py-2.5">
-                          <ul className="flex flex-col gap-1">
-                            {a.lines.map((l) => {
-                              const ref = index.get(l.variantId);
-                              return (
-                                <li key={l.variantId} className="flex flex-wrap justify-between gap-x-4">
-                                  <span>{ref?.name ?? "—"}</span>
-                                  <span className="tabular-nums">
-                                    <span className={l.qty < 0 ? "text-destructive" : "text-success"}>
-                                      {l.qty > 0 ? "+" : ""}
-                                      {formatQty(l.qty, lang)}
-                                    </span>
-                                    <span className="ml-2 text-muted-foreground">→ {qtyWithUnit(l.stockAfter, ref?.item.unit, lang)}</span>
-                                  </span>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                          {a.notes && <p className="mt-2 text-xs text-muted-foreground">{a.notes}</p>}
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <AdjustmentDialog open={adding} onOpenChange={setAdding} items={items} categories={categories} />
-    </div>
-  );
-}
+import { Field } from "../contratistas/field";
+import { registerAdjustmentAction } from "./actions";
+import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "./shared";
 
 interface LineDraft {
   key: string;
@@ -121,7 +28,7 @@ const newLine = (variantId: string | null = null): LineDraft => ({ key: `a${++se
  * diferencia. Daño y pérdida: cuánto se descuenta. Corrección: la diferencia
  * con signo. "Agregar toda una categoría" sirve para contar estante por estante.
  */
-function AdjustmentDialog({
+export function AdjustmentDialog({
   open,
   onOpenChange,
   items,

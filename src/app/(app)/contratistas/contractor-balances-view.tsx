@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { computeContractorsDashboard, type ContractorSummary, type DashboardPeriod } from "@/lib/contractors/dashboard";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDate } from "@/lib/planilla/format";
@@ -13,6 +12,7 @@ import { t, strings } from "@/lib/i18n";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { ContractorAvatar } from "./contractor-avatar";
 import type { ContractorsDashboardInput } from "./contractors-dashboard-view";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 /**
  * Personal → Pagos → Contratistas: cada contratista con lo facturado, lo
@@ -37,8 +37,11 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
     () => computeContractorsDashboard(input.contractors, input.entries, new Map(input.projectNames), period),
     [input, period]
   );
-  // Lista de cuentas: solo activos (a nadie se inactiva sin saldar su saldo).
-  const tableRows = data.contractors.filter((c) => c.contractor.status === "ACTIVE").sort(
+  // Lista de cuentas: los activos y, de los inactivos, quien tenga dinero en el
+  // período o saldo pendiente (el dinero que se movió se ve siempre).
+  const tableRows = data.contractors
+    .filter((c) => c.contractor.status === "ACTIVE" || c.balanceCents !== 0 || c.billedCents || c.deliveredCents || c.materialCents)
+    .sort(
     (a, b) => b.balanceCents - a.balanceCents || b.deliveredCents - a.deliveredCents
   );
 
@@ -55,16 +58,12 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        {years.map((y) => (
-          <Button key={y} size="sm" variant={period === y ? "secondary" : "ghost"} onClick={() => setPeriod(y)}>
-            {y}
-          </Button>
-        ))}
-        <Button size="sm" variant={period === "all" ? "secondary" : "ghost"} onClick={() => setPeriod("all")}>
-          {tt("cd_all")}
-        </Button>
-      </div>
+      <SegmentedFilter
+        className="self-end"
+        value={String(period)}
+        onChange={(v) => setPeriod(v === "all" ? "all" : Number(v))}
+        options={[...years.map((y) => ({ value: String(y), label: String(y) })), { value: "all", label: tt("cd_all") }]}
+      />
 
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -72,19 +71,19 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
           <p className="text-xs text-muted-foreground">{tt("cd_table_hint")}</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] border-collapse text-sm">
+          <table className="w-full border-collapse text-sm sm:min-w-[820px]">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-2 py-2 font-medium">{tt("cd_col_contractor")}</th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_projects")}</th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_billed")}</th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_paid")}</th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_loans")}</th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_material")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_projects")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_billed")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_paid")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_loans")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_material")}</th>
                 <th className="px-2 py-2 text-right font-medium" title={tt("cd_balance_hint")}>
                   {tt("cd_col_balance")}
                 </th>
-                <th className="px-2 py-2 text-right font-medium">{tt("cd_col_last")}</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_last")}</th>
               </tr>
             </thead>
             <tbody>
@@ -110,27 +109,30 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                             >
                               {c.contractor.name}
                             </Link>
-                            <p className="text-[11px] text-muted-foreground">{typeLabel(c)}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {typeLabel(c)}
+                              {c.contractor.status === "INACTIVE" && ` · ${tt("status_inactive")}`}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums">{c.projects.length || "–"}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{c.billedCents ? formatCents(c.billedCents) : "–"}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{c.paidCents ? formatCents(c.paidCents) : "–"}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{c.loansCents ? formatCents(c.loansCents) : "–"}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{c.materialCents ? formatCents(c.materialCents) : "–"}</td>
+                      <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.projects.length || "–"}</td>
+                      <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.billedCents ? formatCents(c.billedCents) : "–"}</td>
+                      <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.paidCents ? formatCents(c.paidCents) : "–"}</td>
+                      <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.loansCents ? formatCents(c.loansCents) : "–"}</td>
+                      <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.materialCents ? formatCents(c.materialCents) : "–"}</td>
                       <td
                         className={`px-2 py-2 text-right font-medium tabular-nums ${c.balanceCents < 0 ? "text-destructive" : "text-foreground"}`}
                       >
                         {formatCents(c.balanceCents)}
                       </td>
-                      <td className="px-2 py-2 text-right text-xs text-muted-foreground">
+                      <td className="hidden px-2 py-2 text-right text-xs text-muted-foreground sm:table-cell">
                         {c.lastEntryDate ? formatDate(lang, c.lastEntryDate) : "–"}
                       </td>
                     </tr>
                     {isOpen && (
                       <tr className="border-b border-border bg-muted/20">
-                        <td colSpan={8} className="px-2 py-3 pl-12">
+                        <td colSpan={8} className="px-2 py-3 pl-3 sm:pl-12">
                           {c.projects.length === 0 ? (
                             <p className="text-xs text-muted-foreground">{tt("cd_proj_none")}</p>
                           ) : (

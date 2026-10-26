@@ -113,6 +113,8 @@ function mapLine(r: LineRow): QuoteLine {
     posY: numOrNull(r.pos_y),
     hostLineId: r.host_line_id,
     pieceIds: r.piece_ids ?? [],
+    golaMl: num(r.gola_ml),
+    golaPrice: num(r.gola_price),
   };
 }
 
@@ -353,6 +355,9 @@ function lineRow(sectionId: string, l: QuoteLine, i: number, lineIds: Set<string
     // Un anfitrión que ya no existe en la cotización rompería el FK.
     host_line_id: l.hostLineId && lineIds.has(l.hostLineId) ? l.hostLineId : null,
     piece_ids: l.pieceIds ?? [],
+    // La gola solo se manda cuando el renglón la lleva: así el guardado no
+    // depende de que la migración de gola ya esté aplicada.
+    ...(num(l.golaMl) > 0 ? { gola_ml: num(l.golaMl), gola_price: num(l.golaPrice) } : {}),
   };
 }
 
@@ -391,7 +396,7 @@ export async function saveQuote(q: Quote): Promise<void> {
 
   const lineIds = new Set(q.sections.flatMap((s) => s.lines.map((l) => l.id)));
   const lines = q.sections.flatMap((s) => s.lines.map((l, i) => lineRow(s.id, l, i, lineIds)));
-  if (lines.length) fail((await supabase.from("quote_lines").upsert(lines)).error);
+  if (lines.length) fail((await supabase.from("quote_lines").upsert(lines, { defaultToNull: false })).error);
 
   // Borra lo que el usuario quitó. Los renglones de un ítem borrado se
   // van solos por el `on delete cascade`.

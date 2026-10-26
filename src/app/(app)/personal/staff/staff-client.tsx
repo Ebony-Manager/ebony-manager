@@ -1,8 +1,9 @@
 "use client";
 
+import { ListToolbar } from "@/components/shared/search-input";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 import { ChevronDown, ChevronRight, Download, Hammer, IdCard, Loader2, Phone, Plus, Users, X } from "lucide-react";
 
@@ -17,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { breadcrumbFor } from "@/components/layout/nav-items";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ import type { MatchCandidate } from "@/lib/personal/jotform-intake";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
 import { downloadStaffDocuments } from "./download-documents";
+import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 
 /**
  * Personal → Staff: empleados y contratistas en una sola lista, con
@@ -80,8 +81,6 @@ export function StaffClient({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.staff) => t(lang, strings.staff[k]);
-  const pathname = usePathname();
-  const crumbs = breadcrumbFor(pathname, lang);
 
   const [query, setQuery] = React.useState("");
   const [kind, setKind] = React.useState<TeamFilter>("all");
@@ -145,32 +144,14 @@ export function StaffClient({
 
   return (
     <EmployeePhotosProvider photoUrls={photoUrls}>
-      <div className="flex flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
-        {crumbs.length > 0 && (
-          <nav aria-label="breadcrumb" className="-mt-2 flex items-center gap-1.5 text-sm">
-            {crumbs.map((crumb, i) => {
-              const isLast = i === crumbs.length - 1;
-              return (
-                <span key={crumb} className="flex items-center gap-1.5">
-                  {i > 0 && <span className="text-muted-foreground/60">/</span>}
-                  <span className={isLast ? "font-semibold text-foreground" : "text-muted-foreground"}>{crumb}</span>
-                </span>
-              );
-            })}
-          </nav>
-        )}
+      <div className={PAGE_CLASS}>
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">
-              {tt("title")}
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                {activeTotal} {tt("active_count")}
-              </span>
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{tt("subtitle")}</p>
-          </div>
-          {!canEdit ? null : canEmployees && canContractors ? (
+        <PageHeader
+          title={tt("title")}
+          meta={`${activeTotal} ${tt("active_count")}`}
+          subtitle={tt("subtitle")}
+          action={
+            !canEdit ? null : canEmployees && canContractors ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm">
@@ -195,8 +176,9 @@ export function StaffClient({
               <Plus className="size-3.5" />
               {tt(canEmployees ? "add_employee" : "add_contractor")}
             </Button>
-          )}
-        </div>
+            )
+          }
+        />
 
         {canEdit && (
           <IntakeInbox
@@ -208,29 +190,20 @@ export function StaffClient({
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="w-full max-w-xs" />
-          {showKindFilter && (
-            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
-              {FILTERS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setKind(value)}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-[12.5px] transition-colors",
-                    kind === value ? "bg-primary font-semibold text-primary-foreground" : "font-medium text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant={selecting ? "secondary" : "outline"} onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>
+        {/* Celular: buscador y descargas (solo ícono) en una línea, pegada arriba al bajar; el filtro abajo, a lo ancho. */}
+        <ListToolbar>
+          <EmployeeSearchInput value={query} onChange={setQuery} placeholder={tt("search")} className="order-1 min-w-0 flex-1 sm:max-w-xs" />
+          {showKindFilter && <SegmentedFilter value={kind} onChange={setKind} options={FILTERS} fill className="order-3 sm:order-2" />}
+          <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
+            <Button
+              size="sm"
+              variant={selecting ? "secondary" : "outline"}
+              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+              aria-label={selecting ? td("cancel_select") : td("download")}
+              title={selecting ? td("cancel_select") : td("download")}
+            >
               {selecting ? <X className="size-3.5" /> : <IdCard className="size-3.5" />}
-              {selecting ? td("cancel_select") : td("download")}
+              <span className="hidden sm:inline">{selecting ? td("cancel_select") : td("download")}</span>
             </Button>
             {canEdit && (
               <StaffRosterExport
@@ -241,7 +214,7 @@ export function StaffClient({
               />
             )}
           </div>
-        </div>
+        </ListToolbar>
 
         {selecting && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
@@ -301,7 +274,7 @@ export function StaffClient({
 
 function EmptyBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
       {children}
     </div>
   );
@@ -332,7 +305,7 @@ function TeamList({
   const tdoc = (k: keyof typeof strings.documentos) => t(lang, strings.documentos[k]);
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border bg-card", muted && "opacity-70")}>
+    <div className={cn("overflow-hidden rounded-lg border border-border bg-card", muted && "opacity-70")}>
       {/* Encabezado: solo en pantallas anchas; en el celular cada persona es una tarjeta. */}
       <div className={cn("hidden gap-4 border-b border-border px-4 py-2.5 text-xs text-muted-foreground md:grid", GRID)}>
         <span>{tt("col_person")}</span>
@@ -405,23 +378,18 @@ function TeamList({
                   {/* Los contratistas no tienen puesto: va su oficio (Ebanista / Pintor). */}
                   {m.position ?? (m.kind === "contractor" ? tt(`group_${m.group}`) : "—")}
                 </div>
+                {/* En el celular la fecha de ingreso va en esta misma línea. */}
+                {m.startDate && (
+                  <div className="text-xs text-muted-foreground md:hidden">
+                    · {tt("col_since")} {formatDateCompact(lang, m.startDate)}
+                  </div>
+                )}
               </div>
 
               <div
-                className={cn(
-                  "col-span-2 text-xs text-muted-foreground md:col-span-1 md:col-start-5 md:row-start-1",
-                  !m.startDate && "hidden md:block"
-                )}
+                className="hidden text-xs text-muted-foreground md:col-span-1 md:col-start-5 md:row-start-1 md:block"
               >
-                {m.startDate ? (
-                  <>
-                    {/* En el celular no hay encabezado de columna: la fecha lleva su etiqueta. */}
-                    <span className="md:hidden">{tt("col_since")} </span>
-                    {formatDateCompact(lang, m.startDate)}
-                  </>
-                ) : (
-                  "—"
-                )}
+                {m.startDate ? formatDateCompact(lang, m.startDate) : "—"}
               </div>
             </Link>
           </li>

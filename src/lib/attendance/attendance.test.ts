@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { analyzeDay, analyzePeriod, minutesToHours, weekdayOf } from "./engine";
-import { matchEmployees, parseClockReport, parseJotformPunches } from "./parse";
+import { matchEmployees, parseClockReport, parseCsv, parseJotformPunches } from "./parse";
 import type { RawPunch } from "./types";
 
 const t = (hhmm: string) => {
@@ -143,6 +143,45 @@ describe("parseClockReport", () => {
       ["2026-10-03", t("13:55"), "in"],
     ]);
     expect(p[0].name).toBe("Jose Salcedo");
+  });
+
+  it("lee el formato nuevo: fecha con guiones y el número del empleado en otra línea", () => {
+    const csv = [
+      "\uFEFFTimecard Report ,,,,,,,",
+      ",,,,,,,",
+      "Pay Period,,,2026-10-16-2026-10-31,,,,",
+      'Employee,,,"Jose Salcedo',
+      '(9)",,,,',
+      "Date,,IN,OUT,Work Time,Daily Total,Note,",
+      "FRI,2026-10-16,07:25,17:03,09:38,09:38,,",
+      "SUN,2026-10-18,,,,,,",
+      "WED,2026-10-21,08:25,17:00,08:35,,,",
+      ",,17:03,,,08:35,Missing OUT,",
+      "Total Hours,,,,,52:55,,",
+      'Employee,,,"Jhosep Soto',
+      '(13)",,,,',
+      "Date,,IN,OUT,Work Time,Daily Total,Note,",
+      "MON,2026-10-19,08:00,17:00,09:00,09:00,,",
+    ].join("\r\n");
+    const p = parseClockReport(parseCsv(csv));
+    expect(p.map((x) => [x.name, x.date, x.minutes, x.kind])).toEqual([
+      ["Jose Salcedo", "2026-10-16", t("07:25"), "in"],
+      ["Jose Salcedo", "2026-10-16", t("17:03"), "out"],
+      ["Jose Salcedo", "2026-10-21", t("08:25"), "in"],
+      ["Jose Salcedo", "2026-10-21", t("17:00"), "out"],
+      ["Jose Salcedo", "2026-10-21", t("17:03"), "in"],
+      ["Jhosep Soto", "2026-10-19", t("08:00"), "in"],
+      ["Jhosep Soto", "2026-10-19", t("17:00"), "out"],
+    ]);
+  });
+});
+
+describe("parseCsv", () => {
+  it("respeta comillas, comas y saltos de línea dentro de una celda", () => {
+    expect(parseCsv('a,"b, c","d ""e"""\r\n"x\ny",z\n')).toEqual([
+      ["a", "b, c", 'd "e"'],
+      ["x\ny", "z"],
+    ]);
   });
 });
 

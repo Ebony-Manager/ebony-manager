@@ -10,6 +10,7 @@ import {
   intakePatch,
   normalizeBankName,
   normalizeIntake,
+  parseIdNumber,
   parseJotformDate,
   titleCase,
   type MatchCandidate,
@@ -29,6 +30,8 @@ const API_ANSWERS = {
   "18": { name: "numeroDe", answer: "0472968324289" },
   "19": { name: "nombreBanco", answer: "General" },
   "20": { name: "tipoDe", answer: "Cuenta Ahorros" },
+  "51": { name: "numeroCedula", answer: " 8-974-1975 " },
+  "52": { name: "typeA52", answer: "Panama" },
   "1": { name: "heading" },
 };
 
@@ -42,6 +45,9 @@ describe("normalizeIntake", () => {
       birthDate: "1999-05-06",
       address: "Vía argentina, Panama",
       idDocumentUrl: "https://www.jotform.com/uploads/ebonypanama/232606019835052/1/doc.jpg",
+      idNumber: "8-974-1975",
+      idDocumentType: "cedula",
+      nationality: "PA",
       bankName: "Banco General",
       bankAccountType: "ahorro",
       bankAccountNumber: "04-72-96-832428-9",
@@ -119,11 +125,21 @@ describe("findStaffMatch", () => {
   });
 });
 
+describe("parseIdNumber", () => {
+  it("cédula panameña o pasaporte", () => {
+    expect(parseIdNumber("8-974-1975")).toEqual({ idNumber: "8-974-1975", idDocumentType: "cedula" });
+    expect(parseIdNumber("e - 8 - 123456")).toEqual({ idNumber: "E-8-123456", idDocumentType: "cedula" });
+    expect(parseIdNumber("PE-12-345")).toEqual({ idNumber: "PE-12-345", idDocumentType: "cedula" });
+    expect(parseIdNumber("ax1234567")).toEqual({ idNumber: "AX1234567", idDocumentType: "pasaporte" });
+    expect(parseIdNumber("")).toEqual({ idNumber: null, idDocumentType: null });
+  });
+});
+
 describe("intakePatch", () => {
   const intake = normalizeIntake(answersFromApi(API_ANSWERS));
   const empty = {
     phone: null, email: null, address: null, birthDate: null, emergencyContactName: null, emergencyContactPhone: null,
-    bankName: null, bankAccountType: null, bankAccountNumber: null, notes: null,
+    bankName: null, bankAccountType: null, bankAccountNumber: null, idDocument: null, idDocumentType: null, nationality: null, notes: null,
   } as const;
 
   it("a una ficha vacía le llena todo, con el documento en notas", () => {
@@ -137,16 +153,22 @@ describe("intakePatch", () => {
       bankName: "Banco General",
       bankAccountType: "ahorro",
       bankAccountNumber: "04-72-96-832428-9",
+      idDocument: "8-974-1975",
+      idDocumentType: "cedula",
+      nationality: "PA",
       notes: "Documento (JotForm): https://www.jotform.com/uploads/ebonypanama/232606019835052/1/doc.jpg",
     });
   });
 
   it("nunca pisa lo que ya estaba, y la cuenta va completa o nada", () => {
     const patch = intakePatch(
-      { ...empty, phone: "6000-0000", bankName: "Banistmo", notes: "Buen ebanista" },
+      { ...empty, phone: "6000-0000", bankName: "Banistmo", idDocument: "8-111-222", nationality: "CO", notes: "Buen ebanista" },
       intake
     );
     expect(patch.phone).toBeUndefined();
+    expect(patch.idDocument).toBeUndefined();
+    expect(patch.idDocumentType).toBeUndefined();
+    expect(patch.nationality).toBeUndefined();
     expect(patch.bankAccountNumber).toBeUndefined();
     expect(patch.bankName).toBeUndefined();
     expect(patch.notes).toBe("Buen ebanista\nDocumento (JotForm): https://www.jotform.com/uploads/ebonypanama/232606019835052/1/doc.jpg");

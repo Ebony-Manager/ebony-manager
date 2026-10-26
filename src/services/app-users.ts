@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeModules, type AppRole } from "@/lib/auth/modules";
+import { isOptInModule, normalizeModules, type AppRole } from "@/lib/auth/modules";
 import type { Database } from "@/types/database";
 import type { AppUser, AppUserInput } from "@/types/usuarios";
 
@@ -31,8 +31,8 @@ function cleanInput(input: AppUserInput) {
     first_name: firstName,
     last_name: lastName,
     role: input.role,
-    // El admin entra a todo: no se le guardan módulos sueltos.
-    modules: input.role === "admin" ? [] : normalizeModules(input.modules),
+    // El admin entra a todo: no se le guardan módulos sueltos, salvo los "a elección" (Accesos rápidos).
+    modules: input.role === "admin" ? normalizeModules(input.modules).filter(isOptInModule) : normalizeModules(input.modules),
     note: input.note?.trim() || null,
   };
 }

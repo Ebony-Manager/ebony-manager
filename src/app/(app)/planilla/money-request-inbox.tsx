@@ -93,7 +93,7 @@ export function MoneyRequestInbox({
   if (requests.length === 0) return null;
 
   return (
-    <section className="mb-4 flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <section className="mb-4 flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
       <div className="flex items-center gap-2">
         <Banknote className="size-4 text-primary" />
         <h2 className="text-sm font-semibold text-foreground">

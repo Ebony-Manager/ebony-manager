@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { HandCoins, Hammer, Users, Wallet } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   computeContractorsDashboard,
   type DashboardContractor,
@@ -19,6 +18,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorsMonthlyChart } from "./contractors-monthly-chart";
 import { contractorProfilePath } from "@/lib/personal/paths";
+import { SectionHeader } from "@/components/shared/page-header";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 export interface ContractorsDashboardInput {
   /** Préstamos en cuotas con su avance (Pagos → Préstamos y descuentos). */
@@ -100,22 +101,17 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-medium text-foreground">{tt("cd_title")}</p>
-          <p className="text-xs text-muted-foreground">{tt("cd_subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1">
-          {years.map((y) => (
-            <Button key={y} size="sm" variant={period === y ? "secondary" : "ghost"} onClick={() => setPeriod(y)}>
-              {y}
-            </Button>
-          ))}
-          <Button size="sm" variant={period === "all" ? "secondary" : "ghost"} onClick={() => setPeriod("all")}>
-            {tt("cd_all")}
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title={tt("cd_title")}
+        subtitle={tt("cd_subtitle")}
+        action={
+          <SegmentedFilter
+            value={String(period)}
+            onChange={(v) => setPeriod(v === "all" ? "all" : Number(v))}
+            options={[...years.map((y) => ({ value: String(y), label: String(y) })), { value: "all", label: tt("cd_all") }]}
+          />
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <PayrollKpiCard

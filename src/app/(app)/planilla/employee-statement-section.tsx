@@ -34,9 +34,9 @@ const COLS: {
 }[] = [
   { key: "salary", category: "salario", label: "cat_salario", value: (r) => r.salaryCents, sign: "" },
   { key: "bonus", category: "bonos", label: "cat_bonos", value: (r) => r.bonusCents, sign: "+" },
-  { key: "deduction", category: "descuentos", label: "cat_descuentos", value: (r) => r.deductionCents, sign: "−" },
+  { key: "deduction", category: "descuentos", label: "qe_asistencia", value: (r) => r.deductionCents, sign: "−" },
   { key: "given", category: "prestamos", label: "st_loans_given", value: (r) => r.loanGivenCents, sign: "" },
-  { key: "paid", category: "descuentoPrestamos", label: "st_loans_paid", value: (r) => r.loanPaidCents, sign: "−" },
+  { key: "paid", category: "descuentoPrestamos", label: "col_prestamos_desc", value: (r) => r.loanPaidCents, sign: "−" },
 ];
 
 /**

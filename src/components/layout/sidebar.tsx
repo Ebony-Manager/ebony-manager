@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { EbonyMark } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavPanel } from "./nav-items";
+import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
@@ -21,6 +21,8 @@ export interface PendingCounts {
   intakes: number;
   /** "Solicitudes de dinero" (JotForm) → Planilla. */
   moneyRequests: number;
+  /** Avisos de la app sin ver (solo admin). */
+  notices: number;
 }
 
 export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose: () => void; pending: PendingCounts }) {
@@ -38,14 +40,14 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
   const openPanel = [almacenPanel, personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
   // Qué ítem del panel lleva cada indicador.
   const pendingFor = (href: string) =>
-    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0;
+    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0;
   const panelPending = (panel: NavPanel) => panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0);
 
   // Ícono del rail para un panel: un Link normal al primer ítem que el
   // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
   // la ruta. Sin ítems visibles, no hay ícono.
   function panelLink(panel: NavPanel) {
-    const [first] = panel.items;
+    const first = panelHome(panel, access);
     if (!first) return null;
     const Icon = panel.icon;
     return (
@@ -68,7 +70,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
 
       <div
         className={`
-          fixed top-0 left-0 h-full z-30 flex
+          fixed top-0 left-0 h-full z-30 flex print:hidden
           transition-transform duration-200 ease-in-out
           md:relative md:translate-x-0 md:z-auto
           ${isOpen ? "translate-x-0" : "-translate-x-full"}

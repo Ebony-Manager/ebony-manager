@@ -2,12 +2,14 @@
 
 import * as React from "react";
 
-import { PageBreadcrumb, SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { AdminDashboardView } from "./admin-dashboard-view";
 import { DashboardView } from "../planilla/dashboard-view";
+import { AttendanceSummaryView } from "../planilla/attendance-summary-view";
 import { ContractorsDashboardView, type ContractorsDashboardInput } from "../contratistas/contractors-dashboard-view";
 
 export type ResumenView = "todos" | "empleados" | "contratistas";
@@ -53,12 +55,14 @@ export function ResumenClient({
   const [year, setYear] = React.useState(() => currentPeriod().year);
 
   return (
-    <div className="flex flex-col gap-5 px-7 pt-6 pb-10">
-      <PageBreadcrumb />
-      {options.length > 1 && <SegmentedFilter value={view} options={options} onChange={setView} />}
+    <div className={PAGE_CLASS}>
+      <PageHeader title={tt("title")} subtitle={tt("subtitle")} />
+      {options.length > 1 && <SegmentedFilter fill value={view} options={options} onChange={setView} />}
       {view === "todos" && <AdminDashboardView />}
       {view === "empleados" && <DashboardView year={year} onYearChange={setYear} />}
       {view === "contratistas" && contractorsDashboard && <ContractorsDashboardView input={contractorsDashboard} />}
+      {/* Asistencia es de empleados (reloj y ponchadas): va dentro de Todos y de Empleados, no aparte. */}
+      {canEmployees && (view === "todos" || view === "empleados") && <AttendanceSummaryView />}
     </div>
   );
 }

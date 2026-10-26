@@ -426,3 +426,102 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* =============================================================================
+   CELULAR / APP INSTALADA
+   - --mobile-nav-h: alto de la barra de navegación de abajo (solo < md).
+     --app-bottom: lo que ocupa esa barra más la zona de gestos del teléfono;
+     lo usan las barras fijas de abajo (ej. el carrito de Salidas) para
+     quedar encima de ella.
+   - Campos de texto a 16px en celular: con menos, el iPhone hace zoom al
+     tocarlos y la pantalla queda corrida.
+   - Sin el recuadro gris al tocar, y sin el rebote que arrastra toda la
+     pantalla (el refrescar al jalar lo hace la app, ver pull-to-refresh.tsx).
+   ============================================================================= */
+:root {
+  --mobile-nav-h: 0px;
+  --app-bottom: 0px;
+}
+@media (max-width: 767px) {
+  :root {
+    --mobile-nav-h: 3.5rem;
+    --app-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Reacción al tacto (solo pantallas táctiles): todo lo que se toca se hunde
+   un poco y se aclara mientras el dedo está encima, para que cada toque se
+   sienta respondido. En computadora mandan los estados hover de siempre. */
+@media (hover: none) and (pointer: coarse) {
+  button:not(:disabled),
+  a[href],
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  summary,
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    transition:
+      transform 120ms ease,
+      opacity 120ms ease,
+      background-color 120ms ease;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:active,
+  [role="tab"]:active,
+  [role="menuitem"]:active,
+  [role="option"]:active,
+  summary:active,
+  label:has(input[type="checkbox"]):active,
+  label:has(input[type="radio"]):active {
+    transform: scale(0.97);
+    opacity: 0.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active,
+  a[href]:active,
+  [role="button"]:active {
+    transform: none !important;
+  }
+}
+
+/* En el celular la barra de arriba ya dice la sección y sus pestañas: la
+   ruta "Personal / Staff" de cada pantalla sobra y se oculta. */
+@media (max-width: 767px) {
+  main nav[aria-label="breadcrumb"] {
+    display: none;
+  }
+}
+
+/* Impresión (ej. la hoja de conteo del Almacén): solo el contenido, en blanco,
+   sin barras de la app. Las piezas de la app llevan print:hidden. */
+@media print {
+  @page {
+    size: letter;
+    margin: 12mm 10mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

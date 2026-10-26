@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Banknote,
   ChevronDown,
   ChevronLeft,
@@ -51,7 +49,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCents, monthLabel } from "@/lib/planilla/payroll-period";
 import { formatDate, formatDateCompact } from "@/lib/planilla/format";
 // KPIs con el mismo componente que el Registro de Planilla (Taller) —
@@ -116,6 +113,9 @@ import { LedgerEntryDialog } from "./ledger-entry-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { ConfirmButton } from "@/components/shared/confirm-button";
+import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
 /** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
@@ -438,7 +438,6 @@ export function ContractorProfileView({
   }
 
   async function handleDeleteEntry(id: string) {
-    if (!window.confirm(tt("mov_delete_confirm"))) return;
     setDeletingId(id);
     try {
       await deleteLedgerEntryAction(id);
@@ -481,15 +480,10 @@ export function ContractorProfileView({
   const emergency = [contractor.emergencyContactName, contractor.emergencyContactPhone].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
+    <div className={PAGE_CLASS}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-            <Link href={contractorBackPath(from)}>
-              <ArrowLeft className="size-3.5" />
-              {t(lang, strings.common.back)}
-            </Link>
-          </Button>
+          <BackLink href={contractorBackPath(from)} label={t(lang, strings.common.back)} />
 
           {/* Ajustes del contratista: datos personales (discretos) +
               inactivar / liquidar / reactivar / eliminar. Nada de esto va
@@ -560,7 +554,7 @@ export function ContractorProfileView({
                 <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="xl" />
               </ProfilePhotoPicker>
               <div>
-                <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
                   {contractor.name}
                   {isInactive && <Badge variant="secondary">{tt("inactive_badge")}</Badge>}
                 </h1>
@@ -899,15 +893,11 @@ export function ContractorProfileView({
             es la 4ª tab (vuelve al estado sin agrupación). */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">{tt("group_by")}:</span>
-          <Tabs value={groupBy} onValueChange={(v) => setGroupBy(v as LedgerGroupBy)}>
-            <TabsList className="h-8">
-              {LEDGER_GROUP_BYS.map((g) => (
-                <TabsTrigger key={g} value={g} className="px-2.5 text-xs">
-                  {g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g])}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <SegmentedFilter
+            value={groupBy}
+            onChange={setGroupBy}
+            options={LEDGER_GROUP_BYS.map((g) => ({ value: g, label: g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g]) }))}
+          />
         </div>
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}
@@ -1107,16 +1097,14 @@ export function ContractorProfileView({
                           >
                             <Pencil className="size-3.5" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-6 text-muted-foreground hover:text-destructive"
-                            title={tt("mov_delete_title")}
+                          <ConfirmButton
+                            iconOnly
+                            className="p-1"
+                            label={tt("mov_delete_title")}
+                            confirmLabel={t(lang, strings.nav.confirm_delete)}
                             disabled={deletingId === row.id}
-                            onClick={() => handleDeleteEntry(row.id)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                            onConfirm={() => void handleDeleteEntry(row.id)}
+                          />
                         </td>
                       </tr>
                     );

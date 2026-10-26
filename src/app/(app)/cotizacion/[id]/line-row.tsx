@@ -4,12 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeftRight, MousePointerClick, Pencil, X } from "lucide-react";
 
-import { formatMoney, lineAmount, lineQty } from "@/lib/cotizador/pricing";
+import { formatMoney, golaAmount, lineAmount, lineQty } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import type { CatalogItem, Finish, QuoteLine, Unit } from "@/types/cotizador";
 import { NumField } from "../num-field";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 const ON_WALL = ["rev", "rev2", "rev55", "mod", "esp"];
 const FINISHES: (Finish | null)[] = ["aglomerado", "blanco", "pintado", "chapilla", null];
@@ -35,6 +36,7 @@ export function LineRow({
   grouped = false,
   assigning = false,
   onAssign,
+  gola = null,
 }: {
   /** Dentro de un grupo con subtítulo: no repite la categoría en el renglón. */
   grouped?: boolean;
@@ -45,6 +47,8 @@ export function LineRow({
   /** Renglón seleccionado: sus piezas se resaltan en el dibujo del plano. */
   selected?: boolean;
   onSelect?: () => void;
+  /** La gola del catálogo que le toca a esta puerta o gaveta (null si no aplica). */
+  gola?: CatalogItem | null;
   /** Ítems activos de la misma categoría que el renglón. */
   options: CatalogItem[];
   cornerMode: boolean;
@@ -76,8 +80,8 @@ export function LineRow({
       onClickCapture={onSelect}
       onFocusCapture={onSelect}
       className={cn(
-        "flex flex-wrap items-center gap-x-2.5 gap-y-1 border bg-card px-2 pt-1.5 pb-2",
-        selected ? "border-[#c9a84c] ring-1 ring-[#c9a84c]" : "border-ink-900/8"
+        "flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border bg-card px-2 pt-1.5 pb-2",
+        selected ? "border-[#c9a84c] ring-1 ring-[#c9a84c]" : "border-border"
       )}
     >
       <div className="flex basis-full items-center gap-2 text-[11px] tracking-[0.03em] text-muted-foreground">
@@ -104,6 +108,16 @@ export function LineRow({
           </button>
         )}
         <span className="flex-1" />
+        {gola && !(line.golaMl > 0) && (
+          <button
+            type="button"
+            title={tt("line_gola_hint")}
+            onClick={() => onChange({ golaMl: Math.max(0.01, Math.round((line.mode === "med" ? line.width * (line.pieces || 1) : 1) * 100) / 100), golaPrice: gola.price })}
+            className="rounded px-1 font-medium text-foreground/70 hover:bg-muted/60 hover:text-foreground"
+          >
+            + {tt("line_gola")}
+          </button>
+        )}
         {line.unit !== "unidad" && (
           <button
             type="button"
@@ -115,9 +129,7 @@ export function LineRow({
             <ArrowLeftRight className="size-3" />
           </button>
         )}
-        <button type="button" aria-label={tt("line_remove")} title={tt("line_remove")} onClick={onRemove} className="p-0.5 hover:bg-muted/60 hover:text-destructive">
-          <X className="size-3.5" />
-        </button>
+        <ConfirmButton iconOnly icon={X} label={tt("line_remove")} confirmLabel={tt("line_remove_confirm")} onConfirm={onRemove} className="p-0.5 hover:bg-muted/60" />
       </div>
 
       {free ? (
@@ -127,13 +139,13 @@ export function LineRow({
             onChange={(e) => onChange({ name: e.currentTarget.value })}
             placeholder={tt("line_free_ph")}
             aria-label={tt("line_free_ph")}
-            className="h-7 min-w-0 flex-1 border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring"
+            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring"
           />
           <select
             value={line.unit}
             aria-label={tt("line_unit")}
             onChange={(e) => onChange({ unit: e.currentTarget.value as Unit, mode: "dir" })}
-            className="h-7 border border-input bg-card px-1 text-[13px] outline-none focus-visible:border-ring"
+            className="h-7 rounded-md border border-input bg-card px-1 text-[13px] outline-none focus-visible:border-ring"
           >
             {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
               <option key={u} value={u}>
@@ -150,7 +162,7 @@ export function LineRow({
             const next = options.find((o) => o.id === e.currentTarget.value);
             if (next) onSwap(next);
           }}
-          className="h-7 min-w-0 flex-[1_1_150px] border border-input bg-card px-1.5 text-[13px] outline-none focus-visible:border-ring"
+          className="h-7 min-w-0 flex-[1_1_150px] rounded-md border border-input bg-card px-1.5 text-[13px] outline-none focus-visible:border-ring"
         >
           {!catalogItem && <option value="">{line.name}</option>}
           {byFinish.length > 1
@@ -221,6 +233,29 @@ export function LineRow({
 
         <span className="min-w-[78px] text-right text-sm font-semibold whitespace-nowrap tabular-nums">{formatMoney(lineAmount(line))}</span>
       </div>
+
+      {line.golaMl > 0 && (
+        // Anexo de la puerta o gaveta, en chico: su metraje y su precio. El
+        // importe de la derecha del renglón ya incluye la gola.
+        <div className="ml-auto flex basis-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="rounded bg-muted/70 px-1.5 py-0.5 font-medium text-foreground/70">{tt("line_gola")}</span>
+          <NumField
+            value={line.golaMl}
+            onChange={(n) => onChange({ golaMl: n })}
+            suffix="ML"
+            inputWidth={34}
+            className="h-6"
+            aria-label={tt("line_gola_ml")}
+            title={tt("line_gola_ml")}
+          />
+          <span className="tabular-nums">× {formatMoney(line.golaPrice)}</span>
+          <span className="tabular-nums">= {formatMoney(golaAmount(line))}</span>
+          <span className="text-muted-foreground/70">· {tt("line_gola_included")}</span>
+          <button type="button" aria-label={tt("line_gola_remove")} title={tt("line_gola_remove")} onClick={() => onChange({ golaMl: 0 })} className="p-0.5 hover:text-destructive">
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

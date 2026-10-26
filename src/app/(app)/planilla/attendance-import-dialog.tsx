@@ -19,6 +19,7 @@ import { formatDate } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { clearPeriodHoursAction, upsertPayrollEntryAction } from "./actions";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 
 type RegistroRow = Awaited<ReturnType<typeof getRegistroAction>>[number];
 
@@ -83,6 +84,7 @@ export function AttendanceImportDialog({
   const [edits, setEdits] = React.useState<Record<string, Edit>>({});
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [applying, setApplying] = React.useState(false);
+  const { confirm, dialog } = useConfirm();
   const [otEmployee, setOtEmployee] = React.useState("");
   const [otDate, setOtDate] = React.useState("");
   const [otFrom, setOtFrom] = React.useState("17:00");
@@ -168,7 +170,7 @@ export function AttendanceImportDialog({
   }
 
   async function clearHours() {
-    if (!window.confirm(`${tt("att_clear_confirm")}\n\n${quincenaLabel}`)) return;
+    if (!(await confirm({ title: `${tt("att_clear")} · ${quincenaLabel}`, message: tt("att_clear_confirm"), confirmLabel: tt("att_clear"), destructive: true }))) return;
     setApplying(true);
     try {
       const { cleared } = await clearPeriodHoursAction(period.year, period.month, period.half);
@@ -232,6 +234,7 @@ export function AttendanceImportDialog({
   const quincenaLabel = `${period.half === 1 ? "1Q" : "2Q"} ${monthLabel(lang, period.month)} ${period.year}`;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
@@ -241,7 +244,7 @@ export function AttendanceImportDialog({
           <DialogDescription>{tt("att_desc")}</DialogDescription>
         </DialogHeader>
 
-        <details className="border border-border">
+        <details className="rounded-lg overflow-hidden border border-border">
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-foreground">
             {tt("att_ot_title")} ({overtime.length})
           </summary>
@@ -293,12 +296,12 @@ export function AttendanceImportDialog({
         ) : (
           <>
             {unmatched.length > 0 && (
-              <p className="border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 {tt("att_unmatched")}: <span className="font-medium text-foreground">{unmatched.join(", ")}</span>
               </p>
             )}
 
-            <div className="overflow-x-auto border border-border">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[980px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
@@ -437,5 +440,7 @@ export function AttendanceImportDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {dialog}
+    </>
   );
 }

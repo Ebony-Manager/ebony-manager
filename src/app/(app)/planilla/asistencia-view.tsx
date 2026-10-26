@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
+import { CalendarX2, ChevronDown, CircleCheck, Clock, TriangleAlert, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { BLOCKING_FLAGS, type DayFlag, type DayResult, type RawPunch } from "@/lib/attendance/types";
 import type { AttendanceStatus, StoredResolution } from "@/services/attendance";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { parseClockReport, parseJotformPunches } from "@/lib/attendance/parse";
+import { parseClockReport, parseCsv, parseJotformPunches } from "@/lib/attendance/parse";
 import { buildProposal, periodDateRange, type EmployeeProposal, type ProposalEmployee } from "@/lib/attendance/proposal";
 import { currentPeriod, monthLabel, nextPeriod, previousPeriod, type Period } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
@@ -17,6 +17,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
   getAttendanceAction,
+  getAttendanceRosterAction,
   getRegistroAction,
   importPunchesAction,
   linkAttendanceNameAction,
@@ -25,11 +26,16 @@ import {
 } from "./actions";
 import { AttendanceImportDialog } from "./attendance-import-dialog";
 import { AttendanceDayDialog } from "./attendance-day-dialog";
+import { Stepper } from "@/components/shared/page-header";
+import { KpiCard } from "@/components/shared/kpi-card";
+import { AttendanceSummaryView } from "./attendance-summary-view";
 
 type Row = Awaited<ReturnType<typeof getRegistroAction>>[number];
 interface Loaded {
   period: Period;
+  /** Filas de la Quincena (solo con Planilla; sin ella, vacío). */
   rows: Row[];
+  employees: ProposalEmployee[];
   punches: RawPunch[];
   links: Record<string, string | null>;
   status: AttendanceStatus;
@@ -54,14 +60,14 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
 };
 const WEEKDAYS = { es: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"], en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] };
 
-/** Texto de un archivo de marcaciones a filas: CSV simple o la primera hoja de un xlsx. */
+/** Texto de un archivo de marcaciones a filas: CSV o la primera hoja de un xlsx. */
 async function readRows(file: File): Promise<string[][]> {
   if (/\.xlsx?$/i.test(file.name)) {
     const XLSX = await import("xlsx");
     const wb = XLSX.read(await file.arrayBuffer());
     return XLSX.utils.sheet_to_json<string[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, blankrows: false }) as string[][];
   }
-  return (await file.text()).split(/\r?\n/).map((l) => l.split(","));
+  return parseCsv(await file.text());
 }
 
 /**
@@ -73,8 +79,14 @@ async function readRows(file: File): Promise<string[][]> {
  * la entrada o la salida se revisa a mano (`AttendanceDayDialog`): mientras
  * no, esa persona no pasa a la Quincena. "Pasar a la Quincena" abre la
  * propuesta (`AttendanceImportDialog`) para aplicarla.
+ *
+ * Sin Planilla (`canPayroll` falso, ej. la jefa de taller) se ve la misma
+ * quincena y se revisan días, pero sin nada de dinero: la lista de empleados
+ * sale de `attendance_roster` (sin salarios) y no hay subir archivos,
+ * vincular nombres, "Pasar a la Quincena" ni el resumen en dinero. Cada día
+ * que revisa le deja un aviso al admin (trigger en la base).
  */
-export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
+export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: () => void; canPayroll?: boolean }) {
   const { lang } = useLang();
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
@@ -93,10 +105,25 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
     const p = period;
     const range = periodDateRange(p.year, p.month, p.half);
     startTransition(async () => {
-      const [rows, att] = await Promise.all([getRegistroAction(p.year, p.month, p.half), getAttendanceAction(range.from, range.to)]);
-      setLoaded({ period: p, rows, ...att });
+      const [rows, att, roster] = await Promise.all([
+        canPayroll ? getRegistroAction(p.year, p.month, p.half) : Promise.resolve([] as Row[]),
+        getAttendanceAction(range.from, range.to),
+        canPayroll ? Promise.resolve(null) : getAttendanceRosterAction(),
+      ]);
+      const employees: ProposalEmployee[] = roster
+        ? roster.map((e) => ({ ...e, monthlySalaryCents: 0 }))
+        : rows.map((r) => ({
+            id: r.employee.id,
+            name: r.employee.name,
+            status: r.employee.status,
+            categoria: r.employee.categoria,
+            startDate: r.employee.startDate,
+            endDate: r.employee.endDate,
+            monthlySalaryCents: r.monthlySalaryCents,
+          }));
+      setLoaded({ period: p, rows, employees, ...att });
     });
-  }, [period]);
+  }, [period, canPayroll]);
 
   React.useEffect(() => {
     load();
@@ -105,19 +132,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
   const ready = loaded && loaded.period.year === period.year && loaded.period.month === period.month && loaded.period.half === period.half;
   const range = periodDateRange(period.year, period.month, period.half);
   const links = React.useMemo(() => new Map(Object.entries(loaded?.links ?? {})), [loaded]);
-  const employees: ProposalEmployee[] = React.useMemo(
-    () =>
-      (loaded?.rows ?? []).map((r) => ({
-        id: r.employee.id,
-        name: r.employee.name,
-        status: r.employee.status,
-        categoria: r.employee.categoria,
-        startDate: r.employee.startDate,
-        endDate: r.employee.endDate,
-        monthlySalaryCents: r.monthlySalaryCents,
-      })),
-    [loaded]
-  );
+  const employees: ProposalEmployee[] = React.useMemo(() => loaded?.employees ?? [], [loaded]);
   const { proposals, unmatched } = React.useMemo(
     () =>
       ready
@@ -193,24 +208,41 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       return next;
     });
 
+  // Para las tarjetas: días con tardanza, minutos tarde, faltas, días por revisar y % de días a tiempo.
+  const kpis = React.useMemo(() => {
+    let lateDays = 0;
+    let lateMinutes = 0;
+    let absent = 0;
+    let review = 0;
+    let worked = 0;
+    for (const p of proposals) {
+      const days = p.days.filter((d) => d.arrival !== null || d.departure !== null);
+      worked += days.length;
+      lateDays += days.filter((d) => d.lateMinutes > 0).length;
+      lateMinutes += p.lateMinutes;
+      absent += p.absentWeekdays + p.absentSaturdays;
+      review += p.blockingDays;
+    }
+    return { lateDays, lateMinutes, absent, review, punctual: worked ? Math.round(((worked - lateDays) / worked) * 100) : null };
+  }, [proposals]);
+
   const label = `${monthLabel(lang, period.month)} · ${period.half === 1 ? tp("quincena_1") : tp("quincena_2")} ${period.year}`;
   const when = (s: { date: string; minutes: number } | null) => (s ? `${formatDateCompact(lang, s.date)} ${hm(s.minutes)}` : tg("att_never"));
   const th = "px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap";
-  const uploadBtn = "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted/50";
+  const uploadBtn = "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border sm:h-8 border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted/50";
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-52 text-center text-sm font-medium text-foreground">{label}</span>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPeriod((p) => nextPeriod(p))}>
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Stepper
+          fill
+          label={label}
+          onPrev={() => setPeriod((p) => previousPeriod(p.year, p.month, p.half))}
+          onNext={() => setPeriod((p) => nextPeriod(p))}
+        />
+        {/* Celular: las dos subidas lado a lado y "Pasar a la Quincena" a todo el ancho. Solo con Planilla. */}
+        {canPayroll && (
+        <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           <label className={`${uploadBtn} ${uploading ? "pointer-events-none opacity-50" : ""}`}>
             <Upload className="size-3.5" />
             {tg("att_upload_clock")}
@@ -221,10 +253,11 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
             {tg("att_upload_jotform")}
             <input type="file" accept=".xlsx,.xls" className="sr-only" onChange={(e) => void onFile("jotform", e.currentTarget)} />
           </label>
-          <Button size="sm" disabled={!ready} onClick={() => setApplyOpen(true)}>
+          <Button size="sm" className="col-span-2 h-9 sm:h-8" disabled={!ready} onClick={() => setApplyOpen(true)}>
             {tg("att_to_quincena")}
           </Button>
         </div>
+        )}
       </div>
 
       {ready && (
@@ -240,7 +273,26 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
         </div>
       )}
 
-      {ready && unmatched.length > 0 && (
+      {/* Tarjetas de trabajo de la quincena: lo que hay que mirar antes de pasar a la Quincena. */}
+      {ready && proposals.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            icon={Clock}
+            tone="warning"
+            label={tg("att_kpi_late")}
+            value={kpis.lateDays}
+            sublabel={kpis.lateMinutes ? `${hm(kpis.lateMinutes)} h` : undefined}
+          />
+          <KpiCard icon={CalendarX2} tone="negative" label={tg("att_kpi_absent")} value={kpis.absent} />
+          <KpiCard icon={TriangleAlert} tone={kpis.review ? "warning" : "positive"} label={tg("att_kpi_review")} value={kpis.review} />
+          <KpiCard icon={CircleCheck} tone="positive" label={tg("att_kpi_punctual")} value={kpis.punctual === null ? "—" : `${kpis.punctual}%`} sublabel={tg("att_kpi_punctual_hint")} />
+        </div>
+      )}
+
+      {/* El resumen del mes / año (quién falta más…), plegado para no estorbar. */}
+      {canPayroll && <AttendanceSummaryView collapsible from="registro" />}
+
+      {canPayroll && ready && unmatched.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
           <p className="text-sm font-medium text-foreground">{tg("att_unmatched_title")}</p>
           <p className="mb-2 text-xs text-muted-foreground">{tg("att_unmatched_hint")}</p>
@@ -287,7 +339,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
         </div>
       )}
 
-      {ready && Object.keys(loaded.links).length > 0 && (
+      {canPayroll && ready && Object.keys(loaded.links).length > 0 && (
         <details className="rounded-lg border border-border px-4 py-2 text-sm">
           <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
             {tg("att_links_title")} ({Object.keys(loaded.links).length})
@@ -322,14 +374,14 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
             <table className="w-full min-w-[840px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className={th}>{tp("col_empleado")}</th>
+                  <th className={`${th} sticky left-0 z-10 bg-card`}>{tp("col_empleado")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_days")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_late_count")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_late")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_early")}</th>
                   <th className={`${th} text-right`}>{tg("att_col_absent")}</th>
                   <th className={`${th} text-right`}>{tp("att_col_review")}</th>
-                  <th className={`${th} text-right`}>{tg("att_col_in_quincena")}</th>
+                  {canPayroll && <th className={`${th} text-right`}>{tg("att_col_in_quincena")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -347,8 +399,9 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                     .join(" · ");
                   return (
                     <React.Fragment key={p.employeeId}>
-                      <tr className="cursor-pointer border-b border-border hover:bg-muted/30" onClick={() => toggle(p.employeeId)}>
-                        <td className="px-3 py-2 font-medium text-foreground">
+                      <tr className="group/row cursor-pointer border-b border-border hover:bg-muted/30" onClick={() => toggle(p.employeeId)}>
+                        {/* Nombre fijo a la izquierda al deslizar la tabla (celular). */}
+                        <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium text-foreground group-hover/row:bg-muted/30">
                           <span className="inline-flex items-center gap-1.5">
                             <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
                             {p.name}
@@ -362,11 +415,11 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
                         <td className="px-3 py-2 text-right tabular-nums">
                           {p.blockingDays ? <span className="font-medium text-amber-600 dark:text-amber-400">{p.blockingDays}</span> : "–"}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>
+                        {canPayroll && <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>}
                       </tr>
                       {isOpen && (
                         <tr className="border-b border-border bg-muted/20">
-                          <td colSpan={8} className="px-3 py-2">
+                          <td colSpan={canPayroll ? 8 : 7} className="px-3 py-2">
                             <DayTable
                               proposal={p}
                               onReview={(day) => setReviewing({ employee: { id: p.employeeId, name: p.name }, day })}
@@ -385,7 +438,7 @@ export function AsistenciaView({ onApplied }: { onApplied: () => void }) {
       </div>
       <p className="text-[11px] text-muted-foreground">{tp("att_footnote")}</p>
 
-      {ready && (
+      {canPayroll && ready && (
         <AttendanceImportDialog
           open={applyOpen}
           onOpenChange={setApplyOpen}

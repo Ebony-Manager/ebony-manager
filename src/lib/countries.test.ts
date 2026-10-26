@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMMON_COUNTRIES, COUNTRY_CODES, countryName, countryOptions, isCountryCode } from "./countries";
+import { COMMON_COUNTRIES, COUNTRY_CODES, countryCodeFromName, countryName, countryOptions, isCountryCode } from "./countries";
 
 describe("countries", () => {
   it("muestra el país en el idioma de la app", () => {
@@ -20,5 +20,15 @@ describe("countries", () => {
     expect(new Set(opts.map((o) => o.code)).size).toBe(COUNTRY_CODES.length);
     const rest = opts.filter((o) => !o.common).map((o) => o.name);
     expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })));
+  });
+
+  it("reconoce el país por su nombre en español o inglés", () => {
+    expect(countryCodeFromName("Panama")).toBe("PA");
+    expect(countryCodeFromName("panamá ")).toBe("PA");
+    expect(countryCodeFromName("Venezuela")).toBe("VE");
+    expect(countryCodeFromName("República Dominicana")).toBe("DO");
+    expect(countryCodeFromName("co")).toBe("CO");
+    expect(countryCodeFromName("Narnia")).toBeNull();
+    expect(countryCodeFromName("")).toBeNull();
   });
 });

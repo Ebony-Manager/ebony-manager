@@ -18,20 +18,28 @@ export const APP_MODULES = [
   "proyectos",
   "documentos",
   "planilla",
-  "asistencia",
   "contratistas",
+  "asistencia",
   "almacen",
   "almacen_compras",
   "almacen_costos",
   "almacen_ajustes",
+  "directorio",
+  // Inspecciones de obra: visitas con fotos y detalles por resolver (sin dinero).
+  "inspecciones",
+  // Accesos rápidos: botones a formularios de JotForm en el menú (solo enlaces, sin datos).
+  "accesos",
+  "form_autorizaciones",
+  "form_registro",
 ] as const;
 
 export type AppModule = (typeof APP_MODULES)[number];
 
 /**
  * Sub-permisos: `costos` vive dentro del Cotizador (precios y catálogo);
- * Planilla y Contratistas dentro de Personal (`documentos`), y `asistencia`
- * dentro de Planilla (Pagos → Asistencia). Compras, Costos del almacén y
+ * Planilla, Contratistas y `asistencia` dentro de Personal (`documentos`).
+ * Asistencia sin Planilla ve ponchadas y ajusta días, sin ver dinero
+ * (Pagos → Asistencia). Compras, Costos del almacén y
  * Ajustes de inventario viven dentro de Almacén. Sin el padre no hay forma
  * de llegar a ellos.
  */
@@ -39,11 +47,26 @@ export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   costos: "cotizacion",
   planilla: "documentos",
   contratistas: "documentos",
-  asistencia: "planilla",
+  asistencia: "documentos",
   almacen_compras: "almacen",
   almacen_costos: "almacen",
   almacen_ajustes: "almacen",
+  form_autorizaciones: "accesos",
+  form_registro: "accesos",
 };
+
+/**
+ * Permisos "a elección": no dan acceso a datos, solo agregan botones (Accesos
+ * rápidos). Nadie los tiene por ser admin: se marcan a cada quien, también al
+ * admin (que puede no quererlos en su menú).
+ */
+export const OPT_IN_MODULES: readonly AppModule[] = ["accesos", "form_autorizaciones", "form_registro"];
+export const isOptInModule = (m: AppModule) => OPT_IN_MODULES.includes(m);
+
+/** ¿Lo tiene marcado de verdad? (sin el "el admin entra a todo"): para los permisos a elección. */
+export function hasExplicitModule(subject: AccessSubject | null | undefined, module: AppModule): boolean {
+  return !!subject && normalizeModules(subject.modules ?? []).includes(module);
+}
 
 /** Los padres de un módulo, del más cercano al más lejano. */
 export function moduleAncestors(m: AppModule): AppModule[] {
@@ -99,6 +122,8 @@ export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
   if (hasModule(subject, "proyectos")) return "/proyectos";
   if (hasModule(subject, "documentos")) return "/personal/staff";
-  if (hasModule(subject, "almacen")) return "/almacen";
+  // Almacén sin Compras (almacenista): directo a Nueva salida.
+  if (hasModule(subject, "almacen")) return hasModule(subject, "almacen_compras") ? "/almacen" : "/almacen/salidas";
+  if (hasModule(subject, "inspecciones")) return "/inspecciones";
   return "/dashboard";
 }

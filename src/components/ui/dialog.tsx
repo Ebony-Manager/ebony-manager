@@ -52,14 +52,22 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border bg-card p-6 shadow-lg duration-200 data-[state=open]:animate-slide-in",
+          // Celular: margen a los lados y alto máximo de la pantalla visible; si no
+          // cabe, el contenido se desplaza adentro (no se sale de la pantalla).
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-lg [&>*]:min-w-0 border border-border bg-card p-5 shadow-lg duration-200 data-[state=open]:animate-slide-in sm:w-full sm:p-6",
           className,
         )}
         {...props}
+        // En pantallas táctiles no se enfoca el primer campo al abrir: si no,
+        // sale el teclado sin que nadie lo pida y tapa media ventana.
+        onOpenAutoFocus={(e) => {
+          if (window.matchMedia("(pointer: coarse)").matches) e.preventDefault();
+          props.onOpenAutoFocus?.(e);
+        }}
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-60 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none">
+          <DialogPrimitive.Close className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-sm opacity-60 sm:top-4 sm:right-4 sm:size-auto ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none">
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

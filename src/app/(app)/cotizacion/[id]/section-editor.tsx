@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronRight, Plus } from "lucide-react";
 
-import { formatMoney, lineAmount, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
+import { formatMoney, golaItemFor, isGolaItem, lineAmount, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -18,6 +18,7 @@ import {
 } from "@/types/cotizador";
 import { NumField } from "../num-field";
 import { LineRow } from "./line-row";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 type BlockKey = "eb" | "sb" | "ex" | "mg";
 
@@ -29,9 +30,9 @@ type BlockKey = "eb" | "sb" | "ex" | "mg";
 // (Clases escritas completas: Tailwind no reconoce clases armadas con variables.)
 const BLOCK_STYLE: Record<BlockKey, { head: string; body: string; rule: string; group: string }> = {
   eb: {
-    head: "bg-[color-mix(in_srgb,#e9b949_34%,var(--card))]",
-    body: "bg-[color-mix(in_srgb,#e9b949_11%,var(--card))]",
-    rule: "border-[color-mix(in_srgb,#e9b949_55%,var(--card))]",
+    head: "bg-[color-mix(in_srgb,#e9b949_48%,var(--card))]",
+    body: "bg-[color-mix(in_srgb,#e9b949_18%,var(--card))]",
+    rule: "border-[color-mix(in_srgb,#e9b949_70%,var(--card))]",
     group: "text-[color-mix(in_srgb,#b8860b_75%,var(--foreground))]",
   },
   sb: {
@@ -88,7 +89,7 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
       rows={2}
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
-      className="w-full resize-none overflow-hidden border border-input bg-card px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+      className="w-full resize-none overflow-hidden rounded-md border border-input bg-card px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
     />
   );
 }
@@ -126,13 +127,18 @@ export function SectionEditor({
   const patch = (p: Partial<QuoteSection>) => onChange({ ...section, ...p });
   const setLines = (lines: QuoteLine[]) => onChange({ ...section, lines });
   const patchLine = (id: string, p: Partial<QuoteLine>) => setLines(section.lines.map((l) => (l.id === id ? { ...l, ...p } : l)));
-  const removeLine = (id: string) =>
-    setLines(section.lines.filter((l) => l.id !== id).map((l) => (l.hostLineId === id ? { ...l, hostLineId: null } : l)));
+  // Al quitar renglones, los que iban montados sobre ellos (hostLineId) quedan sueltos.
+  const removeLines = (ids: Set<string>) =>
+    setLines(section.lines.filter((l) => !ids.has(l.id)).map((l) => (l.hostLineId && ids.has(l.hostLineId) ? { ...l, hostLineId: null } : l)));
+  const removeLine = (id: string) => removeLines(new Set([id]));
 
   const active = React.useMemo(() => catalog.filter((c) => c.active), [catalog]);
   const optionsFor = (l: QuoteLine) => {
-    const list = active.filter((c) => c.category === l.category);
     const current = l.itemId ? catalog.find((c) => c.id === l.itemId) : undefined;
+    // La gola se agrega dentro de la puerta o gaveta, así que no se ofrece
+    // como renglón (salvo en cotizaciones viejas que ya la tienen aparte).
+    const golaLine = !!current && isGolaItem(current);
+    const list = active.filter((c) => c.category === l.category && isGolaItem(c) === golaLine);
     return current && !current.active ? [current, ...list] : list;
   };
   const addLine = (category: CatalogCategory) => {
@@ -153,13 +159,24 @@ export function SectionEditor({
       cornerMode={section.wallShape === "L"}
       canEditCosts={canEditCosts}
       onChange={(p) => patchLine(l.id, p)}
-      onSwap={(item) => setLines(section.lines.map((x) => (x.id === l.id ? swapLineItem(x, item) : x)))}
+      onSwap={(item) =>
+        setLines(
+          section.lines.map((x) => {
+            if (x.id !== l.id) return x;
+            const next = swapLineItem(x, item);
+            // Al cambiar de acabado, la gola toma el precio del acabado nuevo.
+            const g = next.golaMl > 0 ? golaItemFor(catalog, next) : null;
+            return next.golaMl > 0 ? { ...next, golaMl: g ? next.golaMl : 0, golaPrice: g ? g.price : 0 } : next;
+          })
+        )
+      }
       onRemove={() => removeLine(l.id)}
       selected={selectedLineId === l.id}
       onSelect={onSelectLine ? () => onSelectLine(l.id) : undefined}
       grouped
       assigning={assigningLineId === l.id}
       onAssign={onAssign ? () => onAssign(assigningLineId === l.id ? null : l.id) : undefined}
+      gola={golaItemFor(catalog, l)}
     />
   );
 
@@ -179,8 +196,15 @@ export function SectionEditor({
       );
     });
 
+
+  // "Vaciar" el bloque: todos sus renglones, en dos toques.
+  const clearer = (lines: QuoteLine[]) =>
+    lines.length > 0 && (
+      <ConfirmButton className="ml-auto h-7" label={tt("block_clear")} confirmLabel={tt("block_clear_confirm")} onConfirm={() => removeLines(new Set(lines.map((l) => l.id)))} />
+    );
+
   const adder = (label: string, onClick: () => void) => (
-    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
+    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
       <Plus className="size-3" />
       {label}
     </button>
@@ -189,7 +213,7 @@ export function SectionEditor({
   const block = (key: BlockKey, title: string, summary: string, body: React.ReactNode) => {
     const st = BLOCK_STYLE[key];
     return (
-      <section key={key} className={cn("border", st.rule, st.body)}>
+      <section key={key} className={cn("rounded-lg overflow-hidden border", st.rule, st.body)}>
         <button type="button" aria-expanded={open[key]} onClick={() => onToggle(key)} className={cn("flex w-full items-center justify-between gap-3 px-3 py-2 text-left", st.head)}>
           <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em] uppercase">
             <ChevronRight className={cn("size-3.5 transition-transform", open[key] && "rotate-90")} />
@@ -269,6 +293,7 @@ export function SectionEditor({
             <div className="mt-0.5 flex flex-wrap gap-1.5">
               {EBONY_ADDERS.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}
               {adder(tt("cat_libre"), () => setLines([...section.lines, newFreeLine(crypto.randomUUID())]))}
+              {clearer(ebony)}
             </div>
           </>
         )}
@@ -280,7 +305,10 @@ export function SectionEditor({
           <>
             {subs.length === 0 && <p className="text-xs text-muted-foreground">{tt("block_subs_empty")}</p>}
             {grouped(subs, "sb")}
-            <div className="mt-0.5 flex flex-wrap gap-1.5">{SUB_CATEGORIES.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}</div>
+            <div className="mt-0.5 flex flex-wrap gap-1.5">
+              {SUB_CATEGORIES.filter(hasCategory).map((c) => adder(tt(`cat_${c}`), () => addLine(c)))}
+              {clearer(subs)}
+            </div>
             <div className="mt-1 max-w-[330px]">
               {kv("sb", "subMarginPct", tt("f_sub_margin"), "%")}
               <div className="flex justify-end pt-1.5">{editLink("sb")}</div>

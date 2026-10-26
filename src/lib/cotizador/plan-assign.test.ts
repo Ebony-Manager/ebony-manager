@@ -72,3 +72,12 @@ describe("metraje", () => {
     expect(m.hardware.find((r) => r.key === "Bisagra recta")?.qty).toBe(22);
   });
 });
+
+describe("gola en un ítem leído de plano", () => {
+  it("la gola de la gaveta va dentro del frente, no como renglón suelto", () => {
+    expect(base.lines.some((l) => l.itemId === "gav-go-ag")).toBe(false);
+    const front = base.lines.find((l) => l.itemId === "gav-fr-pi")!;
+    expect(front.golaMl).toBe(0.9);
+    expect(front.golaPrice).toBe(11.2);
+  });
+});

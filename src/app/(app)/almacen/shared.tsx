@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Package } from "lucide-react";
+import { SearchInput } from "@/components/shared/search-input";
 
 import type { InventoryItem, InventoryVariant } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { formatQty, stockStatus, unitLabel, variantName } from "@/lib/almacen/inventory";
+import { inventoryPhotoUrl } from "@/lib/almacen/photos";
 
 export type AlmacenKey = keyof typeof strings.almacen;
 
@@ -28,32 +30,11 @@ export function useTa() {
   return { ta, lang };
 }
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="max-w-2xl">
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-export function EmptyBox({ children }: { children: React.ReactNode }) {
-  return <div className="border border-dashed border-ink-900/16 px-6 py-10 text-center text-sm text-muted-foreground">{children}</div>;
-}
+// Encabezado y recuadro vacío: los comunes de toda la app.
+export { PageHeader, EmptyState as EmptyBox } from "@/components/shared/page-header";
 
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.currentTarget.value)}
-      placeholder={placeholder}
-      aria-label={placeholder}
-      className="h-8 w-full flex-[1_1_200px] border border-input bg-card px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 sm:max-w-xs"
-    />
-  );
+  return <SearchInput value={value} onChange={onChange} placeholder={placeholder} className="w-full flex-[1_1_200px] sm:max-w-xs" />;
 }
 
 export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stockQty" | "minQty"> }) {
@@ -62,6 +43,35 @@ export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stock
   if (s === "sin") return <Badge variant="destructive">{ta("status_out")}</Badge>;
   if (s === "bajo") return <Badge variant="warning">{ta("status_low")}</Badge>;
   return <Badge variant="success">{ta("status_ok")}</Badge>;
+}
+
+/** Foto del producto (o un ícono si no tiene). `size="fill"` ocupa todo el espacio del contenedor. */
+export function ItemThumb({
+  path,
+  size = 40,
+  className,
+  eager = false,
+}: {
+  path: string | null;
+  size?: number | "fill";
+  className?: string;
+  /** Cargar ya (ej. hoja para imprimir: una foto sin cargar sale en blanco). */
+  eager?: boolean;
+}) {
+  const url = inventoryPhotoUrl(path);
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white ${className ?? ""}`}
+      style={size === "fill" ? undefined : { width: size, height: size }}
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- foto pública de Supabase Storage; next/image no aplica.
+        <img src={url} alt="" loading={eager ? "eager" : "lazy"} className="size-full object-contain" />
+      ) : (
+        <Package className="size-1/2 text-muted-foreground/40" />
+      )}
+    </span>
+  );
 }
 
 export interface VariantRef {

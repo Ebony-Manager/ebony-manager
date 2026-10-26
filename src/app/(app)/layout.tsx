@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireProfile } from "@/lib/auth/dal";
 import { hasAnyModule } from "@/lib/auth/modules";
+import { getUnseenNoticeCount } from "@/services/notifications";
 import { getPendingCounts } from "@/services/money-requests";
 
 /**
@@ -12,13 +13,19 @@ import { getPendingCounts } from "@/services/money-requests";
  *
  * También trae cuántos "Nuevos registros" y "Solicitudes de dinero" esperan
  * revisión, para los indicadores rojos del menú (solo a quien ve Planilla o
- * Contratistas; la RLS de cada tabla repite la regla).
+ * Contratistas; la RLS de cada tabla repite la regla), y al admin cuántos
+ * avisos no ha visto (Settings → Notificaciones).
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfile();
-  const pending = hasAnyModule(profile, ["planilla", "contratistas"])
-    ? await getPendingCounts().catch(() => ({ moneyRequests: 0, intakes: 0 }))
-    : { moneyRequests: 0, intakes: 0 };
+  const [counts, notices] = await Promise.all([
+    hasAnyModule(profile, ["planilla", "contratistas"])
+      ? getPendingCounts().catch(() => ({ moneyRequests: 0, intakes: 0 }))
+      : { moneyRequests: 0, intakes: 0 },
+    // Avisos sin ver (ej. ajustes de asistencia): solo admin.
+    profile.role === "admin" ? getUnseenNoticeCount().catch(() => 0) : 0,
+  ]);
+  const pending = { ...counts, notices };
 
   return <AppShell pending={pending}>{children}</AppShell>;
 }

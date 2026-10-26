@@ -11,10 +11,12 @@ import { monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getEmployeeAnnualDetailAction, getLoansAction } from "./actions";
 import { EmployeeChargesTab } from "./employee-charges-tab";
 import { employeeProfilePath } from "@/lib/personal/paths";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { SubTabs } from "@/components/shared/page-header";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
 
@@ -133,9 +135,10 @@ export function EmployeeDetailSheet({
       key: "descuentos",
       labelKey: "br_descuentos",
       sign: -1,
-      pick: (r) => (r.entry ? r.entry.horasDescontadasCents + r.entry.diasDescontadosCents + r.entry.otherDeductionCents : 0),
+      pick: (r) => (r.entry ? r.entry.horasDescontadasCents + r.entry.diasDescontadosCents : 0),
     },
-    { key: "abono", labelKey: "br_abono", sign: -1, pick: (r) => r.ledgerPaymentCents },
+    // "Otros descuentos" no es asistencia: va con préstamos y descuentos (como en Quincena).
+    { key: "abono", labelKey: "br_abono", sign: -1, pick: (r) => r.ledgerPaymentCents + (r.entry?.otherDeductionCents ?? 0) },
   ];
 
   function renderAccrualRow(
@@ -224,7 +227,6 @@ export function EmployeeDetailSheet({
       ? `${tt(base)} (${tt("accrual_on_benefits")} ${formatCents(employee!.benefitsBaseSalaryCents ?? 0)} — ${tt("accrual_benefits_suffix")})`
       : tt(base);
 
-  const tabClass = "px-3 text-xs";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -246,14 +248,14 @@ export function EmployeeDetailSheet({
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 pb-6">
           <Tabs value={tab} onValueChange={setTab} className="gap-3">
-            <TabsList className="h-auto w-full flex-wrap justify-start">
-              <TabsTrigger value="resumen" className={tabClass}>
-                {tt("tab_resumen")}
-              </TabsTrigger>
-              <TabsTrigger value="prestamos" className={tabClass}>
-                {tt("tab_prestamos")}
-              </TabsTrigger>
-            </TabsList>
+            <SubTabs
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { value: "resumen", label: tt("tab_resumen") },
+                { value: "prestamos", label: tt("tab_prestamos") },
+              ]}
+            />
 
             <TabsContent value="resumen" className="mt-0">
               {rows === null && (
@@ -278,22 +280,14 @@ export function EmployeeDetailSheet({
               {withActivity.length > 0 && (
                 <>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
-                      {(["quincena", "month"] as const).map((v) => (
-                        <Button
-                          key={v}
-                          size="sm"
-                          variant={summaryView === v ? "secondary" : "ghost"}
-                          className="h-7 px-2.5 text-xs"
-                          onClick={() => {
-                            setSummaryView(v);
-                            setShowAll(false);
-                          }}
-                        >
-                          {tt(v === "quincena" ? "sum_view_quincena" : "sum_view_month")}
-                        </Button>
-                      ))}
-                    </div>
+                    <SegmentedFilter
+                      value={summaryView}
+                      onChange={(v) => {
+                        setSummaryView(v);
+                        setShowAll(false);
+                      }}
+                      options={(["quincena", "month"] as const).map((v) => ({ value: v, label: tt(v === "quincena" ? "sum_view_quincena" : "sum_view_month") }))}
+                    />
                     <p className="text-xs text-muted-foreground">
                       {tt("total_year")} {year}:{" "}
                       <span className="font-medium tabular-nums text-foreground">

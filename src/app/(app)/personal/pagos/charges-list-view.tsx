@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Ban, CheckCircle2, HandCoins, Hourglass, ListChecks, Percent, Trash2 } from "lucide-react";
+import { Ban, CheckCircle2, HandCoins, Hourglass, ListChecks, Percent } from "lucide-react";
 
 import type { LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
 import type { ContractorLedgerCategory } from "@/types/contractors";
@@ -16,7 +16,7 @@ import { t, strings } from "@/lib/i18n";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { getLoansOverviewAction } from "../../planilla/actions";
 import { EmployeeAvatar } from "../../planilla/employee-avatar";
-import { PayrollKpiCard } from "../../planilla/payroll-kpi-card";
+import { KpiCard } from "@/components/shared/kpi-card";
 import { LEDGER_CATEGORY_LABEL_KEY } from "../../planilla/ledger-labels";
 import type { ChargeTypeFilter } from "../../planilla/employee-charges-tab";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
@@ -26,6 +26,8 @@ import {
   deleteContractorLoanAction,
   type ContractorLoanResult,
 } from "../../contratistas/actions";
+import { ShowToggle } from "@/components/shared/page-header";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 const CHARGE_CATEGORIES = new Set<string>(["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"]);
 
@@ -219,31 +221,64 @@ export function ChargesListView({
   const open = (r: ChargeRow) =>
     r.kind === "employee" ? onOpenEmployee(r.personId) : router.push(contractorProfilePath(r.personId, "prestamos"));
   const th = "px-3 py-2 font-medium whitespace-nowrap";
+  const typeLabel = (r: ChargeRow) =>
+    t(lang, strings.planilla[LEDGER_CATEGORY_LABEL_KEY[r.category as keyof typeof LEDGER_CATEGORY_LABEL_KEY] as keyof typeof strings.planilla]);
+  // Cancelar / borrar (solo préstamos de contratistas), igual en la tabla y en las tarjetas.
+  const actions = (r: ChargeRow) => (
+    <>
+      {r.contractorLoanId && !r.cancelled && r.pendingCents > 0 && (
+        <ConfirmButton
+          iconOnly
+          icon={Ban}
+          className="p-1.5"
+          label={tg("cl_cancel")}
+          confirmLabel={t(lang, strings.nav.confirm_cancel)}
+          disabled={busy === r.contractorLoanId}
+          onConfirm={() => {
+            const id = r.contractorLoanId;
+            if (id) void run(id, () => cancelContractorLoanAction(id), tg("cl_cancelled"));
+          }}
+        />
+      )}
+      {r.contractorLoanId && r.paidCount === 0 && (
+        <ConfirmButton
+          iconOnly
+          className="p-1.5"
+          label={tg("cl_delete")}
+          confirmLabel={t(lang, strings.nav.confirm_delete)}
+          disabled={busy === r.contractorLoanId}
+          onConfirm={() => {
+            const id = r.contractorLoanId;
+            if (id) void run(id, () => deleteContractorLoanAction(id), tg("cl_deleted"));
+          }}
+        />
+      )}
+    </>
+  );
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <PayrollKpiCard icon={HandCoins} label={tp("lo_kpi_lent")} value={formatCents(kpiLent)} />
-        <PayrollKpiCard icon={CheckCircle2} label={tp("lo_kpi_collected")} value={formatCents(kpiCollected)} />
-        <PayrollKpiCard
+        <KpiCard icon={HandCoins} tone="primary" label={tp("lo_kpi_lent")} value={formatCents(kpiLent)} />
+        <KpiCard icon={CheckCircle2} tone="positive" label={tp("lo_kpi_collected")} value={formatCents(kpiCollected)} />
+        <KpiCard
           icon={Hourglass}
+          tone="warning"
           label={tp("lo_kpi_pending")}
           value={formatCents(kpiPending)}
           sublabel={thirdPartyPending > 0 ? `${tp("lo_kpi_third_party")} ${formatCents(thirdPartyPending)}` : undefined}
         />
-        <PayrollKpiCard icon={ListChecks} label={tp("lo_kpi_count")} value={String(active.length)} />
-        <PayrollKpiCard
+        <KpiCard icon={ListChecks} label={tp("lo_kpi_count")} value={String(active.length)} />
+        <KpiCard
           icon={Percent}
+          tone="positive"
           label={tp("lo_kpi_interest")}
           value={formatCents(interestCollected)}
           sublabel={`${tp("lo_kpi_interest_of")} ${formatCents(interestAgreed)}`}
         />
       </div>
 
-      <label className="flex cursor-pointer items-center justify-end gap-2 text-xs text-muted-foreground">
-        <input type="checkbox" checked={history} onChange={(e) => setHistory(e.target.checked)} />
-        {tp("lo_show_history")}
-      </label>
+      <ShowToggle className="self-end" checked={history} onChange={setHistory} label={tp("lo_show_history")} />
 
       {failed ? (
         <div className="py-8 text-center text-sm text-muted-foreground">
@@ -257,7 +292,62 @@ export function ChargesListView({
       ) : shown.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">{tp("lo_empty")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <>
+        {/* Celular: una tarjeta por préstamo o descuento. */}
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card sm:hidden">
+          {shown.map((r) => {
+            const pct = r.count > 0 ? Math.round((r.paidCount / r.count) * 100) : 0;
+            return (
+              <li key={r.key} className={`flex flex-col gap-2 px-3 py-3 active:bg-muted/40 ${r.done ? "text-muted-foreground" : ""}`} onClick={() => open(r)}>
+                <div className="flex items-center gap-2.5">
+                  {r.kind === "employee" ? (
+                    <EmployeeAvatar name={r.personName} employeeId={r.personId} sortOrder={r.sortOrder} size="sm" />
+                  ) : (
+                    <ContractorAvatar name={r.personName} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{r.personName}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {typeLabel(r)} · {formatDate(lang, r.date)}
+                      {r.kind === "contractor" && ` · ${ts("kind_contractor")}`}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatCents(r.done ? 0 : r.pendingCents)}</p>
+                    <p className="text-[11px] tabular-nums text-muted-foreground">
+                      {tp("loan_of")} {formatCents(r.principalCents + r.interestCents)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-walnut" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="whitespace-nowrap tabular-nums">
+                    {r.paidCount} {tp("loan_of")} {r.count}
+                  </span>
+                  {r.cancelled && <span>({tp("lo_cancelled")})</span>}
+                  {!r.cancelled && r.done && <span>({tp("lo_done")})</span>}
+                </div>
+                {(!r.done && r.next) || r.contractorLoanId ? (
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>{!r.done && r.next ? `${tp("lo_col_next")}: ${r.next.label} · ${formatCents(r.next.amountCents)}` : ""}</span>
+                    <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {actions(r)}
+                    </span>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+          <li className="flex items-center justify-between bg-muted/40 px-3 py-2 text-xs font-medium">
+            <span>{tp("lo_total")}</span>
+            <span className="tabular-nums">
+              {tp("lo_col_pending")} {formatCents(shown.filter((r) => !r.done).reduce((s, r) => s + r.pendingCents, 0))}
+            </span>
+          </li>
+        </ul>
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
@@ -274,7 +364,7 @@ export function ChargesListView({
             <tbody>
               {shown.map((r) => {
                 const pct = r.count > 0 ? Math.round((r.paidCount / r.count) * 100) : 0;
-                const label = t(lang, strings.planilla[LEDGER_CATEGORY_LABEL_KEY[r.category as keyof typeof LEDGER_CATEGORY_LABEL_KEY] as keyof typeof strings.planilla]);
+                const label = typeLabel(r);
                 return (
                   <tr
                     key={r.key}
@@ -326,38 +416,7 @@ export function ChargesListView({
                       {!r.done && r.next ? `${r.next.label} · ${formatCents(r.next.amountCents)}` : "—"}
                     </td>
                     <td className="px-2 py-2 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {r.contractorLoanId && !r.cancelled && r.pendingCents > 0 && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-7 text-muted-foreground"
-                          title={tg("cl_cancel")}
-                          disabled={busy === r.contractorLoanId}
-                          onClick={() => {
-                            const id = r.contractorLoanId;
-                            if (!id || !window.confirm(tg("cl_cancel_confirm"))) return;
-                            void run(id, () => cancelContractorLoanAction(id), tg("cl_cancelled"));
-                          }}
-                        >
-                          <Ban className="size-3.5" />
-                        </Button>
-                      )}
-                      {r.contractorLoanId && r.paidCount === 0 && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-7 text-muted-foreground hover:text-destructive"
-                          title={tg("cl_delete")}
-                          disabled={busy === r.contractorLoanId}
-                          onClick={() => {
-                            const id = r.contractorLoanId;
-                            if (!id || !window.confirm(tg("cl_delete_confirm"))) return;
-                            void run(id, () => deleteContractorLoanAction(id), tg("cl_deleted"));
-                          }}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      )}
+                      {actions(r)}
                     </td>
                   </tr>
                 );
@@ -379,6 +438,7 @@ export function ChargesListView({
             </tfoot>
           </table>
         </div>
+        </>
       )}
     </div>
   );

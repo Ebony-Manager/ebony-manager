@@ -122,11 +122,11 @@ export function BankExportDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="border border-border px-3 py-2">
+          <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-xs text-muted-foreground">{tt("ach_in_file")}</p>
             <p className="text-xl font-semibold tabular-nums text-foreground">{payload.rows.length}</p>
           </div>
-          <div className="border border-border px-3 py-2">
+          <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-xs text-muted-foreground">{tt("ach_total")}</p>
             <p className="text-xl font-semibold tabular-nums text-foreground">{formatCents(payload.totalCents)}</p>
           </div>
@@ -135,7 +135,7 @@ export function BankExportDialog({
         {(payload.totalsByConcept.decimo.count > 0 ||
           payload.totalsByConcept.vacacion.count > 0 ||
           payload.totalsByConcept.prima.count > 0) && (
-          <div className="border border-border p-3 text-xs">
+          <div className="rounded-lg border border-border p-3 text-xs">
             <p className="mb-1 font-medium text-foreground">{tt("ach_by_concept")}</p>
             <ul className="flex flex-col gap-0.5">
               {ACH_CONCEPT_ORDER.filter((c) => payload.totalsByConcept[c].count > 0).map((c) => (
@@ -151,7 +151,7 @@ export function BankExportDialog({
         )}
 
         {payload.incomplete.length > 0 && (
-          <div className="border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
             <p className="font-medium text-foreground">
               {payload.incomplete.length} {tt("ach_incomplete_title")}
             </p>

@@ -117,6 +117,9 @@ export interface QuoteLine {
   hostLineId: string | null;
   /** Piezas del plano que cubre (solo en ítems generados desde un plano). */
   pieceIds: string[];
+  /** Gola de puertas y gavetas: metros lineales y precio por ML (0 = sin gola). */
+  golaMl: number;
+  golaPrice: number;
 }
 
 export type WallShape = "recta" | "L";

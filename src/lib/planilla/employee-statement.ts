@@ -39,9 +39,10 @@ function fromDetail(r: AnnualDetailRow): Omit<StatementRow, "key" | "half" | "oc
     month: r.month,
     salaryCents: e?.basePayCents ?? 0,
     bonusCents: e ? e.extraHoursCents + e.extraDaysCents + e.viaticosCents + e.bonusCents + e.diasLibresCents : 0,
-    deductionCents: e ? e.horasDescontadasCents + e.diasDescontadosCents + e.otherDeductionCents : 0,
+    // Asistencia aparte; "otros descuentos" va con préstamos y descuentos (como en Quincena).
+    deductionCents: e ? e.horasDescontadasCents + e.diasDescontadosCents : 0,
     loanGivenCents: r.ledgerDebtCents,
-    loanPaidCents: r.ledgerPaymentCents,
+    loanPaidCents: r.ledgerPaymentCents + (e?.otherDeductionCents ?? 0),
     netCents: r.totalCents,
     loanBalanceCents: r.runningLedgerBalanceCents,
   };

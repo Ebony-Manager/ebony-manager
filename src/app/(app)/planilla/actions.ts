@@ -63,8 +63,10 @@ export async function clearPeriodHoursAction(year: number, month: number, half: 
 }
 
 // Asistencia: ponchadas guardadas (reloj por archivo, Jotform por webhook).
+// Ver y revisar días pide solo Asistencia (sin Planilla no hay dinero en
+// juego); subir el reloj, vincular nombres y pasar a la Quincena piden las dos.
 export async function getAttendanceAction(from: string, to: string) {
-  await requireModule("planilla", "asistencia");
+  await requireModule("asistencia");
   const [punches, links, status, resolutions] = await Promise.all([
     attendance.getPunches(from, to),
     attendance.getNameLinks(),
@@ -88,7 +90,7 @@ export async function resolveAttendanceDayAction(input: {
   departure: number | null;
   note: string | null;
 }) {
-  const profile = await requireModule("planilla", "asistencia");
+  const profile = await requireModule("asistencia");
   const okMinutes = (m: number | null) => m === null || (Number.isInteger(m) && m >= 0 && m < 1440);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !okMinutes(input.arrival) || !okMinutes(input.departure)) {
     throw new Error("Datos inválidos");
@@ -97,8 +99,14 @@ export async function resolveAttendanceDayAction(input: {
 }
 
 export async function unresolveAttendanceDayAction(employeeId: string, date: string) {
-  await requireModule("planilla", "asistencia");
+  await requireModule("asistencia");
   await attendance.deleteResolution(employeeId, date);
+}
+
+/** Empleados activos para la asistencia sin Planilla (sin salarios). */
+export async function getAttendanceRosterAction() {
+  await requireModule("asistencia");
+  return attendance.getAttendanceRoster();
 }
 
 export async function importPunchesAction(punches: RawPunch[]) {
@@ -112,17 +120,16 @@ export async function linkAttendanceNameAction(name: string, employeeId: string 
   await attendance.setNameLink(foldName(name), employeeId, profile.id);
 }
 
-export async function duplicatePreviousPeriodAction(year: number, month: number, half: 1 | 2) {
-  await requireModule("planilla");
-  const copied = await payroll.duplicatePreviousPeriod(year, month, half);
-  return { copied };
-}
-
 // ── Reportes (solo lectura; igual verifican admin) ─────────────────────
 
 export async function getAnnualSummaryAction(year: number) {
   await requireModule("planilla");
   return payroll.getAnnualSummary(year);
+}
+
+export async function getAttendanceSummaryAction(year: number) {
+  await requireModule("planilla");
+  return payroll.getAttendanceSummary(year);
 }
 
 export async function getAuditoriaDataAction(year: number) {

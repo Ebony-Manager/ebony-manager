@@ -4,7 +4,9 @@ import type { Database } from "@/types/database";
 
 // Paths that must stay reachable without a session.
 // /api/jotform: el webhook de JotForm, sin sesión (se autentica con su token).
-const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check", "/api/jotform"];
+// /api/almacen/resumen-diario: el cron de Vercel, sin sesión (se autentica con
+// CRON_SECRET; sin él la ruta pide admin).
+const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check", "/api/jotform", "/api/almacen/resumen-diario"];
 
 /**
  * Runs on every request (see proxy.ts). Two jobs:

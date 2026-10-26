@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import type { DirectoryPerson } from "@/types/staff-directory";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/planilla/format";
 import { countryName } from "@/lib/countries";
@@ -14,6 +12,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { documentLabel } from "./download-documents";
+import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
 
 /**
  * Ficha de una persona para quien tiene el permiso Personal pero no el
@@ -28,19 +27,14 @@ export function StaffReadOnlyProfile({ person }: { person: DirectoryPerson }) {
   const doc = documentLabel(person, td("type_cedula"), td("type_pasaporte"));
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2 self-start text-muted-foreground">
-        <Link href={STAFF_PATH}>
-          <ArrowLeft className="size-3.5" />
-          {t(lang, strings.common.back)}
-        </Link>
-      </Button>
+    <div className={PAGE_CLASS}>
+      <BackLink href={STAFF_PATH} label={t(lang, strings.common.back)} />
 
       <Card className="p-4">
         <div className="flex items-center gap-3">
           <ContractorAvatar name={person.name} photoUrl={person.photoUrl} size="xl" />
           <div>
-            <h1 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
               {person.name}
               {!person.active && <Badge variant="secondary">{td("inactive")}</Badge>}
             </h1>

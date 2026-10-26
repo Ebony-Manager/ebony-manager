@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { APP_MODULES, MODULE_PARENT, moduleAncestors, normalizeModules, type AppModule, type AppRole } from "@/lib/auth/modules";
+import { APP_MODULES, MODULE_PARENT, isOptInModule, moduleAncestors, normalizeModules, type AppModule, type AppRole } from "@/lib/auth/modules";
 import type { AppUser } from "@/types/usuarios";
 import { inviteUserAction, updateUserAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
@@ -210,7 +210,9 @@ export function UserFormDialog({
               {APP_MODULES.map((m) => {
                 const parent = MODULE_PARENT[m];
                 const depth = moduleAncestors(m).length;
-                const checked = isAdminRole || modules.includes(m);
+                // El admin tiene todo, salvo los permisos a elección (Accesos rápidos): esos se marcan igual.
+                const locked = isAdminRole && !isOptInModule(m);
+                const checked = locked || modules.includes(m);
                 return (
                   <label
                     key={m}
@@ -218,13 +220,13 @@ export function UserFormDialog({
                       "flex items-start gap-2.5 px-3 py-2 text-sm",
                       depth === 1 && "pl-8",
                       depth >= 2 && "pl-14",
-                      isAdminRole ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-ink-900/5"
+                      locked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-ink-900/5"
                     )}
                   >
                     <input
                       type="checkbox"
                       className="mt-1"
-                      disabled={isAdminRole}
+                      disabled={locked}
                       checked={checked}
                       onChange={(ev) => toggleModule(m, ev.target.checked)}
                     />

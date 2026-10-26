@@ -1,7 +1,7 @@
 import type { CatalogItem, QuoteLine, QuotePlan, QuoteSection } from "@/types/cotizador";
 import type { PlanAnswers, PlanPiece } from "@/types/plan";
 import { coverage, piecesToLines } from "./plan-rules";
-import { newLine, round2 } from "./pricing";
+import { isGolaItem, newLine, round2 } from "./pricing";
 
 /**
  * Volver a cotizar piezas de un plano después de editar el ítem a mano:
@@ -25,6 +25,14 @@ export function quoteMissing(section: QuoteSection, plan: QuotePlan, catalog: Ca
   for (const g of piecesToLines(missing, perPiece(plan.answers)).lines) {
     const item = byCode.get(g.code);
     if (!item) continue;
+    if (isGolaItem(item)) {
+      // La gola va anexa a la puerta o gaveta que cubre esas piezas.
+      const t = lines.findIndex((l) => l.category === item.category && l.unit === "m2" && l.pieceIds.some((id) => g.pieceIds.includes(id)));
+      if (t >= 0) {
+        lines[t] = { ...lines[t], golaMl: round2(lines[t].golaMl + g.qty), golaPrice: item.price };
+        continue;
+      }
+    }
     const i = lines.findIndex((l) => l.itemId === item.id);
     if (i >= 0) {
       const l = lines[i];

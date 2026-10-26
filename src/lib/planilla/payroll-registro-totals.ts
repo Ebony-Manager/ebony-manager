@@ -6,19 +6,22 @@ import type { PayrollEntry } from "@/types/planilla";
  * la vista no repita la aritmética, y su test amarra que las cuatro sumas
  * y el total de la app no puedan separarse:
  *
- *   base + bonificaciones − descuentos + prestaciones
+ *   base + bonificaciones − descuentos − otros descuentos + prestaciones
  *     = total de la app + abono a préstamos del período
  *
- * (el abono de ledger baja el take-home pero no es ninguna de las cuatro
- * columnas — ver `payroll-registro-totals.test.ts`).
+ * (el abono de ledger baja el take-home pero no es ninguna de estas sumas
+ * — ver `payroll-registro-totals.test.ts`). "Otros descuentos" va aparte
+ * de la asistencia: en Quincena se muestra junto a préstamos y descuentos.
  */
 export interface RegistroSimpleTotals {
   baseCents: number;
   /** Horas extra + días extra + viáticos + bonos + días libres. */
   bonificacionesCents: number;
-  /** Horas descontadas + días descontados + otros descuentos (positivo:
-   *  la vista lo resta). */
+  /** Asistencia: horas descontadas + días descontados (positivo: la
+   *  vista lo resta). */
   descuentosCents: number;
+  /** Otros descuentos de la quincena (positivo: la vista lo resta). */
+  otrosDescuentosCents: number;
   /** Décimo + vacación + prima de antigüedad PAGADOS en la quincena. */
   prestacionesCents: number;
 }
@@ -40,12 +43,13 @@ export function computeRegistroSimpleTotals(
     | "primaAntiguedadPaidCents"
   > | null
 ): RegistroSimpleTotals {
-  if (!entry) return { baseCents: 0, bonificacionesCents: 0, descuentosCents: 0, prestacionesCents: 0 };
+  if (!entry) return { baseCents: 0, bonificacionesCents: 0, descuentosCents: 0, otrosDescuentosCents: 0, prestacionesCents: 0 };
   return {
     baseCents: entry.basePayCents,
     bonificacionesCents:
       entry.extraHoursCents + entry.extraDaysCents + entry.viaticosCents + entry.bonusCents + entry.diasLibresCents,
-    descuentosCents: entry.horasDescontadasCents + entry.diasDescontadosCents + entry.otherDeductionCents,
+    descuentosCents: entry.horasDescontadasCents + entry.diasDescontadosCents,
+    otrosDescuentosCents: entry.otherDeductionCents,
     prestacionesCents: entry.decimoPaidCents + entry.vacationPaidCents + entry.primaAntiguedadPaidCents,
   };
 }

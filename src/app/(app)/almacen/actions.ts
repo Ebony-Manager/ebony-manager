@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireModule, requireProfile } from "@/lib/auth/dal";
+import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal";
 import * as almacen from "@/services/almacen";
-import type { AdjustmentReason, RequestStatus } from "@/types/almacen";
+import type { AdjustmentReason, OrderDelivery, RequestStatus } from "@/types/almacen";
 
 // Almacén: cada action pide su permiso al entrar (además de la RLS y de los
 // chequeos dentro de las funciones de la base). Las solicitudes de compra las
@@ -25,12 +25,12 @@ async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
 // ── Proveedores (Compras) ───────────────────────────────────────────────
 
 export async function createSupplierAction(input: almacen.SupplierInput) {
-  await requireModule("almacen", "almacen_compras");
+  await requireAnyModule("almacen_compras", "directorio");
   return run(() => almacen.createSupplier(input));
 }
 
 export async function updateSupplierAction(id: string, input: almacen.SupplierInput) {
-  await requireModule("almacen", "almacen_compras");
+  await requireAnyModule("almacen_compras", "directorio");
   return run(() => almacen.updateSupplier(id, input));
 }
 
@@ -44,6 +44,26 @@ export async function createItemAction(input: almacen.ItemInput) {
 export async function updateItemAction(id: string, input: almacen.ItemInput) {
   await requireModule("almacen", "almacen_compras");
   return run(() => almacen.updateItem(id, input));
+}
+
+export async function deleteItemAction(id: string) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.deleteItem(id));
+}
+
+export async function setItemPhotoAction(id: string, path: string | null) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.setItemPhoto(id, path));
+}
+
+export async function linkSupplierToItemsAction(supplierId: string, itemIds: string[]) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.linkSupplierToItems(supplierId, itemIds));
+}
+
+export async function saveItemLevelsAction(itemId: string, levels: almacen.VariantLevels[], notes: string | null) {
+  await requireModule("almacen", "almacen_compras");
+  return run(() => almacen.saveItemLevels(itemId, levels, notes));
 }
 
 // ── Salidas (Almacén) ───────────────────────────────────────────────────
@@ -68,9 +88,16 @@ export async function updatePurchaseRequestAction(id: string, patch: { qty?: num
 
 // ── Pedidos ─────────────────────────────────────────────────────────────
 
-export async function createPurchaseOrderAction(supplierId: string, requestIds: string[], notes: string | null) {
+export async function createPurchaseOrderAction(supplierId: string, requestIds: string[], notes: string | null, delivery: OrderDelivery) {
   await requireModule("almacen", "almacen_compras");
-  return run(() => almacen.createPurchaseOrder(supplierId, requestIds, notes));
+  if (delivery !== "entrega" && delivery !== "retiro") return { ok: false as const, error: "Entrega inválida" };
+  return run(() => almacen.createPurchaseOrder(supplierId, requestIds, notes, delivery));
+}
+
+export async function setOrderDeliveryAction(orderId: string, delivery: OrderDelivery) {
+  await requireModule("almacen", "almacen_compras");
+  if (delivery !== "entrega" && delivery !== "retiro") return { ok: false as const, error: "Entrega inválida" };
+  return run(() => almacen.setOrderDelivery(orderId, delivery));
 }
 
 export async function receivePurchaseOrderAction(orderId: string, receivedOn: string | null, lines: { lineId: string; qty: number }[]) {

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/dal";
 import { answerText, isProductAnswer, parseProductLine, productLines } from "@/lib/almacen/jotform-egresos";
+import { images, toProducts } from "@/lib/almacen/jotform-products";
 
 // Catálogo del JotForm "Egreso de Suministros" (productos con fotos,
 // variantes, existencias y mínimos), tal cual está en JotForm, para revisarlo
@@ -8,8 +9,6 @@ import { answerText, isProductAnswer, parseProductLine, productLines } from "@/l
 // una fila por producto entregado.
 const FORM_ID = "221884899655074";
 const JOTFORM_API = process.env.JOTFORM_API_URL ?? "https://api.jotform.com";
-
-type Product = Record<string, unknown>;
 
 export async function GET(request: Request) {
   await requireAdmin();
@@ -98,33 +97,6 @@ async function egresosCsv(apiKey: string): Promise<Response> {
   return new Response("﻿" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n"), {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="egresos-jotform.csv"' },
   });
-}
-
-function toProducts(raw: unknown): Product[] {
-  let value = raw;
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-  if (Array.isArray(value)) return value as Product[];
-  if (value && typeof value === "object") return Object.values(value as Record<string, Product>);
-  return [];
-}
-
-function images(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map(String);
-  if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.map(String) : [raw];
-    } catch {
-      return raw ? [raw] : [];
-    }
-  }
-  return [];
 }
 
 const str = (v: unknown) => (v == null ? "" : String(v));

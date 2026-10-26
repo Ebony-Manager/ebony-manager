@@ -16,11 +16,11 @@ import { t, strings } from "@/lib/i18n";
 
 const MAX_SIDE = 512;
 
-/** Reduce la foto a máx. 512 px y la convierte a JPEG (suele quedar en
- *  ~50 KB): el celular entrega fotos de varios MB que no hacen falta. */
-async function resizeToJpeg(file: File): Promise<Blob> {
+/** Reduce la foto a máx. 512 px (o `maxSide`) y la convierte a JPEG (suele
+ *  quedar en ~50 KB): el celular entrega fotos de varios MB que no hacen falta. */
+export async function resizeToJpeg(file: File, maxSide = MAX_SIDE): Promise<Blob> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);

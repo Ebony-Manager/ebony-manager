@@ -60,6 +60,7 @@ export function metraje(section: QuoteSection, plan?: QuotePlan): Metraje {
     // Las gavetas llevan frente (m²) y estructura/gola (ML): lo lineal va
     // con su propio nombre para no sumar estructura con gola.
     add(work, l.category === "gavetas" && l.unit !== "m2" ? l.name : (WORK[l.category] ?? l.category), q, l.unit);
+    if (l.golaMl > 0) add(work, "gola", l.golaMl, "ml");
   }
 
   const stoneM2 = plan

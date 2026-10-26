@@ -10,13 +10,56 @@ const toMinutes = (hhmm: string): number | null => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
 
-/** "20261001" -> "2026-10-01". */
-const isoFromCompact = (s: string) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+/** Fecha del reloj: "20261001" o "2026-10-01" -> "2026-10-01". null si no es una fecha. */
+const clockDate = (s: string): string | null => {
+  const m = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(s.trim());
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+};
+
+/**
+ * Texto CSV a filas. Respeta las celdas entre comillas, que pueden traer
+ * comas, comillas dobles ("") o saltos de línea (el reloj pone el nombre y su
+ * número en dos líneas de la misma celda). Ignora la marca BOM del inicio.
+ */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const src = text.replace(/^\uFEFF/, "");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (quoted) {
+      if (c === '"' && src[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"' && cell === "") quoted = true;
+    else if (c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && src[i + 1] === "\n") i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows;
+}
 
 /**
  * Reporte "Timecard Report" del reloj: por empleado un bloque "Employee,,,Nombre (id)" y
  * una fila por día "THU,20261001,IN,OUT,…". Un día con varias marcaciones trae filas de
  * continuación sin fecha. "Missing OUT" = no hay salida (la columna OUT viene vacía).
+ * Desde la quincena del 16 de octubre de 2026 el reloj exporta la fecha con guiones
+ * ("2026-10-16") y el número del empleado en otra línea de la misma celda; se leen los dos.
  */
 export function parseClockReport(rows: string[][]): RawPunch[] {
   const out: RawPunch[] = [];
@@ -24,15 +67,16 @@ export function parseClockReport(rows: string[][]): RawPunch[] {
   let date: string | null = null;
   for (const r of rows) {
     if (r[0] === "Employee" && r[3]) {
-      name = r[3].replace(/\s*\(\d+\)\s*$/, "").trim();
+      name = r[3].replace(/\s*\(\d+\)\s*$/, "").replace(/\s+/g, " ").trim();
       date = null;
       continue;
     }
     if (!name) continue;
-    const isDayRow = /^\d{8}$/.test(r[1] ?? "");
+    const day = clockDate(r[1] ?? "");
+    const isDayRow = day !== null;
     const isContinuation = !isDayRow && (r[0] ?? "") === "" && (r[1] ?? "") === "" && Boolean(r[2]) && date !== null;
     if (!isDayRow && !isContinuation) continue;
-    if (isDayRow) date = isoFromCompact(r[1]);
+    if (isDayRow) date = day;
     const tin = toMinutes(r[2] ?? "");
     const tout = toMinutes(r[3] ?? "");
     if (tin !== null) out.push({ name, date: date!, minutes: tin, kind: "in", source: "reloj" });

@@ -128,8 +128,8 @@ export function Viewer3D({
   const empty = scene.groups.length === 0;
 
   return (
-    <div className="border border-ink-900/8 bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/8 px-3.5 py-2.5">
+    <div className="rounded-lg overflow-hidden border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
         <h2 className="text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase">{tt("viewer_title")}</h2>
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <span>{tt("viewer_paint")}</span>
@@ -151,8 +151,8 @@ export function Viewer3D({
       </div>
 
       {plan ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-ink-900/8 px-3.5 py-2 text-xs text-ink-700">
-          <div className="inline-flex border border-input">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3.5 py-2 text-xs text-ink-700">
+          <div className="inline-flex overflow-hidden rounded-lg border border-input">
             {([false, true] as const).map((v) => (
               <button
                 key={String(v)}
@@ -196,8 +196,8 @@ export function Viewer3D({
           )}
         </div>
       ) : (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-ink-900/8 px-3.5 py-2 text-xs text-ink-700">
-        <div className="inline-flex border border-input">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3.5 py-2 text-xs text-ink-700">
+        <div className="inline-flex rounded-lg overflow-hidden border border-input">
           {(["recta", "L"] as const).map((shape) => (
             <button
               key={shape}

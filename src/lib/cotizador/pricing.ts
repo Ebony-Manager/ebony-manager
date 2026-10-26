@@ -1,6 +1,7 @@
 import {
   isSubcontract,
   type CatalogItem,
+  type Finish,
   type CostInput,
   type Quote,
   type QuoteDefaults,
@@ -36,8 +37,29 @@ export function lineQty(l: QuoteLine): number {
   return round2((l.width || 0) * pieces);
 }
 
+/** Importe del renglón: lo cotizado más su gola (puertas y gavetas). */
 export function lineAmount(l: QuoteLine): number {
-  return lineQty(l) * (l.unitPrice || 0);
+  return lineQty(l) * (l.unitPrice || 0) + golaAmount(l);
+}
+
+export function golaAmount(l: Pick<QuoteLine, "golaMl" | "golaPrice">): number {
+  return (l.golaMl || 0) * (l.golaPrice || 0);
+}
+
+const GOLA_FINISH: Record<Finish, string> = { aglomerado: "ag", blanco: "ag", pintado: "pi", chapilla: "ch" };
+
+/** ¿Este ítem del catálogo es una gola? (se ofrece dentro de la puerta o gaveta, no como renglón). */
+export const isGolaItem = (c: Pick<CatalogItem, "code">) => /^(pta|gav)-go-/.test(c.code);
+
+/**
+ * La gola que le corresponde a una puerta o gaveta según su acabado
+ * (`pta-go-pi`, `gav-go-ag`…). null si el renglón no es puerta ni gaveta,
+ * o si el catálogo no la tiene.
+ */
+export function golaItemFor(catalog: CatalogItem[], l: Pick<QuoteLine, "category" | "finish">): CatalogItem | null {
+  if (l.category !== "puertas" && l.category !== "gavetas") return null;
+  const code = `${l.category === "puertas" ? "pta" : "gav"}-go-${GOLA_FINISH[l.finish ?? "aglomerado"]}`;
+  return catalog.find((c) => c.code === code && c.active) ?? null;
 }
 
 export interface SectionTotals {
@@ -199,6 +221,8 @@ export function newLine(id: string, item: CatalogItem): QuoteLine {
     posY: null,
     hostLineId: null,
     pieceIds: [],
+    golaMl: 0,
+    golaPrice: 0,
   };
 }
 
@@ -224,6 +248,8 @@ export function newFreeLine(id: string): QuoteLine {
     posY: null,
     hostLineId: null,
     pieceIds: [],
+    golaMl: 0,
+    golaPrice: 0,
   };
 }
 
@@ -255,10 +281,14 @@ export function syncDraftPrices(q: Quote, catalog: CatalogItem[]): Quote {
   const sections = q.sections.map((s) => ({
     ...s,
     lines: s.lines.map((l) => {
+      let next = l;
       const item = l.itemId ? byId.get(l.itemId) : undefined;
-      if (!item || l.priceOverridden || item.price === l.unitPrice) return l;
-      changed = true;
-      return { ...l, unitPrice: item.price };
+      if (item && !l.priceOverridden && item.price !== l.unitPrice) next = { ...next, unitPrice: item.price };
+      // La gola también sigue al catálogo mientras la cotización es borrador.
+      const gola = l.golaMl > 0 ? golaItemFor(catalog, l) : null;
+      if (gola && gola.price !== l.golaPrice) next = { ...next, golaPrice: gola.price };
+      if (next !== l) changed = true;
+      return next;
     }),
   }));
   return changed ? { ...q, sections } : q;

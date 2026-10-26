@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Cake, FileImage, Hammer, Inbox, Landmark, Link2, LifeBuoy, Mail, MapPin, Phone, Users, X } from "lucide-react";
+import { Cake, FileImage, Hammer, IdCard, Inbox, Landmark, Link2, LifeBuoy, Mail, MapPin, Phone, Users, X } from "lucide-react";
 
 import type { PayrollPosition } from "@/types/planilla";
 import type { StaffIntake } from "@/types/staff-intake";
@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { formatDate } from "@/lib/planilla/format";
+import { countryName } from "@/lib/countries";
 import { findStaffMatch, type MatchCandidate } from "@/lib/personal/jotform-intake";
 import { EmployeeFormDialog, type EmployeePrefill } from "../../planilla/employee-form-dialog";
 import { ContractorFormDialog, type ContractorPrefill } from "../../contratistas/contractor-form-dialog";
@@ -59,6 +60,9 @@ export function IntakeInbox({
       bankName: i.bankName ?? "",
       bankAccountNumber: i.bankAccountNumber ?? "",
       ...(i.bankAccountType ? { bankAccountType: i.bankAccountType } : {}),
+      idDocument: i.idNumber ?? "",
+      ...(i.idDocumentType ? { idDocumentType: i.idDocumentType } : {}),
+      ...(i.nationality ? { nationality: i.nationality } : {}),
     };
   }, [creating]);
   // Mismos campos; el enlace al documento lo agrega a las notas markIntakeCreatedAction.
@@ -75,7 +79,7 @@ export function IntakeInbox({
   if (intakes.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <section className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
       <div className="flex items-center gap-2">
         <Inbox className="size-4 text-primary" />
         <h2 className="text-sm font-semibold text-foreground">
@@ -168,6 +172,7 @@ function IntakeCard({
     { icon: Mail, text: intake.email },
     { icon: Phone, text: intake.phone },
     { icon: Cake, text: intake.birthDate ? formatDate(lang, intake.birthDate) : null },
+    { icon: IdCard, text: [intake.idNumber, countryName(intake.nationality, lang)].filter(Boolean).join(" · ") || null },
     { icon: MapPin, text: intake.address },
     { icon: Landmark, text: bank || null },
     {

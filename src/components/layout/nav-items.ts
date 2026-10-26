@@ -1,25 +1,25 @@
 import {
   FileText,
   Folder,
-  Calendar,
-  DollarSign,
   BarChart2,
+  CalendarCheck,
   Wallet,
   Layers,
   UserCog,
-  Briefcase,
+  Users,
   Settings,
   Contact,
   Warehouse,
   Boxes,
   PackageMinus,
   ShoppingCart,
-  Truck,
+  BookUser,
+  Bell,
   ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
-import { hasAnyModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
+import { hasAnyModule, hasModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
 export interface NavItem {
   href: string;
@@ -31,13 +31,18 @@ export interface NavItem {
   anyModules?: AppModule[];
   /** Solo para el rol admin (ej. Usuarios). */
   adminOnly?: boolean;
+  /** Se esconde si el usuario tiene alguno de estos (ej. "Asistencia" suelta solo para quien no ve Pagos). */
+  notModules?: AppModule[];
   /** Activo solo en su ruta exacta, no en sus sub-rutas (el Resumen en /personal, que no debe marcarse en /personal/staff). */
   exact?: boolean;
+  /** Otras rutas que cuentan como esta (ej. Movimientos es parte de Inventario). */
+  alsoActive?: string[];
 }
 
 /** El menú solo muestra lo que el usuario puede abrir; el gate real es requireModule() + RLS. */
 export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | undefined): boolean {
   if (item.adminOnly) return subject?.role === "admin";
+  if (item.notModules && hasAnyModule(subject, item.notModules)) return false;
   if (item.anyModules) return hasAnyModule(subject, item.anyModules);
   return !item.modules || hasModules(subject, item.modules);
 }
@@ -52,8 +57,11 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 export const RAIL_ITEMS: NavItem[] = [
   { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
-  { href: "/cronograma", icon: Calendar, label: strings.nav.cronograma },
-  { href: "/gastos", icon: DollarSign, label: strings.nav.gastos },
+  // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
+  { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
+  // Directorio de proveedores (materiales y servicios): de la empresa, no solo del Almacén.
+  { href: "/directorio", icon: BookUser, label: strings.nav.directorio, anyModules: ["almacen", "directorio"] },
+  // Cronograma y Gastos salen del menú hasta que se construyan (sus rutas siguen, en "Próximamente").
   { href: "/dashboard", icon: BarChart2, label: strings.nav.dashboard },
 ];
 
@@ -68,6 +76,14 @@ export interface NavPanel {
   icon: LucideIcon;
   title: (typeof strings.nav)[keyof typeof strings.nav];
   items: NavItem[];
+  /** A dónde lleva el ícono si el usuario lo ve (si no, al primer ítem): el trabajo del día, no el resumen. */
+  home?: (subject: AccessSubject | null | undefined) => string;
+}
+
+/** A dónde lleva el ícono de un panel (con sus ítems ya filtrados por permiso). */
+export function panelHome(panel: NavPanel, subject: AccessSubject | null | undefined): NavItem | undefined {
+  const home = panel.home?.(subject);
+  return panel.items.find((i) => i.href === home) ?? panel.items[0];
 }
 
 // Personal — en el rail, debajo de los módulos de trabajo: Resumen (uno
@@ -76,28 +92,32 @@ export interface NavPanel {
 // pestaña de adentro pide su propio módulo.
 export const PERSONAL_PANEL: NavPanel = {
   key: "personal",
-  icon: Briefcase,
+  icon: Users,
   title: strings.nav.personal,
   items: [
     { href: "/personal", icon: Layers, label: strings.nav.resumenPersonal, anyModules: ["planilla", "contratistas"], exact: true },
+    // Quien tiene Asistencia sin Planilla ni Contratistas (ej. jefa de taller): "Asistencia" con su
+    // pantalla, primera (el ícono de Personal abre aquí) y sin la palabra "Pagos".
+    { href: "/personal/asistencia", icon: CalendarCheck, label: strings.nav.asistencia, modules: ["asistencia"], notModules: ["planilla", "contratistas"] },
     { href: "/personal/staff", icon: Contact, label: strings.nav.staff, modules: ["documentos"] },
     { href: "/personal/pagos", icon: Wallet, label: strings.nav.pagos, anyModules: ["planilla", "contratistas"] },
   ],
 };
 
-// Almacén — existencias, salidas, compras, proveedores y ajustes. Compras
+// Almacén — inventario (con sus movimientos y ajustes), salidas y compras (los proveedores viven en el Directorio). Compras
 // lo ve cualquiera (para pedir lo que haga falta; quien no tiene Compras ve
 // solo sus solicitudes), así que todos ven el ícono.
 export const ALMACEN_PANEL: NavPanel = {
   key: "almacen",
   icon: Warehouse,
   title: strings.nav.almacen,
+  // Sin Compras (almacenista, jefa de taller) el ícono abre Nueva salida; con Compras, Inventario.
+  home: (subject) => (hasModule(subject, "almacen_compras") ? "/almacen" : "/almacen/salidas"),
   items: [
-    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true },
+    { href: "/almacen/resumen", icon: Layers, label: strings.nav.resumenPersonal, modules: ["almacen"] },
+    { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/conteo", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
-    { href: "/almacen/proveedores", icon: Truck, label: strings.nav.proveedores, modules: ["almacen"] },
-    { href: "/almacen/ajustes", icon: ClipboardCheck, label: strings.nav.ajustes, modules: ["almacen_ajustes"] },
   ],
 };
 
@@ -106,13 +126,20 @@ export const SETTINGS_PANEL: NavPanel = {
   key: "settings",
   icon: Settings,
   title: strings.nav.settings,
-  items: [{ href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true }],
+  items: [
+    { href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
+    { href: "/settings/notificaciones", icon: Bell, label: strings.nav.notificaciones, adminOnly: true },
+  ],
 };
 
 export const NAV_PANELS: NavPanel[] = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL];
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
-  return pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`));
+  return (
+    pathname === item.href ||
+    (!item.exact && pathname.startsWith(`${item.href}/`)) ||
+    (item.alsoActive ?? []).some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  );
 }
 
 /**

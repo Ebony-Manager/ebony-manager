@@ -12,6 +12,7 @@ import { t, strings } from "@/lib/i18n";
 import { getLedgerEntriesAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { AddChargeDialog } from "./add-charge-dialog";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 type View = "quincena" | "month" | "concept";
 
@@ -76,18 +77,7 @@ export function EmployeeLoansSection({
         <h2 className="text-sm font-semibold text-foreground">{tt("loans_title")}</h2>
         <div className="flex flex-wrap items-center gap-1">
           {statement && statement.movements.length > 0 && (
-            <div className="flex items-center gap-1">
-              {views.map((v) => (
-                <Button
-                  key={v.key}
-                  size="sm"
-                  variant={view === v.key ? "secondary" : "ghost"}
-                  onClick={() => setView(v.key)}
-                >
-                  {v.label}
-                </Button>
-              ))}
-            </div>
+            <SegmentedFilter value={view} onChange={setView} options={views.map((v) => ({ value: v.key, label: v.label }))} />
           )}
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="size-3.5" />

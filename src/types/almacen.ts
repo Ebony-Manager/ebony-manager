@@ -24,13 +24,48 @@ export type InternalUse = "taller" | "embalaje" | "pintura";
 export const INTERNAL_USES: InternalUse[] = ["taller", "embalaje", "pintura"];
 export type RequestStatus = "pendiente" | "pedido" | "recibido" | "cancelado";
 export type OrderStatus = "pedido" | "parcial" | "recibido" | "cancelado";
+/** ¿Lo trae el proveedor o hay que ir a buscarlo? (alimenta la agenda de transporte). */
+export type OrderDelivery = "entrega" | "retiro";
 export type AdjustmentReason = "inicial" | "conteo" | "dano" | "perdida" | "correccion";
 export const ADJUSTMENT_REASONS: AdjustmentReason[] = ["conteo", "inicial", "dano", "perdida", "correccion"];
+
+/** Rubros del Directorio (lista fija; la base la valida igual). */
+export type SupplierRubro =
+  | "ferreteria"
+  | "herrajes"
+  | "madera_laminas"
+  | "iluminacion"
+  | "pintura"
+  | "vidrios"
+  | "tecnico_maquinaria"
+  | "mecanico"
+  | "transporte"
+  | "mantenimiento"
+  | "subcontrato";
+export const SUPPLIER_RUBROS: Record<SupplierKind, SupplierRubro[]> = {
+  materiales: ["ferreteria", "herrajes", "madera_laminas", "iluminacion", "pintura", "vidrios"],
+  servicio: ["tecnico_maquinaria", "mecanico", "transporte", "mantenimiento", "subcontrato"],
+};
+export const ALL_SUPPLIER_RUBROS: SupplierRubro[] = [...SUPPLIER_RUBROS.materiales, ...SUPPLIER_RUBROS.servicio];
+
+/** Una persona del proveedor (oficina, dueña, vendedora, gerente…); casi todo es por WhatsApp. */
+export interface SupplierContact {
+  name: string;
+  /** Cargo o de qué se encarga ("Oficina", "Dueña"…). */
+  role: string;
+  whatsapp: string;
+}
 
 export interface Supplier {
   id: string;
   name: string;
   kind: SupplierKind;
+  /** Uno o varios; el primero es el principal (agrupa la lista). */
+  rubros: SupplierRubro[];
+  /** Texto libre: de qué es técnico, qué marca maneja… */
+  specialty: string | null;
+  /** Contactos; el primero es el principal (su nombre y WhatsApp se copian a `contactName` / `whatsapp`). */
+  contacts: SupplierContact[];
   contactName: string | null;
   phone: string | null;
   whatsapp: string | null;
@@ -77,6 +112,8 @@ export interface InventoryItem {
   allowsDecimals: boolean;
   kind: ItemKind;
   notes: string | null;
+  /** Ruta de la foto en el bucket público `inventory-photos` (ver inventoryPhotoUrl). */
+  photoPath: string | null;
   active: boolean;
   variants: InventoryVariant[];
   suppliers: ItemSupplier[];
@@ -140,12 +177,35 @@ export interface PurchaseOrder {
   id: string;
   supplierId: string;
   status: OrderStatus;
+  /** null = sin definir (pedidos viejos). */
+  delivery: OrderDelivery | null;
   orderedOn: string;
   invoiceRef: string | null;
   notes: string | null;
   createdByName: string | null;
   createdAt: string;
   lines: PurchaseOrderLine[];
+}
+
+/** Un movimiento del inventario (historial): de dónde vino y cómo quedó. */
+export interface InventoryMovement {
+  id: string;
+  variantId: string;
+  kind: "salida" | "recepcion" | "ajuste";
+  /** Con signo: negativo sale, positivo entra. */
+  qty: number;
+  stockAfter: number;
+  movedOn: string;
+  createdByName: string | null;
+  createdAt: string;
+  /** La salida a la que pertenece (varias líneas = una salida). */
+  issueId: string | null;
+  /** Salida: a quién y para qué. */
+  issue: { employeeId: string | null; contractorId: string | null; projectId: string | null; internalUse: InternalUse | null } | null;
+  /** Recepción de compra: el proveedor del pedido. */
+  supplierId: string | null;
+  /** Ajuste: motivo y nota. */
+  adjustment: { reason: AdjustmentReason; notes: string | null } | null;
 }
 
 export interface InventoryAdjustment {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { Contractor, ContractorHelper } from "@/types/contractors";
@@ -26,6 +26,7 @@ import {
   updateContractorHelperAction,
 } from "./actions";
 import { Field } from "./field";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 /**
  * Ayudantes de un contratista: lista + alta / edición / baja en el mismo
@@ -175,7 +176,6 @@ export function ContractorHelpersDialog({
   }
 
   function onDelete(h: ContractorHelper) {
-    if (!window.confirm(`${tt("helpers_delete_confirm")}\n${h.name}`)) return;
     setHelpers((prev) => (prev ?? []).filter((x) => x.id !== h.id));
     deleteContractorHelperAction(h.id)
       .then(() => toast.success(tt("helpers_deleted")))
@@ -287,18 +287,14 @@ export function ContractorHelpersDialog({
                       >
                         <Pencil className="size-3.5" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                        aria-label={tt("helpers_delete")}
-                        title={tt("helpers_delete")}
+                      <ConfirmButton
+                        iconOnly
+                        className="p-2"
+                        label={tt("helpers_delete")}
+                        confirmLabel={t(lang, strings.nav.confirm_remove)}
                         disabled={h.id.startsWith("tmp-")}
-                        onClick={() => onDelete(h)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                        onConfirm={() => onDelete(h)}
+                      />
                     </div>
                   </li>
                 ))}

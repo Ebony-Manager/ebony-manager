@@ -95,7 +95,10 @@ Supabase:
    - **Magic link** (la recibe quien ya tenía cuenta): asunto *"Tu enlace
      para entrar a Ebony Manager"*, cuerpo = `enlace-de-acceso.html`.
 
-   Se pegan a mano en el dashboard (no se publican con el código).
+   Se pegan a mano en el dashboard (no se publican con el código). Los
+   correos que manda la propia app (ej. el resumen diario del Almacén) usan
+   el mismo diseño desde `src/lib/email/branded.ts`: si cambia uno, cambiar
+   el otro.
 
 Si el correo falla, el usuario igual queda agregado: puede entrar con Google
 (si su correo es de Google) o se le reenvía la invitación desde su menú en

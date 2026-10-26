@@ -35,7 +35,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         <select
           value={detail}
           onChange={(e) => onDetail(e.currentTarget.value as PdfDetail)}
-          className="h-8 border border-input bg-card px-2 text-xs outline-none focus-visible:border-ring"
+          className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:border-ring"
         >
           <option value="section">{tt("cv_detail_section")}</option>
           <option value="line">{tt("cv_detail_line")}</option>
@@ -43,8 +43,8 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         </select>
       </label>
 
-      <article className="mx-auto w-full max-w-[860px] border border-ink-900/8 bg-card px-5 py-7 sm:px-10 sm:py-10">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-ink-900/16 pb-5">
+      <article className="mx-auto w-full max-w-[860px] rounded-lg border border-border bg-card px-5 py-7 sm:px-10 sm:py-10">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1.5">
             <EbonyLogo variant="wordmark" tone="black" height={34} />
             <span className="text-[10px] tracking-[0.2em] text-ink-700">custom woodwork</span>
@@ -79,7 +79,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-ink-900/16 text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
+              <tr className="border-b border-border text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
                 <th className="py-2 pr-3 text-left font-semibold">{tt("cv_item")}</th>
                 {detail === "line" && <th className="px-3 py-2 text-right font-semibold">{tt("cv_qty")}</th>}
                 {detail !== "total" && <th className="py-2 pl-3 text-right font-semibold">{tt("total")}</th>}
@@ -92,7 +92,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                 const factor = cost > 0 ? st.total / cost : 0;
                 return (
                   <React.Fragment key={s.id}>
-                    <tr className="border-b border-ink-900/8 align-top">
+                    <tr className="border-b border-border align-top">
                       <td className="py-2.5 pr-3">
                         <p className="font-semibold">
                           {s.kind} · {sectionLabel(s) || tt("sec_unnamed")}
@@ -104,7 +104,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                     </tr>
                     {detail === "line" &&
                       s.lines.map((l) => (
-                        <tr key={l.id} className="border-b border-ink-900/8 text-xs text-ink-700">
+                        <tr key={l.id} className="border-b border-border text-xs text-ink-700">
                           <td className="py-1.5 pr-3 pl-4">{l.name}</td>
                           <td className="px-3 py-1.5 text-right whitespace-nowrap tabular-nums">
                             {lineQty(l).toLocaleString("en-US", { maximumFractionDigits: 2 })} {UNIT_LABEL[l.unit]}
@@ -130,11 +130,11 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
           )}
           <dt className="text-ink-700">ITBMS ({quote.itbmsPct}%)</dt>
           <dd className="text-right tabular-nums">{formatMoney(totals.tax)}</dd>
-          <dt className="mt-1 border-t border-ink-900/16 pt-1.5 font-semibold">{tt("total")}</dt>
-          <dd className="mt-1 border-t border-ink-900/16 pt-1.5 text-right text-base font-bold tabular-nums">{formatMoney(totals.total)}</dd>
+          <dt className="mt-1 border-t border-border pt-1.5 font-semibold">{tt("total")}</dt>
+          <dd className="mt-1 border-t border-border pt-1.5 text-right text-base font-bold tabular-nums">{formatMoney(totals.total)}</dd>
         </dl>
 
-        <footer className="mt-7 border-t border-ink-900/8 pt-4 text-xs leading-relaxed text-ink-700">
+        <footer className="mt-7 border-t border-border pt-4 text-xs leading-relaxed text-ink-700">
           <p>Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2</p>
           <p>{tt("cv_payment")}</p>
         </footer>

@@ -4,16 +4,14 @@ import * as React from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Copy,
-  MoreHorizontal,
   Download,
   FileText,
   Landmark,
   Wallet,
   Banknote,
   Award,
-  TrendingDown,
-  CalendarClock,
+  UserX,
+  Timer,
   Check,
   Pencil,
 } from "lucide-react";
@@ -36,9 +34,9 @@ import { computeRegistroSimpleTotals } from "@/lib/planilla/payroll-registro-tot
 import { matchesEmployeeQuery, numberEmployees } from "@/lib/planilla/employee-search";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { getRegistroAction, upsertPayrollEntryAction, duplicatePreviousPeriodAction } from "./actions";
+import { getRegistroAction, upsertPayrollEntryAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
-import { RegistroKpiCard } from "./registro-kpi-card";
+import { PayrollKpiCard } from "./payroll-kpi-card";
 import { EmployeeSearchInput } from "./employee-search-input";
 import { BankExportDialog } from "./bank-export-dialog";
 import { QuincenaEntryDialog } from "./quincena-entry-dialog";
@@ -47,13 +45,6 @@ import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
 
 type Row = RegistroRow;
-
-/** Fecha real de pago de una quincena — el 15 para la 1a mitad, el
- *  último día del mes para la 2a — solo para el label del KPI "Próximo
- *  pago". */
-function periodPayDate(p: { year: number; month: number; half: 1 | 2 }): Date {
-  return p.half === 1 ? new Date(p.year, p.month - 1, 15) : new Date(p.year, p.month, 0);
-}
 
 /** Las columnas del recibo, de izquierda a derecha: Base + Extras −
  *  Asistencia − Préstamos y descuentos + Prestaciones = Neto. */
@@ -96,7 +87,6 @@ export function RegistroView({
   // otra quincena no vuelve, no se pinta nada (ver `visibleRows`).
   const [rows, setRows] = React.useState<{ period: Period; data: Row[] } | null>(null);
   const [pending, startTransition] = React.useTransition();
-  const [duplicating, setDuplicating] = React.useState(false);
   const [bankOpen, setBankOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   // Buscador de empleado: la tabla se queda solo con quien coincida.
@@ -165,17 +155,6 @@ export function RegistroView({
       console.error("Planilla: no se pudo guardar el cambio", err);
       toast.error(tt("save_failed"));
       load();
-    }
-  }
-
-  async function handleDuplicate() {
-    setDuplicating(true);
-    try {
-      const { copied } = await duplicatePreviousPeriodAction(period.year, period.month, period.half);
-      toast.success(`${tt("duplicate_prev")} · ${copied}`);
-      load();
-    } finally {
-      setDuplicating(false);
     }
   }
 
@@ -256,15 +235,15 @@ export function RegistroView({
         cents: -s.descuentosCents,
         detail: join(
           line(tt("col_horas_desc"), e?.horasDescontadasCents ?? 0, { n: e?.horasDescontadas ?? 0, unit: "h" }),
-          line(tt("col_dias_desc"), e?.diasDescontadosCents ?? 0, { n: e?.diasDescontados ?? 0, unit: "d" }),
-          line(tt("li_otros_descuentos"), e?.otherDeductionCents ?? 0)
+          line(tt("col_dias_desc"), e?.diasDescontadosCents ?? 0, { n: e?.diasDescontados ?? 0, unit: "d" })
         ),
       },
       prestamos: {
-        cents: -r.total.ledgerPaymentCents,
-        detail: r.deductions
-          .map((d) => `${deductionLabel(d.category)}${d.notes ? ` (${d.notes})` : ""} · ${formatCents(d.amountCents)}`)
-          .join("\n"),
+        cents: -(r.total.ledgerPaymentCents + s.otrosDescuentosCents),
+        detail: join(
+          ...r.deductions.map((d) => `${deductionLabel(d.category)}${d.notes ? ` (${d.notes})` : ""} · ${formatCents(d.amountCents)}`),
+          line(tt("li_otros_descuentos"), s.otrosDescuentosCents)
+        ),
       },
       prestaciones: {
         cents: s.prestacionesCents,
@@ -283,35 +262,35 @@ export function RegistroView({
 
   // Fila de KPIs — derivada de las mismas `rows` que pinta la tabla.
   const totalCents = allRows.reduce((sum, r) => sum + r.total.totalCents, 0);
-  const loansCents = allRows.reduce((sum, r) => sum + r.total.ledgerPaymentCents, 0);
+  const loansCents = allRows.reduce((sum, r) => sum + r.total.ledgerPaymentCents + (r.total.entry?.otherDeductionCents ?? 0), 0);
   const decimoCents = allRows.reduce((sum, r) => sum + (r.total.entry?.decimoPaidCents ?? 0), 0);
-  const descuentosCents = allRows.reduce((sum, r) => sum + computeRegistroSimpleTotals(r.total.entry).descuentosCents, 0);
   const pct = (part: number) => (totalCents > 0 ? `${((part / totalCents) * 100).toFixed(1)}% ${tt("kpi_pct_of_total")}` : "—");
-  const upcoming = nextPeriod(period);
+  const asistenciaCents = allRows.reduce((sum, r) => sum + computeRegistroSimpleTotals(r.total.entry).descuentosCents, 0);
+  const lateHours = allRows.reduce((sum, r) => sum + (r.total.entry?.horasDescontadas ?? 0), 0);
+  const absentDays = allRows.reduce((sum, r) => sum + (r.total.entry?.diasDescontados ?? 0), 0);
+  const overtimeCents = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHoursCents ?? 0), 0);
+  const overtimeHours = allRows.reduce((sum, r) => sum + (r.total.entry?.extraHours ?? 0), 0);
+  const hoursLabel = (h: number) => `${Number(h.toFixed(2))} h`;
+  const asistenciaLabel = `${hoursLabel(lateHours)} ${tt("kpi_late")} · ${Number(absentDays.toFixed(2))} ${tt("kpi_absent_days")}`;
   const thisYear = currentPeriod().year;
   const yearOptions = Array.from(new Set([...Array.from({ length: 5 }, (_, i) => thisYear - 3 + i), period.year])).sort(
     (a, b) => a - b
   );
-  const nextPayLabel = periodPayDate(upcoming).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
   const th = "whitespace-nowrap px-3 py-[11px] text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase";
 
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 lg:grid-cols-5">
-        <RegistroKpiCard icon={Wallet} label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
-        <RegistroKpiCard icon={Banknote} label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
-        <RegistroKpiCard icon={Award} label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
-        <RegistroKpiCard icon={TrendingDown} label={tt("kpi_deductions")} value={formatCents(descuentosCents)} sublabel={pct(descuentosCents)} />
-        <RegistroKpiCard icon={CalendarClock} label={tt("kpi_next_pay")} value={nextPayLabel} sublabel={quincenaLabel(upcoming.half)} />
+        <PayrollKpiCard icon={Wallet} color="var(--payroll-total-due)" label={tt("kpi_total_due")} value={formatCents(totalCents)} sublabel={`${allRows.length} ${tt("kpi_employees_count")}`} />
+        <PayrollKpiCard icon={Banknote} category="descuentoPrestamos" label={tt("kpi_loan_installments")} value={formatCents(loansCents)} sublabel={pct(loansCents)} />
+        <PayrollKpiCard icon={Award} category="decimo" label={tt("kpi_decimo")} value={formatCents(decimoCents)} sublabel={pct(decimoCents)} />
+        <PayrollKpiCard icon={UserX} category="descuentos" label={tt("kpi_asistencia")} value={formatCents(asistenciaCents)} sublabel={asistenciaLabel} />
+        <PayrollKpiCard icon={Timer} category="bonos" label={tt("kpi_overtime")} value={formatCents(overtimeCents)} sublabel={hoursLabel(overtimeHours)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => shiftPeriod(-1)}>
+        <div className="flex w-full items-center gap-1 rounded-lg border border-border bg-card px-1 sm:w-auto">
+          <Button variant="ghost" size="icon" className="size-8 sm:size-7" onClick={() => shiftPeriod(-1)}>
             <ChevronLeft className="size-4" />
           </Button>
           {/* Ir directo a una quincena: año + mes/quincena. */}
@@ -334,7 +313,7 @@ export function RegistroView({
               setPeriod((p) => ({ ...p, month: m, half: h as 1 | 2 }));
             }}
           >
-            <SelectTrigger aria-label={tt("period_pick_label")} className="h-7 w-[200px] border-0 bg-transparent px-2 text-sm font-medium shadow-none">
+            <SelectTrigger aria-label={tt("period_pick_label")} className="h-7 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm font-medium shadow-none sm:w-[200px] sm:flex-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-80">
@@ -349,7 +328,7 @@ export function RegistroView({
               })}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => shiftPeriod(1)}>
+          <Button variant="ghost" size="icon" className="size-8 sm:size-7" onClick={() => shiftPeriod(1)}>
             <ChevronRight className="size-4" />
           </Button>
         </div>
@@ -372,30 +351,15 @@ export function RegistroView({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Acciones poco frecuentes, apartadas a un lado para que no estorben. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={tt("more_actions")} title={tt("more_actions")}>
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={duplicating} onSelect={() => void handleDuplicate()}>
-              <Copy className="size-3.5" />
-              {tt("duplicate_prev")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Buscador de empleado: solo, en su propia fila, sobre la tabla. */}
       <EmployeeSearchInput value={query} onChange={setQuery} className="w-full max-w-md" />
 
-      <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[860px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-ink-900/8 bg-muted/40">
+            <tr className="border-b border-border bg-muted/40">
               <th className={`${th} sticky left-0 z-20 bg-muted text-left`}>{tt("col_empleado")}</th>
               {columns.map((c) => (
                 <th key={c.key} className={`${th} text-right`} style={{ color: payrollCategoryInk(c.category) }}>
@@ -415,7 +379,7 @@ export function RegistroView({
               return (
                 <tr
                   key={`${employee.id}-${dataPeriod.year}-${dataPeriod.month}-${dataPeriod.half}`}
-                  className="group/row cursor-pointer border-b border-ink-900/6 transition-colors last:border-0 hover:bg-muted/40"
+                  className="group/row cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40"
                   onClick={() => setEditingId(employee.id)}
                   title={tt("qe_row_hint")}
                 >
@@ -480,7 +444,7 @@ export function RegistroView({
           </tbody>
           {visibleRows && shownRows.length > 0 && (
             <tfoot>
-              <tr className={`border-t border-ink-900/8 ${PAYROLL_FOOT_BG_CLASS}`}>
+              <tr className={`border-t border-border ${PAYROLL_FOOT_BG_CLASS}`}>
                 <td className="py-3 pr-3 pl-3 text-right text-[12.5px] font-semibold text-ink-900/60" colSpan={1 + columns.length}>
                   {searching ? `${tt("emp_search_total")} (${shownRows.length})` : tt("total_quincena")}
                 </td>

@@ -2,10 +2,7 @@
 
 import * as React from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
-  ClipboardCheck,
   AlertTriangle,
   AlertOctagon,
   Filter,
@@ -62,6 +59,8 @@ import {
   writeSavedView,
 } from "@/lib/planilla/saved-view";
 import toast from "react-hot-toast";
+import { Stepper } from "@/components/shared/page-header";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 const LEGEND_CATEGORIES: PayrollCategoryKey[] = ["salario", "bonos", "descuentos", "descuentoPrestamos", "decimo"];
 
@@ -608,20 +607,10 @@ export function AuditoriaView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <ClipboardCheck className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="font-medium text-foreground">
-              {tt("auditoria_title")} {year}
-            </p>
-            <p className="text-xs text-muted-foreground">{tt("auditoria_subtitle")}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <EmployeeSearchInput value={query} onChange={setQuery} />
+      {/* Igual que Quincena y Asistencia: el selector (año) y las acciones en una fila; el buscador debajo. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Stepper fill label={year} onPrev={() => onYearChange(year - 1)} onNext={() => onYearChange(year + 1)} />
+        <div className="grid w-full grid-cols-3 gap-2 sm:ml-auto sm:flex sm:w-auto sm:items-center">
           <Popover open={filtroOpen} onOpenChange={setFiltroOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
@@ -656,18 +645,16 @@ export function AuditoriaView({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="text-xs font-medium text-muted-foreground">{tt("estado")}</div>
-                  <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-xs">
-                    {(["todos", "activo", "inactivo"] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setStatusFilter(s)}
-                        className={`flex-1 rounded-lg px-2 py-1 font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        {s === "todos" ? tt("filtro_todos") : s === "activo" ? tt("filtro_activo") : tt("filtro_inactivo")}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedFilter
+                    fill
+                    className="sm:w-full [&>button]:sm:flex-1"
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={(["todos", "activo", "inactivo"] as const).map((s) => ({
+                      value: s,
+                      label: s === "todos" ? tt("filtro_todos") : s === "activo" ? tt("filtro_activo") : tt("filtro_inactivo"),
+                    }))}
+                  />
                 </div>
                 {filtroCount > 0 && (
                   <button
@@ -777,18 +764,10 @@ export function AuditoriaView({
             <Download className="size-3.5" />
             {tt("exportar")}
           </Button>
-
-          <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year - 1)}>
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="min-w-16 text-center text-sm font-medium text-foreground">{year}</span>
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => onYearChange(year + 1)}>
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
         </div>
       </div>
+
+      <EmployeeSearchInput value={query} onChange={setQuery} className="w-full max-w-md" />
 
       <p
         className="rounded-lg px-3 py-2 text-xs text-muted-foreground"

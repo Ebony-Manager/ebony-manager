@@ -27,6 +27,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_notifications: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          body: string | null
+          created_at: string
+          href: string | null
+          id: string
+          kind: string
+          seen_at: string | null
+          title: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind: string
+          seen_at?: string | null
+          title: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          kind?: string
+          seen_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       allowed_emails: {
         Row: {
           created_at: string
@@ -857,6 +893,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          days: number[]
+          enabled: boolean
+          key: string
+          recipients: string[] | null
+          updated_at: string
+          updated_by_name: string | null
+        }
+        Insert: {
+          days?: number[]
+          enabled?: boolean
+          key: string
+          recipients?: string[] | null
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Update: {
+          days?: number[]
+          enabled?: boolean
+          key?: string
+          recipients?: string[] | null
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       payroll_employees: {
         Row: {
           address: string | null
@@ -1621,6 +1684,8 @@ export type Database = {
           wall: string | null
           width: number
           piece_ids: string[]
+          gola_ml: number
+          gola_price: number
         }
         Insert: {
           category: string
@@ -1646,6 +1711,8 @@ export type Database = {
           wall?: string | null
           width?: number
           piece_ids?: string[]
+          gola_ml?: number
+          gola_price?: number
         }
         Update: {
           category?: string
@@ -1671,6 +1738,8 @@ export type Database = {
           wall?: string | null
           width?: number
           piece_ids?: string[]
+          gola_ml?: number
+          gola_price?: number
         }
         Relationships: [
           {
@@ -1921,6 +1990,9 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
+          id_number: string | null
+          id_document_type: string | null
+          nationality: string | null
           first_name: string | null
           form_id: string | null
           id: string
@@ -1948,6 +2020,9 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          id_number?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
           first_name?: string | null
           form_id?: string | null
           id?: string
@@ -1975,6 +2050,9 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          id_number?: string | null
+          id_document_type?: string | null
+          nationality?: string | null
           first_name?: string | null
           form_id?: string | null
           id?: string
@@ -2451,6 +2529,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          delivery: string | null
           id: string
           invoice_ref: string | null
           notes: string | null
@@ -2460,6 +2539,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          delivery?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -2472,6 +2552,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          delivery?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -2580,8 +2661,132 @@ export type Database = {
           },
         ]
       }
+      inspections: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          updated_at: string
+          visited_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          updated_at?: string
+          visited_on?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          updated_at?: string
+          visited_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_items: {
+        Row: {
+          area: string | null
+          comment: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inspection_id: string
+          resolved_at: string | null
+          resolved_by_name: string | null
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          area?: string | null
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_id: string
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          area?: string | null
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_id?: string
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_items_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_photos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          kind: string
+          path: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          kind?: string
+          path: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          kind?: string
+          path?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
+          contacts: Json
           active: boolean
           address: string | null
           contact_name: string | null
@@ -2592,10 +2797,13 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rubros: string[]
+          specialty: string | null
           updated_at: string
           whatsapp: string | null
         }
         Insert: {
+          contacts?: Json
           active?: boolean
           address?: string | null
           contact_name?: string | null
@@ -2606,10 +2814,13 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rubros?: string[]
+          specialty?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
         Update: {
+          contacts?: Json
           active?: boolean
           address?: string | null
           contact_name?: string | null
@@ -2620,6 +2831,8 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rubros?: string[]
+          specialty?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
@@ -2630,6 +2843,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      inspection_projects: {
+        Args: { p_id?: string | null }
+        Returns: {
+          id: string
+          name: string
+          client_name: string | null
+          location: string | null
+          status: string
+        }[]
+      }
+      attendance_roster: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          status: string
+          categoria: string
+          start_date: string | null
+          end_date: string | null
+          sort_order: number
+        }[]
+      }
       register_inventory_issue: {
         Args: {
           p_issued_on: string | null
@@ -2653,6 +2888,14 @@ export type Database = {
       receive_purchase_order: {
         Args: { p_order_id: string; p_received_on: string | null; p_lines: Json }
         Returns: undefined
+      }
+      set_inventory_summary_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      inventory_daily_summary: {
+        Args: { p_token: string }
+        Returns: Json
       }
       inventory_people: {
         Args: Record<PropertyKey, never>

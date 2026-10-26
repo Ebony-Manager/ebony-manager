@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 import { breadcrumbFor } from "@/components/layout/nav-items";
@@ -26,27 +27,46 @@ export function PageBreadcrumb() {
 }
 
 /** Selector de opciones en pastilla (Todos / Taller / Administrativo…). */
+/**
+ * Control segmentado para FILTRAR lo que se ve (Todos / Empleados /
+ * Contratistas…): fondo gris y la opción elegida en blanco, sin el azul de
+ * la marca. Así no se confunde con las pestañas que llevan a otra pantalla
+ * (arriba, subrayadas). Con `fill`, en el celular ocupa todo el ancho y
+ * reparte las opciones por igual.
+ */
 export function SegmentedFilter<T extends string>({
   value,
   options,
   onChange,
+  fill = false,
+  className,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  fill?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-[3px]">
+    <div
+      role="group"
+      className={cn(
+        "flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        fill && "w-full sm:w-auto",
+        className,
+      )}
+    >
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={
-            value === o.value
-              ? "rounded-md bg-primary px-[13px] py-1.5 text-[12.5px] font-semibold text-primary-foreground"
-              : "rounded-md px-[13px] py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"
-          }
+          className={cn(
+            "shrink-0 rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
+            fill && "flex-1 sm:flex-none",
+            value === o.value ? "bg-card font-semibold text-foreground shadow-sm" : "font-medium text-muted-foreground hover:text-foreground",
+          )}
         >
           {o.label}
         </button>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, HandCoins, RotateCcw } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, HandCoins, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { ContractorContract } from "@/types/contractors";
@@ -35,12 +35,14 @@ import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
+import { Stepper } from "@/components/shared/page-header";
 import {
   closeContractorPayPeriodAction,
   getContractorClosingAction,
   reopenContractorPayPeriodAction,
   setContractorPayLineAction,
 } from "./actions";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 
 type Half = 1 | 2;
 interface PeriodSel {
@@ -94,6 +96,7 @@ export function ContractorClosingView({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
   const [sel, setSel] = React.useState<PeriodSel>(currentQuincena);
   const [data, setData] = React.useState<ContractorClosingData | null>(null);
@@ -197,7 +200,7 @@ export function ContractorClosingView({
 
   async function markPaid() {
     if (!data?.period) return;
-    if (!window.confirm(tt("cl_confirm_paid"))) return;
+    if (!(await confirm({ title: tt("cl_mark_paid"), message: tt("cl_confirm_paid"), confirmLabel: tt("cl_mark_paid") }))) return;
     setBusy(true);
     const res = await closeContractorPayPeriodAction(data.period.id);
     setBusy(false);
@@ -209,7 +212,7 @@ export function ContractorClosingView({
 
   async function reopen() {
     if (!data?.period) return;
-    if (!window.confirm(tt("cl_confirm_reopen"))) return;
+    if (!(await confirm({ title: tt("cl_reopen"), message: tt("cl_confirm_reopen"), confirmLabel: tt("cl_reopen"), destructive: true }))) return;
     setBusy(true);
     const res = await reopenContractorPayPeriodAction(data.period.id);
     setBusy(false);
@@ -229,19 +232,18 @@ export function ContractorClosingView({
 
   const periodLabel = `${sel.half === 1 ? tt("cl_half_1") : tt("cl_half_2")} ${monthLabel(lang, sel.month).toLowerCase()} ${sel.year}`;
   const hasLines = (data?.lines.length ?? 0) > 0;
+  // Mismo formato que Asistencia y Quincena ("Octubre · 2da Quincena 2026").
+  const stepperLabel = `${monthLabel(lang, sel.month)} · ${t(lang, sel.half === 1 ? strings.planilla.quincena_1 : strings.planilla.quincena_2)} ${sel.year}`;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border px-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setSel((p) => previousPeriod(p.year, p.month, p.half))}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-48 text-center text-sm font-medium text-foreground">{periodLabel}</span>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setSel((p) => nextPeriod(p) as PeriodSel)}>
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+        <Stepper
+          fill
+          label={stepperLabel}
+          onPrev={() => setSel((p) => previousPeriod(p.year, p.month, p.half))}
+          onNext={() => setSel((p) => nextPeriod(p) as PeriodSel)}
+        />
         <div className="flex flex-wrap items-center gap-2">
           {data && (
             <span className="text-xs text-muted-foreground">
@@ -253,20 +255,20 @@ export function ContractorClosingView({
       </div>
 
       {!data ? (
-        <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">{tt("loading")}</p>
+        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">{tt("loading")}</p>
       ) : rows.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
           {paid ? tt("cl_paid_empty") : tt("cl_empty")}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-ink-900/8 bg-card">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full border-collapse text-sm sm:min-w-[720px]">
             <thead>
-              <tr className="border-b border-ink-900/8 text-xs text-muted-foreground">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="px-3 py-2 text-left font-medium">{tt("ct_f_contractor")}</th>
-                <th className="px-3 py-2 text-right font-medium">{tt("cl_col_pending")}</th>
-                <th className="px-3 py-2 text-right font-medium">{tt("pay_sum_abonos")}</th>
-                <th className="px-3 py-2 text-right font-medium">{tt("cl_col_deducted")}</th>
+                <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("cl_col_pending")}</th>
+                <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("pay_sum_abonos")}</th>
+                <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("cl_col_deducted")}</th>
                 <th className="px-3 py-2 text-right font-medium">{tt("cl_col_cash")}</th>
               </tr>
             </thead>
@@ -283,11 +285,17 @@ export function ContractorClosingView({
                           {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                           {r.name}
                         </span>
+                        {/* Celular: las otras columnas, en una línea bajo el nombre. */}
+                        <span className="ml-5 block text-xs text-muted-foreground tabular-nums sm:hidden">
+                          {tt("cl_col_pending")} {formatCents(pendingTotal)}
+                          {show.abonosCents > 0 && ` · ${tt("pay_sum_abonos")} ${formatCents(show.abonosCents)}`}
+                          {show.deductedCents > 0 && ` · −${formatCents(show.deductedCents)}`}
+                        </span>
                         {r.over && <span className="ml-5 block text-xs text-destructive">{tt("pay_err_over")}</span>}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCents(pendingTotal)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-foreground">{formatCents(show.abonosCents)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                      <td className="hidden px-3 py-2 text-right tabular-nums text-muted-foreground sm:table-cell">{formatCents(pendingTotal)}</td>
+                      <td className="hidden px-3 py-2 text-right tabular-nums text-foreground sm:table-cell">{formatCents(show.abonosCents)}</td>
+                      <td className="hidden px-3 py-2 text-right tabular-nums text-muted-foreground sm:table-cell">
                         {show.deductedCents > 0 ? `−${formatCents(show.deductedCents)}` : "—"}
                       </td>
                       <td className="px-3 py-2 text-right font-semibold tabular-nums text-foreground">{formatCents(show.cashCents)}</td>
@@ -295,7 +303,7 @@ export function ContractorClosingView({
                     {isOpen && (
                       <tr className="border-b border-border bg-muted/20">
                         <td colSpan={5} className="px-3 py-3">
-                          <div className="flex flex-col gap-3 pl-5">
+                          <div className="flex flex-col gap-3 sm:pl-5">
                             <div className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
                               {r.contracts.map(({ contract: k, pending }) => (
                                 <LineRow
@@ -370,9 +378,9 @@ export function ContractorClosingView({
             <tfoot>
               <tr className="border-t-2 border-border text-sm">
                 <td className="px-3 py-2 font-medium text-foreground">{tt("cl_total")}</td>
-                <td />
-                <td className="px-3 py-2 text-right tabular-nums text-foreground">{formatCents(totals.abonos)}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                <td className="hidden sm:table-cell" />
+                <td className="hidden px-3 py-2 text-right tabular-nums text-foreground sm:table-cell">{formatCents(totals.abonos)}</td>
+                <td className="hidden px-3 py-2 text-right tabular-nums text-muted-foreground sm:table-cell">
                   {totals.deducted > 0 ? `−${formatCents(totals.deducted)}` : "—"}
                 </td>
                 <td className="px-3 py-2 text-right text-base font-semibold tabular-nums text-foreground">{formatCents(totals.cash)}</td>
@@ -383,18 +391,19 @@ export function ContractorClosingView({
       )}
 
       {data && rows.length > 0 && (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={() => setListOpen(true)} disabled={toPay.length === 0}>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+          <Button variant="outline" size="sm" className="h-9 sm:h-8" onClick={() => setListOpen(true)} disabled={toPay.length === 0}>
             <ClipboardList className="size-3.5" />
-            {tt("cl_list")}
+            <span className="sm:hidden">{tt("cl_list_short")}</span>
+            <span className="hidden sm:inline">{tt("cl_list")}</span>
           </Button>
           {paid ? (
-            <Button variant="outline" size="sm" onClick={reopen} disabled={busy}>
+            <Button variant="outline" size="sm" className="h-9 sm:h-8" onClick={reopen} disabled={busy}>
               <RotateCcw className="size-3.5" />
               {tt("cl_reopen")}
             </Button>
           ) : (
-            <Button size="sm" onClick={markPaid} disabled={busy || anyOver || !hasLines}>
+            <Button size="sm" className="h-9 sm:h-8" onClick={markPaid} disabled={busy || anyOver || !hasLines}>
               <CheckCircle2 className="size-3.5" />
               {tt("cl_mark_paid")}
             </Button>
@@ -442,6 +451,7 @@ export function ContractorClosingView({
         </DialogContent>
       </Dialog>
 
+      {dialog}
       {chargeFor && (
         <AddChargeDialog
           open

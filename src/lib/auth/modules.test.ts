@@ -12,10 +12,16 @@ describe("normalizeModules", () => {
     expect(normalizeModules(["asistencia", "planilla", "documentos"])).toEqual(["documentos", "planilla", "asistencia"]);
   });
 
-  it("Planilla y Contratistas viven dentro de Personal (y Asistencia dentro de Planilla)", () => {
+  it("Planilla, Contratistas y Asistencia viven dentro de Personal (Asistencia no pide Planilla)", () => {
     expect(normalizeModules(["planilla", "contratistas"])).toEqual([]);
     expect(normalizeModules(["asistencia", "planilla"])).toEqual([]);
+    expect(normalizeModules(["asistencia", "documentos"])).toEqual(["documentos", "asistencia"]);
     expect(normalizeModules(["documentos", "contratistas"])).toEqual(["documentos", "contratistas"]);
+  });
+
+  it("Los formularios viven dentro de Accesos rápidos", () => {
+    expect(normalizeModules(["form_registro"])).toEqual([]);
+    expect(normalizeModules(["form_registro", "accesos", "form_autorizaciones"])).toEqual(["accesos", "form_autorizaciones", "form_registro"]);
   });
 
   it("Compras, Costos y Ajustes viven dentro de Almacén", () => {
@@ -57,10 +63,14 @@ describe("hasModule", () => {
 describe("homePathFor", () => {
   it("lleva al primer módulo disponible", () => {
     expect(homePathFor({ role: "admin", modules: [] })).toBe("/cotizacion");
+    expect(homePathFor({ role: "vendedor", modules: ["inspecciones"] })).toBe("/inspecciones");
+    expect(homePathFor({ role: "vendedor", modules: ["inspecciones", "almacen"] })).toBe("/almacen/salidas");
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas", "planilla"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
     expect(homePathFor({ role: "vendedor", modules: ["almacen", "almacen_compras"] })).toBe("/almacen");
+    // Almacenista (sin Compras): directo a Nueva salida.
+    expect(homePathFor({ role: "vendedor", modules: ["almacen", "directorio"] })).toBe("/almacen/salidas");
   });
 
   it("sin módulos cae en una pantalla abierta a todos", () => {

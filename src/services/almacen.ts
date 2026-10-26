@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { formatPhonePA } from "@/lib/almacen/inventory";
 import type { Database, Json } from "@/types/database";
 import type {
   AdjustmentReason,
@@ -9,15 +10,19 @@ import type {
   InventoryCategory,
   InventoryIssue,
   InventoryItem,
+  InventoryMovement,
   InventoryPerson,
   InventoryUnit,
   ItemKind,
+  OrderDelivery,
   OrderStatus,
   PurchaseOrder,
   PurchaseRequest,
   RequestStatus,
   Supplier,
+  SupplierContact,
   SupplierKind,
+  SupplierRubro,
 } from "@/types/almacen";
 
 /**
@@ -44,11 +49,21 @@ function fail(error: { message: string } | null): void {
 
 // ── Proveedores ─────────────────────────────────────────────────────────
 
+function parseContacts(raw: unknown): SupplierContact[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === "object")
+    .map((c) => ({ name: String(c.name ?? ""), role: String(c.role ?? ""), whatsapp: String(c.whatsapp ?? "") }));
+}
+
 function mapSupplier(r: SupplierRow): Supplier {
   return {
     id: r.id,
     name: r.name,
     kind: r.kind as SupplierKind,
+    rubros: (r.rubros ?? []) as SupplierRubro[],
+    specialty: r.specialty,
+    contacts: parseContacts(r.contacts),
     contactName: r.contact_name,
     phone: r.phone,
     whatsapp: r.whatsapp,
@@ -70,12 +85,20 @@ export type SupplierInput = Omit<Supplier, "id">;
 
 function supplierRow(input: SupplierInput) {
   const clean = (s: string | null) => (s?.trim() ? s.trim() : null);
+  // Contactos sin nada se descartan; el primero manda en contact_name / whatsapp.
+  const contacts = input.contacts
+    .map((c) => ({ name: c.name.trim(), role: c.role.trim(), whatsapp: formatPhonePA(c.whatsapp) ?? "" }))
+    .filter((c) => c.name || c.whatsapp);
+  const main = contacts[0];
   return {
     name: input.name.trim(),
     kind: input.kind,
-    contact_name: clean(input.contactName),
-    phone: clean(input.phone),
-    whatsapp: clean(input.whatsapp),
+    rubros: input.rubros,
+    specialty: clean(input.specialty),
+    contacts,
+    contact_name: main ? clean(main.name) : null,
+    phone: formatPhonePA(input.phone),
+    whatsapp: main ? clean(main.whatsapp) : null,
     email: clean(input.email),
     address: clean(input.address),
     notes: clean(input.notes),
@@ -132,6 +155,7 @@ export async function getCatalog(): Promise<InventoryItem[]> {
     allowsDecimals: i.allows_decimals,
     kind: i.kind as ItemKind,
     notes: i.notes,
+    photoPath: i.photo_path,
     active: i.active,
     variants: (byItem.get(i.id) ?? []).map((v) => ({
       id: v.id,
@@ -179,7 +203,8 @@ function itemRow(input: ItemInput) {
   };
 }
 
-async function saveItemChildren(itemId: string, input: ItemInput): Promise<void> {
+/** Devuelve cuántas variantes quitadas quedaron desactivadas (tenían historial). */
+async function saveItemChildren(itemId: string, input: ItemInput): Promise<number> {
   const supabase = await createClient();
   const { data: existing, error } = await supabase.from("inventory_variants").select("id").eq("item_id", itemId);
   fail(error);
@@ -192,8 +217,16 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<void>
       : await supabase.from("inventory_variants").insert({ ...row, item_id: itemId });
     fail(res.error);
   }
-  const gone = (existing ?? []).map((v) => v.id).filter((id) => !keep.has(id));
-  if (gone.length) fail((await supabase.from("inventory_variants").update({ active: false }).in("id", gone)).error);
+  // Las que se quitaron se borran; si ya tienen historial (movimientos,
+  // pedidos o solicitudes, la base lo impide) quedan desactivadas.
+  let deactivated = 0;
+  for (const id of (existing ?? []).map((v) => v.id).filter((id) => !keep.has(id))) {
+    const del = await supabase.from("inventory_variants").delete().eq("id", id);
+    if (!del.error) continue;
+    if (del.error.code !== "23503") fail(del.error);
+    fail((await supabase.from("inventory_variants").update({ active: false }).eq("id", id)).error);
+    deactivated += 1;
+  }
 
   fail((await supabase.from("inventory_item_suppliers").delete().eq("item_id", itemId)).error);
   if (input.suppliers.length) {
@@ -206,6 +239,23 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<void>
     }));
     fail((await supabase.from("inventory_item_suppliers").insert(rows)).error);
   }
+  return deactivated;
+}
+
+/**
+ * Deja al proveedor como principal de los productos que todavía no tienen
+ * ninguno (al pedirles por primera vez). A los que ya tienen, no les toca nada.
+ */
+export async function linkSupplierToItems(supplierId: string, itemIds: string[]): Promise<number> {
+  const ids = [...new Set(itemIds)];
+  if (ids.length === 0) return 0;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("inventory_item_suppliers").select("item_id").in("item_id", ids);
+  fail(error);
+  const linked = new Set((data ?? []).map((r) => r.item_id));
+  const rows = ids.filter((id) => !linked.has(id)).map((item_id) => ({ item_id, supplier_id: supplierId, is_primary: true }));
+  if (rows.length) fail((await supabase.from("inventory_item_suppliers").insert(rows)).error);
+  return rows.length;
 }
 
 export async function createItem(input: ItemInput): Promise<string> {
@@ -216,10 +266,61 @@ export async function createItem(input: ItemInput): Promise<string> {
   return data!.id;
 }
 
-export async function updateItem(id: string, input: ItemInput): Promise<void> {
+/** Devuelve cuántas variantes quitadas quedaron desactivadas en vez de borradas. */
+export async function updateItem(id: string, input: ItemInput): Promise<number> {
   const supabase = await createClient();
   fail((await supabase.from("inventory_items").update(itemRow(input)).eq("id", id)).error);
-  await saveItemChildren(id, input);
+  return saveItemChildren(id, input);
+}
+
+/**
+ * Borra un producto con sus variantes, solo si nunca tuvo movimientos ni
+ * solicitudes (si los tuvo, se desactiva: así no se pierde el historial).
+ * También borra su foto.
+ */
+export async function deleteItem(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: variants, error } = await supabase.from("inventory_variants").select("id").eq("item_id", id);
+  fail(error);
+  const ids = (variants ?? []).map((v) => v.id);
+  if (ids.length) {
+    const [movs, reqs] = await Promise.all([
+      supabase.from("inventory_movements").select("id", { count: "exact", head: true }).in("variant_id", ids),
+      supabase.from("purchase_requests").select("id", { count: "exact", head: true }).in("variant_id", ids),
+    ]);
+    if ((movs.count ?? 0) > 0 || (reqs.count ?? 0) > 0) {
+      throw new Error("Este producto ya tiene movimientos o solicitudes: desactívalo en vez de borrarlo.");
+    }
+  }
+  const { data: item } = await supabase.from("inventory_items").select("photo_path").eq("id", id).maybeSingle();
+  fail((await supabase.from("inventory_items").delete().eq("id", id)).error);
+  if (item?.photo_path) await supabase.storage.from("inventory-photos").remove([item.photo_path]);
+}
+
+export interface VariantLevels {
+  variantId: string;
+  minQty: number | null;
+  reorderQty: number | null;
+}
+
+/** Mínimo y "pedir hasta" de las variantes de un producto, y su nota (pantalla de revisión). */
+export async function saveItemLevels(itemId: string, levels: VariantLevels[], notes: string | null): Promise<void> {
+  const supabase = await createClient();
+  for (const l of levels) {
+    if (l.minQty != null && l.minQty < 0) throw new Error("El mínimo no puede ser negativo.");
+    if (l.reorderQty != null && l.minQty != null && l.reorderQty < l.minQty) throw new Error("\"Pedir hasta\" no puede ser menor que el mínimo.");
+    fail(
+      (await supabase.from("inventory_variants").update({ min_qty: l.minQty, reorder_qty: l.reorderQty }).eq("id", l.variantId).eq("item_id", itemId))
+        .error,
+    );
+  }
+  fail((await supabase.from("inventory_items").update({ notes }).eq("id", itemId)).error);
+}
+
+/** Guarda (o quita) la foto del producto. El archivo ya lo subió el navegador al bucket. */
+export async function setItemPhoto(id: string, path: string | null): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.from("inventory_items").update({ photo_path: path }).eq("id", id)).error);
 }
 
 // ── Personal y proyectos (para las salidas) ─────────────────────────────
@@ -371,6 +472,7 @@ export async function getPurchaseOrders(limit = 100): Promise<PurchaseOrder[]> {
     id: o.id,
     supplierId: o.supplier_id,
     status: o.status as OrderStatus,
+    delivery: o.delivery === "entrega" || o.delivery === "retiro" ? o.delivery : null,
     orderedOn: o.ordered_on,
     invoiceRef: o.invoice_ref,
     notes: o.notes,
@@ -390,11 +492,24 @@ export async function getPurchaseOrders(limit = 100): Promise<PurchaseOrder[]> {
   }));
 }
 
-export async function createPurchaseOrder(supplierId: string, requestIds: string[], notes: string | null): Promise<string> {
+export async function createPurchaseOrder(
+  supplierId: string,
+  requestIds: string[],
+  notes: string | null,
+  delivery: OrderDelivery,
+): Promise<string> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_purchase_order", { p_supplier_id: supplierId, p_request_ids: requestIds, p_notes: notes });
   fail(error);
-  return data as string;
+  const id = data as string;
+  fail((await supabase.from("purchase_orders").update({ delivery }).eq("id", id)).error);
+  return id;
+}
+
+/** Cambiar si lo traen o hay que retirarlo. */
+export async function setOrderDelivery(orderId: string, delivery: OrderDelivery): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.from("purchase_orders").update({ delivery }).eq("id", orderId)).error);
 }
 
 export async function receivePurchaseOrder(orderId: string, receivedOn: string | null, lines: { lineId: string; qty: number }[]) {
@@ -430,6 +545,46 @@ export async function cancelPurchaseOrder(orderId: string): Promise<void> {
 }
 
 // ── Ajustes ─────────────────────────────────────────────────────────────
+
+/** Historial de movimientos (salidas, entradas por compra y ajustes), lo más nuevo primero. */
+export async function getMovements(limit = 500, since?: string): Promise<InventoryMovement[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("inventory_movements")
+    .select(
+      "id, variant_id, kind, qty, stock_after, moved_on, created_by_name, created_at, issue_id, inventory_issues(recipient_employee_id, recipient_contractor_id, project_id, internal_use), inventory_adjustments(reason, notes), purchase_order_lines(purchase_orders(supplier_id))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (since) query = query.gte("moved_on", since);
+  const { data, error } = await query;
+  fail(error);
+  return (data ?? []).map((r) => {
+    const issue = r.inventory_issues;
+    const adj = r.inventory_adjustments;
+    return {
+      id: r.id,
+      variantId: r.variant_id,
+      kind: r.kind as InventoryMovement["kind"],
+      qty: Number(r.qty),
+      stockAfter: Number(r.stock_after),
+      movedOn: r.moved_on,
+      createdByName: r.created_by_name,
+      createdAt: r.created_at,
+      issueId: r.issue_id,
+      issue: issue
+        ? {
+            employeeId: issue.recipient_employee_id,
+            contractorId: issue.recipient_contractor_id,
+            projectId: issue.project_id,
+            internalUse: issue.internal_use as InternalUse | null,
+          }
+        : null,
+      supplierId: r.purchase_order_lines?.purchase_orders?.supplier_id ?? null,
+      adjustment: adj ? { reason: adj.reason as AdjustmentReason, notes: adj.notes } : null,
+    };
+  });
+}
 
 export async function getAdjustments(limit = 100): Promise<InventoryAdjustment[]> {
   const supabase = await createClient();
