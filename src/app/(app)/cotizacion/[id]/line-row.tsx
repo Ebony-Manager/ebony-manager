@@ -204,13 +204,22 @@ export function LineRow({
       </div>
 
       {line.golaMl > 0 && (
-        // La gola va dentro de la puerta o gaveta: su metraje y su precio,
-        // ya sumados al importe del renglón.
-        <div className="mt-0.5 flex basis-full flex-wrap items-center justify-end gap-x-2 gap-y-1 border-t border-dashed border-border pt-1.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">{tt("line_gola")}</span>
-          <NumField value={line.golaMl} onChange={(n) => onChange({ golaMl: n })} suffix="ML" inputWidth={40} aria-label={tt("line_gola_ml")} title={tt("line_gola_ml")} />
+        // Anexo de la puerta o gaveta, en chico: su metraje y su precio. El
+        // importe de la derecha del renglón ya incluye la gola.
+        <div className="ml-auto flex basis-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="rounded bg-muted/70 px-1.5 py-0.5 font-medium text-foreground/70">{tt("line_gola")}</span>
+          <NumField
+            value={line.golaMl}
+            onChange={(n) => onChange({ golaMl: n })}
+            suffix="ML"
+            inputWidth={34}
+            className="h-6"
+            aria-label={tt("line_gola_ml")}
+            title={tt("line_gola_ml")}
+          />
           <span className="tabular-nums">× {formatMoney(line.golaPrice)}</span>
-          <span className="min-w-[70px] text-right tabular-nums">{formatMoney(golaAmount(line))}</span>
+          <span className="tabular-nums">= {formatMoney(golaAmount(line))}</span>
+          <span className="text-muted-foreground/70">· {tt("line_gola_included")}</span>
           <button type="button" aria-label={tt("line_gola_remove")} title={tt("line_gola_remove")} onClick={() => onChange({ golaMl: 0 })} className="p-0.5 hover:text-destructive">
             <X className="size-3" />
           </button>

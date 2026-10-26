@@ -2094,6 +2094,7 @@ export const strings = {
     line_gola: { es: "Gola", en: "Gola" },
     line_gola_ml: { es: "Metros lineales de gola", en: "Gola linear meters" },
     line_gola_remove: { es: "Quitar la gola", en: "Remove gola" },
+    line_gola_included: { es: "incluida en el total", en: "included in the total" },
     line_gola_hint: { es: "Agregar gola (apertura sin tirador) a esta puerta o gaveta, por metro lineal", en: "Add a gola (handleless opening) to this door or drawer, per linear meter" },
     line_price_reset: { es: "Restablecer", en: "Reset" },
     line_price_catalog: { es: "Catálogo", en: "Catalog" },
