@@ -293,10 +293,7 @@ export function QuoteEditor({
         <ClientView quote={quote} onDetail={(pdfDetail) => setHeader({ pdfDetail })} />
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          {/* Zona de cotización: un tono muy tenue del color del tema la separa
-              del encabezado (cliente, fechas), para que se vea dónde se está
-              cotizando. Las tarjetas de adentro siguen en blanco. */}
-          <div className="flex min-w-0 flex-col gap-4 rounded-xl border border-[color-mix(in_srgb,var(--primary)_14%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_5%,var(--background))] p-2.5 sm:p-3.5">
+          <div className="flex min-w-0 flex-col gap-4">
             {/* Ítems de la cotización: ubicación chica arriba, ítem grande */}
             <div className="flex flex-wrap gap-1.5">
               {quote.sections.map((s) =>
@@ -358,7 +355,7 @@ export function QuoteEditor({
             </div>
 
             {section ? (
-              <div className="rounded-lg border border-[color-mix(in_srgb,var(--primary)_18%,var(--border))] bg-card p-3.5 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-3.5">
                 <SectionEditor
                   key={section.id}
                   section={section}
