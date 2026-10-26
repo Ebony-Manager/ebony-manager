@@ -53,6 +53,19 @@ export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   form_registro: "accesos",
 };
 
+/**
+ * Permisos "a elección": no dan acceso a datos, solo agregan botones (Accesos
+ * rápidos). Nadie los tiene por ser admin: se marcan a cada quien, también al
+ * admin (que puede no quererlos en su menú).
+ */
+export const OPT_IN_MODULES: readonly AppModule[] = ["accesos", "form_autorizaciones", "form_registro"];
+export const isOptInModule = (m: AppModule) => OPT_IN_MODULES.includes(m);
+
+/** ¿Lo tiene marcado de verdad? (sin el "el admin entra a todo"): para los permisos a elección. */
+export function hasExplicitModule(subject: AccessSubject | null | undefined, module: AppModule): boolean {
+  return !!subject && normalizeModules(subject.modules ?? []).includes(module);
+}
+
 /** Los padres de un módulo, del más cercano al más lejano. */
 export function moduleAncestors(m: AppModule): AppModule[] {
   const out: AppModule[] = [];

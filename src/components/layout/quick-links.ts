@@ -1,11 +1,12 @@
 import { PaintBucket, Package, UserPlus, type LucideIcon } from "lucide-react";
 import { strings } from "@/lib/i18n";
-import { hasModule, type AccessSubject, type AppModule } from "@/lib/auth/modules";
+import { hasExplicitModule, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
 /**
  * Accesos rápidos a formularios de JotForm: botones en «Más» (celular) y en
  * el menú de perfil (computadora), sin crear pantallas. Cada uno pide su
- * permiso (grupo «Accesos rápidos» en Settings → Usuarios). `open` abre el
+ * permiso (grupo «Accesos rápidos» en Settings → Usuarios; a elección, ni el
+ * admin los tiene si no se los marcan). `open` abre el
  * formulario; `share` manda el enlace (menú de compartir del teléfono, o
  * copiarlo si no hay).
  */
@@ -26,7 +27,8 @@ export const QUICK_LINKS: QuickLink[] = [
   { key: "registro", href: "https://form.jotform.com/232606019835052", icon: UserPlus, label: strings.nav.form_registro, module: "form_registro", action: "share" },
 ];
 
-export const visibleQuickLinks = (subject: AccessSubject | null | undefined) => QUICK_LINKS.filter((l) => hasModule(subject, l.module));
+// Solo a quien lo tiene marcado, también el admin (no los recibe por ser admin).
+export const visibleQuickLinks = (subject: AccessSubject | null | undefined) => QUICK_LINKS.filter((l) => hasExplicitModule(subject, l.module));
 
 /** Compartir el enlace: menú del teléfono (WhatsApp…) o, si no hay, copiarlo. Devuelve "copied" si lo copió. */
 export async function shareLink(url: string, text: string, title: string): Promise<"shared" | "copied" | "cancelled"> {

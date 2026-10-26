@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ALMACEN_PANEL, PERSONAL_PANEL, canSeeNavItem, panelHome, type NavPanel } from "./nav-items";
+import { visibleQuickLinks } from "./quick-links";
 
 const visible = (panel: NavPanel, modules: string[]) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, { role: "vendedor", modules })) });
 const hrefs = (panel: NavPanel, modules: string[]) => visible(panel, modules).items.map((i) => i.href);
@@ -21,5 +22,13 @@ describe("menú por permisos", () => {
 
   it("Personal: con Planilla sigue igual (Resumen, Personal, Pagos)", () => {
     expect(hrefs(PERSONAL_PANEL, ["documentos", "planilla", "asistencia"])).toEqual(["/personal", "/personal/staff", "/personal/pagos"]);
+  });
+});
+
+describe("accesos rápidos", () => {
+  it("son a elección: el admin no los tiene si no se los marcan", () => {
+    expect(visibleQuickLinks({ role: "admin", modules: [] })).toEqual([]);
+    expect(visibleQuickLinks({ role: "admin", modules: ["accesos", "form_registro"] }).map((l) => l.key)).toEqual(["registro"]);
+    expect(visibleQuickLinks({ role: "vendedor", modules: ["accesos", "form_autorizaciones"] }).map((l) => l.key)).toEqual(["auth-pintura", "auth-embalaje"]);
   });
 });
