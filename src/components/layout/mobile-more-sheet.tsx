@@ -8,7 +8,8 @@ import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
-import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, type NavItem } from "./nav-items";
+import type { LucideIcon } from "lucide-react";
+import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
 
 const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.nav }[] = [
@@ -17,10 +18,27 @@ const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.
   { value: "system", icon: Monitor, label: "theme_system" },
 ];
 
+/** Secciones grandes (botón grande, con sus pestañas debajo) y accesos chicos. */
+const BIG = ["almacen", "personal", "/proyectos", "/dashboard"];
+const SMALL = ["/cotizacion", "/directorio", "settings"];
+
+interface Entry {
+  key: string;
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  /** Las pestañas que trae (solo secciones con panel). */
+  tabs: string[];
+  active: boolean;
+  pending: number;
+}
+
 /**
- * "Más" en el celular: una hoja que sube desde abajo con todo el menú, con
- * nombres (no solo íconos): los módulos, las secciones de Almacén / Personal
- * / Settings y las preferencias del perfil (tema, idioma, cerrar sesión).
+ * "Más" en el celular: una hoja que sube desde abajo. Arriba, botones grandes
+ * para las secciones principales (Almacén, Personal, Proyectos, Dashboard),
+ * cada uno con las pestañas que trae; abajo, accesos chicos (Cotización,
+ * Directorio, Settings) y las preferencias del perfil en una franja. Cada
+ * botón lleva al inicio de su sección (ver `panelHome`); adentro, pestañas.
  * Solo muestra lo que el usuario puede abrir.
  */
 export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onClose: () => void; pending: PendingCounts }) {
@@ -32,28 +50,27 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const tl = (label: NavItem["label"]) => t(lang, label);
   const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
 
-  const modulesList = RAIL_ITEMS.filter((i) => canSeeNavItem(i, access));
-  const panels = [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL]
-    .map((p) => ({ ...p, items: p.items.filter((i) => canSeeNavItem(i, access)) }))
-    .filter((p) => p.items.length > 0);
-
-  const row = (item: NavItem) => {
-    const active = isNavItemActive(item, pathname);
-    const Icon = item.icon;
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={onClose}
-        aria-current={active ? "page" : undefined}
-        className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] ${active ? "bg-primary/10 font-semibold text-primary" : "text-foreground active:bg-muted"}`}
-      >
-        <Icon size={19} strokeWidth={1.7} className="shrink-0" />
-        <span className="flex-1">{tl(item.label)}</span>
-        <PendingBadge count={pendingFor(item.href)} title={t(lang, strings.nav.pending)} />
-      </Link>
-    );
-  };
+  const entries: Entry[] = [];
+  for (const item of RAIL_ITEMS.filter((i) => canSeeNavItem(i, access))) {
+    entries.push({ key: item.href, href: item.href, icon: item.icon, label: tl(item.label), tabs: [], active: isNavItemActive(item, pathname), pending: 0 });
+  }
+  for (const panel of [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL]) {
+    const items = panel.items.filter((i) => canSeeNavItem(i, access));
+    const home = panelHome({ ...panel, items }, access);
+    if (!home) continue;
+    entries.push({
+      key: panel.key,
+      href: home.href,
+      icon: panel.icon,
+      label: t(lang, panel.title),
+      tabs: items.length > 1 ? items.map((i) => tl(i.label)) : [],
+      active: items.some((i) => isNavItemActive(i, pathname)),
+      pending: items.reduce((sum, i) => sum + pendingFor(i.href), 0),
+    });
+  }
+  const pick = (keys: string[]) => keys.map((k) => entries.find((e) => e.key === k)).filter((e): e is Entry => !!e);
+  const big = pick(BIG);
+  const small = pick(SMALL);
 
   return (
     // Cerrado queda invisible (después de la animación): el Safari del iPhone
@@ -97,42 +114,90 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {modulesList.length > 0 && <nav className="flex flex-col gap-0.5 border-b border-border pb-2">{modulesList.map(row)}</nav>}
-          {panels.map((p) => (
-            <nav key={p.key} className="flex flex-col gap-0.5 border-b border-border py-2" aria-label={t(lang, p.title)}>
-              <h3 className="px-3 pt-1 pb-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t(lang, p.title)}</h3>
-              {p.items.map(row)}
-            </nav>
-          ))}
-
-          <div className="flex flex-col gap-3 py-3">
-            <div className="flex flex-col gap-1.5 px-3">
-              <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t(lang, strings.nav.theme)}</span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {THEMES.map(({ value, icon: Icon, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setTheme(value)}
-                    className={`flex h-10 items-center justify-center gap-1.5 rounded-md border text-sm ${theme === value ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border"}`}
+          {/* Secciones principales: botones grandes, dos por fila (el último solo, a todo el ancho). */}
+          {big.length > 0 && (
+            <nav className="grid grid-cols-2 gap-2 pt-1 pb-3" aria-label={t(lang, strings.nav.menu)}>
+              {big.map((e, i) => {
+                const Icon = e.icon;
+                return (
+                  <Link
+                    key={e.key}
+                    href={e.href}
+                    onClick={onClose}
+                    aria-current={e.active ? "page" : undefined}
+                    className={`relative flex min-h-24 flex-col justify-between gap-2 rounded-xl border p-3 ${
+                      big.length % 2 === 1 && i === big.length - 1 ? "col-span-2" : ""
+                    } ${e.active ? "border-primary bg-primary/10" : "border-border bg-background active:bg-muted"}`}
                   >
-                    <Icon size={15} />
-                    {t(lang, strings.nav[label])}
-                  </button>
-                ))}
-              </div>
+                    <span className={`flex size-10 items-center justify-center rounded-lg ${e.active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                      <Icon size={22} strokeWidth={1.8} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[15px] font-semibold text-foreground">{e.label}</span>
+                      {e.tabs.length > 0 && <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{e.tabs.join(" · ")}</span>}
+                    </span>
+                    <PendingBadge count={e.pending} className="absolute top-2 right-2" title={t(lang, strings.nav.pending)} />
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Accesos chicos. */}
+          {small.length > 0 && (
+            <nav className="grid grid-cols-3 gap-2 border-t border-border py-3">
+              {small.map((e) => {
+                const Icon = e.icon;
+                return (
+                  <Link
+                    key={e.key}
+                    href={e.href}
+                    onClick={onClose}
+                    aria-current={e.active ? "page" : undefined}
+                    className={`relative flex h-16 flex-col items-center justify-center gap-1 rounded-lg text-xs ${
+                      e.active ? "bg-primary/10 font-semibold text-primary" : "text-foreground active:bg-muted"
+                    }`}
+                  >
+                    <Icon size={20} strokeWidth={1.7} />
+                    <span className="max-w-full truncate px-1">{e.label}</span>
+                    <PendingBadge count={e.pending} className="absolute top-1 right-3" title={t(lang, strings.nav.pending)} />
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Preferencias en una franja: tema (íconos), idioma y salir. */}
+          <div className="flex items-center gap-2 border-t border-border pt-3">
+            <div className="flex rounded-lg border border-border p-0.5" role="group" aria-label={t(lang, strings.nav.theme)}>
+              {THEMES.map(({ value, icon: Icon, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  aria-label={t(lang, strings.nav[label])}
+                  aria-pressed={theme === value}
+                  className={`flex size-9 items-center justify-center rounded-md ${theme === value ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                >
+                  <Icon size={16} />
+                </button>
+              ))}
             </div>
-            <button type="button" onClick={toggle} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] active:bg-muted">
-              <Languages size={19} strokeWidth={1.7} />
-              <span className="flex-1 text-left">{t(lang, strings.nav.language)}</span>
-              <span className="text-sm font-semibold text-muted-foreground">{lang === "es" ? "Español" : "English"}</span>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={t(lang, strings.nav.language)}
+              className="flex h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-semibold active:bg-muted"
+            >
+              <Languages size={16} />
+              {lang === "es" ? "ES" : "EN"}
             </button>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] text-destructive active:bg-muted"
+              className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-destructive active:bg-muted"
             >
-              <LogOut size={19} strokeWidth={1.7} />
+              <LogOut size={16} />
               {t(lang, strings.auth.signOut)}
             </button>
           </div>
