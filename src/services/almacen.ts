@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { formatPhonePA } from "@/lib/almacen/inventory";
 import type { Database, Json } from "@/types/database";
 import type {
   AdjustmentReason,
@@ -86,7 +87,7 @@ function supplierRow(input: SupplierInput) {
   const clean = (s: string | null) => (s?.trim() ? s.trim() : null);
   // Contactos sin nada se descartan; el primero manda en contact_name / whatsapp.
   const contacts = input.contacts
-    .map((c) => ({ name: c.name.trim(), role: c.role.trim(), whatsapp: c.whatsapp.trim() }))
+    .map((c) => ({ name: c.name.trim(), role: c.role.trim(), whatsapp: formatPhonePA(c.whatsapp) ?? "" }))
     .filter((c) => c.name || c.whatsapp);
   const main = contacts[0];
   return {
@@ -96,7 +97,7 @@ function supplierRow(input: SupplierInput) {
     specialty: clean(input.specialty),
     contacts,
     contact_name: main ? clean(main.name) : null,
-    phone: clean(input.phone),
+    phone: formatPhonePA(input.phone),
     whatsapp: main ? clean(main.whatsapp) : null,
     email: clean(input.email),
     address: clean(input.address),

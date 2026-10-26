@@ -73,6 +73,19 @@ export function whatsappNumber(raw: string | null | undefined): string | null {
   return digits.length <= 8 ? `507${digits}` : digits;
 }
 
+/**
+ * Teléfono en un solo formato: los de Panamá como "+507 6000-0000" (con o sin
+ * 507 delante); los de otro país (+86, +57…) se dejan como vienen, sin
+ * caracteres invisibles. Igual que private.format_phone_pa en la base.
+ */
+export function formatPhonePA(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").replace(/[\u202a\u202c\u200e\u200f]/g, "").trim();
+  if (!v) return null;
+  const digits = v.replace(/\D/g, "");
+  const local = /^\d{8}$/.test(digits) ? digits : /^507\d{8}$/.test(digits) ? digits.slice(3) : null;
+  return local ? `+507 ${local.slice(0, 4)}-${local.slice(4)}` : v;
+}
+
 /** Abre el chat del proveedor con el mensaje ya escrito (solo falta tocar Enviar). */
 export function whatsappUrl(raw: string | null | undefined, text: string): string | null {
   const number = whatsappNumber(raw);
