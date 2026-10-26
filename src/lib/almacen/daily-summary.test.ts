@@ -40,6 +40,7 @@ describe("buildSummaryEmail", () => {
     expect(e.html).toContain("7 días");
     expect(e.html).toContain("4 salidas con 9 productos");
     expect(e.html).toContain("https://app/almacen");
+    expect(e.html).toContain("/email/ebony-logo.png");
     expect(e.text).toContain("- Riel de gaveta · 40 cm: hay 0 pares, mínimo 6");
   });
 });

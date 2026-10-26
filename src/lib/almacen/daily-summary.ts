@@ -2,6 +2,7 @@
 // solicitudes por pedir, los pedidos que no han llegado y las salidas de ayer.
 // Puro (sin red): la ruta /api/almacen/resumen-diario trae los datos y lo manda.
 
+import { brandedEmailHtml } from "@/lib/email/branded";
 import { formatQty, unitLabel } from "./inventory";
 
 export interface DailySummary {
@@ -37,7 +38,7 @@ function longDate(iso: string): string {
 
 function table(headers: string[], rows: string[][], alignRight: number[] = []): string {
   const cell = (c: string, i: number, th = false) =>
-    `<${th ? "th" : "td"} style="padding:6px 8px;border-bottom:1px solid #e7e2dc;text-align:${alignRight.includes(i) ? "right" : "left"};${th ? "font-weight:600;color:#6b625a;font-size:12px" : "font-size:14px"}">${c}</${th ? "th" : "td"}>`;
+    `<${th ? "th" : "td"} style="padding:6px 8px;border-bottom:1px solid #ececea;text-align:${alignRight.includes(i) ? "right" : "left"};${th ? "font-weight:600;color:#6b6b6b;font-size:12px" : "font-size:14px"}">${c}</${th ? "th" : "td"}>`;
   return `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin:6px 0 18px">
 <tr>${headers.map((h, i) => cell(h, i, true)).join("")}</tr>
 ${rows.map((r) => `<tr>${r.map((c, i) => cell(c, i)).join("")}</tr>`).join("\n")}
@@ -64,11 +65,11 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
     const shown = s.low_stock.slice(0, MAX_LOW);
     sections.push(
       `<h2 style="font-size:16px;margin:0 0 4px">Bajo stock (${s.low_stock.length})</h2>
-<p style="margin:0 0 4px;color:#6b625a;font-size:13px">${out.length} sin stock. Los marcados con ✓ ya tienen solicitud de compra.</p>` +
+<p style="margin:0 0 4px;color:#6b6b6b;font-size:13px">${out.length} sin stock. Los marcados con ✓ ya tienen solicitud de compra.</p>` +
         table(
           ["Producto", "Hay", "Mínimo", "Pedir hasta", ""],
           shown.map((x) => [
-            `${esc(x.name)}${x.label ? `<br><span style="color:#6b625a;font-size:12px">${esc(x.label)}</span>` : ""}`,
+            `${esc(x.name)}${x.label ? `<br><span style="color:#6b6b6b;font-size:12px">${esc(x.label)}</span>` : ""}`,
             `<span style="color:${x.stock <= 0 ? "#b42318" : "#b54708"};font-weight:600">${qty(x.stock, x.unit)}</span>`,
             formatQty(x.min),
             x.reorder != null ? formatQty(x.reorder) : "—",
@@ -76,7 +77,7 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
           ]),
           [1, 2, 3],
         ) +
-        (s.low_stock.length > MAX_LOW ? `<p style="font-size:13px;color:#6b625a">…y ${s.low_stock.length - MAX_LOW} más en la app.</p>` : ""),
+        (s.low_stock.length > MAX_LOW ? `<p style="font-size:13px;color:#6b6b6b">…y ${s.low_stock.length - MAX_LOW} más en la app.</p>` : ""),
     );
     text.push(`BAJO EL MÍNIMO (${s.low_stock.length})`, ...shown.map((x) => `- ${x.name}${x.label ? ` · ${x.label}` : ""}: hay ${qty(x.stock, x.unit)}, mínimo ${formatQty(x.min)}`), "");
   }
@@ -121,14 +122,14 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
   );
   text.push(`SALIDAS DE AYER: ${y.issues}`, "");
 
-  const html = `<!doctype html><html><body style="margin:0;background:#f7f4f0;font-family:Inter,Arial,sans-serif;color:#2b2622">
-<div style="max-width:640px;margin:0 auto;padding:24px 16px">
-<p style="margin:0;color:#6b625a;font-size:13px">Ebony Manager · Almacén</p>
-<h1 style="font-size:20px;margin:4px 0 18px">Resumen del ${esc(longDate(s.today))}</h1>
-<div style="background:#ffffff;border:1px solid #e7e2dc;padding:18px 18px 4px">${sections.join("\n")}</div>
-<p style="margin:18px 0 0"><a href="${appUrl}/almacen" style="background:#5b4636;color:#ffffff;padding:10px 16px;text-decoration:none;font-size:14px">Abrir el almacén</a></p>
-<p style="margin:18px 0 0;color:#9b928a;font-size:12px">Lo reciben los admins y quien tiene el permiso de Compras.</p>
-</div></body></html>`;
+  const html = brandedEmailHtml({
+    kicker: "Almacén",
+    title: `Resumen del ${esc(longDate(s.today))}`,
+    body: sections.join("\n"),
+    button: { href: `${appUrl}/almacen`, label: "Abrir el almacén" },
+    footnote: "Lo reciben los admins y quien tiene el permiso de Compras.",
+    width: 640,
+  });
 
   text.push(`Abrir el almacén: ${appUrl}/almacen`);
   return { subject, html, text: text.join("\n"), hasContent };
