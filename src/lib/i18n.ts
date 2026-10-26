@@ -21,6 +21,7 @@ export const strings = {
     confirm_remove: { es: "¿Quitar?", en: "Remove?" },
     confirm_undo: { es: "¿Deshacer?", en: "Undo?" },
     confirm_back: { es: "No, volver", en: "No, go back" },
+    confirm_signout: { es: "¿Salir? Toca otra vez", en: "Sign out? Tap again" },
     cotizacion: { es: "Cotización", en: "Quote" },
     proyectos: { es: "Proyectos", en: "Projects" },
     cronograma: { es: "Cronograma", en: "Schedule" },

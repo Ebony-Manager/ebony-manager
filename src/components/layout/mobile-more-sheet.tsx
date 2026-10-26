@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Languages, LogOut, Monitor, Moon, Sun, X } from "lucide-react";
@@ -47,6 +48,17 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const access = { role, modules };
+  // Cerrar sesión pide un segundo toque (está al alcance del dedo al abrir el menú).
+  const [armSignOut, setArmSignOut] = React.useState(false);
+  React.useEffect(() => {
+    if (!armSignOut) return;
+    const id = window.setTimeout(() => setArmSignOut(false), 4000);
+    return () => window.clearTimeout(id);
+  }, [armSignOut]);
+  const close = () => {
+    setArmSignOut(false);
+    onClose();
+  };
   const tl = (label: NavItem["label"]) => t(lang, label);
   const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
 
@@ -80,7 +92,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
       className={`fixed inset-0 z-40 transition-[visibility] duration-200 md:hidden ${open ? "visible" : "pointer-events-none invisible"}`}
       aria-hidden={!open}
     >
-      <div className={`absolute inset-0 transition-opacity duration-200 ${open ? "bg-black/40 opacity-100" : "bg-transparent opacity-0"}`} onClick={onClose} />
+      <div className={`absolute inset-0 transition-opacity duration-200 ${open ? "bg-black/40 opacity-100" : "bg-transparent opacity-0"}`} onClick={close} />
       <div
         role="dialog"
         aria-modal="true"
@@ -105,7 +117,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label={t(lang, strings.nav.close)}
             className="flex size-10 items-center justify-center rounded-full text-muted-foreground active:bg-muted"
           >
@@ -123,7 +135,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
                   <Link
                     key={e.key}
                     href={e.href}
-                    onClick={onClose}
+                    onClick={close}
                     aria-current={e.active ? "page" : undefined}
                     className={`relative flex min-h-24 flex-col justify-between gap-2 rounded-xl border p-3 ${
                       big.length % 2 === 1 && i === big.length - 1 ? "col-span-2" : ""
@@ -152,7 +164,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
                   <Link
                     key={e.key}
                     href={e.href}
-                    onClick={onClose}
+                    onClick={close}
                     aria-current={e.active ? "page" : undefined}
                     className={`relative flex h-16 flex-col items-center justify-center gap-1 rounded-lg text-xs ${
                       e.active ? "bg-primary/10 font-semibold text-primary" : "text-foreground active:bg-muted"
@@ -194,11 +206,13 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
             </button>
             <button
               type="button"
-              onClick={() => void signOut()}
-              className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-destructive active:bg-muted"
+              onClick={() => (armSignOut ? void signOut() : setArmSignOut(true))}
+              className={`ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm ${
+                armSignOut ? "bg-destructive font-semibold text-white" : "text-destructive active:bg-muted"
+              }`}
             >
               <LogOut size={16} />
-              {t(lang, strings.auth.signOut)}
+              {armSignOut ? t(lang, strings.nav.confirm_signout) : t(lang, strings.auth.signOut)}
             </button>
           </div>
         </div>

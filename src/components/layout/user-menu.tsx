@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Languages, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
@@ -32,13 +33,15 @@ export function UserMenu() {
   const { user, role, signOut } = useAuth();
   const { lang, toggle } = useLang();
   const { theme, setTheme } = useTheme();
+  // Cerrar sesión: el primer toque pregunta (el menú sigue abierto), el segundo sale.
+  const [armSignOut, setArmSignOut] = React.useState(false);
   if (!user) return null;
 
   const initial = user.name?.[0]?.toUpperCase();
   const roleLabel = role ? t(lang, role === "admin" ? strings.usuarios.role_admin : strings.usuarios.role_user) : null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(o) => !o && setArmSignOut(false)}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -85,9 +88,20 @@ export function UserMenu() {
           <span className="text-xs font-semibold text-muted-foreground">{lang.toUpperCase()}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void signOut()}>
+        <DropdownMenuItem
+          variant="destructive"
+          className={armSignOut ? "font-semibold" : undefined}
+          onSelect={(e) => {
+            if (!armSignOut) {
+              e.preventDefault();
+              setArmSignOut(true);
+              return;
+            }
+            void signOut();
+          }}
+        >
           <LogOut className="size-3.5" />
-          {t(lang, strings.auth.signOut)}
+          {armSignOut ? t(lang, strings.nav.confirm_signout) : t(lang, strings.auth.signOut)}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
