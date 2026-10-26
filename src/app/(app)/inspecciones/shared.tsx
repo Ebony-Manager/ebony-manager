@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { InspectionPhoto } from "@/types/inspections";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
 export type InspeccionesKey = keyof typeof strings.inspecciones;
 
@@ -23,28 +22,6 @@ export function useTi() {
     [lang],
   );
   return { ti, lang };
-}
-
-/** Miniatura cuadrada de una foto (o un ícono si no se pudo firmar). */
-export function PhotoThumb({ photo, onClick, className }: { photo: InspectionPhoto; onClick?: () => void; className?: string }) {
-  const { ti } = useTi();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn("relative size-20 shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:size-24", className)}
-    >
-      {photo.url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- URL firmada del bucket privado
-        <img src={photo.url} alt="" loading="lazy" className="size-full object-cover" />
-      ) : (
-        <ImageOff className="m-auto size-5 text-muted-foreground" />
-      )}
-      {photo.kind === "despues" && (
-        <span className="absolute inset-x-0 bottom-0 bg-success/90 py-0.5 text-center text-[10px] font-semibold text-white">{ti("photo_after")}</span>
-      )}
-    </button>
-  );
 }
 
 /** Las fotos en grande, con flechas (y teclado) para pasar de una a otra. */

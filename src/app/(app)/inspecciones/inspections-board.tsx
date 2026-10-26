@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Camera, Check, FileDown, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Camera, Check, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 
 import type { Inspection, InspectionItem, InspectionPhoto } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { addInspectionPhotosAction, deleteInspectionAction, deleteInspectionItem
 import { ItemDialog, PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
 import { PdfDialog, type InspectionView } from "./pdf-dialog";
 import { VisitDialog } from "./visit-dialog";
-import { PhotoThumb, PhotoViewer, useTi } from "./shared";
+import { PhotoViewer, useTi } from "./shared";
 
 /**
  * Las inspecciones de un proyecto: por visita o todo junto, pendientes o
@@ -171,10 +171,20 @@ export function InspectionsBoard({
                     {ti("empty_visit")} {ti("add_item")}
                   </button>
                 ) : (
-                  <ul className="divide-y divide-border">
+                  <ul className={`${GRID} p-3`}>
                     {v.items.map((item) => (
-                      <ItemRow key={item.id} item={item} {...itemProps} />
+                      <ItemCard key={item.id} item={item} {...itemProps} />
                     ))}
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => setItemDialog({ inspectionId: v.id, item: null })}
+                        className="flex h-full min-h-40 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary"
+                      >
+                        <Camera className="size-5" />
+                        {ti("add_item")}
+                      </button>
+                    </li>
                   </ul>
                 )}
               </Card>
@@ -184,13 +194,11 @@ export function InspectionsBoard({
       ) : flat.length === 0 ? (
         <EmptyState>{ti("empty_pending")}</EmptyState>
       ) : (
-        <Card className="gap-0 p-0">
-          <ul className="divide-y divide-border">
-            {flat.map((item) => (
-              <ItemRow key={item.id} item={item} visitLabel={date(item.visitedOn)} {...itemProps} />
-            ))}
-          </ul>
-        </Card>
+        <ul className={GRID}>
+          {flat.map((item) => (
+            <ItemCard key={item.id} item={item} visitLabel={date(item.visitedOn)} {...itemProps} />
+          ))}
+        </ul>
       )}
 
       <VisitDialog
@@ -215,8 +223,11 @@ export function InspectionsBoard({
   );
 }
 
-/** Un detalle: fotos, área, comentario, estado y acciones. */
-function ItemRow({
+/** Los detalles en tarjetitas: 2 por fila en el celular, más en pantallas grandes. */
+const GRID = "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+
+/** Un detalle en tarjetita: fotos (carrusel), área, comentario, estado y acciones. */
+function ItemCard({
   item,
   visitLabel,
   onOpenPhoto,
@@ -235,9 +246,9 @@ function ItemRow({
   const [busy, setBusy] = React.useState(false);
   const resolved = item.status === "resuelto";
 
-  async function toggle() {
+  async function setStatus(next: "pendiente" | "resuelto") {
     setBusy(true);
-    const r = await setInspectionItemStatusAction(item.id, resolved ? "pendiente" : "resuelto");
+    const r = await setInspectionItemStatusAction(item.id, next);
     setBusy(false);
     if (!r.ok) return toast.error(r.error);
     onChanged();
@@ -264,74 +275,150 @@ function ItemRow({
     }
   }
 
+  const resolvedOn = item.resolvedAt ? formatDateCompact(lang, todayInPanama(new Date(item.resolvedAt))) : null;
+
   return (
-    <li className={`flex flex-col gap-2.5 px-4 py-3 ${resolved ? "bg-muted/30" : ""}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
-            {item.area || <span className="font-normal text-muted-foreground">{ti("no_area")}</span>}
-            {visitLabel && <span className="text-xs font-normal text-muted-foreground">{visitLabel}</span>}
-          </p>
-          <p className={`text-sm whitespace-pre-wrap ${resolved ? "text-muted-foreground" : "text-foreground"}`}>
-            {item.comment || <span className="text-muted-foreground">{ti("no_comment")}</span>}
-          </p>
+    <li className={`flex flex-col overflow-hidden rounded-lg border bg-card ${resolved ? "border-success/30" : "border-border"}`}>
+      <div className="relative">
+        <PhotoCarousel photos={item.photos} onOpen={(i) => onOpenPhoto(item.photos, i)} onEmpty={() => onEdit(item)} dimmed={resolved} />
+        <Badge variant={resolved ? "success" : "warning"} className="pointer-events-none absolute top-1.5 left-1.5 gap-1 bg-card/90 shadow-sm backdrop-blur">
+          {resolved && <Check className="size-3" />}
+          {resolved ? ti("status_resuelto") : ti("status_pendiente")}
+        </Badge>
+        <div className="absolute top-1 right-1 rounded-md bg-card/85 shadow-sm backdrop-blur">
+          <RowMenu
+            label={ti("item_menu")}
+            items={[
+              { label: ti("edit"), icon: Pencil, onSelect: () => onEdit(item) },
+              { label: ti("add_after_photo"), icon: Camera, onSelect: () => afterRef.current?.click() },
+              ...(resolved ? [{ label: ti("mark_pending"), icon: RotateCcw, onSelect: () => void setStatus("pendiente") }] : []),
+              {
+                label: ti("delete_item"),
+                icon: Trash2,
+                confirmLabel: t(lang, strings.nav.confirm_delete),
+                onSelect: () =>
+                  void deleteInspectionItemAction(item.id).then((r) => {
+                    if (!r.ok) return toast.error(r.error);
+                    toast.success(ti("deleted"));
+                    onChanged();
+                  }),
+              },
+            ]}
+          />
         </div>
-        <RowMenu
-          label={ti("item_menu")}
-          items={[
-            { label: ti("edit"), icon: Pencil, onSelect: () => onEdit(item) },
-            { label: ti("add_after_photo"), icon: Camera, onSelect: () => afterRef.current?.click() },
-            {
-              label: ti("delete_item"),
-              icon: Trash2,
-              confirmLabel: t(lang, strings.nav.confirm_delete),
-              onSelect: () =>
-                void deleteInspectionItemAction(item.id).then((r) => {
-                  if (!r.ok) return toast.error(r.error);
-                  toast.success(ti("deleted"));
-                  onChanged();
-                }),
-            },
-          ]}
-        />
       </div>
 
-      {item.photos.length > 0 && (
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {item.photos.map((p, i) => (
-            <PhotoThumb key={p.id} photo={p} onClick={() => onOpenPhoto(item.photos, i)} />
-          ))}
-        </div>
-      )}
+      <button type="button" onClick={() => onEdit(item)} className="flex flex-1 flex-col gap-0.5 px-2.5 pt-2 pb-1.5 text-left">
+        <span className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-tight font-semibold text-foreground">
+          {item.area || <span className="font-normal text-muted-foreground">{ti("no_area")}</span>}
+          {visitLabel && <span className="text-[11px] font-normal text-muted-foreground">{visitLabel}</span>}
+        </span>
+        <span className={`line-clamp-3 text-xs leading-snug ${resolved ? "text-muted-foreground" : "text-foreground"}`}>
+          {item.comment || <span className="text-muted-foreground">{ti("no_comment")}</span>}
+        </span>
+      </button>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="px-2.5 pb-2.5">
         {resolved ? (
-          <>
-            <Badge variant="success" className="gap-1">
-              <Check className="size-3" />
-              {ti("status_resuelto")}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {[item.resolvedAt ? ti("resolved_on", { date: formatDateCompact(lang, todayInPanama(new Date(item.resolvedAt))) }) : null, item.resolvedByName]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-            <Button size="sm" variant="ghost" className="ml-auto h-8 text-muted-foreground" disabled={busy} onClick={() => void toggle()}>
-              <RotateCcw className="size-3.5" />
-              {ti("mark_pending")}
-            </Button>
-          </>
+          <p className="truncate text-[11px] text-success" title={[resolvedOn, item.resolvedByName].filter(Boolean).join(" · ")}>
+            {[resolvedOn ? ti("resolved_on", { date: resolvedOn }) : ti("status_resuelto"), item.resolvedByName].filter(Boolean).join(" · ")}
+          </p>
         ) : (
-          <>
-            <Badge variant="warning">{ti("status_pendiente")}</Badge>
-            <Button size="sm" variant="outline" className="ml-auto h-8" disabled={busy} onClick={() => void toggle()}>
-              <Check className="size-3.5" />
-              {ti("mark_resolved")}
-            </Button>
-          </>
+          <Button size="sm" variant="outline" className="h-8 w-full text-xs" disabled={busy} onClick={() => void setStatus("resuelto")}>
+            <Check className="size-3.5" />
+            {ti("mark_resolved")}
+          </Button>
         )}
       </div>
       <input ref={afterRef} type="file" accept="image/*" multiple className="hidden" onChange={onAfterPhotos} />
     </li>
+  );
+}
+
+/**
+ * Las fotos de un detalle, de a una, deslizando (en la computadora, flechas
+ * al pasar el mouse) con puntitos abajo. Tocar abre en grande.
+ */
+function PhotoCarousel({
+  photos,
+  onOpen,
+  onEmpty,
+  dimmed,
+}: {
+  photos: InspectionPhoto[];
+  onOpen: (index: number) => void;
+  onEmpty: () => void;
+  dimmed: boolean;
+}) {
+  const { ti } = useTi();
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [index, setIndex] = React.useState(0);
+
+  if (photos.length === 0) {
+    return (
+      <button type="button" onClick={onEmpty} className="flex aspect-[4/3] w-full items-center justify-center bg-muted text-muted-foreground">
+        <ImageOff className="size-5" />
+      </button>
+    );
+  }
+
+  const go = (d: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const next = Math.max(0, Math.min(photos.length - 1, index + d));
+    el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+  };
+
+  return (
+    <div className="group relative">
+      <div
+        ref={ref}
+        onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}
+        className="flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto bg-muted [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {photos.map((p, i) => (
+          <button key={p.id} type="button" onClick={() => onOpen(i)} className="relative size-full shrink-0 snap-center">
+            {p.url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL firmada del bucket privado
+              <img src={p.url} alt="" loading="lazy" className={`size-full object-cover ${dimmed ? "opacity-75" : ""}`} />
+            ) : (
+              <ImageOff className="m-auto size-5 text-muted-foreground" />
+            )}
+            {p.kind === "despues" && (
+              <span className="absolute bottom-0 left-0 rounded-tr-md bg-success px-1.5 py-0.5 text-[10px] font-semibold text-white">{ti("photo_after")}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      {photos.length > 1 && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex justify-center gap-1">
+            {photos.map((p, i) => (
+              <span key={p.id} className={`size-1.5 rounded-full shadow ${i === index ? "bg-white" : "bg-white/50"}`} />
+            ))}
+          </div>
+          {index > 0 && (
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label={ti("photo_prev")}
+              className="absolute top-1/2 left-1 hidden size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white group-hover:flex"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+          )}
+          {index < photos.length - 1 && (
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label={ti("photo_next")}
+              className="absolute top-1/2 right-1 hidden size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white group-hover:flex"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          )}
+        </>
+      )}
+    </div>
   );
 }
