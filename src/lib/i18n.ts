@@ -35,6 +35,7 @@ export const strings = {
     staff: { es: "Personal", en: "Staff" },
     panel_section_planillas: { es: "Planillas", en: "Payroll" },
     pagos: { es: "Pagos", en: "Payments" },
+    asistencia: { es: "Asistencia", en: "Attendance" },
     documentos: { es: "Documentos", en: "Documents" },
     // Resumen único de Personal, con filtro Todos / Empleados / Contratistas.
     // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
@@ -266,6 +267,10 @@ export const strings = {
     tab_contratos: { es: "Contratos", en: "Contracts" },
     sub_tab_closing: { es: "Cierre de quincena", en: "Pay-period close" },
     sub_tab_balances: { es: "Saldos", en: "Balances" },
+    sub_asistencia_only: {
+      es: "Ponchadas del reloj y del Jotform: llegadas tarde, faltas y días por revisar.",
+      en: "Clock and Jotform punches: late arrivals, absences and days to review.",
+    },
     sub_asistencia: {
       es: "Ponchadas del reloj y del Jotform → descuentos por tardanza y faltas de la quincena",
       en: "Clock and Jotform punches → late and absence deductions for the pay period",

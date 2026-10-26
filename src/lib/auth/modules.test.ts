@@ -62,6 +62,8 @@ describe("homePathFor", () => {
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
     expect(homePathFor({ role: "vendedor", modules: ["almacen", "almacen_compras"] })).toBe("/almacen");
+    // Almacenista (sin Compras): directo a Nueva salida.
+    expect(homePathFor({ role: "vendedor", modules: ["almacen", "directorio"] })).toBe("/almacen/salidas");
   });
 
   it("sin módulos cae en una pantalla abierta a todos", () => {

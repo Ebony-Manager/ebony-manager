@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
@@ -19,6 +20,8 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
   const canEmployees = hasModule(profile, "planilla");
   const canContractors = hasModule(profile, "contratistas");
   const canAttendance = hasModule(profile, "asistencia");
+  // Solo Asistencia: tiene su propia pantalla (sin la palabra "Pagos").
+  if (!canEmployees && !canContractors) redirect("/personal/asistencia");
   const { tab } = await searchParams;
 
   const [employees, moneyRequests, contractors, contracts, projects, laborRates, contractorsDashboard] = await Promise.all([

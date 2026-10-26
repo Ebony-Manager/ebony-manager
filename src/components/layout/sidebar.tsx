@@ -47,7 +47,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
   // usuario ve (no un toggle); el panel crema de al lado aparece solo, según
   // la ruta. Sin ítems visibles, no hay ícono.
   function panelLink(panel: NavPanel) {
-    const first = panelHome(panel);
+    const first = panelHome(panel, access);
     if (!first) return null;
     const Icon = panel.icon;
     return (

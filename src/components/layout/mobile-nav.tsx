@@ -63,7 +63,7 @@ function useNav(pending: PendingCounts) {
     });
   }
   for (const panel of [ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL].map(visiblePanel)) {
-    const first = panelHome(panel);
+    const first = panelHome(panel, access);
     if (!first) continue;
     destinations.push({
       key: panel.key,

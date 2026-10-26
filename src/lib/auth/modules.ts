@@ -101,6 +101,7 @@ export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
   if (hasModule(subject, "proyectos")) return "/proyectos";
   if (hasModule(subject, "documentos")) return "/personal/staff";
-  if (hasModule(subject, "almacen")) return "/almacen";
+  // Almacén sin Compras (almacenista): directo a Nueva salida.
+  if (hasModule(subject, "almacen")) return hasModule(subject, "almacen_compras") ? "/almacen" : "/almacen/salidas";
   return "/dashboard";
 }
