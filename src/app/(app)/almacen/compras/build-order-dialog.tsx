@@ -12,7 +12,7 @@ import { createPurchaseOrderAction } from "../actions";
 import { Combo, qtyWithUnit, useTa, type VariantRef } from "../shared";
 import { requestName } from "./common";
 
-/** Junta las solicitudes elegidas en un pedido a un proveedor. Después se abre el pedido para mandarlo por WhatsApp. */
+/** Elegir o cambiar el proveedor antes de pasar las solicitudes a En camino (crea el pedido; el WhatsApp sale desde el pedido). */
 export function BuildOrderDialog({
   draft,
   requests,
@@ -84,7 +84,7 @@ export function BuildOrderDialog({
               {ta("cancel")}
             </Button>
             <Button type="submit" disabled={saving || picked.length === 0}>
-              {saving ? ta("saving") : ta("build_order")}
+              {saving ? ta("saving") : ta("mark_ordered")}
             </Button>
           </DialogFooter>
         </form>

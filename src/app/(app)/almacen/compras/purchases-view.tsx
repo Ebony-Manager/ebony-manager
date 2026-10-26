@@ -2,28 +2,36 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Plus, X } from "lucide-react";
+import { ChevronRight, Plus, Search, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
-import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { parseQty } from "@/lib/almacen/inventory";
-import { updatePurchaseRequestAction } from "../actions";
+import { formatQty, parseQty } from "@/lib/almacen/inventory";
+import { createPurchaseOrderAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
 import { StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { BuildOrderDialog } from "./build-order-dialog";
 import { OrderDialog } from "./order-dialog";
-import { SubTabs } from "@/components/shared/page-header";
+import { SectionHeader, SubTabs } from "@/components/shared/page-header";
 
 type Project = { id: string; name: string; active: boolean };
-type Tab = "requests" | "orders";
-type ReqFilter = "pendiente" | "pedido" | "recibido" | "cancelado" | "all";
+/** Las etapas de una compra: cada cosa aparece en una sola. */
+type Tab = "porpedir" | "encamino" | "historial";
 
 
+/**
+ * Almacén → Compras, por etapa: **Por pedir** (solicitudes pendientes;
+ * Compras las agrupa por proveedor y con «Pedido ✓» las pasa a En camino:
+ * por detrás se crea el pedido con proveedor y fecha), **En camino**
+ * (pedidos abiertos; Almacén recibe) e **Historial** (recibidos, cancelados
+ * y solicitudes canceladas). La factura y los montos son opcionales, dentro
+ * del pedido, solo con Compras. Sin Almacén, cada quien ve sus solicitudes.
+ */
 export function PurchasesView({
   userId,
   requests,
@@ -48,7 +56,7 @@ export function PurchasesView({
   canCosts: boolean;
 }) {
   const { ta } = useTa();
-  const [tab, setTab] = React.useState<Tab>("requests");
+  const [tab, setTab] = React.useState<Tab>("porpedir");
   const [requesting, setRequesting] = React.useState(false);
   const [building, setBuilding] = React.useState<{ supplierId: string | null; requestIds: string[] } | null>(null);
   const [orderId, setOrderId] = React.useState<string | null>(null);
@@ -57,6 +65,9 @@ export function PurchasesView({
   const projectName = React.useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
 
   const order = orderId ? (orders.find((o) => o.id === orderId) ?? null) : null;
+  const pending = requests.filter((r) => r.status === "pendiente");
+  const open = orders.filter((o) => o.status === "pedido" || o.status === "parcial").sort((a, b) => a.orderedOn.localeCompare(b.orderedOn));
+  const count = (n: number) => (n > 0 ? <span className="rounded-full bg-muted px-1.5 text-[11px] font-medium tabular-nums text-muted-foreground">{n}</span> : undefined);
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
@@ -71,30 +82,41 @@ export function PurchasesView({
         }
       />
 
-      {canWarehouse && (
-        <SubTabs
-          value={tab}
-          onChange={setTab}
-          tabs={(["requests", "orders"] as Tab[]).map((k) => ({ value: k, label: k === "requests" ? ta("tab_requests") : ta("tab_orders") }))}
-        />
-      )}
-
-      {tab === "requests" ? (
-        canPurchase ? (
-          <PurchasingRequests
-            requests={requests}
-            index={index}
-            supplierById={supplierById}
-            projectName={projectName}
-            onBuild={(supplierId, requestIds) => setBuilding({ supplierId, requestIds })}
+      {canWarehouse ? (
+        <>
+          <SubTabs
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: "porpedir", label: ta("tab_to_order"), badge: count(pending.length) },
+              { value: "encamino", label: ta("tab_in_transit"), badge: count(open.length) },
+              { value: "historial", label: ta("history") },
+            ]}
           />
-        ) : canWarehouse ? (
-          <WarehouseRequests requests={requests} userId={userId} index={index} projectName={projectName} />
-        ) : (
-          <MyRequests requests={requests.filter((r) => r.createdBy === userId)} index={index} projectName={projectName} />
-        )
+          {tab === "porpedir" &&
+            (canPurchase ? (
+              <ToOrder
+                requests={pending}
+                index={index}
+                supplierById={supplierById}
+                projectName={projectName}
+                onPick={(supplierId, requestIds) => setBuilding({ supplierId, requestIds })}
+              />
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-muted-foreground">{ta("to_order_hint")}</p>
+                <RequestsTable requests={pending} index={index} projectName={projectName} showWho canCancel={(r) => r.createdBy === userId} />
+              </div>
+            ))}
+          {tab === "encamino" && (
+            <InTransit orders={open} requests={requests} index={index} supplierById={supplierById} canWarehouse={canWarehouse} onOpen={setOrderId} />
+          )}
+          {tab === "historial" && (
+            <History orders={orders} requests={requests} index={index} supplierById={supplierById} projectName={projectName} onOpen={setOrderId} />
+          )}
+        </>
       ) : (
-        <OrdersList orders={orders} supplierById={supplierById} onOpen={setOrderId} />
+        <MyRequests requests={requests.filter((r) => r.createdBy === userId)} index={index} projectName={projectName} />
       )}
 
       <RequestDialog open={requesting} onOpenChange={setRequesting} items={items} categories={categories} projects={projects} />
@@ -104,10 +126,9 @@ export function PurchasesView({
         index={index}
         suppliers={suppliers}
         onClose={() => setBuilding(null)}
-        onCreated={(id) => {
+        onCreated={() => {
           setBuilding(null);
-          setTab("orders");
-          setOrderId(id);
+          toast.success(ta("moved_in_transit"));
         }}
       />
       <OrderDialog
@@ -129,28 +150,29 @@ function cancelRequest(id: string, ta: ReturnType<typeof useTa>["ta"]) {
   );
 }
 
-// ── Compras: pendientes agrupadas por proveedor ─────────────────────────
+// ── Por pedir (Compras): pendientes agrupadas por proveedor ─────────────
 
-function PurchasingRequests({
+function ToOrder({
   requests,
   index,
   supplierById,
   projectName,
-  onBuild,
+  onPick,
 }: {
   requests: PurchaseRequest[];
   index: Map<string, VariantRef>;
   supplierById: Map<string, Supplier>;
   projectName: Map<string, string>;
-  onBuild: (supplierId: string | null, requestIds: string[]) => void;
+  /** Abrir el diálogo para elegir o cambiar el proveedor. */
+  onPick: (supplierId: string | null, requestIds: string[]) => void;
 }) {
   const { ta, lang } = useTa();
-  const [filter, setFilter] = React.useState<ReqFilter>("pendiente");
   const [unchecked, setUnchecked] = React.useState<Set<string>>(new Set());
+  const [busy, setBusy] = React.useState<string | null>(null);
 
   const groups = React.useMemo(() => {
     const map = new Map<string, PurchaseRequest[]>();
-    for (const r of requests.filter((x) => x.status === "pendiente")) {
+    for (const r of requests) {
       const ref = r.variantId ? index.get(r.variantId) : undefined;
       const primary = ref?.item.suppliers.find((s) => s.isPrimary) ?? ref?.item.suppliers[0];
       const key = primary && supplierById.has(primary.supplierId) ? primary.supplierId : "";
@@ -167,54 +189,45 @@ function PurchasingRequests({
       return next;
     });
 
+  // Con proveedor conocido pasa directo a En camino; sin proveedor, primero se elige.
+  async function markOrdered(supplierId: string, picked: string[]) {
+    if (!supplierId) return onPick(null, picked);
+    setBusy(supplierId);
+    const res = await createPurchaseOrderAction(supplierId, picked, null);
+    setBusy(null);
+    if (res.ok) toast.success(ta("moved_in_transit"));
+    else toast.error(res.error);
+  }
+
+  if (groups.length === 0) return <EmptyBox>{ta("requests_empty")}</EmptyBox>;
   return (
     <div className="flex flex-col gap-4">
-      <SegmentedFilter
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: "pendiente", label: ta("st_pendiente") },
-          { value: "pedido", label: ta("st_pedido") },
-          { value: "recibido", label: ta("st_recibido") },
-          { value: "cancelado", label: ta("st_cancelado") },
-          { value: "all", label: ta("filter_all") },
-        ]}
-      />
-
-      {filter === "pendiente" ? (
-        groups.length === 0 ? (
-          <EmptyBox>{ta("requests_empty")}</EmptyBox>
-        ) : (
-          groups.map(([supplierId, list]) => {
-            const picked = list.filter((r) => !unchecked.has(r.id)).map((r) => r.id);
-            return (
-              <section key={supplierId || "none"} className="rounded-lg overflow-hidden border border-border bg-card">
-                <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-                  <h3 className="font-semibold">{supplierId ? supplierById.get(supplierId)?.name : ta("no_supplier")}</h3>
-                  <Button size="sm" disabled={picked.length === 0} onClick={() => onBuild(supplierId || null, picked)}>
-                    {ta("build_order")} ({picked.length})
+      <p className="text-xs text-muted-foreground">{ta("to_order_hint_purchase")}</p>
+      {groups.map(([supplierId, list]) => {
+        const picked = list.filter((r) => !unchecked.has(r.id)).map((r) => r.id);
+        return (
+          <section key={supplierId || "none"} className="overflow-hidden rounded-lg border border-border bg-card">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+              <h3 className="font-semibold">{supplierId ? supplierById.get(supplierId)?.name : ta("no_supplier")}</h3>
+              <div className="flex items-center gap-1">
+                {supplierId && (
+                  <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={picked.length === 0} onClick={() => onPick(supplierId, picked)}>
+                    {ta("change_supplier")}
                   </Button>
-                </header>
-                <ul>
-                  {list.map((r) => (
-                    <PendingRow
-                      key={r.id}
-                      r={r}
-                      index={index}
-                      projectName={projectName}
-                      checked={!unchecked.has(r.id)}
-                      onToggle={() => toggle(r.id)}
-                      lang={lang}
-                    />
-                  ))}
-                </ul>
-              </section>
-            );
-          })
-        )
-      ) : (
-        <RequestsTable requests={requests.filter((r) => filter === "all" || r.status === filter)} index={index} projectName={projectName} showWho />
-      )}
+                )}
+                <Button size="sm" disabled={picked.length === 0 || busy === supplierId} onClick={() => void markOrdered(supplierId, picked)}>
+                  {ta("mark_ordered")} ({picked.length})
+                </Button>
+              </div>
+            </header>
+            <ul>
+              {list.map((r) => (
+                <PendingRow key={r.id} r={r} index={index} projectName={projectName} checked={!unchecked.has(r.id)} onToggle={() => toggle(r.id)} lang={lang} />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -283,45 +296,6 @@ function MyRequests({ requests, index, projectName }: { requests: PurchaseReques
   return <RequestsTable requests={requests} index={index} projectName={projectName} canCancel={() => true} />;
 }
 
-// ── Almacén sin Compras: todas las solicitudes con su estado ────────────
-
-function WarehouseRequests({
-  requests,
-  userId,
-  index,
-  projectName,
-}: {
-  requests: PurchaseRequest[];
-  userId: string;
-  index: Map<string, VariantRef>;
-  projectName: Map<string, string>;
-}) {
-  const { ta } = useTa();
-  const [filter, setFilter] = React.useState<ReqFilter>("all");
-  return (
-    <div className="flex flex-col gap-4">
-      <SegmentedFilter
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: "all", label: ta("filter_all") },
-          { value: "pendiente", label: ta("st_pendiente") },
-          { value: "pedido", label: ta("st_pedido") },
-          { value: "recibido", label: ta("st_recibido") },
-          { value: "cancelado", label: ta("st_cancelado") },
-        ]}
-      />
-      <RequestsTable
-        requests={requests.filter((r) => filter === "all" || r.status === filter)}
-        index={index}
-        projectName={projectName}
-        showWho
-        canCancel={(r) => r.createdBy === userId}
-      />
-    </div>
-  );
-}
-
 function RequestsTable({
   requests,
   index,
@@ -385,37 +359,157 @@ function RequestsTable({
   );
 }
 
-// ── Pedidos ─────────────────────────────────────────────────────────────
+// ── En camino ───────────────────────────────────────────────────────────
 
-function OrdersList({ orders, supplierById, onOpen }: { orders: PurchaseOrder[]; supplierById: Map<string, Supplier>; onOpen: (id: string) => void }) {
+/** "Pedido hoy", "Pedido ayer", "Pedido hace 6 días". */
+function useOrderedAgo() {
+  const { ta } = useTa();
+  const today = todayInPanama();
+  return (orderedOn: string) => {
+    const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${orderedOn}T00:00:00Z`)) / 86_400_000);
+    return days <= 0 ? ta("ordered_today") : days === 1 ? ta("ordered_one_day") : ta("ordered_days_ago", { n: days });
+  };
+}
+
+function InTransit({
+  orders,
+  requests,
+  index,
+  supplierById,
+  canWarehouse,
+  onOpen,
+}: {
+  orders: PurchaseOrder[];
+  requests: PurchaseRequest[];
+  index: Map<string, VariantRef>;
+  supplierById: Map<string, Supplier>;
+  canWarehouse: boolean;
+  onOpen: (id: string) => void;
+}) {
   const { ta, lang } = useTa();
-  if (orders.length === 0) return <EmptyBox>{ta("orders_empty")}</EmptyBox>;
+  const ago = useOrderedAgo();
+  // Quién pidió cada renglón (las solicitudes que se juntaron en él).
+  const whoByLine = React.useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const r of requests) {
+      if (!r.orderLineId) continue;
+      const who = r.auto ? ta("auto") : (r.createdByName ?? "");
+      if (who) map.set(r.orderLineId, [...new Set([...(map.get(r.orderLineId) ?? []), who])]);
+    }
+    return map;
+  }, [requests, ta]);
+
+  if (orders.length === 0) return <EmptyBox>{ta("in_transit_empty")}</EmptyBox>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full border-collapse text-sm sm:min-w-[560px]">
-        <thead>
-          <tr className="border-b border-border text-xs text-muted-foreground">
-            <th className="px-3.5 py-2 text-left font-medium">{ta("col_supplier")}</th>
-            <th className="px-3 py-2 text-left font-medium">{ta("date")}</th>
-            <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{ta("col_lines")}</th>
-            <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{ta("col_invoice")}</th>
-            <th className="px-3.5 py-2 text-right font-medium">{ta("col_status")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => (
-            <tr key={o.id} onClick={() => onOpen(o.id)} className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/30">
-              <td className="px-3.5 py-2.5 font-semibold">{supplierById.get(o.supplierId)?.name ?? "—"}</td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDateCompact(lang, o.orderedOn)}</td>
-              <td className="hidden px-3 py-2.5 text-right tabular-nums sm:table-cell">{o.lines.length}</td>
-              <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{o.invoiceRef ?? "—"}</td>
-              <td className="px-3.5 py-2.5 text-right">
-                <StatusBadge status={o.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">{ta("in_transit_hint")}</p>
+      {orders.map((o) => (
+        <section key={o.id} className="overflow-hidden rounded-lg border border-border bg-card">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+            <div className="min-w-0">
+              <h3 className="flex items-center gap-2 font-semibold">
+                {supplierById.get(o.supplierId)?.name ?? "—"}
+                {o.status === "parcial" && <StatusBadge status={o.status} />}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {ago(o.orderedOn)} · {formatDateCompact(lang, o.orderedOn)}
+                {o.createdByName ? ` · ${o.createdByName}` : ""}
+              </p>
+            </div>
+            <Button size="sm" variant={canWarehouse ? "default" : "outline"} onClick={() => onOpen(o.id)}>
+              {canWarehouse ? ta("receive") : ta("view_order")}
+            </Button>
+          </header>
+          <ul>
+            {o.lines.map((l) => {
+              const who = whoByLine.get(l.id);
+              return (
+                <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
+                  <span className="min-w-0">
+                    <span className="block truncate">{requestName(l, index)}</span>
+                    {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
+                  </span>
+                  <span className="shrink-0 text-right tabular-nums">
+                    {l.receivedQty > 0
+                      ? ta("received_of", { a: formatQty(l.receivedQty, lang), b: qtyWithUnit(l.qty, l.unit, lang) })
+                      : qtyWithUnit(l.qty, l.unit, lang)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// ── Historial ───────────────────────────────────────────────────────────
+
+function History({
+  orders,
+  requests,
+  index,
+  supplierById,
+  projectName,
+  onOpen,
+}: {
+  orders: PurchaseOrder[];
+  requests: PurchaseRequest[];
+  index: Map<string, VariantRef>;
+  supplierById: Map<string, Supplier>;
+  projectName: Map<string, string>;
+  onOpen: (id: string) => void;
+}) {
+  const { ta, lang } = useTa();
+  const [q, setQ] = React.useState("");
+  const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const needle = norm(q.trim());
+  const closed = orders
+    .filter((o) => o.status === "recibido" || o.status === "cancelado")
+    .filter((o) => !needle || norm([supplierById.get(o.supplierId)?.name ?? "", ...o.lines.map((l) => requestName(l, index))].join(" ")).includes(needle))
+    .sort((a, b) => b.orderedOn.localeCompare(a.orderedOn));
+  const cancelled = requests
+    .filter((r) => r.status === "cancelado")
+    .filter((r) => !needle || norm(requestName(r, index)).includes(needle));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground">{ta("history_hint")}</p>
+      <div className="relative">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ta("history_search")} className="pl-9" />
+      </div>
+      {closed.length === 0 && cancelled.length === 0 ? (
+        <EmptyBox>{ta("history_empty")}</EmptyBox>
+      ) : (
+        <>
+          {closed.length > 0 && (
+            <ul className="overflow-hidden rounded-lg border border-border bg-card">
+              {closed.map((o) => (
+                <li key={o.id} className="border-b border-border last:border-0">
+                  <button type="button" onClick={() => onOpen(o.id)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{supplierById.get(o.supplierId)?.name ?? "—"}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {formatDateCompact(lang, o.orderedOn)} · {o.lines.map((l) => requestName(l, index)).join(", ")}
+                      </span>
+                    </span>
+                    <StatusBadge status={o.status} />
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {cancelled.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <SectionHeader title={ta("cancelled_requests")} />
+              <RequestsTable requests={cancelled} index={index} projectName={projectName} showWho />
+            </section>
+          )}
+        </>
+      )}
     </div>
   );
 }
