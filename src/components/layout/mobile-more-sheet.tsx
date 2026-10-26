@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Languages, LogOut, Monitor, Moon, Sun, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { Languages, LogOut, Monitor, Moon, Share2, Sun, X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
@@ -12,7 +13,7 @@ import { PendingBadge } from "@/components/shared/pending-badge";
 import type { LucideIcon } from "lucide-react";
 import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
-import { visibleQuickLinks } from "./quick-links";
+import { shareLink, visibleQuickLinks } from "./quick-links";
 
 const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.nav }[] = [
   { value: "light", icon: Sun, label: "theme_light" },
@@ -164,17 +165,30 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
               <div className="grid grid-cols-2 gap-2">
                 {forms.map((f) => {
                   const Icon = f.icon;
-                  return (
-                    <a
-                      key={f.key}
-                      href={f.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={close}
-                      className="flex min-h-12 items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground active:bg-muted"
-                    >
+                  const cls = "flex min-h-12 items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground active:bg-muted";
+                  const body = (
+                    <>
                       <Icon size={18} strokeWidth={1.8} className="shrink-0 text-primary" />
-                      <span className="leading-tight">{t(lang, f.label)}</span>
+                      <span className="flex-1 leading-tight">{t(lang, f.label)}</span>
+                      {f.action === "share" && <Share2 size={15} className="shrink-0 text-muted-foreground" />}
+                    </>
+                  );
+                  return f.action === "share" ? (
+                    <button
+                      key={f.key}
+                      type="button"
+                      className={cls}
+                      onClick={() =>
+                        void shareLink(f.href, t(lang, strings.nav.form_registro_share_text), t(lang, f.label)).then(
+                          (r) => r === "copied" && toast.success(t(lang, strings.nav.link_copied)),
+                        )
+                      }
+                    >
+                      {body}
+                    </button>
+                  ) : (
+                    <a key={f.key} href={f.href} target="_blank" rel="noreferrer" onClick={close} className={cls}>
+                      {body}
                     </a>
                   );
                 })}

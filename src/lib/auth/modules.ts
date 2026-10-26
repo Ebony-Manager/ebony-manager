@@ -25,6 +25,10 @@ export const APP_MODULES = [
   "almacen_costos",
   "almacen_ajustes",
   "directorio",
+  // Accesos rápidos: botones a formularios de JotForm en el menú (solo enlaces, sin datos).
+  "accesos",
+  "form_autorizaciones",
+  "form_registro",
 ] as const;
 
 export type AppModule = (typeof APP_MODULES)[number];
@@ -45,6 +49,8 @@ export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   almacen_compras: "almacen",
   almacen_costos: "almacen",
   almacen_ajustes: "almacen",
+  form_autorizaciones: "accesos",
+  form_registro: "accesos",
 };
 
 /** Los padres de un módulo, del más cercano al más lejano. */

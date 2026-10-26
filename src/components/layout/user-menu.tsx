@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Languages, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import toast from "react-hot-toast";
+import { Languages, LogOut, Monitor, Moon, Share2, Sun } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
-import { visibleQuickLinks } from "./quick-links";
+import { shareLink, visibleQuickLinks } from "./quick-links";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,7 +74,20 @@ export function UserMenu() {
             <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(lang, strings.nav.forms)}</DropdownMenuLabel>
             {visibleQuickLinks({ role, modules }).map((f) => {
               const Icon = f.icon;
-              return (
+              return f.action === "share" ? (
+                <DropdownMenuItem
+                  key={f.key}
+                  onSelect={() =>
+                    void shareLink(f.href, t(lang, strings.nav.form_registro_share_text), t(lang, f.label)).then(
+                      (r) => r === "copied" && toast.success(t(lang, strings.nav.link_copied)),
+                    )
+                  }
+                >
+                  <Icon className="size-3.5" />
+                  <span className="flex-1">{t(lang, f.label)}</span>
+                  <Share2 className="size-3.5 text-muted-foreground" />
+                </DropdownMenuItem>
+              ) : (
                 <DropdownMenuItem key={f.key} asChild>
                   <a href={f.href} target="_blank" rel="noreferrer">
                     <Icon className="size-3.5" />

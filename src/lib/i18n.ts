@@ -40,6 +40,12 @@ export const strings = {
     forms: { es: "Formularios", en: "Forms" },
     form_pintura: { es: "Autorización a Pintura", en: "Painting authorization" },
     form_embalaje: { es: "Autorización a Embalaje", en: "Packing authorization" },
+    form_registro: { es: "Registro de empleado", en: "Employee registration" },
+    form_registro_share_text: {
+      es: "Hola, por favor llena este formulario de registro de Ebony Custom Woodwork:",
+      en: "Hi, please fill in this Ebony Custom Woodwork registration form:",
+    },
+    link_copied: { es: "Enlace copiado", en: "Link copied" },
     documentos: { es: "Documentos", en: "Documents" },
     // Resumen único de Personal, con filtro Todos / Empleados / Contratistas.
     // "Dashboard" queda reservado para el ejecutivo de la empresa (rail).
@@ -2387,6 +2393,18 @@ export const strings = {
     mod_almacen_ajustes_hint: {
       es: "Conteos, daños, pérdidas y correcciones de existencia.",
       en: "Counts, damage, losses and stock corrections.",
+    },
+    mod_accesos: { es: "Accesos rápidos", en: "Quick links" },
+    mod_accesos_hint: {
+      es: "Botones en el menú a formularios de JotForm. Solo son enlaces: no dan acceso a datos.",
+      en: "Menu buttons to JotForm forms. Just links: they give no access to data.",
+    },
+    mod_form_autorizaciones: { es: "Autorizaciones de taller", en: "Workshop authorizations" },
+    mod_form_autorizaciones_hint: { es: "Autorización a Pintura y Autorización a Embalaje.", en: "Painting and packing authorizations." },
+    mod_form_registro: { es: "Compartir registro de empleado", en: "Share employee registration" },
+    mod_form_registro_hint: {
+      es: "Mandar el enlace del formulario «Registro Empleado» a quien entra a trabajar (llega a Nuevos registros).",
+      en: "Send the “Registro Empleado” form link to new hires (it lands in New registrations).",
     },
     mod_directorio: { es: "Directorio", en: "Directory" },
     mod_directorio_hint: {

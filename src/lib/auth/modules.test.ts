@@ -19,6 +19,11 @@ describe("normalizeModules", () => {
     expect(normalizeModules(["documentos", "contratistas"])).toEqual(["documentos", "contratistas"]);
   });
 
+  it("Los formularios viven dentro de Accesos rápidos", () => {
+    expect(normalizeModules(["form_registro"])).toEqual([]);
+    expect(normalizeModules(["form_registro", "accesos", "form_autorizaciones"])).toEqual(["accesos", "form_autorizaciones", "form_registro"]);
+  });
+
   it("Compras, Costos y Ajustes viven dentro de Almacén", () => {
     expect(normalizeModules(["almacen_compras", "almacen_costos", "almacen_ajustes"])).toEqual([]);
     expect(normalizeModules(["almacen_ajustes", "almacen"])).toEqual(["almacen", "almacen_ajustes"]);
