@@ -2,29 +2,29 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Copy } from "lucide-react";
-import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
-import type { PurchaseOrder, Supplier } from "@/types/almacen";
+import type { OrderDelivery, PurchaseOrder, Supplier } from "@/types/almacen";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { formatUnitCost, orderMessage, parseQty, whatsappUrl } from "@/lib/almacen/inventory";
+import { formatUnitCost, parseQty } from "@/lib/almacen/inventory";
 import { Field } from "../../contratistas/field";
-import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction } from "../actions";
+import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, qtyWithUnit, useTa, type VariantRef } from "../shared";
 import { StatusBadge } from "./common";
+import { DeliveryBadge, OrderMessageBox } from "./order-message";
 
 /**
- * Un pedido: el mensaje para el proveedor (enviarlo directo por WhatsApp o
- * copiarlo), la recepción (Almacén, por partes) y la factura (Compras: número
- * y total de cada línea, de donde sale el costo por unidad).
+ * Un pedido: cómo llega (lo traen / por retirar), la recepción (Almacén,
+ * por partes), la factura (Compras: número y total de cada línea, de donde
+ * sale el costo por unidad) y, plegado, el mensaje para reenviarlo al
+ * proveedor (el primer envío se hace en Por pedir, antes de marcarlo).
  */
 export function OrderDialog({
   order,
@@ -46,7 +46,6 @@ export function OrderDialog({
   const { ta, lang } = useTa();
   const lineName = React.useCallback((l: { variantId: string | null; description: string }) => (l.variantId && index.get(l.variantId)?.name) || l.description, [index]);
 
-  const [message, setMessage] = React.useState("");
   const [receivedOn, setReceivedOn] = React.useState("");
   const [receive, setReceive] = React.useState<Record<string, string>>({});
   const [invoiceRef, setInvoiceRef] = React.useState("");
@@ -57,13 +56,6 @@ export function OrderDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir otro pedido. */
   React.useEffect(() => {
     if (!order) return;
-    setMessage(
-      orderMessage(
-        supplier?.contactName ?? null,
-        order.lines.map((l) => ({ name: lineName(l), qty: l.qty, unit: l.unit })),
-        order.notes,
-      ),
-    );
     setReceivedOn(todayInPanama(new Date()));
     setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round((l.qty - l.receivedQty) * 100) / 100) : ""])));
     setInvoiceRef(order.invoiceRef ?? "");
@@ -74,7 +66,11 @@ export function OrderDialog({
 
   if (!order) return <Dialog open={false} />;
 
-  const wa = whatsappUrl(supplier?.whatsapp, message);
+  async function changeDelivery(d: OrderDelivery) {
+    const res = await setOrderDeliveryAction(order!.id, d);
+    if (res.ok) toast.success(ta("delivery_saved"));
+    else toast.error(res.error);
+  }
   const open = order.status === "pedido" || order.status === "parcial";
   const nothingReceived = order.lines.every((l) => l.receivedQty === 0);
 
@@ -126,6 +122,32 @@ export function OrderDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Cómo llega: Compras lo cambia mientras está abierto; los demás lo ven. */}
+        {canPurchase && open ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">{ta("delivery_q")}</span>
+            <SegmentedFilter
+              value={order.delivery ?? "retiro"}
+              onChange={(d) => void changeDelivery(d)}
+              options={[
+                { value: "retiro", label: ta("delivery_retiro") },
+                { value: "entrega", label: ta("delivery_entrega") },
+              ]}
+            />
+          </div>
+        ) : (
+          order.delivery && (
+            <div>
+              <DeliveryBadge delivery={order.delivery} />
+            </div>
+          )
+        )}
+        {order.delivery === "retiro" && open && supplier?.address && (
+          <p className="text-xs text-muted-foreground">
+            {ta("pickup_at")}: <span className="text-foreground">{supplier.address}</span>
+          </p>
+        )}
+
         {/* Líneas + recepción */}
         <section className="flex flex-col gap-2">
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -170,32 +192,14 @@ export function OrderDialog({
           )}
         </section>
 
-        {/* Mensaje para el proveedor */}
+        {/* Reenviar el mensaje al proveedor (el primer envío es desde Por pedir). */}
         {canPurchase && order.status !== "cancelado" && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">{ta("order_message")}</h3>
-            <Textarea rows={8} value={message} onChange={(e) => setMessage(e.target.value)} className="text-sm" />
-            <div className="flex flex-wrap items-center gap-2">
-              {wa ? (
-                <Button asChild size="sm">
-                  <a href={wa} target="_blank" rel="noreferrer">
-                    <WhatsAppIcon className="size-4" />
-                    {ta("send_whatsapp")}
-                  </a>
-                </Button>
-              ) : (
-                <p className="text-xs text-muted-foreground">{ta("no_whatsapp")}</p>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void navigator.clipboard.writeText(message).then(() => toast.success(ta("copied")))}
-              >
-                <Copy className="size-4" />
-                {ta("copy_message")}
-              </Button>
+          <details className="rounded-lg border border-border px-3 py-2">
+            <summary className="cursor-pointer text-sm font-medium">{ta("resend_message")}</summary>
+            <div className="pt-2">
+              <OrderMessageBox key={order.id} supplier={supplier} lines={order.lines.map((l) => ({ name: lineName(l), qty: l.qty, unit: l.unit }))} notes={order.notes} />
             </div>
-          </section>
+          </details>
         )}
 
         {/* Factura */}

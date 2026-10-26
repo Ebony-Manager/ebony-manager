@@ -3,7 +3,8 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import type { PurchaseRequest, Supplier } from "@/types/almacen";
+import type { OrderDelivery, PurchaseRequest, Supplier } from "@/types/almacen";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,6 +32,7 @@ export function BuildOrderDialog({
   const { ta, lang } = useTa();
   const [supplierId, setSupplierId] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
+  const [delivery, setDelivery] = React.useState<OrderDelivery>("retiro");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export function BuildOrderDialog({
     if (!draft) return;
     setSupplierId(draft.supplierId);
     setNotes("");
+    setDelivery("retiro");
     setError(null);
   }, [draft]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -50,7 +53,7 @@ export function BuildOrderDialog({
     e.preventDefault();
     if (!supplierId) return setError(ta("supplier_required"));
     setSaving(true);
-    const res = await createPurchaseOrderAction(supplierId, picked.map((r) => r.id), notes || null);
+    const res = await createPurchaseOrderAction(supplierId, picked.map((r) => r.id), notes || null, delivery);
     setSaving(false);
     if (!res.ok) return setError(res.error);
     toast.success(ta("order_created"));
@@ -66,6 +69,17 @@ export function BuildOrderDialog({
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <Field label={ta("f_supplier")}>
             <Combo options={options} value={supplierId} onChange={setSupplierId} placeholder={ta("pick_supplier")} />
+          </Field>
+          <Field label={ta("delivery_q")}>
+            <SegmentedFilter
+              fill
+              value={delivery}
+              onChange={setDelivery}
+              options={[
+                { value: "retiro", label: ta("delivery_retiro") },
+                { value: "entrega", label: ta("delivery_entrega") },
+              ]}
+            />
           </Field>
           <ul className="flex flex-col gap-1 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm">
             {picked.map((r) => (

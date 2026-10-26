@@ -91,6 +91,6 @@ export function orderMessage(contactName: string | null, lines: OrderMessageLine
   const items = lines.map((l) => `• ${formatQty(l.qty)} ${unitLabel(l.unit, l.qty)} — ${l.name}`);
   const parts = [hello, "Les escribimos de Ebony Custom Woodwork para hacer el siguiente pedido:", "", ...items];
   if (notes?.trim()) parts.push("", notes.trim());
-  parts.push("", "Por favor confírmennos disponibilidad, precio y cuándo podemos pasar a buscarlo. ¡Gracias!");
+  parts.push("", "Por favor confírmennos disponibilidad, precio y tiempo de entrega. ¡Gracias!");
   return parts.join("\n");
 }

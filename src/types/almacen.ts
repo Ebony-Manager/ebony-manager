@@ -24,6 +24,8 @@ export type InternalUse = "taller" | "embalaje" | "pintura";
 export const INTERNAL_USES: InternalUse[] = ["taller", "embalaje", "pintura"];
 export type RequestStatus = "pendiente" | "pedido" | "recibido" | "cancelado";
 export type OrderStatus = "pedido" | "parcial" | "recibido" | "cancelado";
+/** ¿Lo trae el proveedor o hay que ir a buscarlo? (alimenta la agenda de transporte). */
+export type OrderDelivery = "entrega" | "retiro";
 export type AdjustmentReason = "inicial" | "conteo" | "dano" | "perdida" | "correccion";
 export const ADJUSTMENT_REASONS: AdjustmentReason[] = ["conteo", "inicial", "dano", "perdida", "correccion"];
 
@@ -165,6 +167,8 @@ export interface PurchaseOrder {
   id: string;
   supplierId: string;
   status: OrderStatus;
+  /** null = sin definir (pedidos viejos). */
+  delivery: OrderDelivery | null;
   orderedOn: string;
   invoiceRef: string | null;
   notes: string | null;

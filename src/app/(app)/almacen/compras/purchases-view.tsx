@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import { ChevronRight, Plus, Search, X } from "lucide-react";
 
-import type { InventoryCategory, InventoryItem, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
+import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
@@ -17,6 +17,9 @@ import { StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { BuildOrderDialog } from "./build-order-dialog";
 import { OrderDialog } from "./order-dialog";
+import { DeliveryBadge, MarkOrderedButton, OrderMessageDialog } from "./order-message";
+import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
+import type { OrderMessageLine } from "@/lib/almacen/inventory";
 import { SectionHeader, SubTabs } from "@/components/shared/page-header";
 
 type Project = { id: string; name: string; active: boolean };
@@ -60,6 +63,7 @@ export function PurchasesView({
   const [requesting, setRequesting] = React.useState(false);
   const [building, setBuilding] = React.useState<{ supplierId: string | null; requestIds: string[] } | null>(null);
   const [orderId, setOrderId] = React.useState<string | null>(null);
+  const [messaging, setMessaging] = React.useState<{ supplier: Supplier | null; lines: OrderMessageLine[] } | null>(null);
   const index = useVariantIndex(items);
   const supplierById = React.useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
   const projectName = React.useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
@@ -101,6 +105,12 @@ export function PurchasesView({
                 supplierById={supplierById}
                 projectName={projectName}
                 onPick={(supplierId, requestIds) => setBuilding({ supplierId, requestIds })}
+                onMessage={(supplierId, picked) =>
+                  setMessaging({
+                    supplier: supplierId ? (supplierById.get(supplierId) ?? null) : null,
+                    lines: picked.map((r) => ({ name: requestName(r, index), qty: r.qty, unit: r.unit })),
+                  })
+                }
               />
             ) : (
               <div className="flex flex-col gap-3">
@@ -119,6 +129,7 @@ export function PurchasesView({
         <MyRequests requests={requests.filter((r) => r.createdBy === userId)} index={index} projectName={projectName} />
       )}
 
+      <OrderMessageDialog draft={messaging} onClose={() => setMessaging(null)} />
       <RequestDialog open={requesting} onOpenChange={setRequesting} items={items} categories={categories} projects={projects} />
       <BuildOrderDialog
         draft={building}
@@ -158,6 +169,7 @@ function ToOrder({
   supplierById,
   projectName,
   onPick,
+  onMessage,
 }: {
   requests: PurchaseRequest[];
   index: Map<string, VariantRef>;
@@ -165,6 +177,8 @@ function ToOrder({
   projectName: Map<string, string>;
   /** Abrir el diálogo para elegir o cambiar el proveedor. */
   onPick: (supplierId: string | null, requestIds: string[]) => void;
+  /** Paso 1: el mensaje del pedido para el proveedor. */
+  onMessage: (supplierId: string, picked: PurchaseRequest[]) => void;
 }) {
   const { ta, lang } = useTa();
   const [unchecked, setUnchecked] = React.useState<Set<string>>(new Set());
@@ -190,10 +204,9 @@ function ToOrder({
     });
 
   // Con proveedor conocido pasa directo a En camino; sin proveedor, primero se elige.
-  async function markOrdered(supplierId: string, picked: string[]) {
-    if (!supplierId) return onPick(null, picked);
+  async function markOrdered(supplierId: string, picked: string[], delivery: OrderDelivery) {
     setBusy(supplierId);
-    const res = await createPurchaseOrderAction(supplierId, picked, null);
+    const res = await createPurchaseOrderAction(supplierId, picked, null, delivery);
     setBusy(null);
     if (res.ok) toast.success(ta("moved_in_transit"));
     else toast.error(res.error);
@@ -204,27 +217,45 @@ function ToOrder({
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{ta("to_order_hint_purchase")}</p>
       {groups.map(([supplierId, list]) => {
-        const picked = list.filter((r) => !unchecked.has(r.id)).map((r) => r.id);
+        const pickedRequests = list.filter((r) => !unchecked.has(r.id));
+        const picked = pickedRequests.map((r) => r.id);
         return (
           <section key={supplierId || "none"} className="overflow-hidden rounded-lg border border-border bg-card">
-            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-              <h3 className="font-semibold">{supplierId ? supplierById.get(supplierId)?.name : ta("no_supplier")}</h3>
-              <div className="flex items-center gap-1">
-                {supplierId && (
-                  <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={picked.length === 0} onClick={() => onPick(supplierId, picked)}>
-                    {ta("change_supplier")}
-                  </Button>
-                )}
-                <Button size="sm" disabled={picked.length === 0 || busy === supplierId} onClick={() => void markOrdered(supplierId, picked)}>
-                  {ta("mark_ordered")} ({picked.length})
-                </Button>
-              </div>
+            <header className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+              <h3 className="min-w-0 truncate font-semibold">{supplierId ? supplierById.get(supplierId)?.name : ta("no_supplier")}</h3>
+              {supplierId && (
+                <button
+                  type="button"
+                  disabled={picked.length === 0}
+                  onClick={() => onPick(supplierId, picked)}
+                  className="shrink-0 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                >
+                  {ta("change_supplier")}
+                </button>
+              )}
             </header>
             <ul>
               {list.map((r) => (
                 <PendingRow key={r.id} r={r} index={index} projectName={projectName} checked={!unchecked.has(r.id)} onToggle={() => toggle(r.id)} lang={lang} />
               ))}
             </ul>
+            {/* Paso 1: WhatsApp al proveedor. Paso 2 (confirmado y pagado): «Pedido ✓» → En camino. */}
+            <footer className="grid grid-cols-2 gap-2 border-t border-border bg-muted/20 px-3.5 py-2.5 sm:flex sm:justify-end">
+              {supplierId ? (
+                <>
+                  <Button size="sm" variant="outline" disabled={picked.length === 0} onClick={() => onMessage(supplierId, pickedRequests)}>
+                    <WhatsAppIcon className="size-4" />
+                    {ta("whatsapp_short")}
+                  </Button>
+                  <MarkOrderedButton count={picked.length} disabled={picked.length === 0 || busy === supplierId} onPick={(d) => void markOrdered(supplierId, picked, d)} />
+                </>
+              ) : (
+                // Sin proveedor: primero se elige (y ahí mismo cómo llega).
+                <Button size="sm" className="col-span-2" disabled={picked.length === 0} onClick={() => onPick(null, picked)}>
+                  {ta("mark_ordered")} ({picked.length})
+                </Button>
+              )}
+            </footer>
           </section>
         );
       })}
@@ -407,14 +438,21 @@ function InTransit({
         <section key={o.id} className="overflow-hidden rounded-lg border border-border bg-card">
           <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
             <div className="min-w-0">
-              <h3 className="flex items-center gap-2 font-semibold">
+              <h3 className="flex flex-wrap items-center gap-2 font-semibold">
                 {supplierById.get(o.supplierId)?.name ?? "—"}
+                <DeliveryBadge delivery={o.delivery} />
                 {o.status === "parcial" && <StatusBadge status={o.status} />}
               </h3>
               <p className="text-xs text-muted-foreground">
                 {ago(o.orderedOn)} · {formatDateCompact(lang, o.orderedOn)}
                 {o.createdByName ? ` · ${o.createdByName}` : ""}
               </p>
+              {/* Para el mensajero: dónde ir (del Directorio). */}
+              {o.delivery === "retiro" && supplierById.get(o.supplierId)?.address && (
+                <p className="text-xs text-muted-foreground">
+                  {ta("pickup_at")}: <span className="text-foreground">{supplierById.get(o.supplierId)?.address}</span>
+                </p>
+              )}
             </div>
             <Button size="sm" variant={canWarehouse ? "default" : "outline"} onClick={() => onOpen(o.id)}>
               {canWarehouse ? ta("receive") : ta("view_order")}

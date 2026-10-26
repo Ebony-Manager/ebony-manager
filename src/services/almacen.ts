@@ -13,6 +13,7 @@ import type {
   InventoryPerson,
   InventoryUnit,
   ItemKind,
+  OrderDelivery,
   OrderStatus,
   PurchaseOrder,
   PurchaseRequest,
@@ -439,6 +440,7 @@ export async function getPurchaseOrders(limit = 100): Promise<PurchaseOrder[]> {
     id: o.id,
     supplierId: o.supplier_id,
     status: o.status as OrderStatus,
+    delivery: o.delivery === "entrega" || o.delivery === "retiro" ? o.delivery : null,
     orderedOn: o.ordered_on,
     invoiceRef: o.invoice_ref,
     notes: o.notes,
@@ -458,11 +460,24 @@ export async function getPurchaseOrders(limit = 100): Promise<PurchaseOrder[]> {
   }));
 }
 
-export async function createPurchaseOrder(supplierId: string, requestIds: string[], notes: string | null): Promise<string> {
+export async function createPurchaseOrder(
+  supplierId: string,
+  requestIds: string[],
+  notes: string | null,
+  delivery: OrderDelivery,
+): Promise<string> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_purchase_order", { p_supplier_id: supplierId, p_request_ids: requestIds, p_notes: notes });
   fail(error);
-  return data as string;
+  const id = data as string;
+  fail((await supabase.from("purchase_orders").update({ delivery }).eq("id", id)).error);
+  return id;
+}
+
+/** Cambiar si lo traen o hay que retirarlo. */
+export async function setOrderDelivery(orderId: string, delivery: OrderDelivery): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.from("purchase_orders").update({ delivery }).eq("id", orderId)).error);
 }
 
 export async function receivePurchaseOrder(orderId: string, receivedOn: string | null, lines: { lineId: string; qty: number }[]) {

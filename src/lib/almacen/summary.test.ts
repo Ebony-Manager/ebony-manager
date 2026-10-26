@@ -77,6 +77,7 @@ describe("spendBySupplier", () => {
       id: `${supplierId}${orderedOn}${status}`,
       supplierId,
       status,
+      delivery: null,
       orderedOn,
       invoiceRef: null,
       notes: null,

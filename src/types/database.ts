@@ -2460,6 +2460,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          delivery: string | null
           id: string
           invoice_ref: string | null
           notes: string | null
@@ -2469,6 +2470,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          delivery?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -2481,6 +2483,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          delivery?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
