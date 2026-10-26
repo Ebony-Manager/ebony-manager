@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { formatQty, parseQty } from "@/lib/almacen/inventory";
-import { createPurchaseOrderAction, updatePurchaseRequestAction } from "../actions";
+import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
+import { formatCents } from "@/lib/planilla/payroll-period";
+import { MoneyInput } from "@/components/ui/money-input";
+import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
 import { RequestOrigin, StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
-import { BuildOrderDialog } from "./build-order-dialog";
+import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
 import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
@@ -29,12 +31,12 @@ type Tab = "porpedir" | "encamino" | "historial";
 
 
 /**
- * Almacén → Compras, por etapa: **Por pedir** (solicitudes pendientes;
- * Compras las agrupa por proveedor y con «Pedido ✓» las pasa a En camino:
- * por detrás se crea el pedido con proveedor y fecha), **En camino**
- * (pedidos abiertos; Almacén recibe) e **Historial** (recibidos, cancelados
- * y solicitudes canceladas). La factura y los montos son opcionales, dentro
- * del pedido, solo con Compras. Sin Almacén, cada quien ve sus solicitudes.
+ * Almacén → Compras, por etapa: **Por pedir** (solicitudes pendientes,
+ * agrupadas por proveedor; Compras les pone precio, manda el WhatsApp y con
+ * «Pedido ✓» —que pide precio en todas— las pasa a En camino: por detrás se
+ * crea el pedido), **En camino** (pedidos abiertos; Almacén recibe y Compras
+ * anota la factura, en la misma vista) e **Historial** (recibidos, cancelados
+ * y solicitudes canceladas). Sin Almacén, cada quien ve sus solicitudes.
  */
 export function PurchasesView({
   userId,
@@ -128,18 +130,16 @@ export function PurchasesView({
       )}
 
       <OrderMessageDialog draft={messaging} onClose={() => setMessaging(null)} />
-      <RequestDialog open={requesting} onOpenChange={setRequesting} items={items} categories={categories} projects={projects} />
-      <BuildOrderDialog
-        draft={building}
-        requests={requests}
-        index={index}
-        suppliers={suppliers}
-        onClose={() => setBuilding(null)}
-        onCreated={() => {
-          setBuilding(null);
-          toast.success(ta("moved_in_transit"));
-        }}
+      <RequestDialog
+        open={requesting}
+        onOpenChange={setRequesting}
+        items={items}
+        categories={categories}
+        projects={projects}
+        suppliers={canWarehouse ? suppliers : []}
+        canPurchase={canPurchase}
       />
+      <SupplierPickDialog draft={building} requests={requests} index={index} suppliers={suppliers} onClose={() => setBuilding(null)} />
       <OrderDialog
         order={order}
         supplier={order ? (supplierById.get(order.supplierId) ?? null) : null}
@@ -187,9 +187,11 @@ function ToOrder({
   const groups = React.useMemo(() => {
     const map = new Map<string, PurchaseRequest[]>();
     for (const r of shown) {
+      // El proveedor elegido en la solicitud manda; si no, el principal del producto.
       const ref = r.variantId ? index.get(r.variantId) : undefined;
       const primary = ref?.item.suppliers.find((s) => s.isPrimary) ?? ref?.item.suppliers[0];
-      const key = primary && supplierById.has(primary.supplierId) ? primary.supplierId : "";
+      const chosen = r.supplierId && supplierById.has(r.supplierId) ? r.supplierId : null;
+      const key = chosen ?? (primary && supplierById.has(primary.supplierId) ? primary.supplierId : "");
       map.set(key, [...(map.get(key) ?? []), r]);
     }
     return [...map.entries()].sort(([a], [b]) => (a ? (supplierById.get(a)?.name ?? "") : "zzz").localeCompare(b ? (supplierById.get(b)?.name ?? "") : "zzz"));
@@ -222,6 +224,8 @@ function ToOrder({
       {groups.map(([supplierId, list]) => {
         const pickedRequests = list.filter((r) => !unchecked.has(r.id));
         const picked = pickedRequests.map((r) => r.id);
+        const missing = pickedRequests.filter((r) => r.unitCostCents == null).length;
+        const total = pickedRequests.reduce((sum, r) => sum + (r.unitCostCents != null ? Math.round(r.unitCostCents * r.qty) : 0), 0);
         return (
           <section key={supplierId || "none"} className="overflow-hidden rounded-lg border border-border bg-card">
             <header className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
@@ -239,23 +243,28 @@ function ToOrder({
             </header>
             <ul>
               {list.map((r) => (
-                <PendingRow key={r.id} r={r} index={index} projectName={projectName} checked={!unchecked.has(r.id)} onToggle={() => toggle(r.id)} lang={lang} />
+                <PendingRow key={r.id} r={r} index={index} projectName={projectName} checked={!unchecked.has(r.id)} onToggle={() => toggle(r.id)} lang={lang} withPrice={!!supplierId} />
               ))}
             </ul>
-            {/* Paso 1: WhatsApp al proveedor. Paso 2 (confirmado y pagado): «Pedido ✓» → En camino. */}
-            <footer className="grid grid-cols-2 gap-2 border-t border-border bg-muted/20 px-3.5 py-2.5 sm:flex sm:justify-end">
+            {/* Precios, WhatsApp al proveedor y, confirmado y pagado, «Pedido ✓» → En camino. */}
+            <footer className="grid grid-cols-2 gap-2 border-t border-border bg-muted/20 px-3.5 py-2.5 sm:flex sm:items-center sm:justify-end">
               {supplierId ? (
                 <>
+                  <p className="col-span-2 text-sm sm:mr-auto">
+                    <span className="font-semibold tabular-nums">{ta("order_total", { t: formatCents(total) })}</span>
+                    {missing > 0 && picked.length > 0 && (
+                      <span className="ml-2 text-xs text-warning">{missing === 1 ? ta("missing_prices_1") : ta("missing_prices", { n: missing })}</span>
+                    )}
+                  </p>
                   <Button size="sm" variant="outline" disabled={picked.length === 0} onClick={() => onMessage(supplierId, pickedRequests)}>
                     <WhatsAppIcon className="size-4" />
                     {ta("whatsapp_short")}
                   </Button>
-                  <MarkOrderedButton count={picked.length} disabled={picked.length === 0 || busy === supplierId} onPick={(d) => void markOrdered(supplierId, picked, d)} />
+                  <MarkOrderedButton count={picked.length} disabled={picked.length === 0 || missing > 0 || busy === supplierId} onPick={(d) => void markOrdered(supplierId, picked, d)} />
                 </>
               ) : (
-                // Sin proveedor: primero se elige, y ahí mismo sale el WhatsApp y «Pedido ✓».
+                // Sin proveedor: primero se elige; pasan al grupo de ese proveedor (precio, WhatsApp, «Pedido ✓»).
                 <Button size="sm" className="col-span-2" disabled={picked.length === 0} onClick={() => onPick(null, picked)}>
-                  <WhatsAppIcon className="size-4" />
                   {ta("choose_supplier")} ({picked.length})
                 </Button>
               )}
@@ -326,6 +335,7 @@ function PendingRow({
   checked,
   onToggle,
   lang,
+  withPrice,
 }: {
   r: PurchaseRequest;
   index: Map<string, VariantRef>;
@@ -333,10 +343,15 @@ function PendingRow({
   checked: boolean;
   onToggle: () => void;
   lang: "es" | "en";
+  /** Con proveedor: se le pone el precio por unidad (Compras). */
+  withPrice: boolean;
 }) {
   const { ta } = useTa();
   const [qty, setQty] = React.useState(String(r.qty));
+  const [price, setPrice] = React.useState(r.unitCostCents != null ? centsToText(r.unitCostCents) : "");
   const ref = r.variantId ? index.get(r.variantId) : undefined;
+  const last = ref?.variant.unitCostCents ?? null;
+  const unitName = qtyWithUnit(1, r.unit, lang).replace(/^1 /, "");
 
   function saveQty() {
     const n = parseQty(qty);
@@ -344,9 +359,21 @@ function PendingRow({
     void updatePurchaseRequestAction(r.id, { qty: n }).then((res) => (res.ok ? toast.success(ta("saved")) : toast.error(res.error)));
   }
 
+  function savePrice() {
+    const text = price.trim();
+    const n = text ? parseFloat(text.replace(",", ".")) : null;
+    if (n != null && (!Number.isFinite(n) || n < 0)) return setPrice(r.unitCostCents != null ? centsToText(r.unitCostCents) : "");
+    // Centavos con hasta 2 decimales (ej. $0.0125 por tornillo).
+    const cents = n == null ? null : Math.round(n * 10000) / 100;
+    if (cents === r.unitCostCents) return;
+    void setRequestCostAction(r.id, cents).then((res) => (res.ok ? toast.success(ta("price_saved")) : toast.error(res.error)));
+  }
+
+  const lineTotal = r.unitCostCents != null ? Math.round(r.unitCostCents * r.qty) : null;
+
   return (
-    <li className="grid grid-cols-[24px_1fr_96px_28px] items-center gap-2 border-b border-border px-3.5 py-2 text-sm last:border-0">
-      <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} />
+    <li className="grid grid-cols-[24px_1fr_28px] gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0">
+      <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} className="mt-1" />
       <div className="min-w-0">
         <span className="block truncate font-medium">{requestName(r, index)}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -363,7 +390,6 @@ function PendingRow({
             .join(" · ")}
         </span>
       </div>
-      <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
       <ConfirmButton
         iconOnly
         icon={X}
@@ -373,8 +399,48 @@ function PendingRow({
         onConfirm={() => cancelRequest(r.id, ta)}
         className="min-h-7 min-w-7"
       />
+      {/* Cantidad × precio por unidad = total de la línea. */}
+      <div className="col-start-2 col-end-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-20">
+            <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
+          </div>
+          <span className="text-xs text-muted-foreground">{unitName}</span>
+        </div>
+        {withPrice && (
+          <>
+            <span className="text-xs text-muted-foreground">×</span>
+            <div className="w-24" title={ta("f_unit_price")}>
+              <MoneyInput
+                value={price}
+                onValueChange={setPrice}
+                onBlur={savePrice}
+                placeholder={last != null ? centsToText(last) : "0.00"}
+                aria-label={ta("f_unit_price")}
+                className={r.unitCostCents == null ? "border-warning/60" : undefined}
+              />
+            </div>
+            <span className="ml-auto text-sm font-medium tabular-nums">{lineTotal != null ? formatCents(lineTotal) : "—"}</span>
+            {last != null && r.unitCostCents == null && (
+              <button type="button" onClick={() => setPrice(centsToText(last))} className="basis-full text-left text-[11px] text-primary hover:underline">
+                {ta("last_price", { p: formatUnitCost(last) })}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </li>
   );
+}
+
+/** 1250 → "12.50"; 1.25 → "0.0125" (hasta 4 decimales para precios de centavos). */
+function centsToText(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1) return dollars.toFixed(2);
+  // Menos de $1: hasta 4 decimales, pero al menos 2 (0.8 → "0.80", 0.0125 → "0.0125").
+  const t = dollars.toFixed(4).replace(/0+$/, "");
+  const decimals = t.split(".")[1]?.length ?? 0;
+  return decimals < 2 ? dollars.toFixed(2) : t;
 }
 
 // ── Mis solicitudes (sin Compras) ───────────────────────────────────────

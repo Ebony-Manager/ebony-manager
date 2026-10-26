@@ -149,6 +149,10 @@ export interface InventoryIssue {
 export interface PurchaseRequest {
   id: string;
   variantId: string | null;
+  /** Proveedor elegido al pedir o en Por pedir; null = el principal del producto. */
+  supplierId: string | null;
+  /** Precio por unidad base que pone Compras en Por pedir (centavos; solo con Compras o Costos). */
+  unitCostCents: number | null;
   description: string;
   qty: number;
   unit: string | null;

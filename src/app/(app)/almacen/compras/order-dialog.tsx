@@ -13,18 +13,29 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { formatUnitCost, parseQty } from "@/lib/almacen/inventory";
+import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
 import { Field } from "../../contratistas/field";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, qtyWithUnit, useTa, type VariantRef } from "../shared";
 import { StatusBadge } from "./common";
-import { DeliveryBadge, MapsButton, OrderMessageBox } from "./order-message";
+import { DeliveryBadge, MapsButton } from "./order-message";
+
+/** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
+function centsText(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1) return dollars.toFixed(2);
+  // Menos de $1: hasta 4 decimales, pero al menos 2 (0.8 → "0.80", 0.0125 → "0.0125").
+  const t = dollars.toFixed(4).replace(/0+$/, "");
+  const decimals = t.split(".")[1]?.length ?? 0;
+  return decimals < 2 ? dollars.toFixed(2) : t;
+}
 
 /**
- * Un pedido: cómo llega (lo traen / por retirar), la recepción (Almacén,
- * por partes), la factura (Compras: número y total de cada línea, de donde
- * sale el costo por unidad) y, plegado, el mensaje para reenviarlo al
- * proveedor (el primer envío se hace en Por pedir, antes de marcarlo).
+ * Un pedido: cómo llega (lo traen / por retirar) y, en una sola tabla, lo
+ * pedido, lo recibido y lo que recibe el Almacén ahora (por partes). Con
+ * Compras o Costos, además el precio por unidad de cada línea (puesto en Por
+ * pedir; Compras lo corrige con la factura) y el número de factura. El
+ * WhatsApp al proveedor es solo en Por pedir.
  */
 export function OrderDialog({
   order,
@@ -49,7 +60,8 @@ export function OrderDialog({
   const [receivedOn, setReceivedOn] = React.useState("");
   const [receive, setReceive] = React.useState<Record<string, string>>({});
   const [invoiceRef, setInvoiceRef] = React.useState("");
-  const [totals, setTotals] = React.useState<Record<string, string>>({});
+  // Precio por unidad de cada línea (texto del campo); el total de la línea = precio × cantidad pedida.
+  const [prices, setPrices] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
 
   const orderId = order?.id;
@@ -59,7 +71,7 @@ export function OrderDialog({
     setReceivedOn(todayInPanama(new Date()));
     setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round((l.qty - l.receivedQty) * 100) / 100) : ""])));
     setInvoiceRef(order.invoiceRef ?? "");
-    setTotals(Object.fromEntries(order.lines.map((l) => [l.id, l.totalCents != null ? (l.totalCents / 100).toFixed(2) : ""])));
+    setPrices(Object.fromEntries(order.lines.map((l) => [l.id, l.totalCents != null && l.qty > 0 ? centsText(l.totalCents / l.qty) : ""])));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de pedido (o de su estado).
   }, [orderId, order?.status, order?.invoiceRef]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -72,6 +84,25 @@ export function OrderDialog({
     else toast.error(res.error);
   }
   const open = order.status === "pedido" || order.status === "parcial";
+  const receiving = canWarehouse && open;
+  /** Precio por unidad en centavos: lo escrito (Compras) o el de la línea. */
+  const unitPrice = (lineId: string): number | null => {
+    const line = order!.lines.find((l) => l.id === lineId);
+    if (!canPurchase) return line && line.totalCents != null && line.qty > 0 ? line.totalCents / line.qty : null;
+    const n = parseFloat((prices[lineId] ?? "").replace(",", "."));
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 10000) / 100 : null;
+  };
+  const totalCents = order.lines.reduce((sum, l) => {
+    const u = unitPrice(l.id);
+    return sum + (u != null ? Math.round(u * l.qty) : 0);
+  }, 0);
+  const invoiceDirty =
+    (invoiceRef.trim() || null) !== (order.invoiceRef ?? null) ||
+    order.lines.some((l) => {
+      const u = unitPrice(l.id);
+      const next = u != null ? Math.round(u * l.qty) : null;
+      return next !== l.totalCents;
+    });
   const nothingReceived = order.lines.every((l) => l.receivedQty === 0);
 
   async function doReceive() {
@@ -88,8 +119,8 @@ export function OrderDialog({
 
   async function doInvoice() {
     const costs = order!.lines.map((l) => {
-      const n = parseFloat((totals[l.id] ?? "").replace(",", "."));
-      return { lineId: l.id, totalCents: Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null };
+      const u = unitPrice(l.id);
+      return { lineId: l.id, totalCents: u != null ? Math.round(u * l.qty) : null };
     });
     setBusy(true);
     const res = await saveOrderInvoiceAction(order!.id, invoiceRef || null, costs);
@@ -144,111 +175,87 @@ export function OrderDialog({
         )}
         {order.delivery === "retiro" && open && <MapsButton supplier={supplier} className="self-start" />}
 
-        {/* Líneas + recepción */}
-        <section className="flex flex-col gap-2">
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[460px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-medium">{ta("product")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{ta("col_ordered")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{ta("col_received")}</th>
-                  {canWarehouse && open && <th className="w-28 px-3 py-2 text-right font-medium">{ta("receive")}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {order.lines.map((l) => (
-                  <tr key={l.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2">
-                      {lineName(l)}
+        {/* Una sola vista: por producto, lo pedido y lo recibido, lo que recibe el
+            Almacén ahora y (con Compras o Costos) su precio; abajo, la factura. */}
+        <section className="flex flex-col gap-3">
+          <ul className="flex flex-col rounded-lg border border-border">
+            {order.lines.map((l) => {
+              const unit = unitPrice(l.id);
+              const done = l.receivedQty >= l.qty;
+              return (
+                <li key={l.id} className="flex flex-col gap-2 border-b border-border px-3 py-2.5 text-sm last:border-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block font-medium">{lineName(l)}</span>
                       {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{qtyWithUnit(l.qty, l.unit, lang)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted-foreground">{qtyWithUnit(l.receivedQty, l.unit, lang)}</td>
-                    {canWarehouse && open && (
-                      <td className="px-3 py-1.5">
-                        <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} aria-label={ta("receive")} />
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {canWarehouse && open && (
-            <div className="flex flex-wrap items-end justify-between gap-2">
+                    </span>
+                    <span className={`shrink-0 text-right text-xs tabular-nums ${done ? "text-success" : "text-muted-foreground"}`}>
+                      {ta("received_of", { a: formatQty(l.receivedQty, lang), b: qtyWithUnit(l.qty, l.unit, lang) })}
+                    </span>
+                  </div>
+                  {(receiving || canCosts) && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      {receiving && !done && (
+                        <label className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">{ta("col_to_receive")}</span>
+                          <span className="w-24">
+                            <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} aria-label={ta("receive")} />
+                          </span>
+                        </label>
+                      )}
+                      {canCosts && (
+                        <span className="flex flex-1 items-center justify-end gap-1.5">
+                          {canPurchase ? (
+                            <span className="w-24" title={ta("f_unit_price")}>
+                              <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} aria-label={ta("f_unit_price")} />
+                            </span>
+                          ) : (
+                            <span className="tabular-nums">{unit != null ? formatUnitCost(unit) : "—"}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground">{ta("price_each")}</span>
+                          <span className="min-w-20 text-right font-medium tabular-nums">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {receiving && (
+            <div className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">{ta("receive_hint")}</p>
               <div className="flex items-center gap-2">
                 <Input type="date" className="h-9 w-40" value={receivedOn} onChange={(e) => setReceivedOn(e.target.value)} aria-label={ta("date")} />
-                <Button size="sm" onClick={doReceive} disabled={busy}>
+                <Button size="sm" className="flex-1 sm:flex-none" onClick={doReceive} disabled={busy}>
                   {ta("receive_save")}
                 </Button>
               </div>
             </div>
           )}
-        </section>
 
-        {/* Reenviar el mensaje al proveedor (el primer envío es desde Por pedir). */}
-        {canPurchase && order.status !== "cancelado" && (
-          <details className="rounded-lg border border-border px-3 py-2">
-            <summary className="cursor-pointer text-sm font-medium">{ta("resend_message")}</summary>
-            <div className="pt-2">
-              <OrderMessageBox key={order.id} supplier={supplier} lines={order.lines.map((l) => ({ name: lineName(l), qty: l.qty, unit: l.unit }))} notes={order.notes} />
-            </div>
-          </details>
-        )}
-
-        {/* Factura */}
-        {canCosts && order.status !== "cancelado" && (
-          <section className="flex flex-col gap-2">
-            <div>
-              <h3 className="text-sm font-semibold">{ta("invoice")}</h3>
-              <p className="text-xs text-muted-foreground">{ta("invoice_hint")}</p>
-            </div>
-            <Field label={ta("f_invoice_ref")}>
-              <Input value={invoiceRef} onChange={(e) => setInvoiceRef(e.target.value)} disabled={!canPurchase} />
-            </Field>
-            <ul className="flex flex-col gap-2">
-              {order.lines.map((l) => {
-                const n = parseFloat((totals[l.id] ?? "").replace(",", "."));
-                const unitCost = Number.isFinite(n) && l.qty > 0 ? (n * 100) / l.qty : null;
-                return (
-                  <li key={l.id} className="grid grid-cols-[1fr_130px] items-center gap-2 text-sm">
-                    <span className="min-w-0">
-                      <span className="block truncate">{lineName(l)}</span>
-                      {unitCost != null && (
-                        <span className="block text-xs text-muted-foreground">
-                          {formatUnitCost(unitCost)} / {qtyWithUnit(1, l.unit, lang).replace(/^1 /, "")}
-                        </span>
-                      )}
-                    </span>
-                    <MoneyInput
-                      value={totals[l.id] ?? ""}
-                      onValueChange={(v) => setTotals((t) => ({ ...t, [l.id]: v }))}
-                      disabled={!canPurchase}
-                      aria-label={ta("line_total")}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                {formatCents(
-                  order.lines.reduce((sum, l) => {
-                    const n = parseFloat((totals[l.id] ?? "").replace(",", "."));
-                    return sum + (Number.isFinite(n) ? Math.round(n * 100) : 0);
-                  }, 0),
+          {canCosts && order.status !== "cancelado" && (
+            <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">{ta("invoice")}</h3>
+                <span className="text-sm font-semibold tabular-nums">{ta("order_total", { t: formatCents(totalCents) })}</span>
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Field label={ta("f_invoice_ref")}>
+                    <Input value={invoiceRef} onChange={(e) => setInvoiceRef(e.target.value)} disabled={!canPurchase} placeholder={canPurchase ? ta("optional") : undefined} />
+                  </Field>
+                </div>
+                {canPurchase && (
+                  <Button size="sm" variant="outline" className="h-9" onClick={doInvoice} disabled={busy || !invoiceDirty}>
+                    {ta("save_invoice")}
+                  </Button>
                 )}
-              </span>
-              {canPurchase && (
-                <Button size="sm" variant="outline" onClick={doInvoice} disabled={busy}>
-                  {ta("save")}
-                </Button>
-              )}
+              </div>
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {canPurchase && order.status === "pedido" && nothingReceived && (
           <div className="flex justify-end border-t border-border pt-3">

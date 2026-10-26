@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal";
+import { hasModule } from "@/lib/auth/modules";
 import * as almacen from "@/services/almacen";
 import type { AdjustmentReason, OrderDelivery, RequestStatus } from "@/types/almacen";
 
@@ -75,9 +76,30 @@ export async function registerIssueAction(input: almacen.IssueInput) {
 
 // ── Solicitudes de compra (cualquiera pide; Compras gestiona) ───────────
 
-export async function createPurchaseRequestAction(input: almacen.RequestInput) {
+export async function createPurchaseRequestAction(input: almacen.RequestInput, rememberSupplier = false) {
   const profile = await requireProfile();
-  return run(() => almacen.createPurchaseRequest(input, profile.id));
+  // Elegir proveedor es de quien ve el Almacén; dejarlo como principal del producto, de Compras.
+  const canWarehouse = hasModule(profile, "almacen");
+  const canPurchase = hasModule(profile, "almacen_compras");
+  const supplierId = canWarehouse ? (input.supplierId ?? null) : null;
+  return run(async () => {
+    await almacen.createPurchaseRequest({ ...input, supplierId }, profile.id);
+    if (rememberSupplier && canPurchase && supplierId && input.itemId) await almacen.linkSupplierToItems(supplierId, [input.itemId]);
+  });
+}
+
+export async function setRequestsSupplierAction(ids: string[], supplierId: string, rememberForItems: string[]) {
+  await requireModule("almacen", "almacen_compras");
+  return run(async () => {
+    await almacen.setRequestsSupplier(ids, supplierId);
+    if (rememberForItems.length) await almacen.linkSupplierToItems(supplierId, rememberForItems);
+  });
+}
+
+export async function setRequestCostAction(id: string, unitCostCents: number | null) {
+  await requireModule("almacen", "almacen_compras");
+  if (unitCostCents != null && (!Number.isFinite(unitCostCents) || unitCostCents < 0)) return { ok: false as const, error: "Precio inválido" };
+  return run(() => almacen.setRequestCost(id, unitCostCents));
 }
 
 /** Cancelar la propia (pendiente) o, con Compras, cambiar cantidad o estado. La RLS decide. */

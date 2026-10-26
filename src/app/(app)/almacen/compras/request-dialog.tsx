@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit } from "@/types/almacen";
+import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,24 +15,35 @@ import { createPurchaseRequestAction } from "../actions";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
 
 type Project = { id: string; name: string; active: boolean };
-/** Pedir algo: del catálogo (con la cantidad sugerida) o en texto libre ("escobas"). */
+/**
+ * Pedir algo: del catálogo (con la cantidad sugerida) o en texto libre
+ * ("escobas"). Quien ve el Almacén puede elegir el proveedor (por defecto, el
+ * principal del producto); con Compras, si el producto no tenía, queda como
+ * su principal.
+ */
 export function RequestDialog({
   open,
   onOpenChange,
   items,
   categories,
   projects,
+  suppliers,
+  canPurchase,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: InventoryItem[];
   categories: InventoryCategory[];
   projects: Project[];
+  /** Vacío = no elige proveedor (no ve el Almacén). */
+  suppliers: Supplier[];
+  canPurchase: boolean;
 }) {
   const { ta, lang } = useTa();
   const index = useVariantIndex(items);
   const catName = React.useCallback((id: string | null) => categories.find((c) => c.id === id)?.name ?? "", [categories]);
   const variantOptions = useVariantOptions(items, catName);
+  const supplierOptions = React.useMemo(() => suppliers.filter((s) => s.active).map((s) => ({ value: s.id, label: s.name, hint: s.contactName ?? undefined })), [suppliers]);
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
 
   const [mode, setMode] = React.useState<"catalog" | "free">("catalog");
@@ -42,6 +53,8 @@ export function RequestDialog({
   const [unit, setUnit] = React.useState<InventoryUnit>("unidad");
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [reason, setReason] = React.useState("");
+  const [supplierId, setSupplierId] = React.useState<string | null>(null);
+  const [remember, setRemember] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -55,6 +68,8 @@ export function RequestDialog({
     setUnit("unidad");
     setProjectId(null);
     setReason("");
+    setSupplierId(null);
+    setRemember(true);
     setError(null);
   }, [open, items]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -65,6 +80,9 @@ export function RequestDialog({
     setVariantId(id);
     const r = index.get(id);
     if (r) setQty(String(suggestedOrderQty(r.variant, r.item.allowsDecimals)));
+    // El proveedor principal del producto, si tiene.
+    const primary = r?.item.suppliers.find((s) => s.isPrimary) ?? r?.item.suppliers[0];
+    setSupplierId(primary?.supplierId ?? null);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -80,7 +98,9 @@ export function RequestDialog({
       unit: mode === "catalog" ? (ref?.item.unit ?? null) : unit,
       projectId,
       reason,
-    });
+      supplierId,
+      itemId: mode === "catalog" ? (ref?.item.id ?? null) : null,
+    }, remember && !!ref && ref.item.suppliers.length === 0);
     setSaving(false);
     if (!res.ok) return setError(res.error);
     toast.success(ta("request_saved"));
@@ -139,6 +159,25 @@ export function RequestDialog({
               )}
             </Field>
           </div>
+
+          {supplierOptions.length > 0 && (
+            <Field label={ta("f_supplier_opt")} hint={supplierId ? undefined : ta("supplier_default_hint")}>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <Combo options={supplierOptions} value={supplierId} onChange={setSupplierId} placeholder={ta("pick_supplier")} />
+                {supplierId && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSupplierId(null)}>
+                    {ta("remove")}
+                  </Button>
+                )}
+              </div>
+              {canPurchase && supplierId && ref && ref.item.suppliers.length === 0 && (
+                <label className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" className="size-3.5 accent-primary" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                  {ta("remember_supplier_one")}
+                </label>
+              )}
+            </Field>
+          )}
 
           {projectOptions.length > 0 && (
             <Field label={ta("dest_project")}>

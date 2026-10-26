@@ -398,10 +398,12 @@ export async function registerIssue(input: IssueInput): Promise<string> {
 
 // ── Solicitudes de compra ───────────────────────────────────────────────
 
-function mapRequest(r: RequestRow): PurchaseRequest {
+function mapRequest(r: RequestRow, cost?: number): PurchaseRequest {
   return {
     id: r.id,
     variantId: r.variant_id,
+    supplierId: r.supplier_id,
+    unitCostCents: cost ?? null,
     description: r.description,
     qty: Number(r.qty),
     unit: r.unit,
@@ -421,7 +423,13 @@ export async function getPurchaseRequests(): Promise<PurchaseRequest[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("purchase_requests").select("*").order("created_at", { ascending: false }).limit(500);
   fail(error);
-  return (data ?? []).map(mapRequest);
+  // Precios puestos en Por pedir: la RLS solo los entrega a Compras y Costos (a los demás, nada).
+  const pendingIds = (data ?? []).filter((r) => r.status === "pendiente").map((r) => r.id);
+  const costs = pendingIds.length
+    ? ((await supabase.from("purchase_request_costs").select("request_id, unit_cost_cents").in("request_id", pendingIds)).data ?? [])
+    : [];
+  const cost = new Map(costs.map((c) => [c.request_id, Number(c.unit_cost_cents)]));
+  return (data ?? []).map((r) => mapRequest(r, cost.get(r.id)));
 }
 
 export interface RequestInput {
@@ -431,6 +439,9 @@ export interface RequestInput {
   unit: string | null;
   projectId: string | null;
   reason: string | null;
+  supplierId?: string | null;
+  /** Solo para recordar el proveedor en el producto (no se guarda en la solicitud). */
+  itemId?: string | null;
 }
 
 export async function createPurchaseRequest(input: RequestInput, userId: string): Promise<void> {
@@ -442,9 +453,24 @@ export async function createPurchaseRequest(input: RequestInput, userId: string)
     unit: input.unit,
     project_id: input.projectId,
     reason: input.reason?.trim() || null,
+    supplier_id: input.supplierId ?? null,
     created_by: userId,
   });
   fail(error);
+}
+
+/** Cambiar el proveedor de solicitudes pendientes (pasan al grupo de ese proveedor en Por pedir). */
+export async function setRequestsSupplier(ids: string[], supplierId: string): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = await createClient();
+  fail((await supabase.from("purchase_requests").update({ supplier_id: supplierId }).in("id", ids).eq("status", "pendiente")).error);
+}
+
+/** Precio por unidad base de una solicitud (Compras); null lo quita. */
+export async function setRequestCost(id: string, unitCostCents: number | null): Promise<void> {
+  const supabase = await createClient();
+  if (unitCostCents == null) fail((await supabase.from("purchase_request_costs").delete().eq("request_id", id)).error);
+  else fail((await supabase.from("purchase_request_costs").upsert({ request_id: id, unit_cost_cents: unitCostCents, updated_at: new Date().toISOString() })).error);
 }
 
 export async function updatePurchaseRequest(id: string, patch: { qty?: number; status?: RequestStatus }): Promise<void> {

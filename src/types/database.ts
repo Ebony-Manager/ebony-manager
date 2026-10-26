@@ -2518,8 +2518,38 @@ export type Database = {
           },
         ]
       }
+      purchase_request_costs: {
+        Row: {
+          request_id: string
+          unit_cost_cents: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          request_id: string
+          unit_cost_cents: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          request_id?: string
+          unit_cost_cents?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_request_costs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_requests: {
         Row: {
+          supplier_id: string | null
           auto: boolean
           created_at: string
           created_by: string | null
@@ -2536,6 +2566,7 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          supplier_id?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -2552,6 +2583,7 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          supplier_id?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
