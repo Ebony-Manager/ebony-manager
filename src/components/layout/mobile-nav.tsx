@@ -39,7 +39,7 @@ interface Destination {
 }
 
 /** Orden en la barra de abajo: lo del día a día primero. */
-const ORDER = ["/cotizacion", "/proyectos", "almacen", "personal", "/directorio", "/cronograma", "/gastos", "/dashboard", "settings"];
+const ORDER = ["/cotizacion", "/proyectos", "/inspecciones", "almacen", "personal", "/directorio", "/cronograma", "/gastos", "/dashboard", "settings"];
 /** Pestañas de módulos en la barra de abajo; la quinta siempre es "Más" (menú completo y perfil). */
 const MAX_TABS = 4;
 

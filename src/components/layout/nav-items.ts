@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   BookUser,
   Bell,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
@@ -56,6 +57,8 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 export const RAIL_ITEMS: NavItem[] = [
   { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
+  // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
+  { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
   // Directorio de proveedores (materiales y servicios): de la empresa, no solo del Almacén.
   { href: "/directorio", icon: BookUser, label: strings.nav.directorio, anyModules: ["almacen", "directorio"] },
   // Cronograma y Gastos salen del menú hasta que se construyan (sus rutas siguen, en "Próximamente").

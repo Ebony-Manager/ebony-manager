@@ -2592,6 +2592,129 @@ export type Database = {
           },
         ]
       }
+      inspections: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          updated_at: string
+          visited_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          updated_at?: string
+          visited_on?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          updated_at?: string
+          visited_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_items: {
+        Row: {
+          area: string | null
+          comment: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inspection_id: string
+          resolved_at: string | null
+          resolved_by_name: string | null
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          area?: string | null
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_id: string
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          area?: string | null
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_id?: string
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_items_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_photos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          kind: string
+          path: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          kind?: string
+          path: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          kind?: string
+          path?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           contacts: Json
@@ -2651,6 +2774,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      inspection_projects: {
+        Args: { p_id?: string | null }
+        Returns: {
+          id: string
+          name: string
+          client_name: string | null
+          location: string | null
+          status: string
+        }[]
+      }
       attendance_roster: {
         Args: Record<PropertyKey, never>
         Returns: {

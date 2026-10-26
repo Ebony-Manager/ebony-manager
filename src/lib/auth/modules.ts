@@ -25,6 +25,8 @@ export const APP_MODULES = [
   "almacen_costos",
   "almacen_ajustes",
   "directorio",
+  // Inspecciones de obra: visitas con fotos y detalles por resolver (sin dinero).
+  "inspecciones",
   // Accesos rápidos: botones a formularios de JotForm en el menú (solo enlaces, sin datos).
   "accesos",
   "form_autorizaciones",
@@ -122,5 +124,6 @@ export function homePathFor(subject: AccessSubject | null | undefined): string {
   if (hasModule(subject, "documentos")) return "/personal/staff";
   // Almacén sin Compras (almacenista): directo a Nueva salida.
   if (hasModule(subject, "almacen")) return hasModule(subject, "almacen_compras") ? "/almacen" : "/almacen/salidas";
+  if (hasModule(subject, "inspecciones")) return "/inspecciones";
   return "/dashboard";
 }

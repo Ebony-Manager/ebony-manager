@@ -23,7 +23,9 @@ const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.
 
 /** Secciones grandes (botón grande, con sus pestañas debajo) y accesos chicos. */
 const BIG = ["almacen", "personal", "/proyectos", "/dashboard"];
-const SMALL = ["/cotizacion", "/directorio", "settings"];
+/** Herramientas: chicas, salvo para quien no tiene ninguna sección grande (solo el Dashboard), que las ve grandes. */
+const TOOLS = ["/cotizacion", "/inspecciones"];
+const SMALL = ["/directorio", "settings"];
 
 interface Entry {
   key: string;
@@ -40,7 +42,9 @@ interface Entry {
  * "Más" en el celular: una hoja que sube desde abajo. Arriba, botones grandes
  * para las secciones principales (Almacén, Personal, Proyectos, Dashboard),
  * cada uno con las pestañas que trae; abajo, accesos chicos (Cotización,
- * Directorio, Settings) y las preferencias del perfil en una franja. Cada
+ * Inspecciones, Directorio, Settings) y las preferencias del perfil en una
+ * franja. Quien solo tiene herramientas (ej. solo Inspecciones) las ve en
+ * grande. Cada
  * botón lleva al inicio de su sección (ver `panelHome`); adentro, pestañas.
  * Solo muestra lo que el usuario puede abrir.
  */
@@ -83,8 +87,11 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
     });
   }
   const pick = (keys: string[]) => keys.map((k) => entries.find((e) => e.key === k)).filter((e): e is Entry => !!e);
-  const big = pick(BIG);
-  const small = pick(SMALL);
+  const sections = pick(BIG);
+  // Almacén con solo Compras (pedir lo que haga falta, lo ven todos) no cuenta como sección propia.
+  const toolsBig = sections.every((e) => e.key === "/dashboard" || (e.key === "almacen" && e.tabs.length === 0));
+  const big = toolsBig ? [...pick(TOOLS), ...sections] : sections;
+  const small = toolsBig ? pick(SMALL) : pick([...TOOLS, ...SMALL]);
   const forms = visibleQuickLinks(access);
 
   return (
@@ -198,7 +205,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
 
           {/* Accesos chicos. */}
           {small.length > 0 && (
-            <nav className="grid grid-cols-3 gap-2 border-t border-border py-3">
+            <nav className={`grid gap-2 border-t border-border py-3 ${small.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
               {small.map((e) => {
                 const Icon = e.icon;
                 return (

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
+import type { Inspection } from "@/types/inspections";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -26,15 +27,16 @@ import { ContractsTable } from "../../contratistas/contracts-table";
 import { ContractDialog, type ContractPerson } from "../../contratistas/contract-dialog";
 import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
+import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "contratos";
+type SectionKey = "resumen" | "contratos" | "inspecciones";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
  * borrar) y una pestaña por cada cosa que cuelga del proyecto. Hoy:
- * Resumen y Contratos. Lo que se vaya sumando (cotizaciones, inspecciones,
+ * Resumen, Contratos e Inspecciones. Lo que se vaya sumando (cotizaciones,
  * autorizaciones, inventario entregado…) entra como otra pestaña en
  * `sections`, con su propio permiso.
  */
@@ -46,6 +48,8 @@ export function ProjectHub({
   contractors,
   projects,
   laborRates,
+  canInspections,
+  inspections,
 }: {
   project: Project;
   initialTab?: string;
@@ -54,6 +58,8 @@ export function ProjectHub({
   contractors: ContractPerson[];
   projects: Project[];
   laborRates: LaborRate[];
+  canInspections: boolean;
+  inspections: Inspection[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -62,6 +68,7 @@ export function ProjectHub({
   const sections: { key: SectionKey; label: string; visible: boolean }[] = [
     { key: "resumen", label: tt("tab_resumen"), visible: true },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
+    { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
   ];
   const visible = sections.filter((s) => s.visible);
   const [tab, setTab] = React.useState<SectionKey>(
@@ -125,6 +132,7 @@ export function ProjectHub({
       {tab === "contratos" && canContracts && (
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
+      {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} />}
 
       <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
       <DeleteProjectDialog

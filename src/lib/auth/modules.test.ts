@@ -63,6 +63,8 @@ describe("hasModule", () => {
 describe("homePathFor", () => {
   it("lleva al primer módulo disponible", () => {
     expect(homePathFor({ role: "admin", modules: [] })).toBe("/cotizacion");
+    expect(homePathFor({ role: "vendedor", modules: ["inspecciones"] })).toBe("/inspecciones");
+    expect(homePathFor({ role: "vendedor", modules: ["inspecciones", "almacen"] })).toBe("/almacen/salidas");
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas", "planilla"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
     expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
