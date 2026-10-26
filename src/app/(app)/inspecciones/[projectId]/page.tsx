@@ -9,10 +9,16 @@ import { ProjectInspections } from "./project-inspections";
 // tiene Inspecciones, sin la ficha del proyecto).
 export const dynamic = "force-dynamic";
 
-export default async function ProjectInspectionsPage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function ProjectInspectionsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ nueva?: string }>;
+}) {
   const profile = await requireModule("inspecciones");
-  const { projectId } = await params;
+  const [{ projectId }, { nueva }] = await Promise.all([params, searchParams]);
   const [project, inspections] = await Promise.all([getInspectionProject(projectId), getProjectInspections(projectId)]);
   if (!project) notFound();
-  return <ProjectInspections project={project} inspections={inspections} canOpenProject={hasAnyModule(profile, ["proyectos", "contratistas"])} />;
+  return <ProjectInspections project={project} inspections={inspections} canOpenProject={hasAnyModule(profile, ["proyectos", "contratistas"])} startNew={nueva === "1"} />;
 }

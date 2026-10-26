@@ -32,18 +32,30 @@ import { PhotoThumb, PhotoViewer, useTi } from "./shared";
 export function InspectionsBoard({
   project,
   inspections,
+  startNew = false,
 }: {
   project: { id: string; name: string; clientName: string | null; location: string | null };
   inspections: Inspection[];
+  /** Al entrar, empezar a inspeccionar: si ya hay visita de hoy se le agregan detalles; si no, una visita nueva. */
+  startNew?: boolean;
 }) {
   const { ti, lang } = useTi();
   const router = useRouter();
   const [view, setView] = React.useState<InspectionView>("visita");
   const [onlyPending, setOnlyPending] = React.useState(true);
-  const [visitDialog, setVisitDialog] = React.useState<{ visit: Inspection | null } | null>(null);
-  const [itemDialog, setItemDialog] = React.useState<{ inspectionId: string; item: InspectionItem | null } | null>(null);
+  // Con startNew se arranca con un diálogo abierto: detalles de la visita de hoy, o una visita nueva.
+  const [todayVisit] = React.useState(() => (startNew ? inspections.find((v) => v.visitedOn === todayInPanama()) : undefined));
+  const [visitDialog, setVisitDialog] = React.useState<{ visit: Inspection | null } | null>(startNew && !todayVisit ? { visit: null } : null);
+  const [itemDialog, setItemDialog] = React.useState<{ inspectionId: string; item: InspectionItem | null } | null>(
+    todayVisit ? { inspectionId: todayVisit.id, item: null } : null,
+  );
   const [pdfOpen, setPdfOpen] = React.useState(false);
   const [viewer, setViewer] = React.useState<{ photos: InspectionPhoto[]; index: number } | null>(null);
+
+  // Sin el ?nueva=1, para que recargar no lo vuelva a abrir.
+  React.useEffect(() => {
+    if (startNew) router.replace(window.location.pathname, { scroll: false });
+  }, [startNew, router]);
 
   const counts = countItems(inspections);
   const areas = React.useMemo(() => areaSuggestions(inspections), [inspections]);

@@ -6,8 +6,9 @@ import {
   type Inspection,
   type InspectionItemStatus,
   type InspectionPhotoKind,
+  type InspectionOverview,
   type InspectionProject,
-  type InspectionProjectStats,
+  type InspectionProjectCard,
 } from "@/types/inspections";
 
 /**
@@ -34,22 +35,74 @@ export async function getInspectionProject(id: string): Promise<InspectionProjec
   return (await getInspectionProjects(id))[0] ?? null;
 }
 
-/** Visitas, pendientes y resueltos por proyecto (solo los que tienen alguna visita). */
-export async function getInspectionStats(): Promise<Record<string, InspectionProjectStats>> {
+/**
+ * El inicio de Inspecciones: las obras con visitas (con sus pendientes y una
+ * miniatura) y las últimas visitas. Solo se firman las miniaturas.
+ */
+export async function getInspectionOverview(recentLimit = 10): Promise<InspectionOverview> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("inspections").select("project_id, visited_on, inspection_items(status)");
+  const { data, error } = await supabase
+    .from("inspections")
+    .select("id, project_id, visited_on, notes, created_by_name, created_at, inspection_items(status, created_at, inspection_photos(path, sort_order))")
+    .order("visited_on", { ascending: false })
+    .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  const out: Record<string, InspectionProjectStats> = {};
-  for (const v of data ?? []) {
-    const s = (out[v.project_id] ??= { visits: 0, pending: 0, resolved: 0, lastVisit: null });
-    s.visits += 1;
-    if (!s.lastVisit || v.visited_on > s.lastVisit) s.lastVisit = v.visited_on;
-    for (const it of v.inspection_items ?? []) {
-      if (it.status === "resuelto") s.resolved += 1;
-      else s.pending += 1;
+  const visits = data ?? [];
+
+  type Item = { status: string; created_at: string; inspection_photos: { path: string; sort_order: number }[] | null };
+  // La primera foto de los detalles, del más nuevo al más viejo (o al revés).
+  const photoOf = (items: Item[], newest: boolean) => {
+    const sorted = [...items].sort((a, b) => (newest ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at)));
+    for (const i of sorted) {
+      const p = [...(i.inspection_photos ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0];
+      if (p) return p.path;
     }
+    return null;
+  };
+
+  // Las visitas vienen de la más nueva a la más vieja: la primera foto que aparece es la más reciente.
+  const cards = new Map<string, InspectionProjectCard & { pendingPhoto: string | null; anyPhoto: string | null }>();
+  for (const v of visits) {
+    const items = v.inspection_items ?? [];
+    const pending = items.filter((i) => i.status !== "resuelto");
+    const c = cards.get(v.project_id) ?? { projectId: v.project_id, visits: 0, pending: 0, resolved: 0, lastVisit: v.visited_on, thumbUrl: null, pendingPhoto: null, anyPhoto: null };
+    c.visits += 1;
+    c.pending += pending.length;
+    c.resolved += items.length - pending.length;
+    c.pendingPhoto ??= photoOf(pending, true);
+    c.anyPhoto ??= photoOf(items, true);
+    cards.set(v.project_id, c);
   }
-  return out;
+  const cardList = [...cards.values()].map(({ pendingPhoto, anyPhoto, ...c }) => ({ ...c, thumbPath: pendingPhoto ?? anyPhoto }));
+  const recent = visits.slice(0, recentLimit).map((v) => {
+    const items = v.inspection_items ?? [];
+    return {
+      id: v.id,
+      projectId: v.project_id,
+      visitedOn: v.visited_on,
+      createdByName: v.created_by_name,
+      notes: v.notes,
+      items: items.length,
+      pending: items.filter((i) => i.status !== "resuelto").length,
+      // De la visita, la foto del primer detalle.
+      thumbPath: photoOf(items, false),
+    };
+  });
+
+  const paths = [...new Set([...cardList, ...recent].map((x) => x.thumbPath).filter((p): p is string => !!p))];
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const signed = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).createSignedUrls(paths, 3600);
+    for (const d of signed.data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  }
+  const url = (p: string | null) => (p ? urls.get(p) ?? null : null);
+
+  return {
+    projects: cardList
+      .map(({ thumbPath, ...c }) => ({ ...c, thumbUrl: url(thumbPath) }))
+      .sort((a, b) => b.pending - a.pending || b.lastVisit.localeCompare(a.lastVisit)),
+    recent: recent.map(({ thumbPath, ...r }) => ({ ...r, thumbUrl: url(thumbPath) })),
+  };
 }
 
 /** Las visitas de un proyecto (la más reciente primero), con sus detalles y fotos firmadas. */

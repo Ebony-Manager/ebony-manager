@@ -1,13 +1,13 @@
 import { requireModule } from "@/lib/auth/dal";
-import { getInspectionProjects, getInspectionStats } from "@/services/inspections";
+import { getInspectionOverview, getInspectionProjects } from "@/services/inspections";
 import { InspectionsHome } from "./inspections-home";
 
-// Inspecciones: los proyectos (sin montos) con sus visitas y pendientes; de
-// ahí a las inspecciones de cada uno.
+// Inspecciones: lo abierto (obras con pendientes, últimas visitas) y el botón
+// para empezar una inspección nueva.
 export const dynamic = "force-dynamic";
 
 export default async function InspeccionesPage() {
   await requireModule("inspecciones");
-  const [projects, stats] = await Promise.all([getInspectionProjects(), getInspectionStats()]);
-  return <InspectionsHome projects={projects} stats={stats} />;
+  const [projects, overview] = await Promise.all([getInspectionProjects(), getInspectionOverview()]);
+  return <InspectionsHome projects={projects} overview={overview} />;
 }

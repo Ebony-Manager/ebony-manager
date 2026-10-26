@@ -16,11 +16,14 @@ export function ProjectInspections({
   project,
   inspections,
   canOpenProject,
+  startNew,
 }: {
   project: InspectionProject;
   inspections: Inspection[];
   /** Con Proyectos (o Contratistas), un enlace a la ficha. */
   canOpenProject: boolean;
+  /** Viene de "Nueva inspección": abre la visita de hoy (o una nueva) al entrar. */
+  startNew?: boolean;
 }) {
   const { ti } = useTi();
   return (
@@ -45,7 +48,7 @@ export function ProjectInspections({
           ) : undefined
         }
       />
-      <InspectionsBoard project={project} inspections={inspections} />
+      <InspectionsBoard project={project} inspections={inspections} startNew={startNew} />
     </div>
   );
 }
