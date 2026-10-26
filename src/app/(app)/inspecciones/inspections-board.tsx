@@ -356,8 +356,8 @@ function PhotoCarousel({
 
   if (photos.length === 0) {
     return (
-      <button type="button" onClick={onEmpty} className="flex aspect-[4/3] w-full items-center justify-center bg-muted text-muted-foreground">
-        <ImageOff className="size-5" />
+      <button type="button" onClick={onEmpty} className="relative block w-full bg-muted pb-[75%] text-muted-foreground">
+        <ImageOff className="absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2" />
       </button>
     );
   }
@@ -370,19 +370,22 @@ function PhotoCarousel({
   };
 
   return (
-    <div className="group relative">
+    // Caja 4:3 con padding (no aspect-ratio) y las fotos en posición absoluta: el
+    // Safari de iPhones con iOS más viejo no resuelve el alto 100% dentro de una
+    // caja con aspect-ratio y dibujaba la foto a tamaño real, saliéndose.
+    <div className="group relative w-full overflow-hidden bg-muted pb-[75%]">
       <div
         ref={ref}
         onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}
-        className="flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto bg-muted [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {photos.map((p, i) => (
-          <button key={p.id} type="button" onClick={() => onOpen(i)} className="relative size-full shrink-0 snap-center">
+          <button key={p.id} type="button" onClick={() => onOpen(i)} className="relative h-full w-full min-w-full shrink-0 snap-center overflow-hidden">
             {p.url ? (
               // eslint-disable-next-line @next/next/no-img-element -- URL firmada del bucket privado
-              <img src={p.url} alt="" loading="lazy" className={`size-full object-cover ${dimmed ? "opacity-75" : ""}`} />
+              <img src={p.url} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${dimmed ? "opacity-75" : ""}`} />
             ) : (
-              <ImageOff className="m-auto size-5 text-muted-foreground" />
+              <ImageOff className="absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
             )}
             {p.kind === "despues" && (
               <span className="absolute bottom-0 left-0 rounded-tr-md bg-success px-1.5 py-0.5 text-[10px] font-semibold text-white">{ti("photo_after")}</span>
