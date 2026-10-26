@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
-import type { Inspection } from "@/types/inspections";
+import type { Inspection, InspectionPainter } from "@/types/inspections";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -50,6 +50,7 @@ export function ProjectHub({
   laborRates,
   canInspections,
   inspections,
+  painters,
 }: {
   project: Project;
   initialTab?: string;
@@ -60,6 +61,7 @@ export function ProjectHub({
   laborRates: LaborRate[];
   canInspections: boolean;
   inspections: Inspection[];
+  painters: InspectionPainter[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -132,7 +134,7 @@ export function ProjectHub({
       {tab === "contratos" && canContracts && (
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
-      {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} />}
+      {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
 
       <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
       <DeleteProjectDialog

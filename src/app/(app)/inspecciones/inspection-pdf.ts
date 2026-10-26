@@ -7,7 +7,8 @@ import type { InspectionItem } from "@/types/inspections";
 export interface InspectionPdfGroup {
   /** "Visita 12-Oct-26" o "Todos los detalles". */
   title: string;
-  items: (InspectionItem & { visitLabel?: string })[];
+  /** visitLabel: fecha de la visita (si no se agrupa por visita); meta: tipo · pintor · tercero. */
+  items: (InspectionItem & { visitLabel?: string; meta?: string })[];
 }
 
 export interface InspectionPdfLabels {
@@ -117,8 +118,12 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
     doc.text(labels.subtitle, margin, y);
     y += 13;
   }
-  doc.text(labels.summary, margin, y);
-  y += 10;
+  // El resumen puede traer varias líneas (cuántos detalles, filtros, agrupado).
+  for (const line of labels.summary.split("\n")) {
+    doc.text(doc.splitTextToSize(line, contentW) as string[], margin, y);
+    y += 12;
+  }
+  y -= 2;
   doc.setDrawColor(...WALNUT);
   doc.setLineWidth(1);
   doc.line(margin, y, pageW - margin, y);
@@ -144,7 +149,7 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
     const photos = item.photos.map((p) => loaded.get(p.id) ?? null);
     const rows: (LoadedPhoto | null)[][] = [];
     for (let i = 0; i < photos.length; i += perRow) rows.push(photos.slice(i, i + perRow));
-    const textH = 16 + commentLines.length * 12.5 + (item.visitLabel ? 11 : 0);
+    const textH = 16 + commentLines.length * 12.5 + (item.visitLabel || item.meta ? 11 : 0);
     return { commentLines, rows, minH: textH + (rows[0] ? rowHeight(rows[0]) + 8 : 0) };
   };
 
@@ -180,11 +185,12 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
       doc.setTextColor(...(resolved ? GREEN : AMBER));
       doc.text((resolved ? labels.resolved : labels.pending).toUpperCase(), pageW - margin, y, { align: "right" });
       y += 14;
-      if (item.visitLabel) {
+      const subline = [item.meta, item.visitLabel].filter(Boolean).join(" · ");
+      if (subline) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8.5);
         doc.setTextColor(...MUTED);
-        doc.text(item.visitLabel, margin + 22, y - 2);
+        doc.text(subline, margin + 22, y - 2);
         y += 9;
       }
       doc.setFont("helvetica", "normal");

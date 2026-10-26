@@ -5,6 +5,9 @@ import {
   INSPECTION_PHOTOS_BUCKET,
   type Inspection,
   type InspectionItemStatus,
+  type InspectionKind,
+  type InspectionPainter,
+  type InspectionResponsible,
   type InspectionPhotoKind,
   type InspectionOverview,
   type InspectionProject,
@@ -105,13 +108,24 @@ export async function getInspectionOverview(recentLimit = 10): Promise<Inspectio
   };
 }
 
+/** Los contratistas pintores (solo id y nombre; también los inactivos, para mostrar nombres viejos). */
+export async function getInspectionPainters(): Promise<InspectionPainter[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("inspection_painters");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((p) => ({ id: p.id, name: p.name, active: p.active }));
+}
+
+const asKind = (k: string | null): InspectionKind | null => (k === "pintura" || k === "carpinteria" || k === "otro" ? k : null);
+
 /** Las visitas de un proyecto (la más reciente primero), con sus detalles y fotos firmadas. */
 export async function getProjectInspections(projectId: string): Promise<Inspection[]> {
   const supabase = await createClient();
+  const painters = new Map((await getInspectionPainters()).map((p) => [p.id, p.name]));
   const { data, error } = await supabase
     .from("inspections")
     .select(
-      "id, project_id, visited_on, notes, created_by_name, created_at, inspection_items(id, inspection_id, area, comment, status, resolved_at, resolved_by_name, sort_order, created_at, inspection_photos(id, path, kind, sort_order, created_at))"
+      "id, project_id, visited_on, notes, created_by_name, created_at, inspection_items(id, inspection_id, area, comment, kind, painter_id, responsible, third_party, status, resolved_at, resolved_by_name, sort_order, created_at, inspection_photos(id, path, kind, sort_order, created_at))"
     )
     .eq("project_id", projectId)
     .order("visited_on", { ascending: false })
@@ -141,6 +155,11 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
       inspectionId: i.inspection_id,
       area: i.area,
       comment: i.comment,
+      kind: asKind(i.kind),
+      painterId: i.painter_id,
+      painterName: i.painter_id ? (painters.get(i.painter_id) ?? null) : null,
+      responsible: i.responsible === "tercero" ? "tercero" : "ebony",
+      thirdParty: i.third_party,
       status: i.status === "resuelto" ? "resuelto" : "pendiente",
       resolvedAt: i.resolved_at,
       resolvedByName: i.resolved_by_name,
@@ -193,10 +212,27 @@ export async function deleteInspection(id: string): Promise<void> {
 export interface InspectionItemInput {
   area: string | null;
   comment: string;
+  kind: InspectionKind | null;
+  painterId: string | null;
+  responsible: InspectionResponsible;
+  thirdParty: string | null;
 }
 
-/** Agrega un detalle (al final de la visita) con las fotos ya subidas. */
-export async function addInspectionItem(inspectionId: string, input: InspectionItemInput, photoPaths: string[]): Promise<string> {
+/** Las columnas de un detalle (el pintor solo en pintura; el "quién" solo con tercero). */
+function itemColumns(input: InspectionItemInput) {
+  return {
+    area: input.area?.trim() || null,
+    comment: input.comment.trim(),
+    kind: input.kind,
+    painter_id: input.kind === "pintura" ? input.painterId : null,
+    responsible: input.responsible,
+    third_party: input.responsible === "tercero" ? input.thirdParty?.trim() || null : null,
+  };
+}
+
+/** Agrega varios detalles (al final de la visita, en ese orden), cada uno con sus fotos ya subidas. */
+export async function addInspectionItems(inspectionId: string, entries: { input: InspectionItemInput; photoPaths: string[] }[]): Promise<string[]> {
+  if (entries.length === 0) return [];
   const supabase = await createClient();
   const { data: last } = await supabase
     .from("inspection_items")
@@ -205,22 +241,20 @@ export async function addInspectionItem(inspectionId: string, input: InspectionI
     .order("sort_order", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const start = (last?.sort_order ?? -1) + 1;
   const { data, error } = await supabase
     .from("inspection_items")
-    .insert({ inspection_id: inspectionId, area: input.area?.trim() || null, comment: input.comment.trim(), sort_order: (last?.sort_order ?? -1) + 1 })
-    .select("id")
-    .single();
+    .insert(entries.map((e, i) => ({ inspection_id: inspectionId, ...itemColumns(e.input), sort_order: start + i })))
+    .select("id, sort_order");
   if (error) throw new Error(error.message);
-  await addInspectionPhotos(data.id, photoPaths, "antes");
-  return data.id;
+  const ids = [...(data ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((r) => r.id);
+  for (let i = 0; i < entries.length; i++) await addInspectionPhotos(ids[i], entries[i].photoPaths, "antes");
+  return ids;
 }
 
 export async function updateInspectionItem(id: string, input: InspectionItemInput): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("inspection_items")
-    .update({ area: input.area?.trim() || null, comment: input.comment.trim() })
-    .eq("id", id);
+  const { error } = await supabase.from("inspection_items").update(itemColumns(input)).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

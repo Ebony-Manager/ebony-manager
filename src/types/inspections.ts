@@ -3,6 +3,18 @@
 // supervisora marca Resueltos. Ver supabase/migrations/20261026160000_inspecciones.sql.
 
 export type InspectionItemStatus = "pendiente" | "resuelto";
+/** De qué es el detalle; null = sin clasificar (los anteriores a este campo). */
+export type InspectionKind = "pintura" | "carpinteria" | "otro";
+export const INSPECTION_KINDS: readonly InspectionKind[] = ["pintura", "carpinteria", "otro"];
+/** Quién causó el daño: Ebony o un tercero (con una línea de quién). */
+export type InspectionResponsible = "ebony" | "tercero";
+
+/** Un contratista pintor (solo id y nombre). */
+export interface InspectionPainter {
+  id: string;
+  name: string;
+  active: boolean;
+}
 /** antes = el detalle; despues = cómo quedó al resolverlo. */
 export type InspectionPhotoKind = "antes" | "despues";
 
@@ -21,6 +33,13 @@ export interface InspectionItem {
   inspectionId: string;
   area: string | null;
   comment: string;
+  kind: InspectionKind | null;
+  /** El pintor que lo arregla (el que pintó ese mueble); solo en pintura. */
+  painterId: string | null;
+  painterName: string | null;
+  responsible: InspectionResponsible;
+  /** Si es de un tercero: quién (ej. "el plomero"). */
+  thirdParty: string | null;
   status: InspectionItemStatus;
   resolvedAt: string | null;
   resolvedByName: string | null;

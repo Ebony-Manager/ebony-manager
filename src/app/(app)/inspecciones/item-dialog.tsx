@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import { Camera, Loader2, X } from "lucide-react";
 
-import { INSPECTION_PHOTOS_BUCKET, type InspectionItem } from "@/types/inspections";
+import { INSPECTION_PHOTOS_BUCKET, type InspectionItem, type InspectionPainter } from "@/types/inspections";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { createClient } from "@/lib/supabase/client";
 import { inspectionPhotoPath } from "@/lib/inspections/view";
-import { addInspectionItemAction, deleteInspectionPhotoAction, updateInspectionItemAction } from "./actions";
+import { deleteInspectionPhotoAction, updateInspectionItemAction } from "./actions";
+import { DetailFields, EMPTY_META, type DetailMeta } from "./detail-fields";
 import { useTi } from "./shared";
 
 /** Lado máximo de las fotos: se ve el detalle sin subir los MB del celular. */
@@ -48,31 +49,53 @@ export async function discardUploaded(paths: string[]) {
   if (paths.length) await createClient().storage.from(INSPECTION_PHOTOS_BUCKET).remove(paths);
 }
 
-/**
- * Nuevo detalle / editar detalle: fotos (cámara o galería, varias a la vez),
- * área (con sugerencias a un toque) y comentario. "Guardar y otro" deja el
- * diálogo abierto para seguir recorriendo la obra.
- */
+/** Área: campo de texto con sugerencias a un toque (las del proyecto primero). */
+export function AreaInput({ id, value, onChange, areas }: { id: string; value: string; onChange: (v: string) => void; areas: string[] }) {
+  const { ti } = useTi();
+  const typed = value.trim().toLocaleLowerCase("es");
+  const suggestions = areas.filter((a) => a.toLocaleLowerCase("es") !== typed && (!typed || a.toLocaleLowerCase("es").includes(typed))).slice(0, 8);
+  return (
+    <>
+      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={ti("f_area_ph")} autoComplete="off" />
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange(s)}
+              className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground active:bg-muted"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Editar un detalle: fotos, área, comentario, tipo, pintor y responsable. */
 export function ItemDialog({
-  open,
-  inspectionId,
   item,
   areas,
+  painters,
   onClose,
   onSaved,
 }: {
-  open: boolean;
-  inspectionId: string | null;
-  /** null = nuevo. */
+  /** null = cerrado. */
   item: InspectionItem | null;
   areas: string[];
+  painters: InspectionPainter[];
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const open = !!item;
   const { ti } = useTi();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [area, setArea] = React.useState("");
   const [comment, setComment] = React.useState("");
+  const [meta, setMeta] = React.useState<DetailMeta>(EMPTY_META);
   const [photos, setPhotos] = React.useState<NewPhoto[]>([]);
   const [removed, setRemoved] = React.useState<string[]>([]);
   const [reading, setReading] = React.useState(false);
@@ -81,6 +104,7 @@ export function ItemDialog({
   const reset = React.useCallback((it: InspectionItem | null) => {
     setArea(it?.area ?? "");
     setComment(it?.comment ?? "");
+    setMeta(it ? { kind: it.kind, painterId: it.painterId, responsible: it.responsible, thirdParty: it.thirdParty } : EMPTY_META);
     setPhotos((ps) => {
       ps.forEach((p) => URL.revokeObjectURL(p.preview));
       return [];
@@ -95,8 +119,6 @@ export function ItemDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const existing = (item?.photos ?? []).filter((p) => !removed.includes(p.id));
-  const typed = area.trim().toLocaleLowerCase("es");
-  const suggestions = areas.filter((a) => a.toLocaleLowerCase("es") !== typed && (!typed || a.toLocaleLowerCase("es").includes(typed))).slice(0, 8);
 
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])];
@@ -117,32 +139,26 @@ export function ItemDialog({
     }
   }
 
-  async function save(another: boolean) {
-    if (!inspectionId) return;
+  async function save() {
+    if (!item) return;
     if (!comment.trim() && photos.length === 0 && existing.length === 0) {
       toast.error(ti("need_content"));
+      return;
+    }
+    if (meta.kind === "pintura" && !meta.painterId) {
+      toast.error(ti("need_painter"));
       return;
     }
     setSaving(true);
     let uploaded: string[] = [];
     try {
-      uploaded = await uploadInspectionPhotos(inspectionId, photos.map((p) => p.blob));
-      const input = { area: area.trim() || null, comment };
-      const res = item ? await updateInspectionItemAction(item.id, input, uploaded) : await addInspectionItemAction(inspectionId, input, uploaded);
+      uploaded = await uploadInspectionPhotos(item.inspectionId, photos.map((p) => p.blob));
+      const res = await updateInspectionItemAction(item.id, { area: area.trim() || null, comment, ...meta }, uploaded);
       if (!res.ok) throw new Error(res.error);
       for (const id of removed) await deleteInspectionPhotoAction(id);
       toast.success(ti("saved"));
       onSaved();
-      if (another && !item) {
-        // Se queda el área: lo normal es seguir en el mismo cuarto.
-        setComment("");
-        setPhotos((ps) => {
-          ps.forEach((p) => URL.revokeObjectURL(p.preview));
-          return [];
-        });
-      } else {
-        onClose();
-      }
+      onClose();
     } catch (err) {
       await discardUploaded(uploaded);
       toast.error(err instanceof Error && err.message ? err.message : ti("error"));
@@ -155,14 +171,14 @@ export function ItemDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-h-[92dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{item ? ti("item_edit") : ti("item_new")}</DialogTitle>
+          <DialogTitle>{ti("item_edit")}</DialogTitle>
         </DialogHeader>
 
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            void save(false);
+            void save();
           }}
         >
           <div className="flex flex-col gap-2">
@@ -196,21 +212,7 @@ export function ItemDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="insp-area">{ti("f_area")}</Label>
-            <Input id="insp-area" value={area} onChange={(e) => setArea(e.target.value)} placeholder={ti("f_area_ph")} autoComplete="off" />
-            {suggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setArea(s)}
-                    className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground active:bg-muted"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+            <AreaInput id="insp-area" value={area} onChange={setArea} areas={areas} />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -218,17 +220,14 @@ export function ItemDialog({
             <Textarea id="insp-comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={ti("f_comment_ph")} />
           </div>
 
+          <DetailFields value={meta} onChange={setMeta} painters={painters} />
+
           <DialogFooter className="gap-2">
             {saving && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground sm:mr-auto">
                 <Loader2 className="size-3.5 animate-spin" />
                 {ti("uploading")}
               </span>
-            )}
-            {!item && (
-              <Button type="button" variant="outline" disabled={saving || reading} onClick={() => void save(true)}>
-                {ti("save_and_next")}
-              </Button>
             )}
             <Button type="submit" disabled={saving || reading}>
               {ti("save")}

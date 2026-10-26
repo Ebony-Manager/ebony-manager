@@ -41,9 +41,9 @@ export async function deleteInspectionAction(id: string) {
   return run(() => inspections.deleteInspection(id));
 }
 
-export async function addInspectionItemAction(inspectionId: string, input: inspections.InspectionItemInput, photoPaths: string[]) {
+export async function addInspectionItemsAction(inspectionId: string, entries: { input: inspections.InspectionItemInput; photoPaths: string[] }[]) {
   await requireModule("inspecciones");
-  return run(() => inspections.addInspectionItem(inspectionId, input, photoPaths));
+  return run(() => inspections.addInspectionItems(inspectionId, entries));
 }
 
 export async function updateInspectionItemAction(id: string, input: inspections.InspectionItemInput, newPhotoPaths: string[]) {

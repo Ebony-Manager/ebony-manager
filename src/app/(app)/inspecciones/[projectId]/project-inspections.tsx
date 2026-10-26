@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Folder } from "lucide-react";
 
-import type { Inspection, InspectionProject } from "@/types/inspections";
+import type { Inspection, InspectionPainter, InspectionProject } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
@@ -15,11 +15,13 @@ import { useTi } from "../shared";
 export function ProjectInspections({
   project,
   inspections,
+  painters,
   canOpenProject,
   startNew,
 }: {
   project: InspectionProject;
   inspections: Inspection[];
+  painters: InspectionPainter[];
   /** Con Proyectos (o Contratistas), un enlace a la ficha. */
   canOpenProject: boolean;
   /** Viene de "Nueva inspección": abre la visita de hoy (o una nueva) al entrar. */
@@ -48,7 +50,7 @@ export function ProjectInspections({
           ) : undefined
         }
       />
-      <InspectionsBoard project={project} inspections={inspections} startNew={startNew} />
+      <InspectionsBoard project={project} inspections={inspections} painters={painters} startNew={startNew} />
     </div>
   );
 }

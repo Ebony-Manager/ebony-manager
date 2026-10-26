@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { getContractors, getContracts, getLaborRates, getProject, getProjects } from "@/services/contractors";
-import { getProjectInspections } from "@/services/inspections";
+import { getInspectionPainters, getProjectInspections } from "@/services/inspections";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -29,12 +29,13 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
     canContracts ? getLaborRates() : none([]),
     canInspections ? getProjectInspections(id) : none([]),
+    canInspections ? getInspectionPainters() : none([]),
   ]);
 
   return (
@@ -48,6 +49,7 @@ export default async function ProjectPage({
       laborRates={laborRates}
       canInspections={canInspections}
       inspections={inspections}
+      painters={painters}
     />
   );
 }

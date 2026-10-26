@@ -3,54 +3,63 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 
-import type { Inspection, InspectionItem, InspectionPhoto } from "@/types/inspections";
+import type { Inspection, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { RowMenu } from "@/components/shared/row-menu";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
-import { allItems, areaSuggestions, countItems, visitsToShow } from "@/lib/inspections/view";
+import { DEFAULT_FILTERS, areaSuggestions, countItems, groupItems, hasExtraFilters, type GroupBy, type ItemFilters, type ItemGroup } from "@/lib/inspections/view";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { t, strings } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { addInspectionPhotosAction, deleteInspectionAction, deleteInspectionItemAction, setInspectionItemStatusAction } from "./actions";
+import { BatchDialog } from "./batch-dialog";
+import { DetailTags, KIND_KEY, useDetailLine } from "./detail-fields";
+import type { InspectionPdfGroup } from "./inspection-pdf";
 import { ItemDialog, PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
-import { PdfDialog, type InspectionView } from "./pdf-dialog";
+import { PdfDialog } from "./pdf-dialog";
 import { VisitDialog } from "./visit-dialog";
 import { PhotoViewer, useTi } from "./shared";
 
 /**
- * Las inspecciones de un proyecto: por visita o todo junto, pendientes o
- * todos. La supervisora agrega visitas y detalles (fotos + área +
- * comentario), los marca resueltos y saca el PDF para el instalador. Se usa
- * en Inspecciones → proyecto y en la pestaña Inspecciones de la ficha.
+ * Las inspecciones de un proyecto: agrupadas por visita, por área o todo
+ * junto, con filtros (pendientes, tipo, pintor, responsable). La supervisora
+ * agrega visitas y detalles (de a varios por área), los marca resueltos y saca
+ * el PDF de lo que está viendo, o solo de los que seleccione. Se usa en
+ * Inspecciones → proyecto y en la pestaña Inspecciones de la ficha.
  */
 export function InspectionsBoard({
   project,
   inspections,
+  painters,
   startNew = false,
 }: {
   project: { id: string; name: string; clientName: string | null; location: string | null };
   inspections: Inspection[];
+  painters: InspectionPainter[];
   /** Al entrar, empezar a inspeccionar: si ya hay visita de hoy se le agregan detalles; si no, una visita nueva. */
   startNew?: boolean;
 }) {
   const { ti, lang } = useTi();
   const router = useRouter();
-  const [view, setView] = React.useState<InspectionView>("visita");
-  const [onlyPending, setOnlyPending] = React.useState(true);
+  const detailLine = useDetailLine();
+  const [groupBy, setGroupBy] = React.useState<GroupBy>("visita");
+  const [filters, setFilters] = React.useState<ItemFilters>(DEFAULT_FILTERS);
   // Con startNew se arranca con un diálogo abierto: detalles de la visita de hoy, o una visita nueva.
   const [todayVisit] = React.useState(() => (startNew ? inspections.find((v) => v.visitedOn === todayInPanama()) : undefined));
   const [visitDialog, setVisitDialog] = React.useState<{ visit: Inspection | null } | null>(startNew && !todayVisit ? { visit: null } : null);
-  const [itemDialog, setItemDialog] = React.useState<{ inspectionId: string; item: InspectionItem | null } | null>(
-    todayVisit ? { inspectionId: todayVisit.id, item: null } : null,
-  );
-  const [pdfOpen, setPdfOpen] = React.useState(false);
+  const [batchFor, setBatchFor] = React.useState<string | null>(todayVisit?.id ?? null);
+  const [editing, setEditing] = React.useState<InspectionItem | null>(null);
+  const [pdf, setPdf] = React.useState<{ groups: InspectionPdfGroup[]; lines: string[] } | null>(null);
   const [viewer, setViewer] = React.useState<{ photos: InspectionPhoto[]; index: number } | null>(null);
+  const [selected, setSelected] = React.useState<Set<string> | null>(null);
 
   // Sin el ?nueva=1, para que recargar no lo vuelva a abrir.
   React.useEffect(() => {
@@ -59,43 +68,150 @@ export function InspectionsBoard({
 
   const counts = countItems(inspections);
   const areas = React.useMemo(() => areaSuggestions(inspections), [inspections]);
-  const visits = visitsToShow(inspections, onlyPending);
-  const flat = view === "junto" ? allItems(inspections, onlyPending) : [];
+  const groups = React.useMemo(() => groupItems(inspections, filters, groupBy), [inspections, filters, groupBy]);
+  const shownIds = groups.flatMap((g) => g.items.map((i) => i.id));
   const refresh = () => router.refresh();
   const date = (iso: string) => formatDateCompact(lang, iso);
+  const setFilter = (patch: Partial<ItemFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const painterName = (id: string) => painters.find((p) => p.id === id)?.name ?? "";
 
-  // Si la vista deja de tener lo que se agregó (ej. la visita nueva no tiene pendientes todavía), igual se ve.
-  const visibleVisits = onlyPending
-    ? inspections.filter((v) => v.items.length === 0 || visits.some((x) => x.id === v.id)).map((v) => visits.find((x) => x.id === v.id) ?? v)
-    : visits;
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s ?? []);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  /** Qué incluye lo que se ve (para el PDF). */
+  function viewLines(selection: boolean): string[] {
+    const lines: string[] = [];
+    if (selection) lines.push(ti("pdf_selected_label"));
+    lines.push(filters.onlyPending ? ti("show_pending") : ti("status_all"));
+    if (filters.kind !== "todos") lines.push(`${ti("f_kind")}: ${filters.kind === "sin" ? ti("kind_sin") : ti(KIND_KEY[filters.kind])}`);
+    if (filters.painterId !== "todos") lines.push(`${ti("f_painter")}: ${painterName(filters.painterId)}`);
+    if (filters.responsible !== "todos") lines.push(`${ti("f_responsible")}: ${ti(filters.responsible === "ebony" ? "resp_ebony" : "resp_tercero")}`);
+    lines.push(ti("pdf_grouped", { g: ti(groupBy === "visita" ? "view_by_visit" : groupBy === "area" ? "group_area" : "view_all") }));
+    return [lines.join(" · ")];
+  }
+
+  /** Los grupos de la pantalla, listos para el PDF (de la visita más vieja a la más nueva, para numerar en orden). */
+  function openPdf(only?: Set<string>) {
+    const source = groupBy === "visita" ? [...groups].reverse() : groups;
+    const pdfGroups: InspectionPdfGroup[] = source
+      .map((g) => ({
+        title: groupTitle(g, true),
+        items: g.items
+          .filter((i) => !only || only.has(i.id))
+          .map((i) => ({ ...i, meta: detailLine(i) || undefined, visitLabel: groupBy === "visita" ? undefined : ti("pdf_visit", { date: date(i.visitedOn) }) })),
+      }))
+      .filter((g) => g.items.length > 0);
+    setPdf({ groups: pdfGroups, lines: viewLines(!!only) });
+  }
+
+  function groupTitle(g: ItemGroup, forPdf = false): string {
+    if (groupBy === "visita" && g.visit) {
+      const base = forPdf ? ti("pdf_visit", { date: date(g.visit.visitedOn) }) : ti("visit_title", { date: date(g.visit.visitedOn) });
+      return [base, forPdf ? g.visit.notes : null].filter(Boolean).join(" · ");
+    }
+    if (groupBy === "area") return g.title ?? ti("no_area");
+    return "";
+  }
 
   const itemProps = {
     onOpenPhoto: (photos: InspectionPhoto[], index: number) => setViewer({ photos, index }),
-    onEdit: (item: InspectionItem) => setItemDialog({ inspectionId: item.inspectionId, item }),
+    onEdit: (item: InspectionItem) => setEditing(item),
     onChanged: refresh,
+    selecting: !!selected,
+    onToggle: toggle,
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      {/* Agrupar + estado */}
       <div className="flex flex-wrap items-center gap-2">
         <SegmentedFilter
-          value={view}
-          onChange={setView}
+          value={groupBy}
+          onChange={setGroupBy}
           options={[
             { value: "visita", label: ti("view_by_visit") },
+            { value: "area", label: ti("group_area") },
             { value: "junto", label: ti("view_all") },
           ]}
         />
         <SegmentedFilter
-          value={onlyPending ? "p" : "t"}
-          onChange={(v) => setOnlyPending(v === "p")}
+          value={filters.onlyPending ? "p" : "t"}
+          onChange={(v) => setFilter({ onlyPending: v === "p" })}
           options={[
             { value: "p", label: `${ti("show_pending")} (${counts.pending})` },
             { value: "t", label: `${ti("show_all")} (${counts.pending + counts.resolved})` },
           ]}
         />
-        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => setPdfOpen(true)} disabled={counts.pending + counts.resolved === 0}>
+      </div>
+
+      {/* Filtros: tipo, pintor, responsable */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterSelect
+          value={filters.kind}
+          onChange={(kind) => setFilter({ kind: kind as ItemFilters["kind"], painterId: kind === "pintura" || kind === "todos" ? filters.painterId : "todos" })}
+          options={[
+            { value: "todos", label: ti("all_kinds") },
+            { value: "pintura", label: ti("kind_pintura") },
+            { value: "carpinteria", label: ti("kind_carpinteria") },
+            { value: "otro", label: ti("kind_otro") },
+            { value: "sin", label: ti("kind_sin") },
+          ]}
+        />
+        {painters.length > 0 && (filters.kind === "todos" || filters.kind === "pintura") && (
+          <FilterSelect
+            value={filters.painterId}
+            onChange={(painterId) => setFilter({ painterId })}
+            options={[{ value: "todos", label: ti("all_painters") }, ...painters.map((p) => ({ value: p.id, label: p.name }))]}
+          />
+        )}
+        <FilterSelect
+          value={filters.responsible}
+          onChange={(responsible) => setFilter({ responsible: responsible as ItemFilters["responsible"] })}
+          options={[
+            { value: "todos", label: ti("all_responsible") },
+            { value: "ebony", label: ti("resp_ebony") },
+            { value: "tercero", label: ti("resp_tercero") },
+          ]}
+        />
+        {hasExtraFilters(filters) && (
+          <button type="button" onClick={() => setFilters((f) => ({ ...DEFAULT_FILTERS, onlyPending: f.onlyPending }))} className="text-xs font-medium text-primary hover:underline">
+            {ti("clear_filters")}
+          </button>
+        )}
+      </div>
+
+      {/* Acciones (o la barra de selección) */}
+      {selected ? (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-card px-3 py-2 shadow-sm">
+          <span className="text-sm font-semibold">{ti("selected_n", { n: selected.size })}</span>
+          <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => setSelected(new Set(shownIds))}>
+            {ti("select_all")}
+          </button>
+          <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => setSelected(new Set())}>
+            {ti("select_none")}
+          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" disabled={selected.size === 0} onClick={() => openPdf(selected)}>
+              <FileDown className="size-4" />
+              {ti("pdf")} ({selected.size})
+            </Button>
+            <Button size="icon" variant="ghost" className="size-8" onClick={() => setSelected(null)} aria-label={ti("cancel")} title={ti("cancel")}>
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex w-full items-center gap-2 sm:justify-end">
+          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => setSelected(new Set())} disabled={shownIds.length === 0}>
+            <CheckSquare className="size-4" />
+            {ti("select")}
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => openPdf()} disabled={shownIds.length === 0}>
             <FileDown className="size-4" />
             {ti("pdf")}
           </Button>
@@ -104,7 +220,7 @@ export function InspectionsBoard({
             {ti("new_visit")}
           </Button>
         </div>
-      </div>
+      )}
 
       {inspections.length === 0 ? (
         <EmptyState>
@@ -114,91 +230,110 @@ export function InspectionsBoard({
             {ti("new_visit")}
           </Button>
         </EmptyState>
-      ) : view === "visita" ? (
-        visibleVisits.length === 0 ? (
-          <EmptyState>{ti("empty_pending")}</EmptyState>
-        ) : (
-          visibleVisits.map((v) => {
-            const full = inspections.find((x) => x.id === v.id) ?? v;
-            const pending = full.items.filter((i) => i.status === "pendiente").length;
-            return (
-              <Card key={v.id} className="gap-0 p-0">
-                <div className="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
-                  <div className="min-w-0">
-                    <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
-                      {ti("visit_title", { date: date(v.visitedOn) })}
-                      {pending > 0 ? (
-                        <Badge variant="warning">{pending === 1 ? ti("pending_1") : ti("pending_n", { n: pending })}</Badge>
-                      ) : full.items.length > 0 ? (
-                        <Badge variant="success">{ti("status_resuelto")}</Badge>
-                      ) : null}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {[v.createdByName ? ti("by", { name: v.createdByName }) : null, v.notes].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setItemDialog({ inspectionId: v.id, item: null })}>
-                      <Plus className="size-4" />
-                      <span className="hidden sm:inline">{ti("add_item")}</span>
-                    </Button>
-                    <RowMenu
-                      label={ti("visit_menu")}
-                      items={[
-                        { label: ti("edit_visit"), icon: Pencil, onSelect: () => setVisitDialog({ visit: full }) },
-                        {
-                          label: ti("delete_visit"),
-                          icon: Trash2,
-                          confirmLabel: t(lang, strings.nav.confirm_delete),
-                          onSelect: () =>
-                            void deleteInspectionAction(v.id).then((r) => {
-                              if (!r.ok) return toast.error(r.error);
-                              toast.success(ti("deleted"));
-                              refresh();
-                            }),
-                        },
-                      ]}
-                    />
-                  </div>
+      ) : groups.length === 0 ? (
+        <EmptyState>{hasExtraFilters(filters) ? ti("empty_filtered") : ti("empty_pending")}</EmptyState>
+      ) : groupBy === "visita" ? (
+        groups.map((g) => {
+          const v = g.visit!;
+          const pending = v.items.filter((i) => i.status === "pendiente").length;
+          return (
+            <Card key={g.key} className="gap-0 p-0">
+              <div className="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+                <div className="min-w-0">
+                  <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                    {groupTitle(g)}
+                    {pending > 0 ? (
+                      <Badge variant="warning">{pending === 1 ? ti("pending_1") : ti("pending_n", { n: pending })}</Badge>
+                    ) : v.items.length > 0 ? (
+                      <Badge variant="success">{ti("status_resuelto")}</Badge>
+                    ) : null}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{[v.createdByName ? ti("by", { name: v.createdByName }) : null, v.notes].filter(Boolean).join(" · ")}</p>
                 </div>
-                {v.items.length === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setItemDialog({ inspectionId: v.id, item: null })}
-                    className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <Camera className="size-4" />
-                    {ti("empty_visit")} {ti("add_item")}
-                  </button>
-                ) : (
-                  <ul className={`${GRID} p-3`}>
-                    {v.items.map((item) => (
-                      <ItemCard key={item.id} item={item} {...itemProps} />
-                    ))}
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setBatchFor(v.id)}>
+                    <Plus className="size-4" />
+                    <span className="hidden sm:inline">{ti("add_item")}</span>
+                  </Button>
+                  <RowMenu
+                    label={ti("visit_menu")}
+                    items={[
+                      { label: ti("edit_visit"), icon: Pencil, onSelect: () => setVisitDialog({ visit: v }) },
+                      {
+                        label: ti("delete_visit"),
+                        icon: Trash2,
+                        confirmLabel: t(lang, strings.nav.confirm_delete),
+                        onSelect: () =>
+                          void deleteInspectionAction(v.id).then((r) => {
+                            if (!r.ok) return toast.error(r.error);
+                            toast.success(ti("deleted"));
+                            refresh();
+                          }),
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
+              {g.items.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setBatchFor(v.id)}
+                  className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Camera className="size-4" />
+                  {ti("empty_visit")} {ti("add_item")}
+                </button>
+              ) : (
+                <ul className={`${GRID} p-3`}>
+                  {g.items.map((item) => (
+                    <ItemCard key={item.id} item={item} selected={!!selected?.has(item.id)} {...itemProps} />
+                  ))}
+                  {!selected && (
                     <li>
                       <button
                         type="button"
-                        onClick={() => setItemDialog({ inspectionId: v.id, item: null })}
+                        onClick={() => setBatchFor(v.id)}
                         className="flex h-full min-h-40 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary"
                       >
                         <Camera className="size-5" />
                         {ti("add_item")}
                       </button>
                     </li>
-                  </ul>
-                )}
-              </Card>
-            );
-          })
-        )
-      ) : flat.length === 0 ? (
-        <EmptyState>{ti("empty_pending")}</EmptyState>
+                  )}
+                </ul>
+              )}
+            </Card>
+          );
+        })
       ) : (
-        <ul className={GRID}>
-          {flat.map((item) => (
-            <ItemCard key={item.id} item={item} visitLabel={date(item.visitedOn)} {...itemProps} />
-          ))}
-        </ul>
+        groups.map((g) => {
+          const pending = g.items.filter((i) => i.status === "pendiente").length;
+          return (
+            <section key={g.key} className="flex flex-col gap-2">
+              {groupBy === "area" && (
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  {groupTitle(g)}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {g.items.length}
+                    {pending > 0 && pending !== g.items.length ? ` · ${pending === 1 ? ti("pending_1") : ti("pending_n", { n: pending })}` : ""}
+                  </span>
+                </h3>
+              )}
+              <ul className={GRID}>
+                {g.items.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    visitLabel={date(item.visitedOn)}
+                    showArea={groupBy !== "area"}
+                    selected={!!selected?.has(item.id)}
+                    {...itemProps}
+                  />
+                ))}
+              </ul>
+            </section>
+          );
+        })
       )}
 
       <VisitDialog
@@ -207,19 +342,31 @@ export function InspectionsBoard({
         visit={visitDialog?.visit ?? null}
         onClose={() => setVisitDialog(null)}
         onSaved={refresh}
-        onCreated={(id) => setItemDialog({ inspectionId: id, item: null })}
+        onCreated={(id) => setBatchFor(id)}
       />
-      <ItemDialog
-        open={!!itemDialog}
-        inspectionId={itemDialog?.inspectionId ?? null}
-        item={itemDialog?.item ?? null}
-        areas={areas}
-        onClose={() => setItemDialog(null)}
-        onSaved={refresh}
-      />
-      <PdfDialog open={pdfOpen} onClose={() => setPdfOpen(false)} project={project} inspections={inspections} defaultView={view} />
+      <BatchDialog inspectionId={batchFor} areas={areas} painters={painters} onClose={() => setBatchFor(null)} onSaved={refresh} />
+      <ItemDialog item={editing} areas={areas} painters={painters} onClose={() => setEditing(null)} onSaved={refresh} />
+      <PdfDialog draft={pdf} onClose={() => setPdf(null)} project={project} />
       <PhotoViewer photos={viewer?.photos ?? []} index={viewer?.index ?? null} onIndex={(i) => setViewer((v) => (v && i !== null ? { ...v, index: i } : null))} />
     </div>
+  );
+}
+
+/** Un filtro compacto (desplegable). */
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={cn("h-8 w-auto min-w-0 gap-1.5 text-xs", value !== "todos" && "border-primary/60 bg-primary/5 font-semibold")}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -230,13 +377,22 @@ const GRID = "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-col
 function ItemCard({
   item,
   visitLabel,
+  showArea = true,
+  selecting,
+  selected,
+  onToggle,
   onOpenPhoto,
   onEdit,
   onChanged,
 }: {
   item: InspectionItem;
-  /** En "Todo junto": la fecha de su visita. */
+  /** Si no se agrupa por visita: la fecha de su visita. */
   visitLabel?: string;
+  /** Agrupado por área, el área ya está en el título del grupo. */
+  showArea?: boolean;
+  selecting: boolean;
+  selected: boolean;
+  onToggle: (id: string) => void;
   onOpenPhoto: (photos: InspectionPhoto[], index: number) => void;
   onEdit: (item: InspectionItem) => void;
   onChanged: () => void;
@@ -278,7 +434,25 @@ function ItemCard({
   const resolvedOn = item.resolvedAt ? formatDateCompact(lang, todayInPanama(new Date(item.resolvedAt))) : null;
 
   return (
-    <li className={`flex flex-col overflow-hidden rounded-lg border bg-card ${resolved ? "border-success/30" : "border-border"}`}>
+    <li
+      className={cn(
+        "relative flex flex-col overflow-hidden rounded-lg border bg-card",
+        selected ? "border-primary ring-2 ring-primary/40" : resolved ? "border-success/30" : "border-border",
+      )}
+    >
+      {/* Seleccionando: toda la tarjeta marca o desmarca. */}
+      {selecting && (
+        <button type="button" onClick={() => onToggle(item.id)} aria-pressed={selected} className="absolute inset-0 z-10 flex items-start justify-end p-2">
+          <span
+            className={cn(
+              "flex size-6 items-center justify-center rounded-md border-2 shadow-sm",
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-white bg-black/25",
+            )}
+          >
+            {selected && <Check className="size-4" />}
+          </span>
+        </button>
+      )}
       <div className="relative">
         <PhotoCarousel photos={item.photos} onOpen={(i) => onOpenPhoto(item.photos, i)} onEmpty={() => onEdit(item)} dimmed={resolved} />
         <Badge variant={resolved ? "success" : "warning"} className="pointer-events-none absolute top-1.5 left-1.5 gap-1 bg-card/90 shadow-sm backdrop-blur">
@@ -309,10 +483,13 @@ function ItemCard({
       </div>
 
       <button type="button" onClick={() => onEdit(item)} className="flex flex-1 flex-col gap-0.5 px-2.5 pt-2 pb-1.5 text-left">
-        <span className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-tight font-semibold text-foreground">
-          {item.area || <span className="font-normal text-muted-foreground">{ti("no_area")}</span>}
-          {visitLabel && <span className="text-[11px] font-normal text-muted-foreground">{visitLabel}</span>}
-        </span>
+        {(showArea || visitLabel) && (
+          <span className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-tight font-semibold text-foreground">
+            {showArea && (item.area || <span className="font-normal text-muted-foreground">{ti("no_area")}</span>)}
+            {visitLabel && <span className="text-[11px] font-normal text-muted-foreground">{visitLabel}</span>}
+          </span>
+        )}
+        <DetailTags item={item} className="my-0.5" />
         <span className={`line-clamp-3 text-xs leading-snug ${resolved ? "text-muted-foreground" : "text-foreground"}`}>
           {item.comment || <span className="text-muted-foreground">{ti("no_comment")}</span>}
         </span>

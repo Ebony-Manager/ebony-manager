@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import type { Inspection, InspectionItem } from "@/types/inspections";
-import { allItems, areaSuggestions, countItems, inspectionPhotoPath, visitsToShow } from "./view";
+import { DEFAULT_FILTERS, areaSuggestions, countItems, groupItems, hasExtraFilters, inspectionPhotoPath, matchesFilters, type ItemFilters } from "./view";
 
-const item = (id: string, area: string | null, status: InspectionItem["status"], createdAt = "2026-10-01T10:00:00Z"): InspectionItem => ({
+const item = (id: string, area: string | null, status: InspectionItem["status"], extra: Partial<InspectionItem> = {}): InspectionItem => ({
   id,
   inspectionId: "",
   area,
   comment: id,
+  kind: null,
+  painterId: null,
+  painterName: null,
+  responsible: "ebony",
+  thirdParty: null,
   status,
   resolvedAt: null,
   resolvedByName: null,
-  createdAt,
+  createdAt: "2026-10-01T10:00:00Z",
   photos: [],
+  ...extra,
 });
 
 const visits: Inspection[] = [
@@ -23,7 +29,11 @@ const visits: Inspection[] = [
     notes: null,
     createdByName: null,
     createdAt: "",
-    items: [item("b", "Cocina", "pendiente"), item("c", null, "pendiente"), item("d", "Baño", "resuelto")],
+    items: [
+      item("b", "Cocina", "pendiente", { kind: "pintura", painterId: "p1" }),
+      item("c", null, "pendiente", { kind: "carpinteria", responsible: "tercero", thirdParty: "plomero" }),
+      item("d", "Baño", "resuelto", { kind: "pintura", painterId: "p2" }),
+    ],
   },
   {
     id: "v1",
@@ -32,24 +42,46 @@ const visits: Inspection[] = [
     notes: null,
     createdByName: null,
     createdAt: "",
-    items: [item("a", "cocina", "pendiente"), item("e", "Sala", "resuelto")],
+    items: [item("a", "cocina", "pendiente"), item("e", "Sala", "resuelto", { kind: "otro" })],
   },
+  { id: "v0", projectId: "p", visitedOn: "2026-10-26", notes: null, createdByName: null, createdAt: "", items: [] },
 ];
 
-describe("inspecciones", () => {
-  it("por visita: solo pendientes quita lo resuelto y las visitas sin nada pendiente", () => {
-    const shown = visitsToShow(visits, true);
-    expect(shown.map((v) => v.items.map((i) => i.id))).toEqual([["b", "c"], ["a"]]);
-    expect(visitsToShow([{ ...visits[1], items: [item("e", "Sala", "resuelto")] }], true)).toEqual([]);
-    expect(visitsToShow(visits, false)).toHaveLength(2);
+const all: ItemFilters = { ...DEFAULT_FILTERS, onlyPending: false };
+const ids = (g: { items: { id: string }[] }[]) => g.map((x) => x.items.map((i) => i.id));
+
+describe("inspecciones: filtros", () => {
+  it("pendientes, tipo, sin clasificar, pintor y responsable", () => {
+    const by = (f: Partial<ItemFilters>) => visits.flatMap((v) => v.items).filter((i) => matchesFilters(i, { ...all, ...f })).map((i) => i.id);
+    expect(by({ onlyPending: true })).toEqual(["b", "c", "a"]);
+    expect(by({ kind: "pintura" })).toEqual(["b", "d"]);
+    expect(by({ kind: "sin" })).toEqual(["a"]);
+    expect(by({ painterId: "p1" })).toEqual(["b"]);
+    expect(by({ responsible: "tercero" })).toEqual(["c"]);
+    expect(hasExtraFilters(DEFAULT_FILTERS)).toBe(false);
+    expect(hasExtraFilters({ ...DEFAULT_FILTERS, kind: "otro" })).toBe(true);
+  });
+});
+
+describe("inspecciones: agrupar", () => {
+  it("por visita: la visita vacía se ve; la que no tiene nada que pase el filtro, no", () => {
+    expect(groupItems(visits, DEFAULT_FILTERS, "visita").map((g) => g.key)).toEqual(["v2", "v1", "v0"]);
+    expect(groupItems(visits, { ...all, kind: "otro" }, "visita").map((g) => g.key)).toEqual(["v1", "v0"]);
   });
 
-  it("todo junto: por área (sin área al final), y dentro del área del más viejo al más nuevo", () => {
-    expect(allItems(visits, false).map((i) => i.id)).toEqual(["d", "a", "b", "e", "c"]);
-    expect(allItems(visits, true).map((i) => i.id)).toEqual(["a", "b", "c"]);
-    expect(allItems(visits, true)[0].visitedOn).toBe("2026-10-10");
+  it("por área: sin importar mayúsculas, alfabético, sin área al final y del más viejo al más nuevo", () => {
+    const g = groupItems(visits, all, "area");
+    expect(g.map((x) => x.title)).toEqual(["Baño", "Cocina", "Sala", null]);
+    expect(ids(g)).toEqual([["d"], ["a", "b"], ["e"], ["c"]]);
   });
 
+  it("todo junto: un solo grupo por área y fecha", () => {
+    expect(ids(groupItems(visits, all, "junto"))).toEqual([["d", "a", "b", "e", "c"]]);
+    expect(groupItems(visits, { ...all, kind: "sin", responsible: "tercero" }, "junto")).toEqual([]);
+  });
+});
+
+describe("inspecciones: otros", () => {
   it("cuenta pendientes y resueltos", () => {
     expect(countItems(visits)).toEqual({ pending: 3, resolved: 2 });
   });

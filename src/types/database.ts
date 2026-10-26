@@ -2647,6 +2647,10 @@ export type Database = {
           created_by: string | null
           id: string
           inspection_id: string
+          kind: string | null
+          painter_id: string | null
+          responsible: string
+          third_party: string | null
           resolved_at: string | null
           resolved_by_name: string | null
           sort_order: number
@@ -2659,6 +2663,10 @@ export type Database = {
           created_by?: string | null
           id?: string
           inspection_id: string
+          kind?: string | null
+          painter_id?: string | null
+          responsible?: string
+          third_party?: string | null
           resolved_at?: string | null
           resolved_by_name?: string | null
           sort_order?: number
@@ -2671,12 +2679,23 @@ export type Database = {
           created_by?: string | null
           id?: string
           inspection_id?: string
+          kind?: string | null
+          painter_id?: string | null
+          responsible?: string
+          third_party?: string | null
           resolved_at?: string | null
           resolved_by_name?: string | null
           sort_order?: number
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inspection_items_painter_id_fkey"
+            columns: ["painter_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspection_items_inspection_id_fkey"
             columns: ["inspection_id"]
@@ -2780,6 +2799,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      inspection_painters: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string; active: boolean }[]
+      }
       inspection_projects: {
         Args: { p_id?: string | null }
         Returns: {
