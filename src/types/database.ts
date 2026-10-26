@@ -1682,6 +1682,8 @@ export type Database = {
           updated_at: string
           wall: string | null
           width: number
+          gola_ml: number
+          gola_price: number
         }
         Insert: {
           category: string
@@ -1706,6 +1708,8 @@ export type Database = {
           updated_at?: string
           wall?: string | null
           width?: number
+          gola_ml?: number
+          gola_price?: number
         }
         Update: {
           category?: string
@@ -1730,6 +1734,8 @@ export type Database = {
           updated_at?: string
           wall?: string | null
           width?: number
+          gola_ml?: number
+          gola_price?: number
         }
         Relationships: [
           {

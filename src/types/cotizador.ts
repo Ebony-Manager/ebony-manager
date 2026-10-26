@@ -113,6 +113,9 @@ export interface QuoteLine {
   posX: number | null;
   posY: number | null;
   hostLineId: string | null;
+  /** Gola de puertas y gavetas: metros lineales y precio por ML (0 = sin gola). */
+  golaMl: number;
+  golaPrice: number;
 }
 
 export type WallShape = "recta" | "L";
