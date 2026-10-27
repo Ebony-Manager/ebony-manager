@@ -6,8 +6,9 @@ import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatQty, parseQty, unitLabel } from "@/lib/almacen/inventory";
-import type { InventoryItem } from "@/types/almacen";
+import type { InventoryItem, Supplier } from "@/types/almacen";
 import { saveItemLevelsAction } from "../actions";
+import { RevisionSuppliers } from "./revision-suppliers";
 import { InitialStockInput } from "./initial-stock";
 import { ItemThumb } from "../shared";
 
@@ -26,7 +27,7 @@ const asText = (n: number | null) => (n == null ? "" : String(n));
  * variante, mínimo y "pedir hasta" editables (quien tiene Compras), más una
  * nota. Al escribir un mínimo sin "pedir hasta", se propone el doble.
  */
-export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem; suppliers: SupplierLine; canEdit: boolean }) {
+export function RevisionRow({ item, suppliers, directory, canEdit }: { item: InventoryItem; suppliers: SupplierLine; directory: Supplier[]; canEdit: boolean }) {
   const variants = React.useMemo(() => item.variants.filter((v) => v.active), [item.variants]);
   const initial = React.useMemo(() => Object.fromEntries(variants.map((v) => [v.id, { min: asText(v.minQty), reorder: asText(v.reorderQty) }])), [variants]);
   const [levels, setLevels] = React.useState(initial);
@@ -75,33 +76,37 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
             {!item.photoPath && " · sin foto"}
           </div>
         </div>
-        {suppliers.primary ? (
-          <div className="flex flex-col gap-1 text-sm">
-            <div>
-              <span className="text-xs text-muted-foreground">Principal: </span>
-              <span className="font-medium">{suppliers.primary}</span>
-            </div>
-            {suppliers.alternatives.length > 0 && (
+        <RevisionSuppliers item={item} suppliers={directory} canEdit={canEdit} />
+        <details className="text-sm">
+          <summary className="cursor-pointer text-muted-foreground">Propuesta del Excel (referencia)</summary>
+          {suppliers.primary ? (
+            <div className="flex flex-col gap-1 text-sm">
               <div>
-                <span className="text-xs text-muted-foreground">Alternativo: </span>
-                {suppliers.alternatives.join(", ")}
+                <span className="text-xs text-muted-foreground">Principal: </span>
+                <span className="font-medium">{suppliers.primary}</span>
               </div>
-            )}
-            {suppliers.excel && <div className="text-xs text-muted-foreground">En el Excel: {suppliers.excel}</div>}
-            {suppliers.note && <div className="text-xs text-muted-foreground">{suppliers.note}</div>}
-            {suppliers.doubt && (
-              <div className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                {suppliers.doubt}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex gap-1.5 text-sm text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            {suppliers.doubt ?? "Sin proveedor"}
-          </div>
-        )}
+              {suppliers.alternatives.length > 0 && (
+                <div>
+                  <span className="text-xs text-muted-foreground">Alternativo: </span>
+                  {suppliers.alternatives.join(", ")}
+                </div>
+              )}
+              {suppliers.excel && <div className="text-xs text-muted-foreground">En el Excel: {suppliers.excel}</div>}
+              {suppliers.note && <div className="text-xs text-muted-foreground">{suppliers.note}</div>}
+              {suppliers.doubt && (
+                <div className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                  {suppliers.doubt}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              {suppliers.doubt ?? "Sin proveedor"}
+            </div>
+          )}
+        </details>
       </div>
       <div className="flex min-w-0 flex-col gap-2">
         <div className="overflow-x-auto">

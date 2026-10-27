@@ -57,6 +57,12 @@ export async function setItemPhotoAction(id: string, path: string | null) {
   return run(() => almacen.setItemPhoto(id, path));
 }
 
+export async function assignItemSupplierAction(itemId: string, supplierId: string, primary: boolean) {
+  await requireModule("almacen", "almacen_compras");
+  if (!itemId || !supplierId || typeof primary !== "boolean") return { ok: false as const, error: "Selecciona un proveedor." };
+  return run(() => almacen.assignItemSupplier(itemId, supplierId, primary));
+}
+
 export async function linkSupplierToItemsAction(supplierId: string, itemIds: string[]) {
   await requireModule("almacen", "almacen_compras");
   return run(() => almacen.linkSupplierToItems(supplierId, itemIds));

@@ -246,6 +246,32 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<numbe
  * Deja al proveedor como principal de los productos que todavía no tienen
  * ninguno (al pedirles por primera vez). A los que ya tienen, no les toca nada.
  */
+/** Assign from review without replacing pack sizes, references, or other suppliers.
+ * Demote the old primary before promoting the selected supplier in one statement.
+ */
+export async function assignItemSupplier(itemId: string, supplierId: string, primary: boolean): Promise<void> {
+  const supabase = await createClient();
+  const supplier = await supabase.from("suppliers").select("id").eq("id", supplierId).eq("active", true).single();
+  fail(supplier.error);
+  if (!supplier.data) throw new Error("Elige un proveedor activo del directorio.");
+  if (!primary) {
+    fail((await supabase.from("inventory_item_suppliers").upsert(
+      { item_id: itemId, supplier_id: supplierId, is_primary: false },
+      { onConflict: "item_id,supplier_id", ignoreDuplicates: true },
+    )).error);
+    return;
+  }
+  const existing = await supabase.from("inventory_item_suppliers").select("*").eq("item_id", itemId);
+  fail(existing.error);
+  const links = existing.data ?? [];
+  const selected = links.find((link) => link.supplier_id === supplierId);
+  const rows = [
+    ...links.filter((link) => link.supplier_id !== supplierId).map((link) => ({ ...link, is_primary: false })),
+    { item_id: itemId, supplier_id: supplierId, pack_label: null, pack_qty: null, supplier_ref: null, notes: null, ...selected, is_primary: true },
+  ];
+  fail((await supabase.from("inventory_item_suppliers").upsert(rows, { onConflict: "item_id,supplier_id" })).error);
+}
+
 export async function linkSupplierToItems(supplierId: string, itemIds: string[]): Promise<number> {
   const ids = [...new Set(itemIds)];
   if (ids.length === 0) return 0;

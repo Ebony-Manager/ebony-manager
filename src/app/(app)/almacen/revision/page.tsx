@@ -5,14 +5,14 @@ import { InitialStock } from "./initial-stock";
 import { requireModule } from "@/lib/auth/dal";
 import { formatQty, unitLabel } from "@/lib/almacen/inventory";
 import { EXCEL_DELETED, ITEM_PROPOSALS, NEW_PRODUCTS, PROPOSED_SUPPLIERS, type ItemProposal } from "@/lib/almacen/supplier-proposal";
-import { getCatalog, getCategories } from "@/services/almacen";
+import { getCatalog, getCategories, getSuppliers } from "@/services/almacen";
 import type { InventoryItem } from "@/types/almacen";
 import { RevisionRow, type SupplierLine } from "./revision-row";
 
 // Almacén → Revisión (temporal; Almacén + Compras): el catálogo como está en
 // la app (foto, variantes, mínimo y "pedir hasta") con los proveedores
 // propuestos a partir del Excel. Los mínimos y la nota de cada producto se
-// editan y guardan aquí; los proveedores todavía no se guardan.
+// editan y guardan aquí, junto con los proveedores y la carga inicial.
 export const dynamic = "force-dynamic";
 
 const SUPPLIER = new Map(PROPOSED_SUPPLIERS.map((s) => [s.key, s]));
@@ -30,10 +30,10 @@ function supplierLine(p: ItemProposal | undefined): SupplierLine {
 
 export default async function RevisionPage() {
   const profile = await requireModule("almacen", "almacen_compras");
-  const [items, categories] = await Promise.all([getCatalog(), getCategories()]);
+  const [items, categories, suppliers] = await Promise.all([getCatalog(), getCategories(), getSuppliers()]);
   const active = items.filter((i) => i.active);
   const doubts = active.filter((i) => ITEM_PROPOSALS[i.name]?.doubt);
-  const noSupplier = active.filter((i) => !ITEM_PROPOSALS[i.name]?.primary);
+  const noSupplier = active.filter((i) => !i.suppliers.some((s) => s.isPrimary));
   const variantCount = active.reduce((n, i) => n + i.variants.filter((v) => v.active).length, 0);
   const withMin = active.reduce((n, i) => n + i.variants.filter((v) => v.active && v.minQty != null).length, 0);
   const productsBySupplier = new Map<string, number>();
@@ -68,14 +68,13 @@ export default async function RevisionPage() {
         <h1 className="text-xl font-semibold text-foreground">Catálogo y proveedores</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Así está hoy cada producto en la app, con los proveedores que salen del Excel &quot;Inventario General&quot;. En cada producto puedes corregir el
-          mínimo y el &quot;pedir hasta&quot; de cada variante y dejar una nota, y tocar Guardar: eso queda en la app al momento. Los proveedores todavía no se
-          guardan. El mínimo es lo que debe haber siempre; cuando baja de ahí, la app pide comprar hasta llegar a &quot;pedir hasta&quot;. Si dejas &quot;pedir
+          mínimo y el &quot;pedir hasta&quot; de cada variante y dejar una nota. También puedes asignar proveedores del directorio y cargar las existencias iniciales desde aquí. Cada sección tiene su botón para guardar. Las propuestas del Excel son solo referencia. El mínimo es lo que debe haber siempre; cuando baja de ahí, la app pide comprar hasta llegar a &quot;pedir hasta&quot;. Si dejas &quot;pedir
           hasta&quot; vacío, se llena solo con el doble del mínimo.
         </p>
         <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Productos" value={active.length} hint={`+${NEW_PRODUCTS.length} nuevos`} />
           <Stat label="Variantes" value={variantCount} hint={`${withMin} con mínimo`} />
-          <Stat label="Proveedores" value={PROPOSED_SUPPLIERS.length} />
+          <Stat label="Proveedores del directorio" value={suppliers.filter((s) => s.active).length} />
           <Stat label="Por confirmar" value={questions.length} hint={`${noSupplier.length} sin proveedor`} warn />
         </dl>
       </header>
@@ -129,7 +128,7 @@ export default async function RevisionPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-foreground">Proveedores</h2>
+        <h2 className="text-lg font-semibold text-foreground">Proveedores propuestos en el Excel</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
@@ -204,7 +203,7 @@ export default async function RevisionPage() {
               </h2>
               <ul className="flex flex-col divide-y divide-border rounded-lg overflow-hidden border border-border">
                 {list.map((item) => (
-                  <RevisionRow key={item.id} item={item} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
+                  <RevisionRow key={item.id} item={item} directory={suppliers} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
                 ))}
               </ul>
             </section>
