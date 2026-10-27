@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ALMACEN_PANEL, PERSONAL_PANEL, canSeeNavItem, panelHome, type NavPanel } from "./nav-items";
+import { RAIL_ITEMS, SETTINGS_PANEL, orderNavigation, ALMACEN_PANEL, PERSONAL_PANEL, canSeeNavItem, panelHome, type NavPanel } from "./nav-items";
 import { visibleQuickLinks } from "./quick-links";
 
 const visible = (panel: NavPanel, modules: string[]) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, { role: "vendedor", modules })) });
@@ -30,5 +30,27 @@ describe("accesos rápidos", () => {
     expect(visibleQuickLinks({ role: "admin", modules: [] })).toEqual([]);
     expect(visibleQuickLinks({ role: "admin", modules: ["accesos", "form_registro"] }).map((l) => l.key)).toEqual(["registro"]);
     expect(visibleQuickLinks({ role: "vendedor", modules: ["accesos", "form_autorizaciones"] }).map((l) => l.key)).toEqual(["auth-pintura", "auth-embalaje"]);
+  });
+});
+
+describe("prioridad de navegación", () => {
+  const admin = { role: "admin" as const, modules: [] };
+  const destinations = (subject: typeof admin | { role: "vendedor"; modules: string[] }) => [
+    ...RAIL_ITEMS.filter((item) => canSeeNavItem(item, subject)).map((item) => ({ key: item.href })),
+    ...[ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL].filter((panel) => panel.items.some((item) => canSeeNavItem(item, subject))).map((panel) => ({ key: panel.key })),
+  ];
+  it("admin móvil: Dashboard, Almacén, Proyectos y Personal; herramientas en Más", () => {
+    expect(orderNavigation(destinations(admin), "mobile", admin).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/proyectos", "personal"]);
+  });
+  it("admin web: Dashboard, Proyectos, Personal y Almacén", () => {
+    expect(orderNavigation(destinations(admin), "desktop", admin).map((e) => e.key)).toEqual(["/dashboard", "/proyectos", "personal", "almacen", "/inspecciones", "/cotizacion", "/directorio", "settings"]);
+  });
+  it("solo inspecciones: mantiene su herramienta accesible y no inventa permisos", () => {
+    const subject = { role: "vendedor" as const, modules: ["inspecciones"] };
+    expect(orderNavigation(destinations(subject), "mobile", subject).map((e) => e.key)).toEqual(["/dashboard", "/inspecciones", "almacen"]);
+  });
+  it("almacén sin Personal: llena los espacios con módulos permitidos", () => {
+    const subject = { role: "vendedor" as const, modules: ["almacen", "cotizacion"] };
+    expect(orderNavigation(destinations(subject), "mobile", subject).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/cotizacion", "/directorio"]);
   });
 });

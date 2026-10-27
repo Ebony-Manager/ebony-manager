@@ -11,7 +11,7 @@ import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import type { LucideIcon } from "lucide-react";
-import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
+import { orderNavigation, RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
 import { shareLink, visibleQuickLinks } from "./quick-links";
 
@@ -22,7 +22,7 @@ const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.
 ];
 
 /** Secciones grandes (botón grande, con sus pestañas debajo) y accesos chicos. */
-const BIG = ["almacen", "personal", "/proyectos", "/dashboard"];
+const BIG = ["/dashboard", "almacen", "/proyectos", "personal"];
 /** Herramientas: chicas, salvo para quien no tiene ninguna sección grande (solo el Dashboard), que las ve grandes. */
 const TOOLS = ["/cotizacion", "/inspecciones"];
 const SMALL = ["/directorio", "settings"];
@@ -40,7 +40,7 @@ interface Entry {
 
 /**
  * "Más" en el celular: una hoja que sube desde abajo. Arriba, botones grandes
- * para las secciones principales (Almacén, Personal, Proyectos, Dashboard),
+ * para las secciones principales (Dashboard, Almacén, Proyectos, Personal),
  * cada uno con las pestañas que trae; abajo, accesos chicos (Cotización,
  * Inspecciones, Directorio, Settings) y las preferencias del perfil en una
  * franja. Quien solo tiene herramientas (ej. solo Inspecciones) las ve en
@@ -90,7 +90,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const sections = pick(BIG);
   // Almacén con solo Compras (pedir lo que haga falta, lo ven todos) no cuenta como sección propia.
   const toolsBig = sections.every((e) => e.key === "/dashboard" || (e.key === "almacen" && e.tabs.length === 0));
-  const big = toolsBig ? [...pick(TOOLS), ...sections] : sections;
+  const big = orderNavigation(toolsBig ? [...pick(TOOLS), ...sections] : sections, "mobile", access);
   const small = toolsBig ? pick(SMALL) : pick([...TOOLS, ...SMALL]);
   const forms = visibleQuickLinks(access);
 

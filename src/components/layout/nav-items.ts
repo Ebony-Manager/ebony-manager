@@ -158,3 +158,16 @@ export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
   if (railItem) return [t(lang, railItem.label)];
   return [];
 }
+
+/** Stable priorities after permission filtering; request-only Almacén stays secondary. */
+export function orderNavigation<T extends { key: string }>(entries: T[], device: "mobile" | "desktop", subject: AccessSubject | null | undefined): T[] {
+  const primary = device === "mobile"
+    ? ["/dashboard", "almacen", "/proyectos", "personal"]
+    : ["/dashboard", "/proyectos", "personal", "almacen"];
+  const order = [
+    ...primary.filter((key) => key !== "almacen" || hasModule(subject, "almacen")),
+    "/inspecciones", "/cotizacion", "/directorio", "almacen", "settings",
+  ];
+  const rank = (key: string) => { const index = order.indexOf(key); return index < 0 ? order.length : index; };
+  return [...entries].sort((a, b) => rank(a.key) - rank(b.key));
+}

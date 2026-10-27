@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { EbonyMark } from "@/components/brand/ebony-logo";
-import { RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavPanel } from "./nav-items";
+import { orderNavigation, RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavPanel } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 const railButton = "w-11 h-11 flex items-center justify-center rounded-md transition-colors duration-100";
@@ -52,6 +52,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
     const Icon = panel.icon;
     return (
       <Link
+        key={panel.key}
         href={first.href}
         onClick={onClose}
         title={t(lang, panel.title)}
@@ -63,6 +64,11 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
       </Link>
     );
   }
+
+  const ordered = orderNavigation([
+    ...railItems.map((item) => ({ key: item.href, item, panel: null })),
+    ...[personalPanel, almacenPanel].map((panel) => ({ key: panel.key, item: null, panel })),
+  ], "desktop", access);
 
   return (
     <>
@@ -88,7 +94,9 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
           <EbonyMark size={36} className="mb-[22px]" />
 
           <nav className="flex-1 flex flex-col items-center gap-1.5">
-            {railItems.map(({ href, icon: Icon, label }) => {
+            {ordered.map((entry) => {
+              if (entry.panel) return panelLink(entry.panel);
+              const { href, icon: Icon, label } = entry.item!;
               const isActive = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
@@ -103,9 +111,6 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
                 </Link>
               );
             })}
-
-            {panelLink(almacenPanel)}
-            {panelLink(personalPanel)}
           </nav>
 
           {/* Al pie: Settings (engranaje) y el acceso al perfil. */}

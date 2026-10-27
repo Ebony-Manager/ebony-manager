@@ -10,6 +10,7 @@ import { PendingBadge } from "@/components/shared/pending-badge";
 import { haptic } from "@/lib/haptics";
 import { EbonyMark } from "@/components/brand/ebony-logo";
 import {
+  orderNavigation,
   RAIL_ITEMS,
   NAV_PANELS,
   ALMACEN_PANEL,
@@ -38,8 +39,6 @@ interface Destination {
   pending: number;
 }
 
-/** Orden en la barra de abajo: lo del día a día primero. */
-const ORDER = ["/cotizacion", "/proyectos", "/inspecciones", "almacen", "personal", "/directorio", "/cronograma", "/gastos", "/dashboard", "settings"];
 /** Pestañas de módulos en la barra de abajo; la quinta siempre es "Más" (menú completo y perfil). */
 const MAX_TABS = 4;
 
@@ -74,10 +73,10 @@ function useNav(pending: PendingCounts) {
       pending: panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0),
     });
   }
-  destinations.sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+
 
   const panel = NAV_PANELS.map(visiblePanel).find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
-  return { lang, pathname, destinations, panel, pendingFor };
+  return { lang, pathname, destinations: orderNavigation(destinations, "mobile", access), panel, pendingFor };
 }
 
 /** Barra de arriba (solo celular): logo, sección y, en los módulos con pestañas, las pestañas. */
