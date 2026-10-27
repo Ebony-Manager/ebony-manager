@@ -1,5 +1,8 @@
 import type { PurchaseOrder, PurchaseOrderLine, PurchaseRequest } from "@/types/almacen";
 
+export type PurchaseHistoryStatus = "all" | "recibido" | "cancelado";
+export const PURCHASE_HISTORY_DEFAULT_STATUS: PurchaseHistoryStatus = "recibido";
+
 export interface PurchaseHistoryRow {
   id: string;
   variantId: string | null;

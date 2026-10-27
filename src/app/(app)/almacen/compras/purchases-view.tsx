@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ChevronRight, Plus, Search, X } from "lucide-react";
+import { ChevronRight, Plus, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
-import { Input } from "@/components/ui/input";
+import { ListToolbar } from "@/components/shared/search-input";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
@@ -15,7 +15,7 @@ import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
-import { EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
+import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
 import { PurchasePhoto, RequestOrigin, StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
@@ -25,7 +25,12 @@ import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import type { OrderMessageLine } from "@/lib/almacen/inventory";
 import { SubTabs } from "@/components/shared/page-header";
 
-import { outstandingPurchaseLines, purchaseHistory } from "@/lib/almacen/purchase-history";
+import {
+  PURCHASE_HISTORY_DEFAULT_STATUS,
+  outstandingPurchaseLines,
+  purchaseHistory,
+  type PurchaseHistoryStatus,
+} from "@/lib/almacen/purchase-history";
 
 type Project = { id: string; name: string; active: boolean };
 /** Las etapas de una compra: cada cosa aparece en una sola. */
@@ -638,7 +643,7 @@ function History({
 }) {
   const { ta, lang } = useTa();
   const [q, setQ] = React.useState("");
-  const [status, setStatus] = React.useState<"all" | "recibido" | "cancelado">("all");
+  const [status, setStatus] = React.useState<PurchaseHistoryStatus>(PURCHASE_HISTORY_DEFAULT_STATUS);
   const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const needle = norm(q.trim());
   const rows = purchaseHistory(orders, requests).filter((row) =>
@@ -652,15 +657,14 @@ function History({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{ta("history_hint")}</p>
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ta("history_search")} aria-label={ta("history_search")} className="pl-9" />
-      </div>
-      <SegmentedFilter value={status} onChange={setStatus} options={[
-        { value: "all", label: ta("origin_all") },
-        { value: "recibido", label: ta("st_recibido") },
-        { value: "cancelado", label: ta("st_cancelado") },
-      ]} />
+      <ListToolbar>
+        <SearchBox value={q} onChange={setQ} placeholder={ta("history_search")} />
+        <SegmentedFilter value={status} onChange={setStatus} options={[
+          { value: "recibido", label: ta("st_recibido") },
+          { value: "all", label: ta("origin_all") },
+          { value: "cancelado", label: ta("st_cancelado") },
+        ]} />
+      </ListToolbar>
       {rows.length === 0 ? <EmptyBox>{ta("history_empty")}</EmptyBox> : (
         <ul className="overflow-hidden rounded-lg border border-border bg-card">
           {rows.map((row) => {
