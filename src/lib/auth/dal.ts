@@ -78,7 +78,7 @@ export async function isAdmin(): Promise<boolean> {
 /** Gate a page/action to admins. Non-admins are bounced to their home module. */
 export const requireAdmin = cache(async (): Promise<Profile> => {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect(homePathFor(profile));
+  if (profile.role !== "admin") redirect(homePathFor());
   return profile;
 });
 
@@ -89,13 +89,13 @@ export const requireAdmin = cache(async (): Promise<Profile> => {
  */
 export async function requireModule(...modules: AppModule[]): Promise<Profile> {
   const profile = await requireProfile();
-  if (!hasModules(profile, modules)) redirect(homePathFor(profile));
+  if (!hasModules(profile, modules)) redirect(homePathFor());
   return profile;
 }
 
 /** Como requireModule, pero alcanza con UNO de los módulos (ej. Staff). */
 export async function requireAnyModule(...modules: AppModule[]): Promise<Profile> {
   const profile = await requireProfile();
-  if (!hasAnyModule(profile, modules)) redirect(homePathFor(profile));
+  if (!hasAnyModule(profile, modules)) redirect(homePathFor());
   return profile;
 }

@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * OAuth redirect target. Google sends the user back here with `?code=...`;
  * we exchange it for a session (cookies written via the server client) and
- * forward to `next` (defaults to `/`, which sends each user to their first
- * module).
+ * forward to `next` (defaults to `/`, which sends each user to their
+ * permission-filtered Dashboard).
  *
  * If the code exchange fails — including the allow-list trigger rejecting a
  * non-authorized Google account at signup — we send the user to

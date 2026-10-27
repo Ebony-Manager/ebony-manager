@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Ebony",
     description: "Sistema de gestión de Ebony Custom Woodwork.",
     id: "/",
-    start_url: "/",
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

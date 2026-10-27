@@ -11,7 +11,7 @@ import { LoginForm } from "./login-form";
  */
 export default async function LoginPage() {
   const profile = await getProfile();
-  if (profile) redirect(homePathFor(profile));
+  if (profile) redirect(homePathFor());
 
   return <LoginForm />;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasAnyModule, hasModule, hasModules, homePathFor, normalizeModules } from "./modules";
+import { hasAnyModule, hasModule, hasModules, normalizeModules } from "./modules";
 
 describe("normalizeModules", () => {
   it("quita repetidos y claves desconocidas, y ordena como APP_MODULES", () => {
@@ -57,24 +57,5 @@ describe("hasModule", () => {
     expect(hasAnyModule(u, ["planilla", "contratistas"])).toBe(true);
     expect(hasAnyModule(u, ["planilla", "cotizacion"])).toBe(false);
     expect(hasAnyModule({ role: "admin", modules: [] }, ["planilla"])).toBe(true);
-  });
-});
-
-describe("homePathFor", () => {
-  it("lleva al primer módulo disponible", () => {
-    expect(homePathFor({ role: "admin", modules: [] })).toBe("/cotizacion");
-    expect(homePathFor({ role: "vendedor", modules: ["inspecciones"] })).toBe("/inspecciones");
-    expect(homePathFor({ role: "vendedor", modules: ["inspecciones", "almacen"] })).toBe("/almacen/salidas");
-    expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas", "planilla"] })).toBe("/personal/pagos");
-    expect(homePathFor({ role: "vendedor", modules: ["documentos", "contratistas"] })).toBe("/personal/pagos");
-    expect(homePathFor({ role: "vendedor", modules: ["documentos"] })).toBe("/personal/staff");
-    expect(homePathFor({ role: "vendedor", modules: ["almacen", "almacen_compras"] })).toBe("/almacen");
-    // Almacenista (sin Compras): directo a Nueva salida.
-    expect(homePathFor({ role: "vendedor", modules: ["almacen", "directorio"] })).toBe("/almacen/salidas");
-  });
-
-  it("sin módulos cae en una pantalla abierta a todos", () => {
-    expect(homePathFor({ role: "vendedor", modules: [] })).toBe("/dashboard");
-    expect(homePathFor(null)).toBe("/dashboard");
   });
 });

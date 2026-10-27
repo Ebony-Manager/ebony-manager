@@ -111,19 +111,7 @@ export function hasAnyModule(subject: AccessSubject | null | undefined, modules:
   return modules.some((m) => hasModule(subject, m));
 }
 
-/**
- * A dónde mandar a alguien al entrar (o cuando cae en un módulo que no
- * tiene): el primer módulo al que tiene acceso. Si no tiene ninguno, al
- * Dashboard, que hoy es una pantalla de "próximamente" abierta a todos — así
- * nunca hay un ciclo de redirecciones.
- */
-export function homePathFor(subject: AccessSubject | null | undefined): string {
-  if (hasModule(subject, "cotizacion")) return "/cotizacion";
-  if (hasModule(subject, "planilla") || hasModule(subject, "contratistas")) return "/personal/pagos";
-  if (hasModule(subject, "proyectos")) return "/proyectos";
-  if (hasModule(subject, "documentos")) return "/personal/staff";
-  // Almacén sin Compras (almacenista): directo a Nueva salida.
-  if (hasModule(subject, "almacen")) return hasModule(subject, "almacen_compras") ? "/almacen" : "/almacen/salidas";
-  if (hasModule(subject, "inspecciones")) return "/inspecciones";
+/** Inicio común: el Dashboard filtra sus secciones según los permisos del perfil. */
+export function homePathFor(): string {
   return "/dashboard";
 }
