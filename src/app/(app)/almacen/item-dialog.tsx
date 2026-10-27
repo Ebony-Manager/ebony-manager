@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
+import { formatQty, parseQty } from "@/lib/almacen/inventory";
 import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photos";
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
@@ -28,6 +28,7 @@ interface VariantDraft {
   active: boolean;
   stockQty: number;
   unitCostCents: number | null;
+  price: string;
 }
 
 interface SupplierDraft {
@@ -43,6 +44,13 @@ const NONE = "none";
 const VARIANT_COLS = "grid-cols-[minmax(0,1fr)_64px_84px_36px] sm:grid-cols-[minmax(0,1fr)_88px_104px_36px]";
 let seq = 0;
 const newKey = () => `k${++seq}`;
+const priceText = (cents: number | null) => (cents == null ? "" : String(Number((cents / 100).toFixed(2))));
+const priceCents = (value: string) => {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : NaN;
+};
 
 /**
  * Ficha del producto. Con Compras se edita (datos, variantes con su mínimo y
@@ -112,8 +120,9 @@ export function ItemDialog({
             active: v.active,
             stockQty: v.stockQty,
             unitCostCents: v.unitCostCents,
+            price: priceText(v.unitCostCents),
           }))
-        : [{ key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null }],
+        : [{ key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null, price: "" }],
     );
     setLinks(
       (current?.suppliers ?? []).map((s) => ({
@@ -194,6 +203,7 @@ export function ItemDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError(ta("name_required"));
+    if (variants.some((v) => Number.isNaN(priceCents(v.price)))) return setError(ta("price_invalid"));
     const input = {
       name,
       categoryId: categoryId === NONE ? null : categoryId,
@@ -202,7 +212,14 @@ export function ItemDialog({
       kind,
       notes,
       active,
-      variants: variants.map((v) => ({ id: v.id, label: v.label, minQty: parseQty(v.min), reorderQty: parseQty(v.reorder), active: v.active })),
+      variants: variants.map((v) => ({
+        id: v.id,
+        label: v.label,
+        minQty: parseQty(v.min),
+        reorderQty: parseQty(v.reorder),
+        active: v.active,
+        unitCostCents: priceCents(v.price),
+      })),
       suppliers: links
         .filter((l) => l.supplierId)
         .map((l) => ({ supplierId: l.supplierId!, isPrimary: l.isPrimary, packLabel: l.packLabel, packQty: parseQty(l.packQty) })),
@@ -360,8 +377,23 @@ export function ItemDialog({
                     />
                     <p className="mt-0.5 truncate px-1 text-[11px] tabular-nums text-muted-foreground">
                       {qtyWithUnit(v.stockQty, unit, lang)}
-                      {canCosts && v.unitCostCents != null && ` · ${formatUnitCost(v.unitCostCents)}`}
                     </p>
+                    {canCosts && (
+                      <label className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        {ta("item_price")}
+                        <span className="relative block w-24">
+                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs">$</span>
+                          <Input
+                            className="h-8 pl-5 text-right tabular-nums"
+                            inputMode="decimal"
+                            value={v.price}
+                            onChange={(e) => patchVariant(v.key, { price: e.target.value })}
+                            placeholder="0.00"
+                            aria-label={ta("item_price")}
+                          />
+                        </span>
+                      </label>
+                    )}
                   </div>
                   <QtyInput value={v.min} onChange={(x) => patchVariant(v.key, { min: x })} placeholder="—" aria-label={ta("col_min")} />
                   <QtyInput value={v.reorder} onChange={(x) => patchVariant(v.key, { reorder: x })} placeholder="—" aria-label={ta("col_reorder")} />
@@ -386,7 +418,10 @@ export function ItemDialog({
                   size="sm"
                   className="self-start"
                   onClick={() =>
-                    setVariants((vs) => [...vs, { key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null }])
+                    setVariants((vs) => [
+                      ...vs,
+                      { key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null, price: "" },
+                    ])
                   }
                 >
                   <Plus className="size-3.5" />

@@ -187,7 +187,7 @@ export interface ItemInput {
   notes: string | null;
   active: boolean;
   /** Variantes: con id se actualizan; sin id se crean; las que falten se desactivan. */
-  variants: { id?: string; label: string; minQty: number | null; reorderQty: number | null; active: boolean }[];
+  variants: { id?: string; label: string; minQty: number | null; reorderQty: number | null; active: boolean; unitCostCents: number | null }[];
   suppliers: { supplierId: string; isPrimary: boolean; packLabel: string | null; packQty: number | null }[];
 }
 
@@ -209,13 +209,23 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<numbe
   const { data: existing, error } = await supabase.from("inventory_variants").select("id").eq("item_id", itemId);
   fail(error);
   const keep = new Set(input.variants.map((v) => v.id).filter(Boolean));
-  const variants = input.variants.length ? input.variants : [{ label: "", minQty: null, reorderQty: null, active: true }];
+  const variants = input.variants.length
+    ? input.variants
+    : [{ label: "", minQty: null, reorderQty: null, active: true, unitCostCents: null }];
   for (const [i, v] of variants.entries()) {
     const row = { label: v.label.trim(), min_qty: v.minQty, reorder_qty: v.reorderQty, active: v.active, sort_order: i };
     const res = v.id
-      ? await supabase.from("inventory_variants").update(row).eq("id", v.id)
-      : await supabase.from("inventory_variants").insert({ ...row, item_id: itemId });
+      ? await supabase.from("inventory_variants").update(row).eq("id", v.id).select("id").single()
+      : await supabase.from("inventory_variants").insert({ ...row, item_id: itemId }).select("id").single();
     fail(res.error);
+    const variantId = res.data!.id;
+    if (v.unitCostCents == null) {
+      fail((await supabase.from("inventory_costs").delete().eq("variant_id", variantId)).error);
+    } else {
+      fail(
+        (await supabase.from("inventory_costs").upsert({ variant_id: variantId, unit_cost_cents: v.unitCostCents, purchase_line_id: null })).error,
+      );
+    }
   }
   // Las que se quitaron se borran; si ya tienen historial (movimientos,
   // pedidos o solicitudes, la base lo impide) quedan desactivadas.

@@ -2759,6 +2759,8 @@ export const strings = {
       en: "Size, color or type, each with its own stock, minimum and order-up-to. If the product has no variants, leave a single one with no name.",
     },
     variant_col: { es: "Variante", en: "Variant" },
+    item_price: { es: "Precio c/u", en: "Unit price" },
+    price_invalid: { es: "Escribe un precio válido, igual o mayor a 0.", en: "Enter a valid price greater than or equal to 0." },
     min_short: { es: "Mín.", en: "Min." },
     reorder_short: { es: "Pedir hasta", en: "Order to" },
     variant_remove: { es: "Quitar variante", en: "Remove variant" },
