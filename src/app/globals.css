@@ -525,3 +525,31 @@ a,
     overflow: visible !important;
   }
 }
+
+/* Native startup images may be cached or skipped by iOS. While the server
+   resolves the session, standalone installs get the same brand without timers. */
+.startup-splash {
+  display: none;
+}
+@media (display-mode: standalone) {
+  .startup-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d8d5cf;
+    color: #030605;
+  }
+  .startup-splash .startup-splash-logo {
+    color: inherit;
+    max-width: 50vw;
+  }
+}
+@media (display-mode: standalone) and (prefers-color-scheme: dark) {
+  .startup-splash {
+    background: #141618;
+    color: #d8d5cf;
+  }
+}

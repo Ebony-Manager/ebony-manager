@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { StartupSplash } from "@/components/brand/startup-splash";
 import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
   applicationName: "Ebony Manager",
   // Instalada en el iPhone (Compartir → Agregar a inicio) abre a pantalla
   // completa, como app. El manifiesto (manifest.ts) hace lo mismo en Android.
-  appleWebApp: { capable: true, title: "Ebony", statusBarStyle: "default", startupImage: appleStartupImages },
+  appleWebApp: { capable: true, title: "Ebony", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
 
@@ -50,7 +52,7 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+async function SessionProviders({ children }: { children: React.ReactNode }) {
   // Seed the client AuthProvider from the verified server session so the
   // shell (profile menu, role-gated bits) renders right on first paint,
   // with no logged-out flash.
@@ -74,6 +76,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialModules: AppModule[] | undefined = profile?.modules;
 
   return (
+    <Providers initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
+      {children}
+    </Providers>
+  );
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
     // suppressHydrationWarning: THEME_INIT_SCRIPT pone `.dark` en <html>
     // antes de hidratar, así que su className puede diferir del servidor.
     <html
@@ -82,12 +92,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <head>
+        {appleStartupImages.map(({ url, media }) => (
+          <link key={url} rel="apple-touch-startup-image" href={url} media={media} />
+        ))}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full font-sans">
-        <Providers initialUser={initialUser} initialRole={initialRole} initialModules={initialModules}>
-          {children}
-        </Providers>
+        <Suspense fallback={<StartupSplash />}>
+          <SessionProviders>{children}</SessionProviders>
+        </Suspense>
       </body>
     </html>
   );
