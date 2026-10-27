@@ -5,6 +5,7 @@ import { getUser, getProfile } from "@/lib/auth/dal";
 import type { EbonyUser } from "@/context/auth-context";
 import type { AppModule, AppRole } from "@/lib/auth/dal";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { appleStartupImages } from "@/lib/pwa";
 import "./globals.css";
 
 // Tipografías del tema (tweakcn): Inter para toda la interfaz, Merriweather
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
   applicationName: "Ebony Manager",
   // Instalada en el iPhone (Compartir → Agregar a inicio) abre a pantalla
   // completa, como app. El manifiesto (manifest.ts) hace lo mismo en Android.
-  appleWebApp: { capable: true, title: "Ebony", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Ebony", statusBarStyle: "default", startupImage: appleStartupImages },
   formatDetection: { telephone: false },
 };
 
