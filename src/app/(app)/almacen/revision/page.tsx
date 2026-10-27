@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 
+import { hasModule } from "@/lib/auth/modules";
+import { InitialStock } from "./initial-stock";
 import { requireModule } from "@/lib/auth/dal";
 import { formatQty, unitLabel } from "@/lib/almacen/inventory";
 import { EXCEL_DELETED, ITEM_PROPOSALS, NEW_PRODUCTS, PROPOSED_SUPPLIERS, type ItemProposal } from "@/lib/almacen/supplier-proposal";
@@ -27,7 +29,7 @@ function supplierLine(p: ItemProposal | undefined): SupplierLine {
 }
 
 export default async function RevisionPage() {
-  await requireModule("almacen", "almacen_compras");
+  const profile = await requireModule("almacen", "almacen_compras");
   const [items, categories] = await Promise.all([getCatalog(), getCategories()]);
   const active = items.filter((i) => i.active);
   const doubts = active.filter((i) => ITEM_PROPOSALS[i.name]?.doubt);
@@ -191,22 +193,24 @@ export default async function RevisionPage() {
         </div>
       </section>
 
-      {categories.map((c) => {
-        const list = active.filter((i) => i.categoryId === c.id);
-        if (list.length === 0) return null;
-        return (
-          <section key={c.id} className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold text-foreground">
-              {c.name} <span className="text-sm font-normal text-muted-foreground">({list.length})</span>
-            </h2>
-            <ul className="flex flex-col divide-y divide-border rounded-lg overflow-hidden border border-border">
-              {list.map((item) => (
-                <RevisionRow key={item.id} item={item} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
-              ))}
-            </ul>
-          </section>
-        );
-      })}
+      <InitialStock enabled={hasModule(profile, "almacen_ajustes")}>
+        {categories.map((c) => {
+          const list = active.filter((i) => i.categoryId === c.id);
+          if (list.length === 0) return null;
+          return (
+            <section key={c.id} className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold text-foreground">
+                {c.name} <span className="text-sm font-normal text-muted-foreground">({list.length})</span>
+              </h2>
+              <ul className="flex flex-col divide-y divide-border rounded-lg overflow-hidden border border-border">
+                {list.map((item) => (
+                  <RevisionRow key={item.id} item={item} suppliers={supplierLine(ITEM_PROPOSALS[item.name])} canEdit />
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </InitialStock>
     </div>
   );
 }

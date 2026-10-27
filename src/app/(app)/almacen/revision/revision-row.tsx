@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatQty, parseQty, unitLabel } from "@/lib/almacen/inventory";
 import type { InventoryItem } from "@/types/almacen";
 import { saveItemLevelsAction } from "../actions";
+import { InitialStockInput } from "./initial-stock";
 import { ItemThumb } from "../shared";
 
 export interface SupplierLine {
@@ -108,6 +109,7 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
                 <th className="py-1 pr-3 font-medium">Variante</th>
+                <th className="py-1 pr-3 text-right font-medium">Existencia inicial</th>
                 <th className="py-1 pr-3 text-right font-medium">Mínimo</th>
                 <th className="py-1 text-right font-medium">Pedir hasta</th>
               </tr>
@@ -116,6 +118,7 @@ export function RevisionRow({ item, suppliers, canEdit }: { item: InventoryItem;
               {variants.map((v) => (
                 <tr key={v.id} className="border-t border-border/60">
                   <td className="py-1 pr-3">{v.label || "Única"}</td>
+                  <InitialStockInput id={v.id} name={`${item.name} ${v.label}`} stock={v.stockQty} />
                   {canEdit ? (
                     <>
                       <td className="py-1 pr-3 text-right">
