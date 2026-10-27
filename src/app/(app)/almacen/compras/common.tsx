@@ -3,7 +3,7 @@
 import { RefreshCw, User } from "lucide-react";
 import type { OrderStatus, RequestStatus } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
-import { useTa, type VariantRef } from "../shared";
+import { ItemThumb, useTa, type VariantRef } from "../shared";
 
 const STATUS_BADGE: Record<RequestStatus | OrderStatus, "warning" | "secondary" | "success" | "outline"> = {
   pendiente: "warning",
@@ -43,4 +43,9 @@ export function RequestOrigin({ r }: { r: { auto: boolean; createdByName: string
       {r.createdByName}
     </span>
   );
+}
+
+/** The catalog photo is shared by a product's variants; free-text requests get a placeholder. */
+export function PurchasePhoto({ variantId, index }: { variantId: string | null; index: Map<string, VariantRef> }) {
+  return <ItemThumb path={(variantId && index.get(variantId)?.item.photoPath) || null} size={48} />;
 }

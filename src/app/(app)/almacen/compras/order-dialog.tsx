@@ -17,7 +17,7 @@ import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
 import { Field } from "../../contratistas/field";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, qtyWithUnit, useTa, type VariantRef } from "../shared";
-import { StatusBadge } from "./common";
+import { PurchasePhoto, StatusBadge } from "./common";
 import { DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
@@ -186,7 +186,7 @@ export function OrderDialog({
                 <li key={l.id} className="flex flex-col gap-2 border-b border-border px-3 py-2.5 text-sm last:border-0">
                   <div className="flex items-start justify-between gap-3">
                     <span className="min-w-0">
-                      <span className="block font-medium">{lineName(l)}</span>
+                      <span className="flex items-center gap-3"><PurchasePhoto variantId={l.variantId} index={index} /><span className="min-w-0 break-words font-medium">{lineName(l)}</span></span>
                       {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
                     </span>
                     <span className={`shrink-0 text-right text-xs tabular-nums ${done ? "text-success" : "text-muted-foreground"}`}>

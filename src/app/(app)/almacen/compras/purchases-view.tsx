@@ -16,14 +16,16 @@ import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
-import { RequestOrigin, StatusBadge, requestName } from "./common";
+import { PurchasePhoto, RequestOrigin, StatusBadge, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
 import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import type { OrderMessageLine } from "@/lib/almacen/inventory";
-import { SectionHeader, SubTabs } from "@/components/shared/page-header";
+import { SubTabs } from "@/components/shared/page-header";
+
+import { outstandingPurchaseLines, purchaseHistory } from "@/lib/almacen/purchase-history";
 
 type Project = { id: string; name: string; active: boolean };
 /** Las etapas de una compra: cada cosa aparece en una sola. */
@@ -36,7 +38,7 @@ type Tab = "porpedir" | "encamino" | "historial";
  * «Pedido ✓» —que pide precio en todas— las pasa a En camino: por detrás se
  * crea el pedido), **En camino** (pedidos abiertos; Almacén recibe y Compras
  * anota la factura, en la misma vista) e **Historial** (recibidos, cancelados
- * y solicitudes canceladas). Sin Almacén, cada quien ve sus solicitudes.
+ * por artículo, sin listas separadas de cancelaciones). Sin Almacén, cada quien ve sus solicitudes.
  */
 export function PurchasesView({
   userId,
@@ -73,7 +75,7 @@ export function PurchasesView({
 
   const order = orderId ? (orders.find((o) => o.id === orderId) ?? null) : null;
   const pending = requests.filter((r) => r.status === "pendiente");
-  const open = orders.filter((o) => o.status === "pedido" || o.status === "parcial").sort((a, b) => a.orderedOn.localeCompare(b.orderedOn));
+  const open = orders.filter((o) => outstandingPurchaseLines(o).length > 0).sort((a, b) => a.orderedOn.localeCompare(b.orderedOn));
   const count = (n: number) => (n > 0 ? <span className="rounded-full bg-muted px-1.5 text-[11px] font-medium tabular-nums text-muted-foreground">{n}</span> : undefined);
 
   return (
@@ -96,7 +98,7 @@ export function PurchasesView({
             onChange={setTab}
             tabs={[
               { value: "porpedir", label: ta("tab_to_order"), badge: count(pending.length) },
-              { value: "encamino", label: ta("tab_in_transit"), badge: count(open.length) },
+              { value: "encamino", label: ta("tab_in_transit"), badge: count(open.reduce((n, order) => n + outstandingPurchaseLines(order).length, 0)) },
               { value: "historial", label: ta("history") },
             ]}
           />
@@ -372,10 +374,11 @@ function PendingRow({
   const lineTotal = r.unitCostCents != null ? Math.round(r.unitCostCents * r.qty) : null;
 
   return (
-    <li className="grid grid-cols-[24px_1fr_28px] gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0">
+    <li className="grid grid-cols-[24px_48px_minmax(0,1fr)_28px] gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0">
       <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} className="mt-1" />
+      <PurchasePhoto variantId={r.variantId} index={index} />
       <div className="min-w-0">
-        <span className="block truncate font-medium">{requestName(r, index)}</span>
+        <span className="block break-words font-medium">{requestName(r, index)}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <RequestOrigin r={r} />
         </span>
@@ -400,7 +403,7 @@ function PendingRow({
         className="min-h-7 min-w-7"
       />
       {/* Cantidad × precio por unidad = total de la línea. */}
-      <div className="col-start-2 col-end-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="col-start-2 col-end-5 flex flex-wrap items-center gap-x-2 gap-y-1">
         <div className="flex items-center gap-1.5">
           <div className="w-20">
             <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
@@ -483,6 +486,9 @@ function RequestsTable({
           {requests.map((r) => (
             <tr key={r.id} className="border-b border-border last:border-0">
               <td className="max-w-0 px-3.5 py-2.5">
+                <div className="flex items-center gap-3">
+                <PurchasePhoto variantId={r.variantId} index={index} />
+                <div className="min-w-0">
                 <span className="block truncate font-medium">{requestName(r, index)}</span>
                 {/* En el celular no está la columna "Pidió": el origen va acá. Las automáticas siempre. */}
                 {(r.auto || showWho) && (
@@ -493,6 +499,8 @@ function RequestsTable({
                 <span className="block truncate text-xs text-muted-foreground">
                   {[r.projectId ? projectName.get(r.projectId) : null, r.auto ? null : r.reason].filter(Boolean).join(" · ")}
                 </span>
+                </div>
+                </div>
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{qtyWithUnit(r.qty, r.unit, lang)}</td>
               {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? "—" : (r.createdByName ?? "—")}</td>}
@@ -587,12 +595,13 @@ function InTransit({
             </div>
           </header>
           <ul>
-            {o.lines.map((l) => {
+            {outstandingPurchaseLines(o).map((l) => {
               const who = whoByLine.get(l.id);
               return (
                 <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
-                  <span className="min-w-0">
-                    <span className="block truncate">{requestName(l, index)}</span>
+                  <PurchasePhoto variantId={l.variantId} index={index} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words">{requestName(l, index)}</span>
                     {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
                   </span>
                   <span className="shrink-0 text-right tabular-nums">
@@ -629,52 +638,62 @@ function History({
 }) {
   const { ta, lang } = useTa();
   const [q, setQ] = React.useState("");
+  const [status, setStatus] = React.useState<"all" | "recibido" | "cancelado">("all");
   const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const needle = norm(q.trim());
-  const closed = orders
-    .filter((o) => o.status === "recibido" || o.status === "cancelado")
-    .filter((o) => !needle || norm([supplierById.get(o.supplierId)?.name ?? "", ...o.lines.map((l) => requestName(l, index))].join(" ")).includes(needle))
-    .sort((a, b) => b.orderedOn.localeCompare(a.orderedOn));
-  const cancelled = requests
-    .filter((r) => r.status === "cancelado")
-    .filter((r) => !needle || norm(requestName(r, index)).includes(needle));
+  const rows = purchaseHistory(orders, requests).filter((row) =>
+    (status === "all" || row.status === status) &&
+    (!needle || norm([
+      requestName(row, index), supplierById.get(row.supplierId ?? "")?.name ?? "",
+      ...row.requests.flatMap((r) => [r.createdByName ?? "", projectName.get(r.projectId ?? "") ?? ""]),
+    ].join(" ")).includes(needle)),
+  );
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{ta("history_hint")}</p>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ta("history_search")} className="pl-9" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ta("history_search")} aria-label={ta("history_search")} className="pl-9" />
       </div>
-      {closed.length === 0 && cancelled.length === 0 ? (
-        <EmptyBox>{ta("history_empty")}</EmptyBox>
-      ) : (
-        <>
-          {closed.length > 0 && (
-            <ul className="overflow-hidden rounded-lg border border-border bg-card">
-              {closed.map((o) => (
-                <li key={o.id} className="border-b border-border last:border-0">
-                  <button type="button" onClick={() => onOpen(o.id)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30">
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{supplierById.get(o.supplierId)?.name ?? "—"}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {formatDateCompact(lang, o.orderedOn)} · {o.lines.map((l) => requestName(l, index)).join(", ")}
-                      </span>
-                    </span>
-                    <StatusBadge status={o.status} />
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      <SegmentedFilter value={status} onChange={setStatus} options={[
+        { value: "all", label: ta("origin_all") },
+        { value: "recibido", label: ta("st_recibido") },
+        { value: "cancelado", label: ta("st_cancelado") },
+      ]} />
+      {rows.length === 0 ? <EmptyBox>{ta("history_empty")}</EmptyBox> : (
+        <ul className="overflow-hidden rounded-lg border border-border bg-card">
+          {rows.map((row) => {
+            const details = [
+              supplierById.get(row.supplierId ?? "")?.name,
+              `${ta(row.orderId ? "history_order_date" : "history_request_date")}: ${formatDateCompact(lang, row.date.length > 10 ? todayInPanama(new Date(row.date)) : row.date)}`,
+              ...new Set(row.requests.flatMap((r) => [r.createdByName, projectName.get(r.projectId ?? "")]).filter(Boolean)),
+            ].filter(Boolean).join(" · ");
+            const content = (
+              <>
+                <PurchasePhoto variantId={row.variantId} index={index} />
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words font-medium">{requestName(row, index)}</span>
+                  <span className="block text-xs text-muted-foreground">{details}</span>
+                  <span className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-sm tabular-nums">{qtyWithUnit(row.qty, row.unit, lang)}</span>
+                    <StatusBadge status={row.status} />
+                  </span>
+                </span>
+                {row.orderId && <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />}
+              </>
+            );
+            return (
+              <li key={row.id} className="border-b border-border last:border-0">
+                {row.orderId ? (
+                  <button type="button" onClick={() => onOpen(row.orderId!)} className="flex w-full items-center gap-3 px-3.5 py-3 text-left hover:bg-muted/30">
+                    {content}
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {cancelled.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <SectionHeader title={ta("cancelled_requests")} />
-              <RequestsTable requests={cancelled} index={index} projectName={projectName} showWho />
-            </section>
-          )}
-        </>
+                ) : <div className="flex items-center gap-3 px-3.5 py-3">{content}</div>}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
