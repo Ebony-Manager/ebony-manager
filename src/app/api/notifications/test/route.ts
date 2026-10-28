@@ -12,7 +12,7 @@ export async function POST() {
   if (!data?.length) return NextResponse.json({ error: "Este dispositivo no está suscrito." }, { status: 400 });
   try {
     await Promise.all(
-      data.map((s) => sendPush({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, { title: "Ebony Manager", body: "Las notificaciones push están funcionando.", href: "/settings/notificaciones" })),
+      data.map((s) => sendPush({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, { title: "Ebony Manager", body: "Las notificaciones push están funcionando.", href: "/notificaciones" })),
     );
     return NextResponse.json({ ok: true });
   } catch (err) {

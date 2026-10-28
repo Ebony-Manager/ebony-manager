@@ -47,7 +47,7 @@ function useNav(pending: PendingCounts) {
   const { role, modules } = useAuth();
   const pathname = usePathname();
   const access = { role, modules };
-  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
+  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0);
   const visiblePanel = (panel: NavPanel) => ({ ...panel, items: panel.items.filter((i) => canSeeNavItem(i, access)) });
 
   const destinations: Destination[] = [];
@@ -82,7 +82,6 @@ function useNav(pending: PendingCounts) {
 /** Barra de arriba (solo celular): logo, sección y, en los módulos con pestañas, las pestañas. */
 export function MobileTopBar({ pending }: { pending: PendingCounts }) {
   const { lang, pathname, panel, pendingFor } = useNav(pending);
-  const { role } = useAuth();
   const crumbs = breadcrumbFor(pathname, lang);
   const title = panel ? t(lang, panel.title) : (crumbs[0] ?? "Ebony Manager");
 
@@ -91,16 +90,14 @@ export function MobileTopBar({ pending }: { pending: PendingCounts }) {
       <div className="flex h-12 items-center gap-2.5 px-4">
         <EbonyMark size={26} />
         <h1 className="truncate text-[15px] font-semibold text-sidebar-foreground">{title}</h1>
-        {role === "admin" && (
           <Link
-            href="/settings/notificaciones"
+            href="/notificaciones"
             className="relative ml-auto flex size-9 items-center justify-center rounded-full text-sidebar-foreground/65"
             aria-label={t(lang, strings.nav.notificaciones)}
           >
             <Bell size={20} strokeWidth={1.7} />
             <PendingBadge count={pending.notices} className="absolute -top-0.5 -right-0.5" title={t(lang, strings.nav.pending)} />
           </Link>
-        )}
       </div>
       {panel && panel.items.length > 1 && (
         // Pestañas subrayadas: llevan a otra pantalla de la sección (los filtros

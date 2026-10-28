@@ -6,6 +6,7 @@ import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal"
 import { hasModule } from "@/lib/auth/modules";
 import * as almacen from "@/services/almacen";
 import type { AdjustmentReason, OrderDelivery, RequestStatus } from "@/types/almacen";
+import { dispatchPendingPush } from "@/lib/notifications/push";
 
 // Almacén: cada action pide su permiso al entrar (además de la RLS y de los
 // chequeos dentro de las funciones de la base). Las solicitudes de compra las
@@ -16,6 +17,7 @@ export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; e
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     const data = await fn();
+    await dispatchPendingPush().catch(() => undefined);
     revalidatePath("/almacen", "layout");
     return { ok: true, data };
   } catch (err) {

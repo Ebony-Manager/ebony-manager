@@ -183,7 +183,9 @@ export async function createLedgerEntryAction(input: {
   notes?: string | null;
 }) {
   await requireModule("planilla");
-  return payroll.createLedgerEntry(input);
+  const result = await payroll.createLedgerEntry(input);
+  await dispatchPendingPush().catch(() => undefined);
+  return result;
 }
 
 export async function deleteLedgerEntryAction(id: string) {
@@ -230,6 +232,7 @@ export async function createLoanAction(input: LoanInput): Promise<SaveResult> {
   await requireModule("planilla");
   try {
     await payroll.createLoan(input);
+    await dispatchPendingPush().catch(() => undefined);
     return { ok: true };
   } catch (err) {
     console.error("createLoanAction", err);

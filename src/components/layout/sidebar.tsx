@@ -39,8 +39,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
   const settingsPanel = visible(SETTINGS_PANEL);
   const openPanel = [almacenPanel, personalPanel, settingsPanel].find((p) => p.items.some((i) => isNavItemActive(i, pathname)));
   // Qué ítem del panel lleva cada indicador.
-  const pendingFor = (href: string) =>
-    href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0;
+  const pendingFor = (href: string) => href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0;
   const panelPending = (panel: NavPanel) => panel.items.reduce((sum, i) => sum + pendingFor(i.href), 0);
 
   // Ícono del rail para un panel: un Link normal al primer ítem que el
@@ -115,17 +114,15 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
 
           {/* Al pie: Settings (engranaje) y el acceso al perfil. */}
           <div className="mt-auto flex flex-col items-center gap-1.5">
-            {role === "admin" && (
-              <Link
-                href="/settings/notificaciones"
+            <Link
+                href="/notificaciones"
                 title={t(lang, strings.nav.notificaciones)}
                 aria-label={t(lang, strings.nav.notificaciones)}
-                className={`relative ${railButton} ${pathname === "/settings/notificaciones" ? railActive : railIdle}`}
+                className={`relative ${railButton} ${pathname === "/notificaciones" ? railActive : railIdle}`}
               >
                 <Bell size={22} strokeWidth={1.6} />
                 <PendingBadge count={pending.notices} className="absolute -top-1 -right-1" title={t(lang, strings.nav.pending)} />
               </Link>
-            )}
             {panelLink(settingsPanel)}
             <UserMenu />
           </div>

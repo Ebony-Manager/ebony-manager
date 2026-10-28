@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { buildSummaryEmail, type DailySummary } from "@/lib/almacen/daily-summary";
 import type { Database } from "@/types/database";
+import { dispatchPendingPush, ensureOverduePurchaseNotices } from "@/lib/notifications/push";
 
 /**
  * Resumen diario del Almacén por correo (Resend).
@@ -46,6 +47,13 @@ export async function GET(request: Request) {
   }
   const summary = data as unknown as DailySummary;
   const email = buildSummaryEmail(summary, url.origin);
+
+  // El mismo cron diario crea los avisos de pedidos atrasados y despacha
+  // cualquier push pendiente, aunque el correo del resumen esté apagado.
+  if (isCron) {
+    await ensureOverduePurchaseNotices().catch(() => undefined);
+    await dispatchPendingPush().catch(() => undefined);
+  }
 
   if (!isCron && url.searchParams.get("ver") === "1") {
     return new Response(email.html, { headers: { "Content-Type": "text/html; charset=utf-8" } });

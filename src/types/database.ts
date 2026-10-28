@@ -59,42 +59,60 @@ export type Database = {
           },
         ]
       }
+      app_notification_recipients: {
+        Row: { notification_id: string; push_sent_at: string | null; read_at: string | null; user_id: string }
+        Insert: { notification_id: string; push_sent_at?: string | null; read_at?: string | null; user_id: string }
+        Update: { notification_id?: string; push_sent_at?: string | null; read_at?: string | null; user_id?: string }
+        Relationships: [
+          { foreignKeyName: "app_notification_recipients_notification_id_fkey"; columns: ["notification_id"]; isOneToOne: false; referencedRelation: "app_notifications"; referencedColumns: ["id"] },
+          { foreignKeyName: "app_notification_recipients_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
       app_notifications: {
         Row: {
           actor_id: string | null
           actor_name: string | null
           body: string | null
           created_at: string
+          dedupe_key: string | null
           href: string | null
           id: string
           kind: string
+          module: string | null
           push_sent_at: string | null
           seen_at: string | null
           title: string
+          type_key: string | null
         }
         Insert: {
           actor_id?: string | null
           actor_name?: string | null
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           href?: string | null
           id?: string
           kind: string
+          module?: string | null
           push_sent_at?: string | null
           seen_at?: string | null
           title: string
+          type_key?: string | null
         }
         Update: {
           actor_id?: string | null
           actor_name?: string | null
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           href?: string | null
           id?: string
           kind?: string
+          module?: string | null
           push_sent_at?: string | null
           seen_at?: string | null
           title?: string
+          type_key?: string | null
         }
         Relationships: []
       }
@@ -926,6 +944,12 @@ export type Database = {
           submission_id?: string
           submitted_at?: string | null
         }
+        Relationships: []
+      }
+      notification_types: {
+        Row: { active: boolean; default_push: boolean; description: string; key: string; module: string; sort_order: number; title: string }
+        Insert: { active?: boolean; default_push?: boolean; description: string; key: string; module: string; sort_order?: number; title: string }
+        Update: { active?: boolean; default_push?: boolean; description?: string; key?: string; module?: string; sort_order?: number; title?: string }
         Relationships: []
       }
       notification_settings: {
@@ -2902,6 +2926,15 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: []
+      }
+      user_notification_preferences: {
+        Row: { push_enabled: boolean; type_key: string; updated_at: string; updated_by: string | null; user_id: string }
+        Insert: { push_enabled: boolean; type_key: string; updated_at?: string; updated_by?: string | null; user_id: string }
+        Update: { push_enabled?: boolean; type_key?: string; updated_at?: string; updated_by?: string | null; user_id?: string }
+        Relationships: [
+          { foreignKeyName: "user_notification_preferences_type_key_fkey"; columns: ["type_key"]; isOneToOne: false; referencedRelation: "notification_types"; referencedColumns: ["key"] },
+          { foreignKeyName: "user_notification_preferences_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
       }
     }
     Views: {

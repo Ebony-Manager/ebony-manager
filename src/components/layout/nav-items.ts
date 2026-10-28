@@ -149,6 +149,7 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
  * su propio contenido (ver pagos-client.tsx).
  */
 export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
+  if (pathname === "/notificaciones") return [t(lang, strings.nav.notificaciones)];
   for (const panel of NAV_PANELS) {
     const item = panel.items.find((i) => isNavItemActive(i, pathname));
     // "Personal / Personal" (el panel y su lista se llaman igual en español) → un solo crumb.

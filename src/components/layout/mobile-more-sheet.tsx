@@ -66,7 +66,7 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
     onClose();
   };
   const tl = (label: NavItem["label"]) => t(lang, label);
-  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : href === "/settings/notificaciones" ? pending.notices : 0);
+  const pendingFor = (href: string) => (href === "/personal/staff" ? pending.intakes : href === "/personal/pagos" ? pending.moneyRequests : 0);
 
   const entries: Entry[] = [];
   for (const item of RAIL_ITEMS.filter((i) => canSeeNavItem(i, access))) {

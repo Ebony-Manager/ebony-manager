@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/dal";
 import * as inspections from "@/services/inspections";
 import type { InspectionItemStatus, InspectionPhotoKind } from "@/types/inspections";
+import { dispatchPendingPush } from "@/lib/notifications/push";
 
 // Inspecciones: cada action pide el permiso al entrar (además de la RLS).
 
@@ -13,6 +14,7 @@ export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; e
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     const data = await fn();
+    await dispatchPendingPush().catch(() => undefined);
     revalidatePath("/inspecciones", "layout");
     revalidatePath("/proyectos", "layout");
     return { ok: true, data };

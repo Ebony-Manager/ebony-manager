@@ -22,8 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     hasAnyModule(profile, ["planilla", "contratistas"])
       ? getPendingCounts().catch(() => ({ moneyRequests: 0, intakes: 0 }))
       : { moneyRequests: 0, intakes: 0 },
-    // Avisos sin ver (ej. ajustes de asistencia): solo admin.
-    profile.role === "admin" ? getUnseenNoticeCount().catch(() => 0) : 0,
+    getUnseenNoticeCount().catch(() => 0),
   ]);
   const pending = { ...counts, notices };
 

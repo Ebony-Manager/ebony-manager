@@ -53,17 +53,19 @@ export interface AppNotice {
   actorName: string | null;
   createdAt: string;
   seenAt: string | null;
+  typeKey: string | null;
+  module: string | null;
 }
 
 export async function getNotices(limit = 50): Promise<AppNotice[]> {
   const supabase = await createClient();
-  const [{ data, error }, { data: reads, error: readsError }] = await Promise.all([
+  const [{ data, error }, { data: recipients, error: recipientsError }] = await Promise.all([
     supabase.from("app_notifications").select("*").order("created_at", { ascending: false }).limit(limit),
-    supabase.from("app_notification_reads").select("notification_id,read_at"),
+    supabase.from("app_notification_recipients").select("notification_id,read_at"),
   ]);
   if (error) throw new Error(error.message);
-  if (readsError) throw new Error(readsError.message);
-  const readAt = new Map((reads ?? []).map((r) => [r.notification_id, r.read_at]));
+  if (recipientsError) throw new Error(recipientsError.message);
+  const readAt = new Map((recipients ?? []).map((r) => [r.notification_id, r.read_at]));
   return (data ?? []).map((r) => ({
     id: r.id,
     kind: r.kind,
@@ -73,35 +75,70 @@ export async function getNotices(limit = 50): Promise<AppNotice[]> {
     actorName: r.actor_name,
     createdAt: r.created_at,
     seenAt: readAt.get(r.id) ?? null,
+    typeKey: r.type_key,
+    module: r.module,
   }));
 }
 
 /** Cuántos avisos no ha visto el admin actual (el número rojo del menú). */
 export async function getUnseenNoticeCount(): Promise<number> {
   const supabase = await createClient();
-  const [{ data: notices, error }, { data: reads, error: readsError }] = await Promise.all([
-    supabase.from("app_notifications").select("id"),
-    supabase.from("app_notification_reads").select("notification_id"),
-  ]);
+  const { count, error } = await supabase.from("app_notification_recipients").select("notification_id", { count: "exact", head: true }).is("read_at", null);
   if (error) throw new Error(error.message);
-  if (readsError) throw new Error(readsError.message);
-  const read = new Set((reads ?? []).map((r) => r.notification_id));
-  return (notices ?? []).filter((n) => !read.has(n.id)).length;
+  return count ?? 0;
 }
 
 export async function markNoticesSeen(): Promise<void> {
   const supabase = await createClient();
-  const [{ data: notices, error: noticesError }, { data: userData, error: userError }] = await Promise.all([
-    supabase.from("app_notifications").select("id"),
-    supabase.auth.getUser(),
+  const { error } = await supabase.from("app_notification_recipients").update({ read_at: new Date().toISOString() }).is("read_at", null);
+  if (error) throw new Error(error.message);
+}
+
+export async function markNoticeSeen(id: string, seen: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("app_notification_recipients").update({ read_at: seen ? new Date().toISOString() : null }).eq("notification_id", id);
+  if (error) throw new Error(error.message);
+}
+
+export interface NotificationType {
+  key: string;
+  module: string;
+  title: string;
+  description: string;
+  defaultPush: boolean;
+  sortOrder: number;
+}
+
+export interface UserPushPreference {
+  userId: string;
+  typeKey: string;
+  pushEnabled: boolean;
+}
+
+export async function getNotificationTypes(): Promise<NotificationType[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("notification_types").select("*").eq("active", true).order("sort_order");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ key: r.key, module: r.module, title: r.title, description: r.description, defaultPush: r.default_push, sortOrder: r.sort_order }));
+}
+
+export async function getAllPushPreferences(): Promise<{ preferences: UserPushPreference[]; devices: Record<string, number> }> {
+  const supabase = await createClient();
+  const [{ data, error }, { data: subscriptions, error: subscriptionError }] = await Promise.all([
+    supabase.from("user_notification_preferences").select("user_id,type_key,push_enabled"),
+    supabase.from("push_subscriptions").select("user_id"),
   ]);
-  if (noticesError) throw new Error(noticesError.message);
-  if (userError) throw new Error(userError.message);
-  const userId = userData.user?.id;
-  if (!userId || !notices?.length) return;
-  const { error } = await supabase.from("app_notification_reads").upsert(
-    notices.map((n) => ({ notification_id: n.id, user_id: userId, read_at: new Date().toISOString() })),
-    { onConflict: "notification_id,user_id" },
-  );
+  if (error) throw new Error(error.message);
+  if (subscriptionError) throw new Error(subscriptionError.message);
+  const devices: Record<string, number> = {};
+  for (const row of subscriptions ?? []) devices[row.user_id] = (devices[row.user_id] ?? 0) + 1;
+  return { preferences: (data ?? []).map((r) => ({ userId: r.user_id, typeKey: r.type_key, pushEnabled: r.push_enabled })), devices };
+}
+
+export async function saveUserPushPreferences(userId: string, values: Record<string, boolean>, updatedBy: string): Promise<void> {
+  const supabase = await createClient();
+  const rows = Object.entries(values).map(([type_key, push_enabled]) => ({ user_id: userId, type_key, push_enabled, updated_by: updatedBy }));
+  if (!rows.length) return;
+  const { error } = await supabase.from("user_notification_preferences").upsert(rows, { onConflict: "user_id,type_key" });
   if (error) throw new Error(error.message);
 }

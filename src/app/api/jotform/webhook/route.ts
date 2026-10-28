@@ -11,6 +11,7 @@ import {
 } from "@/lib/personal/jotform-intake";
 import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from "@/lib/personal/jotform-money";
 import { PUNCH_FORM_ID, normalizePunch, punchKey } from "@/lib/attendance/jotform-punch";
+import { dispatchPendingPush } from "@/lib/notifications/push";
 
 /**
  * Webhook de JotForm (una sola dirección, `?token=...`) para tres formularios:
@@ -225,5 +226,6 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     if (!unauthorized) console.error("JotForm webhook: no se pudo guardar", error);
     return Response.json({ ok: false, error: unauthorized ? "invalid token" : "save failed" }, { status: unauthorized ? 401 : 500 });
   }
+  if (formId === EMPLOYEE_FORM_ID) await dispatchPendingPush().catch(() => undefined);
   return Response.json({ ok: true });
 }
