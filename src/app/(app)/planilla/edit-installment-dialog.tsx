@@ -7,10 +7,12 @@ import type { Period } from "@/lib/planilla/payroll-period";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { monthShort } from "@/lib/planilla/format";
+import { currentPeriod, nextPeriod, previousPeriod, periodOrdinal } from "@/lib/planilla/payroll-period";
 import { reflowLoanSchedule, type PendingInstallment, type ReflowMode } from "@/lib/planilla/payroll-loans";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { reflowLoanInstallmentAction } from "./actions";
+import { moveLoanInstallmentAction, reflowLoanInstallmentAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
 
 /**
@@ -49,6 +51,7 @@ export function EditInstallmentDialog({
 
   const [amount, setAmount] = React.useState("");
   const [mode, setMode] = React.useState<ReflowMode>("extend");
+  const [periodKey, setPeriodKey] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -56,6 +59,7 @@ export function EditInstallmentDialog({
   React.useEffect(() => {
     if (!open || !current) return;
     setAmount((current.amountCents / 100).toFixed(2));
+    setPeriodKey(`${current.period.year}-${current.period.month}-${current.period.half}`);
     setMode("extend");
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo importa al abrir.
@@ -81,13 +85,33 @@ export function EditInstallmentDialog({
   const same = preview.extend.map((i) => i.amountCents).join() === preview.spread.map((i) => i.amountCents).join();
   const shown = mode === "spread" ? preview.spread : preview.extend;
   const pl = (p: Period) => `${monthShort(lang, p.month)} ${p.year} · ${p.half === 1 ? "1ra" : "2da"}`;
+  const periods = React.useMemo(() => {
+    if (!current) return [];
+    const now = currentPeriod();
+    const result: Period[] = [];
+    let period = previousPeriod(now.year, now.month, now.half);
+    for (let i = 0; i < 30; i++) {
+      result.push(period);
+      period = nextPeriod(period);
+    }
+    if (!result.some((p) => `${p.year}-${p.month}-${p.half}` === `${current.period.year}-${current.period.month}-${current.period.half}`)) {
+      result.push(current.period);
+    }
+    return result.sort((a, b) => periodOrdinal(a.year, a.month, a.half) - periodOrdinal(b.year, b.month, b.half));
+  }, [current]);
+  const selectedPeriod = periods.find((p) => `${p.year}-${p.month}-${p.half}` === periodKey) ?? null;
 
   async function onSubmit() {
     if (!ledgerEntryId) return;
     setSubmitting(true);
     setError(null);
     try {
-      await reflowLoanInstallmentAction({ loanId, employeeId, ledgerEntryId, newAmountCents: cents, mode });
+      if (current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)) {
+        await moveLoanInstallmentAction({ loanId, ledgerEntryId, period: selectedPeriod });
+      }
+      if (current && cents !== current.amountCents) {
+        await reflowLoanInstallmentAction({ loanId, employeeId, ledgerEntryId, newAmountCents: cents, mode });
+      }
       toast.success(tt("loan_edit_saved"));
       onOpenChange(false);
       onSaved();
@@ -111,6 +135,17 @@ export function EditInstallmentDialog({
       wide
     >
       {current && <p className="text-sm text-muted-foreground">{pl(current.period)}</p>}
+      <Field label={tt("loan_edit_f_period")}>
+        <Select value={periodKey} onValueChange={setPeriodKey}>
+          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-64">
+            {periods.map((p) => {
+              const key = `${p.year}-${p.month}-${p.half}`;
+              return <SelectItem key={key} value={key}>{pl(p)}</SelectItem>;
+            })}
+          </SelectContent>
+        </Select>
+      </Field>
       <Field label={tt("loan_edit_f_amount")}>
         <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
       </Field>

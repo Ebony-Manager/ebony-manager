@@ -1048,6 +1048,44 @@ export async function reflowLoanInstallment(input: {
   }
 }
 
+/** Mueve una sola cuota pendiente a otra quincena sin cambiar monto ni saldo. */
+export async function moveLoanInstallment(input: {
+  loanId: string;
+  ledgerEntryId: string;
+  period: Period;
+}): Promise<void> {
+  const supabase = await createClient();
+  const { data: row, error } = await supabase
+    .from("payroll_ledger_entries")
+    .select("id, employee_id, category, amount_cents, payroll_entry_id")
+    .eq("id", input.ledgerEntryId)
+    .eq("loan_id", input.loanId)
+    .eq("direction", "payment")
+    .single();
+  if (error) throw new Error(error.message);
+  if (!row.payroll_entry_id) throw new Error("La cuota no está asociada a una quincena");
+
+  const { data: oldEntry, error: oldError } = await supabase
+    .from("payroll_entries")
+    .select("id, paid")
+    .eq("id", row.payroll_entry_id)
+    .single();
+  if (oldError) throw new Error(oldError.message);
+  if (oldEntry.paid) throw new Error("No se puede mover una cuota ya pagada");
+
+  const entry = await upsertEntry({
+    employeeId: row.employee_id,
+    periodYear: input.period.year,
+    periodMonth: input.period.month,
+    periodHalf: input.period.half,
+  });
+  const { error: updateError } = await supabase
+    .from("payroll_ledger_entries")
+    .update({ payroll_entry_id: entry.id, entry_date: periodApproxDate(input.period).toISOString().slice(0, 10) })
+    .eq("id", input.ledgerEntryId);
+  if (updateError) throw new Error(updateError.message);
+}
+
 /** Borra un préstamo/adelanto/herramienta/daño COMPLETO: sus cuotas (pagadas
  *  o no), el monto otorgado y el préstamo mismo. Para un registro que nunca
  *  debió existir; para cortar uno vigente está `cancelLoan`. */

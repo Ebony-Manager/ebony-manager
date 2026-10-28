@@ -281,6 +281,15 @@ export async function reflowLoanInstallmentAction(input: {
   await payroll.reflowLoanInstallment(input);
 }
 
+export async function moveLoanInstallmentAction(input: {
+  loanId: string;
+  ledgerEntryId: string;
+  period: { year: number; month: number; half: 1 | 2 };
+}) {
+  await requireModule("planilla");
+  await payroll.moveLoanInstallment(input);
+}
+
 export async function getLoansOverviewAction() {
   await requireModule("planilla");
   return payroll.getLoansOverview();

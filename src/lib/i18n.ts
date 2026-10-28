@@ -787,6 +787,7 @@ export const strings = {
       en: "The rest of the schedule reflows automatically to keep matching the pending balance.",
     },
     loan_edit_f_amount: { es: "Monto de esta cuota", en: "This installment's amount" },
+    loan_edit_f_period: { es: "Descontar en la quincena", en: "Deduct in pay period" },
     loan_edit_amount_hint: { es: "Déjalo en 0 para saltar esta cuota.", en: "Leave it at 0 to skip this installment." },
     loan_edit_saved: { es: "Cuota actualizada", en: "Installment updated" },
 
