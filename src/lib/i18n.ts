@@ -790,6 +790,7 @@ export const strings = {
     },
     loan_edit_f_amount: { es: "Monto de esta cuota", en: "This installment's amount" },
     loan_edit_f_period: { es: "Descontar en la quincena", en: "Deduct in pay period" },
+    loan_move_installment: { es: "Mover cuota pendiente", en: "Move pending installment" },
     loan_edit_amount_hint: { es: "Déjalo en 0 para saltar esta cuota.", en: "Leave it at 0 to skip this installment." },
     loan_edit_saved: { es: "Cuota actualizada", en: "Installment updated" },
 

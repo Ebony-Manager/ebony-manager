@@ -3,27 +3,21 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { LedgerCategory, PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
+import type { PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { buildLoanStatement } from "@/lib/planilla/loan-statement";
-import { currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
+import { currentPeriod, formatCents } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getLedgerEntriesAction } from "./actions";
-import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { AddChargeDialog } from "./add-charge-dialog";
-import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { LoansPanel } from "./loans-panel";
-
-type View = "quincena" | "month" | "concept";
+import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 
 /**
  * "Préstamos y descuentos" del perfil del empleado: todo lo que se le
- * otorgó y todo lo que se le ha descontado, con su fecha y el saldo corrido,
- * en tres lecturas — por quincena (cada movimiento), por mes y por concepto
- * (préstamo / adelanto / herramienta / daño / InDrive). "Agregar" abre la
- * misma ventana que en Pagos; editar o cancelar cuotas sigue en el detalle
- * del empleado (Pagos → Quincena).
+ * muestra las obligaciones con sus cuotas. El estado de cuenta queda plegado
+ * al final para consultar el historial completo de movimientos.
  */
 export function EmployeeLoansSection({
   employee,
@@ -37,13 +31,9 @@ export function EmployeeLoansSection({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const catLabel = (c: LedgerCategory) => tt(LEDGER_CATEGORY_LABEL_KEY[c] as keyof typeof strings.planilla);
-  const quincenaLabel = (p: { year: number; month: number; half: 1 | 2 }) =>
-    `${monthLabel(lang, p.month).slice(0, 3)} ${p.half}Q ${p.year}`;
 
   const [entries, setEntries] = React.useState<PayrollLedgerEntry[] | null>(initialEntries ?? null);
   const [failed, setFailed] = React.useState(false);
-  const [view, setView] = React.useState<View>("quincena");
   const [addOpen, setAddOpen] = React.useState(false);
   // Sube al agregar algo: vuelve a leer los movimientos.
   const [reloads, setReloads] = React.useState(0);
@@ -66,22 +56,11 @@ export function EmployeeLoansSection({
 
   const statement = React.useMemo(() => (entries ? buildLoanStatement(entries, currentPeriod()) : null), [entries]);
 
-  const views: { key: View; label: string }[] = [
-    { key: "quincena", label: tt("ls_view_quincena") },
-    { key: "month", label: tt("ls_view_month") },
-    { key: "concept", label: tt("ls_view_concept") },
-  ];
-  const th = "px-3 py-2 font-medium";
-  const num = "px-3 py-1.5 text-right tabular-nums";
-
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">{tt("loans_title")}</h2>
         <div className="flex flex-wrap items-center gap-1">
-          {statement && statement.movements.length > 0 && (
-            <SegmentedFilter value={view} onChange={setView} options={views.map((v) => ({ value: v.key, label: v.label }))} />
-          )}
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="size-3.5" />
             {t(lang, strings.pagos.add)}
@@ -117,87 +96,37 @@ export function EmployeeLoansSection({
           </div>
 
           <div className="overflow-x-auto">
-            {view === "quincena" && (
               <table className="w-full min-w-[560px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className={th}>{tt("ls_col_period")}</th>
-                    <th className={th}>{tt("ls_col_concept")}</th>
-                    <th className={th}>{tt("ls_col_movement")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_amount")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_balance")}</th>
+                    <th className="px-3 py-2 text-left font-medium">{tt("ls_col_period")}</th>
+                    <th className="px-3 py-2 text-left font-medium">{tt("ls_col_concept")}</th>
+                    <th className="px-3 py-2 text-left font-medium">{tt("ls_col_movement")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{tt("ls_col_amount")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{tt("ls_col_balance")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {statement.movements.map((m) => (
+            {statement.movements.map((m) => (
                     <tr
                       key={m.id}
                       className={`border-b border-border last:border-0 ${m.occurred ? "text-foreground" : "text-muted-foreground"}`}
                     >
-                      <td className="px-3 py-1.5">{quincenaLabel(m.period)}</td>
-                      <td className="px-3 py-1.5">{catLabel(m.category)}</td>
+                      <td className="px-3 py-1.5">{`${new Date(m.period.year, m.period.month - 1).toLocaleString(lang === "en" ? "en-US" : "es", { month: "short" })} ${m.period.half}Q ${m.period.year}`}</td>
+                      <td className="px-3 py-1.5">{tt(LEDGER_CATEGORY_LABEL_KEY[m.category] as keyof typeof strings.planilla)}</td>
                       <td className="px-3 py-1.5">{m.direction === "debt" ? tt("ls_type_debt") : tt("ls_type_payment")}</td>
-                      <td className={num}>
+                      <td className="px-3 py-1.5 text-right tabular-nums">
                         {m.direction === "debt" ? "" : "−"}
                         {formatCents(m.amountCents)}
                       </td>
-                      <td className={num}>{formatCents(m.balanceCents)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums">{formatCents(m.balanceCents)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-
-            {view === "month" && (
-              <table className="w-full min-w-[480px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className={th}>{tt("ls_col_month")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_given")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_paid")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_balance")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statement.monthly.map((r) => (
-                    <tr key={`${r.year}-${r.month}`} className="border-b border-border last:border-0">
-                      <td className="px-3 py-1.5">
-                        {monthLabel(lang, r.month)} {r.year}
-                      </td>
-                      <td className={num}>{r.debtCents ? formatCents(r.debtCents) : "–"}</td>
-                      <td className={num}>{r.paymentCents ? formatCents(r.paymentCents) : "–"}</td>
-                      <td className={num}>{formatCents(r.balanceCents)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {view === "concept" && (
-              <table className="w-full min-w-[480px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className={th}>{tt("ls_col_concept")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_given")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_paid")}</th>
-                    <th className={`${th} text-right`}>{tt("ls_col_balance")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statement.byCategory.map((r) => (
-                    <tr key={r.category} className="border-b border-border last:border-0">
-                      <td className="px-3 py-1.5">{catLabel(r.category)}</td>
-                      <td className={num}>{formatCents(r.debtCents)}</td>
-                      <td className={num}>{formatCents(r.paymentCents)}</td>
-                      <td className={num}>{formatCents(r.balanceCents)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
           </div>
 
-          {view === "quincena" && statement.movements.some((m) => !m.occurred) && (
+          {statement.movements.some((m) => !m.occurred) && (
             <p className="text-xs text-muted-foreground">{tt("ls_future_hint")}</p>
           )}
           </div>

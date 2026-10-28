@@ -33,6 +33,7 @@ export function EditInstallmentDialog({
   open,
   onOpenChange,
   onSaved,
+  moveOnly = false,
 }: {
   loanId: string;
   employeeId: string;
@@ -43,11 +44,13 @@ export function EditInstallmentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  moveOnly?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
 
-  const current = pending.find((p) => p.ledgerEntryId === ledgerEntryId) ?? null;
+  const [installment, setInstallment] = React.useState<PendingInstallment | null>(null);
+  const current = installment ?? pending.find((p) => p.ledgerEntryId === ledgerEntryId) ?? null;
 
   const [amount, setAmount] = React.useState("");
   const [mode, setMode] = React.useState<ReflowMode>("extend");
@@ -57,9 +60,12 @@ export function EditInstallmentDialog({
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; la cuota editada cambia entre aperturas. */
   React.useEffect(() => {
-    if (!open || !current) return;
-    setAmount((current.amountCents / 100).toFixed(2));
-    setPeriodKey(`${current.period.year}-${current.period.month}-${current.period.half}`);
+    if (!open || !ledgerEntryId) return;
+    const selected = pending.find((p) => p.ledgerEntryId === ledgerEntryId);
+    if (!selected) return;
+    setInstallment(selected);
+    setAmount((selected.amountCents / 100).toFixed(2));
+    setPeriodKey(`${selected.period.year}-${selected.period.month}-${selected.period.half}`);
     setMode("extend");
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo importa al abrir.
@@ -81,7 +87,7 @@ export function EditInstallmentDialog({
     }
   }, [pending, current, cents]);
 
-  const changed = current ? cents !== current.amountCents : false;
+  const changed = current ? cents !== current.amountCents && !moveOnly : false;
   const same = preview.extend.map((i) => i.amountCents).join() === preview.spread.map((i) => i.amountCents).join();
   const shown = mode === "spread" ? preview.spread : preview.extend;
   const pl = (p: Period) => `${monthShort(lang, p.month)} ${p.year} · ${p.half === 1 ? "1ra" : "2da"}`;
@@ -109,7 +115,7 @@ export function EditInstallmentDialog({
       if (current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)) {
         await moveLoanInstallmentAction({ loanId, ledgerEntryId, period: selectedPeriod });
       }
-      if (current && cents !== current.amountCents) {
+      if (current && cents !== current.amountCents && !moveOnly) {
         await reflowLoanInstallmentAction({ loanId, employeeId, ledgerEntryId, newAmountCents: cents, mode });
       }
       toast.success(tt("loan_edit_saved"));
@@ -126,7 +132,7 @@ export function EditInstallmentDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={tt("loan_edit_dlg_title")}
+      title={tt(moveOnly ? "loan_move_installment" : "loan_edit_dlg_title")}
       description={tt("loan_edit_dlg_desc")}
       onSubmit={onSubmit}
       submitting={submitting}
@@ -146,10 +152,10 @@ export function EditInstallmentDialog({
           </SelectContent>
         </Select>
       </Field>
-      <Field label={tt("loan_edit_f_amount")}>
+      {!moveOnly && <Field label={tt("loan_edit_f_amount")}>
         <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
-      </Field>
-      <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>
+      </Field>}
+      {!moveOnly && <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>}
 
       {changed && !same && (
         <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">

@@ -38,6 +38,7 @@ function LoanCard({
   const [skippingId, setSkippingId] = React.useState<string | null>(null);
   const [installmentsOpen, setInstallmentsOpen] = React.useState(false);
   const [editingInstallment, setEditingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
+  const [movingInstallment, setMovingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
   const [editLoanOpen, setEditLoanOpen] = React.useState(false);
 
   const sorted = [...loan.installments].sort((a, b) => ordinalOf(a.period) - ordinalOf(b.period));
@@ -49,6 +50,7 @@ function LoanCard({
   const isCancelled = loan.status === "cancelled";
   const canCancel = !isCancelled && Boolean(nextPending);
   const canEdit = !isCancelled && paidCount === 0;
+  const canMovePending = !isCancelled && pending.length > 0;
   const pendingBalanceCents = pending.reduce((sum, i) => sum + i.amountCents, 0);
   const progress = sorted.length > 0 ? Math.round((paidCount / sorted.length) * 100) : 0;
 
@@ -199,7 +201,7 @@ function LoanCard({
         </p>
       )}
       {loan.notes && <p className="mt-1 italic text-muted-foreground">{loan.notes}</p>}
-      {!isCancelled && !canEdit && paidCount > 0 && (
+      {!isCancelled && !canEdit && paidCount > 0 && !canMovePending && (
         <p className="mt-1 text-[11px] text-muted-foreground">{tt("loan_edit_locked")}</p>
       )}
 
@@ -230,8 +232,8 @@ function LoanCard({
                           variant="ghost"
                           size="icon"
                           className="size-5 text-muted-foreground hover:text-foreground"
-                          title={tt("loan_installment_edit")}
-                          onClick={() => setEditingInstallment(inst)}
+                          title={tt(isAdelanto ? "loan_move_installment" : "loan_installment_edit")}
+                          onClick={() => isAdelanto ? setMovingInstallment(inst) : setEditingInstallment(inst)}
                         >
                           <Pencil className="size-3" />
                         </Button>
@@ -263,6 +265,16 @@ function LoanCard({
         open={editingInstallment !== null}
         onOpenChange={(next) => !next && setEditingInstallment(null)}
         onSaved={onChanged}
+      />
+      <EditInstallmentDialog
+        loanId={loan.id}
+        employeeId={loan.employeeId}
+        ledgerEntryId={movingInstallment?.ledgerEntryId ?? null}
+        pending={pending.map((i) => ({ ledgerEntryId: i.ledgerEntryId, period: i.period, amountCents: i.amountCents }))}
+        open={movingInstallment !== null}
+        onOpenChange={(next) => !next && setMovingInstallment(null)}
+        onSaved={onChanged}
+        moveOnly
       />
       <LoanDialog
         employeeId={employeeId}
