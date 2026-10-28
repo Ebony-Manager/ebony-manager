@@ -9,7 +9,7 @@ import { getEmployeePhotoUrls, getPayrollEmployee } from "@/services/payroll-emp
 import { signedDocumentUrl } from "@/services/photos";
 import { getPayrollPositions } from "@/services/payroll-positions";
 import { getSalaryChanges } from "@/services/payroll-salary";
-import { getEmployeeAnnualDetail, getLedgerEntries } from "@/services/payroll";
+import { getEmployeeAnnualDetail, getLedgerEntries, getLoansForEmployee } from "@/services/payroll";
 import { parseEmployeeFrom } from "@/lib/personal/paths";
 import { EmployeeProfileView } from "@/app/(app)/planilla/employee-profile-view";
 
@@ -40,12 +40,13 @@ export default async function EmployeeDetailPage({
   // Todo lo que pinta el perfil se pide EN PARALELO desde el servidor (un
   // solo viaje de espera), en vez de que cada sección lo pida por su cuenta
   // después de pintarse, una detrás de otra.
-  const [employee, positions, detail, ledger, salaryChanges] = await Promise.all([
+  const [employee, positions, detail, ledger, salaryChanges, loans] = await Promise.all([
     getPayrollEmployee(id),
     getPayrollPositions(),
     getEmployeeAnnualDetail(id, year),
     getLedgerEntries(id),
     getSalaryChanges(id),
+    getLoansForEmployee(id),
   ]);
   if (!employee) notFound();
 
@@ -62,6 +63,7 @@ export default async function EmployeeDetailPage({
       documentUrl={documentUrl}
       from={parseEmployeeFrom(from)}
       initial={{ detail: { year, rows: detail }, ledger, salaryChanges }}
+      loans={loans}
     />
   );
 }

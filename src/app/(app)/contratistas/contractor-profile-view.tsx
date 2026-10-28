@@ -28,6 +28,7 @@ import type {
   ContractorAllocation,
   ContractorContract,
   ContractorLedgerEntry,
+  ContractorLoanSummary,
   LaborRate,
   Project,
 } from "@/types/contractors";
@@ -91,6 +92,7 @@ import {
   deleteLedgerEntryAction,
   getContractorAllocationsAction,
   getContractorLedgerAction,
+  getContractorLoansAction,
   getContractsAction,
   getProjectsAction,
   updateContractorAction,
@@ -200,6 +202,7 @@ export function ContractorProfileView({
   photoUrl: initialPhotoUrl,
   documentUrl,
   initialEntries,
+  initialLoans,
   initialProjects,
   initialContracts,
   initialAllocations,
@@ -211,6 +214,7 @@ export function ContractorProfileView({
   /** URL firmada del documento (cédula / pasaporte), si tiene. */
   documentUrl: string | null;
   initialEntries: ContractorLedgerEntry[];
+  initialLoans: ContractorLoanSummary[];
   initialProjects: Project[];
   /** Contratos de este contratista. */
   initialContracts: ContractorContract[];
@@ -221,10 +225,12 @@ export function ContractorProfileView({
   from?: ContractorFrom;
 }) {
   const { lang } = useLang();
-  const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
+  const tt = (k: keyof typeof strings.contratistas | keyof typeof strings.planilla) =>
+    t(lang, k in strings.planilla ? strings.planilla[k as keyof typeof strings.planilla] : strings.contratistas[k as keyof typeof strings.contratistas]);
   const router = useRouter();
 
   const [entries, setEntries] = React.useState<ContractorLedgerEntry[]>(initialEntries);
+  const [loans, setLoans] = React.useState<ContractorLoanSummary[]>(initialLoans);
   const [projects, setProjects] = React.useState<Project[]>(initialProjects);
   const [contracts, setContracts] = React.useState<ContractorContract[]>(initialContracts);
   const [allocations, setAllocations] = React.useState<ContractorAllocation[]>(initialAllocations);
@@ -324,6 +330,7 @@ export function ContractorProfileView({
   // recargan los tres juntos.
   const load = React.useCallback(() => {
     getContractorLedgerAction(contractorId).then(setEntries);
+    getContractorLoansAction(contractorId).then(setLoans);
     getContractsAction({ contractorId }).then(setContracts);
     getContractorAllocationsAction(contractorId).then(setAllocations);
   }, [contractorId]);
@@ -336,6 +343,9 @@ export function ContractorProfileView({
   React.useEffect(() => {
     setEntries(initialEntries);
   }, [initialEntries]);
+  React.useEffect(() => {
+    setLoans(initialLoans);
+  }, [initialLoans]);
   React.useEffect(() => {
     setProjects(initialProjects);
   }, [initialProjects]);
@@ -768,6 +778,31 @@ export function ContractorProfileView({
       </div>
 
       {/* Estado de cuenta */}
+      {loans.length > 0 && (
+        <section className="flex flex-col gap-3 border-t border-border pt-4">
+          <h2 className="text-sm font-medium text-foreground">{tt("loan_progress_title")}</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {loans.map((loan: ContractorLoanSummary) => {
+              const remaining = loan.status === "cancelled" ? 0 : loan.pendingCents;
+              const total = loan.principalCents + loan.interestCents;
+              const progress = total > 0 ? Math.min(100, Math.round((loan.paidCents / total) * 100)) : 0;
+              const type = tt(({ prestamo: "loan_type_prestamo", adelanto: "loan_type_adelanto", herramienta: "loan_type_herramienta", dano: "loan_type_dano", indrive: "loan_type_indrive", otro: "loan_type_otro" } as const)[loan.category]);
+              return (
+                <article key={loan.id} className="rounded-lg border border-border p-3 text-xs">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><p className="font-medium text-foreground">{type} · {formatCents(loan.principalCents)}</p><p className="mt-0.5 text-muted-foreground">{tt("loan_requested")} {formatDate(lang, loan.requestDate)}</p></div>
+                    <span className="tabular-nums font-medium text-foreground">{tt("loan_balance_remaining")}: {formatCents(remaining)}</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full bg-walnut" style={{ width: `${progress}%` }} /></div><span className="text-muted-foreground">{loan.paidCount} {tt("loan_of")} {loan.installmentCount}</span></div>
+                  {loan.next && <p className="mt-2 text-muted-foreground">{tt("loan_next_installment")} {formatDate(lang, loan.next.date)} · {formatCents(loan.next.amountCents)}</p>}
+                  <details className="mt-2 border-t border-border pt-2"><summary className="cursor-pointer font-medium text-muted-foreground">{tt("loan_installments_toggle")}</summary><ul className="mt-1 space-y-1">{loan.installments.map((installment, index) => <li key={`${loan.id}-${installment.entryDate}-${index}`} className="flex justify-between text-muted-foreground"><span>{formatDate(lang, installment.entryDate)} · {tt(installment.paid ? "loan_installment_paid_badge" : "loan_pending")}</span><span className="tabular-nums">{formatCents(installment.amountCents)}</span></li>)}</ul></details>
+                  {loan.notes && <p className="mt-2 italic text-muted-foreground">{loan.notes}</p>}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>

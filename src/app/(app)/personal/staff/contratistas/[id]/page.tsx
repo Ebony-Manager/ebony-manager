@@ -8,6 +8,7 @@ import {
   getContractor,
   getContractorAllocations,
   getContractorLedger,
+  getContractorLoans,
   getContractorPhotoUrls,
   getContracts,
   getLaborRates,
@@ -43,7 +44,7 @@ export default async function ContractorDetailPage({
   const contractor = await getContractor(id);
   if (!contractor) notFound();
 
-  const [entries, projects, laborRates, photoUrls, documentUrl, contracts, allocations] = await Promise.all([
+  const [entries, projects, laborRates, photoUrls, documentUrl, contracts, allocations, loans] = await Promise.all([
     getContractorLedger(id),
     getProjects(),
     getLaborRates(),
@@ -51,6 +52,7 @@ export default async function ContractorDetailPage({
     signedDocumentUrl(contractor.idDocumentPath),
     getContracts({ contractorId: id }),
     getContractorAllocations(id),
+    getContractorLoans(id),
   ]);
 
   return (
@@ -59,6 +61,7 @@ export default async function ContractorDetailPage({
       photoUrl={photoUrls[contractor.id] ?? null}
       documentUrl={documentUrl}
       initialEntries={entries}
+      initialLoans={loans}
       initialProjects={projects}
       initialContracts={contracts}
       initialAllocations={allocations}

@@ -81,6 +81,11 @@ export async function getContractorLedgerAction(contractorId: string) {
   return contractors.getContractorLedger(contractorId);
 }
 
+export async function getContractorLoansAction(contractorId: string) {
+  await requireModule("contratistas");
+  return contractors.getContractorLoans(contractorId);
+}
+
 export async function createLedgerEntryAction(input: contractors.UpsertLedgerEntryInput) {
   await requireModule("contratistas");
   const entry = await contractors.createLedgerEntry(input);

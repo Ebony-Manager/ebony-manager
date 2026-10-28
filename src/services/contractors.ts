@@ -1460,10 +1460,13 @@ export async function deleteContractorLoan(loanId: string): Promise<void> {
 
 /** Cada préstamo con el avance de sus cuotas, a partir de los movimientos ya leídos. */
 async function getContractorLoanSummaries(
-  rows: { loan_id: string | null; entry_date: string; amount_cents: number }[]
+  rows: { loan_id: string | null; entry_date: string; amount_cents: number }[],
+  contractorId?: string
 ): Promise<ContractorLoanSummary[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("contractor_loans").select("*").order("request_date", { ascending: false });
+  let query = supabase.from("contractor_loans").select("*").order("request_date", { ascending: false });
+  if (contractorId) query = query.eq("contractor_id", contractorId);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   const today = todayInPanama();
   const byLoan = new Map<string, { entry_date: string; amount_cents: number }[]>();
@@ -1490,6 +1493,51 @@ async function getContractorLoanSummaries(
       dueCount: due.length,
       dueCents: due.reduce((s, c) => s + c.amount_cents, 0),
       pendingCents: pending.reduce((s, c) => s + c.amount_cents, 0),
+      paidCount: due.length,
+      paidCents: due.reduce((s, c) => s + c.amount_cents, 0),
+      installments: cuotas.map((c) => ({ entryDate: c.entry_date, amountCents: c.amount_cents, paid: c.entry_date <= today })),
+      next: pending[0] ? { date: pending[0].entry_date, amountCents: pending[0].amount_cents } : null,
+    };
+  });
+}
+
+/** Préstamos y cuotas del contratista para mostrar el avance en su ficha. */
+export async function getContractorLoans(contractorId: string): Promise<ContractorLoanSummary[]> {
+  const supabase = await createClient();
+  const [loanRows, ledgerRows] = await Promise.all([
+    supabase.from("contractor_loans").select("*").eq("contractor_id", contractorId).order("request_date", { ascending: false }),
+    supabase.from("contractor_ledger_entries").select("loan_id, entry_date, amount_cents").eq("contractor_id", contractorId).not("loan_id", "is", null).order("entry_date"),
+  ]);
+  if (loanRows.error) throw new Error(loanRows.error.message);
+  if (ledgerRows.error) throw new Error(ledgerRows.error.message);
+  const today = todayInPanama();
+  const byLoan = new Map<string, { entry_date: string; amount_cents: number }[]>();
+  for (const row of ledgerRows.data ?? []) {
+    if (!row.loan_id) continue;
+    const list = byLoan.get(row.loan_id) ?? [];
+    list.push(row);
+    byLoan.set(row.loan_id, list);
+  }
+  return (loanRows.data ?? []).map((l) => {
+    const installments = (byLoan.get(l.id) ?? []).sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+    const due = installments.filter((i) => i.entry_date <= today);
+    const pending = installments.filter((i) => i.entry_date > today);
+    return {
+      id: l.id,
+      contractorId: l.contractor_id,
+      category: l.category as ContractorLoanSummary["category"],
+      requestDate: l.request_date,
+      principalCents: l.principal_cents,
+      interestCents: l.interest_cents,
+      status: l.status === "cancelled" ? "cancelled" as const : "active" as const,
+      notes: l.notes,
+      installmentCount: installments.length,
+      dueCount: due.length,
+      dueCents: due.reduce((sum, i) => sum + i.amount_cents, 0),
+      pendingCents: pending.reduce((sum, i) => sum + i.amount_cents, 0),
+      paidCount: due.length,
+      paidCents: due.reduce((sum, i) => sum + i.amount_cents, 0),
+      installments: installments.map((i) => ({ entryDate: i.entry_date, amountCents: i.amount_cents, paid: i.entry_date <= today })),
       next: pending[0] ? { date: pending[0].entry_date, amountCents: pending[0].amount_cents } : null,
     };
   });

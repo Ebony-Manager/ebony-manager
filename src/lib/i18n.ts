@@ -725,6 +725,8 @@ export const strings = {
 
     // Préstamos / adelantos / ledger
     loans_title: { es: "Préstamos y descuentos", en: "Loans & deductions" },
+    loan_progress_title: { es: "Avance de préstamos y descuentos", en: "Loan and deduction progress" },
+    ls_ledger_detail: { es: "Ver estado de cuenta", en: "View account statement" },
     loans_balance: { es: "Saldo actual", en: "Current balance" },
     loan_new_prestamo: { es: "Préstamo", en: "Loan" },
     loan_new_adelanto: { es: "Adelanto", en: "Advance" },

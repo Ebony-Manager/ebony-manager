@@ -196,6 +196,9 @@ export interface ContractorLoanSummary {
   dueCents: number;
   /** Lo que falta por descontar (cuotas programadas). */
   pendingCents: number;
+  paidCount: number;
+  paidCents: number;
+  installments: { entryDate: string; amountCents: number; paid: boolean }[];
   next: { date: string; amountCents: number } | null;
 }
 

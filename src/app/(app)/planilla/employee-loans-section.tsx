@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 
-import type { LedgerCategory, PayrollEmployee, PayrollLedgerEntry } from "@/types/planilla";
+import type { LedgerCategory, PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { buildLoanStatement } from "@/lib/planilla/loan-statement";
 import { currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
@@ -13,6 +13,7 @@ import { getLedgerEntriesAction } from "./actions";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { AddChargeDialog } from "./add-charge-dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { LoansPanel } from "./loans-panel";
 
 type View = "quincena" | "month" | "concept";
 
@@ -27,10 +28,12 @@ type View = "quincena" | "month" | "concept";
 export function EmployeeLoansSection({
   employee,
   initialEntries,
+  loans,
 }: {
   employee: PayrollEmployee;
   /** Movimientos ya cargados por el servidor al abrir la página. */
   initialEntries?: PayrollLedgerEntry[];
+  loans: PayrollLoanWithSchedule[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -86,6 +89,8 @@ export function EmployeeLoansSection({
         </div>
       </div>
 
+      {loans.length > 0 && <LoansPanel employeeId={employee.id} categories={["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"]} loans={loans} onChanged={() => setReloads((n) => n + 1)} />}
+
       {failed ? (
         <p className="text-sm text-muted-foreground">{tt("load_failed")}</p>
       ) : !statement ? (
@@ -94,6 +99,9 @@ export function EmployeeLoansSection({
         <p className="text-sm text-muted-foreground">{tt("ls_empty")}</p>
       ) : (
         <>
+          <details className="rounded-lg border border-border">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-foreground">{tt("ls_ledger_detail")} · {formatCents(statement.totals.balanceTodayCents)}</summary>
+          <div className="flex flex-col gap-3 border-t border-border p-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { label: tt("ls_total_given"), value: statement.totals.debtCents },
@@ -192,6 +200,8 @@ export function EmployeeLoansSection({
           {view === "quincena" && statement.movements.some((m) => !m.occurred) && (
             <p className="text-xs text-muted-foreground">{tt("ls_future_hint")}</p>
           )}
+          </div>
+          </details>
         </>
       )}
       <AddChargeDialog

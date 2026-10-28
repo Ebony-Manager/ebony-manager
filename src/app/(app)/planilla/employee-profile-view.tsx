@@ -7,7 +7,7 @@ import { LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react
 
 import type { ComponentProps } from "react";
 
-import type { PayrollEmployee, PayrollLedgerEntry, PayrollPosition, PayrollSalaryChange } from "@/types/planilla";
+import type { PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule, PayrollPosition, PayrollSalaryChange } from "@/types/planilla";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -81,6 +81,7 @@ export function EmployeeProfileView({
   photoUrl: initialPhotoUrl,
   documentUrl,
   initial,
+  loans,
   from,
 }: {
   employee: PayrollEmployee;
@@ -98,6 +99,7 @@ export function EmployeeProfileView({
     ledger: PayrollLedgerEntry[];
     salaryChanges: PayrollSalaryChange[];
   };
+  loans: PayrollLoanWithSchedule[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -332,7 +334,7 @@ export function EmployeeProfileView({
 
         <EmployeeStatementSection employee={employee} initialDetail={initial?.detail} />
 
-        <EmployeeLoansSection employee={employee} initialEntries={initial?.ledger} />
+        <EmployeeLoansSection employee={employee} initialEntries={initial?.ledger} loans={loans} />
 
         <SalaryHistorySection employee={employee} initialChanges={initial?.salaryChanges} />
       </div>
