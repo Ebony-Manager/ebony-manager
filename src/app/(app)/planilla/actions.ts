@@ -7,6 +7,7 @@ import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as employees from "@/services/payroll-employees";
 import * as payroll from "@/services/payroll";
 import * as attendance from "@/services/attendance";
+import { dispatchPendingPush } from "@/lib/notifications/push";
 import * as salary from "@/services/payroll-salary";
 import * as positions from "@/services/payroll-positions";
 import type { RawPunch } from "@/lib/attendance/types";
@@ -96,11 +97,13 @@ export async function resolveAttendanceDayAction(input: {
     throw new Error("Datos inválidos");
   }
   await attendance.setResolution(input, profile.id);
+  await dispatchPendingPush().catch(() => undefined);
 }
 
 export async function unresolveAttendanceDayAction(employeeId: string, date: string) {
   await requireModule("asistencia");
   await attendance.deleteResolution(employeeId, date);
+  await dispatchPendingPush().catch(() => undefined);
 }
 
 /** Empleados activos para la asistencia sin Planilla (sin salarios). */

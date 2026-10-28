@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { useLang } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { t, strings } from "@/lib/i18n";
@@ -115,6 +115,17 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
 
           {/* Al pie: Settings (engranaje) y el acceso al perfil. */}
           <div className="mt-auto flex flex-col items-center gap-1.5">
+            {role === "admin" && (
+              <Link
+                href="/settings/notificaciones"
+                title={t(lang, strings.nav.notificaciones)}
+                aria-label={t(lang, strings.nav.notificaciones)}
+                className={`relative ${railButton} ${pathname === "/settings/notificaciones" ? railActive : railIdle}`}
+              >
+                <Bell size={22} strokeWidth={1.6} />
+                <PendingBadge count={pending.notices} className="absolute -top-1 -right-1" title={t(lang, strings.nav.pending)} />
+              </Link>
+            )}
             {panelLink(settingsPanel)}
             <UserMenu />
           </div>

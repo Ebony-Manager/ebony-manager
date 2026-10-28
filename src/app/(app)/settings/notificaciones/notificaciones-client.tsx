@@ -12,6 +12,7 @@ import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { markNoticesSeenAction, saveNotificationSettingAction } from "./actions";
+import { PushControls } from "./push-controls";
 import { EmptyState, PAGE_CLASS, PageHeader, SectionHeader } from "@/components/shared/page-header";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
@@ -41,6 +42,8 @@ export function NotificacionesClient({ settings, users, notices }: { settings: N
   return (
     <div className={PAGE_CLASS}>
       <PageHeader title={tn("title")} subtitle={tn("subtitle")} />
+
+      <PushControls />
 
       <section className="flex flex-col gap-2">
         <SectionHeader title={tn("notices_title")} subtitle={tn("notices_hint")} />

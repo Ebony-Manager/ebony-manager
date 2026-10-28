@@ -57,8 +57,13 @@ export interface AppNotice {
 
 export async function getNotices(limit = 50): Promise<AppNotice[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("app_notifications").select("*").order("created_at", { ascending: false }).limit(limit);
+  const [{ data, error }, { data: reads, error: readsError }] = await Promise.all([
+    supabase.from("app_notifications").select("*").order("created_at", { ascending: false }).limit(limit),
+    supabase.from("app_notification_reads").select("notification_id,read_at"),
+  ]);
   if (error) throw new Error(error.message);
+  if (readsError) throw new Error(readsError.message);
+  const readAt = new Map((reads ?? []).map((r) => [r.notification_id, r.read_at]));
   return (data ?? []).map((r) => ({
     id: r.id,
     kind: r.kind,
@@ -67,20 +72,36 @@ export async function getNotices(limit = 50): Promise<AppNotice[]> {
     href: r.href,
     actorName: r.actor_name,
     createdAt: r.created_at,
-    seenAt: r.seen_at,
+    seenAt: readAt.get(r.id) ?? null,
   }));
 }
 
-/** Cuántos avisos no ha visto ningún admin (el número rojo del menú). */
+/** Cuántos avisos no ha visto el admin actual (el número rojo del menú). */
 export async function getUnseenNoticeCount(): Promise<number> {
   const supabase = await createClient();
-  const { count, error } = await supabase.from("app_notifications").select("id", { count: "exact", head: true }).is("seen_at", null);
+  const [{ data: notices, error }, { data: reads, error: readsError }] = await Promise.all([
+    supabase.from("app_notifications").select("id"),
+    supabase.from("app_notification_reads").select("notification_id"),
+  ]);
   if (error) throw new Error(error.message);
-  return count ?? 0;
+  if (readsError) throw new Error(readsError.message);
+  const read = new Set((reads ?? []).map((r) => r.notification_id));
+  return (notices ?? []).filter((n) => !read.has(n.id)).length;
 }
 
 export async function markNoticesSeen(): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("app_notifications").update({ seen_at: new Date().toISOString() }).is("seen_at", null);
+  const [{ data: notices, error: noticesError }, { data: userData, error: userError }] = await Promise.all([
+    supabase.from("app_notifications").select("id"),
+    supabase.auth.getUser(),
+  ]);
+  if (noticesError) throw new Error(noticesError.message);
+  if (userError) throw new Error(userError.message);
+  const userId = userData.user?.id;
+  if (!userId || !notices?.length) return;
+  const { error } = await supabase.from("app_notification_reads").upsert(
+    notices.map((n) => ({ notification_id: n.id, user_id: userId, read_at: new Date().toISOString() })),
+    { onConflict: "notification_id,user_id" },
+  );
   if (error) throw new Error(error.message);
 }

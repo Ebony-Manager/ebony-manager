@@ -26,6 +26,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_notification_reads: {
+        Row: {
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "app_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_notification_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_notifications: {
         Row: {
           actor_id: string | null
@@ -35,6 +68,7 @@ export type Database = {
           href: string | null
           id: string
           kind: string
+          push_sent_at: string | null
           seen_at: string | null
           title: string
         }
@@ -46,6 +80,7 @@ export type Database = {
           href?: string | null
           id?: string
           kind: string
+          push_sent_at?: string | null
           seen_at?: string | null
           title: string
         }
@@ -57,6 +92,7 @@ export type Database = {
           href?: string | null
           id?: string
           kind?: string
+          push_sent_at?: string | null
           seen_at?: string | null
           title?: string
         }
@@ -1371,6 +1407,47 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
