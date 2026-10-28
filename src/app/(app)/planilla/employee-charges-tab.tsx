@@ -39,13 +39,11 @@ export function EmployeeChargesTab({
 }) {
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
-  const [filter, setFilter] = React.useState<ChargeTypeFilter>("all");
   const [addOpen, setAddOpen] = React.useState(false);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <ChargeTypeChips value={filter} onChange={setFilter} />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <Plus className="size-3.5" />
           {tg("add")}
@@ -54,7 +52,7 @@ export function EmployeeChargesTab({
 
       <LoansPanel
         employeeId={employee.id}
-        categories={filter === "all" ? CHARGE_TYPES : [filter]}
+        categories={CHARGE_TYPES}
         loans={loans}
         onChanged={onChanged}
       />

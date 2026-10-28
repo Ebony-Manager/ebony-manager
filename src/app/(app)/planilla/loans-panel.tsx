@@ -36,7 +36,7 @@ function LoanCard({
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const [busy, setBusy] = React.useState(false);
   const [skippingId, setSkippingId] = React.useState<string | null>(null);
-  const [installmentsOpen, setInstallmentsOpen] = React.useState(false);
+  const [installmentsOpen, setInstallmentsOpen] = React.useState(isSingleInstallment(loan.category));
   const [editingInstallment, setEditingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
   const [movingInstallment, setMovingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
   const [editLoanOpen, setEditLoanOpen] = React.useState(false);
@@ -205,7 +205,7 @@ function LoanCard({
         <p className="mt-1 text-[11px] text-muted-foreground">{tt("loan_edit_locked")}</p>
       )}
 
-      {sorted.length > 0 && !isAdelanto && (
+      {sorted.length > 0 && (
         <div className="mt-2 border-t border-border pt-2">
           <button
             type="button"
@@ -230,12 +230,13 @@ function LoanCard({
                       <span className="flex items-center gap-0.5">
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="size-5 text-muted-foreground hover:text-foreground"
+                          size={isAdelanto ? "sm" : "icon"}
+                          className={isAdelanto ? "h-7 px-2 text-[11px]" : "size-5 text-muted-foreground hover:text-foreground"}
                           title={tt(isAdelanto ? "loan_move_installment" : "loan_installment_edit")}
+                          aria-label={tt(isAdelanto ? "loan_move_installment" : "loan_installment_edit")}
                           onClick={() => isAdelanto ? setMovingInstallment(inst) : setEditingInstallment(inst)}
                         >
-                          <Pencil className="size-3" />
+                          {isAdelanto ? tt("loan_move_installment") : <Pencil className="size-3" />}
                         </Button>
                         <Button
                           variant="ghost"
@@ -257,7 +258,7 @@ function LoanCard({
         </div>
       )}
 
-      <EditInstallmentDialog
+      {editingInstallment && <EditInstallmentDialog
         loanId={loan.id}
         employeeId={loan.employeeId}
         ledgerEntryId={editingInstallment?.ledgerEntryId ?? null}
@@ -265,7 +266,7 @@ function LoanCard({
         open={editingInstallment !== null}
         onOpenChange={(next) => !next && setEditingInstallment(null)}
         onSaved={onChanged}
-      />
+      />}
       <EditInstallmentDialog
         loanId={loan.id}
         employeeId={loan.employeeId}

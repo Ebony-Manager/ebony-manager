@@ -6,7 +6,7 @@ import { ChevronDown, ExternalLink, ListTree } from "lucide-react";
 
 import type { PayrollEmployee, PayrollLoanWithSchedule } from "@/types/planilla";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { periodOrdinal, currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
+import { periodOrdinal, currentPeriod, formatCents } from "@/lib/planilla/payroll-period";
 import { monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -15,7 +15,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getEmployeeAnnualDetailAction, getLoansAction } from "./actions";
 import { EmployeeChargesTab } from "./employee-charges-tab";
 import { employeeProfilePath } from "@/lib/personal/paths";
-import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { SubTabs } from "@/components/shared/page-header";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
@@ -23,7 +22,6 @@ type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[numbe
 /** Cuántas filas se ven en el resumen antes de pedir "Ver todo". */
 const SUMMARY_COMPACT_ROWS = 6;
 
-type SummaryView = "quincena" | "month";
 
 interface SummaryLine {
   key: string;
@@ -59,7 +57,6 @@ export function EmployeeDetailSheet({
   const [breakdownOpen, setBreakdownOpen] = React.useState(false);
   const [rowsFailed, setRowsFailed] = React.useState(false);
   const [tab, setTab] = React.useState("resumen");
-  const [summaryView, setSummaryView] = React.useState<SummaryView>("quincena");
   const [showAll, setShowAll] = React.useState(false);
   const [loans, setLoans] = React.useState<PayrollLoanWithSchedule[] | null>(null);
 
@@ -199,24 +196,7 @@ export function EmployeeDetailSheet({
     loans: row.ledgerDebtCents,
     total: row.totalCents,
   }));
-  const monthLines: SummaryLine[] = months
-    .map((month) => {
-      const inMonth = withActivity.filter((r) => r.month === month);
-      if (inMonth.length === 0) return null;
-      const lines = quincenaLines.filter((l) => l.key.startsWith(`${month}-`));
-      const sum = (pick: (l: SummaryLine) => number) => lines.reduce((acc, l) => acc + pick(l), 0);
-      return {
-        key: `m-${month}`,
-        label: monthLabel(lang, month),
-        base: sum((l) => l.base),
-        extras: sum((l) => l.extras),
-        deductions: sum((l) => l.deductions),
-        loans: sum((l) => l.loans),
-        total: sum((l) => l.total),
-      } satisfies SummaryLine;
-    })
-    .filter((l): l is SummaryLine => l !== null);
-  const allLines = summaryView === "month" ? monthLines : quincenaLines;
+  const allLines = quincenaLines;
   // Lo más reciente primero y recortado: arriba lo que se está trabajando ahora.
   const orderedLines = [...allLines].reverse();
   const visibleLines = showAll ? orderedLines : orderedLines.slice(0, SUMMARY_COMPACT_ROWS);
@@ -280,14 +260,14 @@ export function EmployeeDetailSheet({
               {withActivity.length > 0 && (
                 <>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <SegmentedFilter
+                    {/* <SegmentedFilter
                       value={summaryView}
                       onChange={(v) => {
                         setSummaryView(v);
                         setShowAll(false);
                       }}
                       options={(["quincena", "month"] as const).map((v) => ({ value: v, label: tt(v === "quincena" ? "sum_view_quincena" : "sum_view_month") }))}
-                    />
+                    /> */}
                     <p className="text-xs text-muted-foreground">
                       {tt("total_year")} {year}:{" "}
                       <span className="font-medium tabular-nums text-foreground">
@@ -300,7 +280,7 @@ export function EmployeeDetailSheet({
                       <thead>
                         <tr className="border-b border-border text-left text-xs text-muted-foreground">
                           <th className="py-2 font-medium">
-                            {summaryView === "month" ? tt("sum_month_col") : tt("col_quincena")}
+                            {tt("col_quincena")}
                           </th>
                           <th className="py-2 text-right font-medium">{tt("col_base")}</th>
                           <th className="py-2 text-right font-medium">{tt("col_extras")}</th>
