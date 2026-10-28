@@ -3,17 +3,15 @@
  * Auditoría. Puro y compartido, así las dos pantallas buscan igual.
  */
 
-function fold(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
+import { normalizeSearchText } from "@/lib/search";
 
 /** ¿El nombre contiene TODAS las palabras de la búsqueda? Sin importar
  *  mayúsculas ni acentos ni el orden ("loaiza mario" encuentra "Mario
  *  Loaiza"). Búsqueda vacía -> todos. */
 export function matchesEmployeeQuery(name: string, query: string): boolean {
-  const tokens = fold(query).split(/\s+/).filter(Boolean);
+  const tokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return true;
-  const haystack = fold(name);
+  const haystack = normalizeSearchText(name);
   return tokens.every((t) => haystack.includes(t));
 }
 

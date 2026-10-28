@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { Field } from "../contratistas/field";
 import { createSupplierAction, updateSupplierAction } from "../almacen/actions";
 import { EmptyBox, PageHeader, SearchBox, useTa } from "../almacen/shared";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 type KindFilter = "all" | SupplierKind;
 const NONE = "none";
@@ -47,7 +48,7 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
   const rubroOptions = kind === "all" ? ALL_SUPPLIER_RUBROS : SUPPLIER_RUBROS[kind];
 
   const shown = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return suppliers
       .filter((s) => showInactive || s.active)
       .filter((s) => kind === "all" || s.kind === kind)
@@ -55,7 +56,7 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
       .filter(
         (s) =>
           !q ||
-          [s.name, s.contactName, s.specialty, s.notes, ...s.rubros.map((r) => ta(`ru_${r}`))].some((x) => (x ?? "").toLowerCase().includes(q)),
+          [s.name, s.contactName, s.specialty, s.notes, ...s.rubros.map((r) => ta(`ru_${r}`))].some((x) => matchesSearch(x, q)),
       );
   }, [suppliers, query, kind, rubro, showInactive, ta]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchInput, ListToolbar } from "@/components/shared/search-input";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,11 +38,11 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const shown = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeSearchText(search);
     return quotes.filter((x) => {
       if (filter !== "all" && x.status !== filter) return false;
       if (!q) return true;
-      return [x.clientName, x.projectName, x.designerName, x.number].some((v) => v.toLowerCase().includes(q));
+      return [x.clientName, x.projectName, x.designerName, x.number].some((v) => matchesSearch(v, q));
     });
   }, [quotes, filter, search]);
 

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatQty, formatUnitCost, stockStatus } from "@/lib/almacen/inventory";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { PAGE_CLASS } from "@/components/shared/page-header";
 import { ItemDialog } from "./item-dialog";
 import { AdjustmentDialog } from "./adjustment-dialog";
@@ -50,12 +51,12 @@ export function StockView({
   const catOrder = React.useMemo(() => new Map(categories.map((c) => [c.id, c.sortOrder])), [categories]);
 
   const rows = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return items
       .filter((i) => i.active && (category === "all" || i.categoryId === category))
       .sort((a, b) => (catOrder.get(a.categoryId ?? "") ?? 99) - (catOrder.get(b.categoryId ?? "") ?? 99) || a.name.localeCompare(b.name, "es"))
       .flatMap((item) => item.variants.filter((v) => v.active).map((variant) => ({ item, variant })))
-      .filter(({ item, variant }) => !q || `${item.name} ${variant.label}`.toLowerCase().includes(q))
+      .filter(({ item, variant }) => !q || matchesSearch(`${item.name} ${variant.label}`, q))
       .filter(({ variant }) => {
         const s = stockStatus(variant);
         return filter === "all" || (filter === "out" ? s === "sin" : s !== "ok");

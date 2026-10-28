@@ -1,4 +1,5 @@
 import type { Inspection, InspectionItem, InspectionKind, InspectionResponsible } from "@/types/inspections";
+import { normalizeSearchText } from "@/lib/search";
 
 // Cómo se ven las inspecciones de un proyecto (y su PDF): agrupadas por visita,
 // por área o todo junto, con filtros de estado, tipo, pintor y responsable.
@@ -45,7 +46,7 @@ export interface ItemGroup {
   items: ItemWithVisit[];
 }
 
-const areaKey = (a: string | null | undefined) => a?.trim().toLocaleLowerCase("es") ?? "";
+const areaKey = (a: string | null | undefined) => normalizeSearchText(a);
 const byVisitThenCreated = (a: ItemWithVisit, b: ItemWithVisit) => a.visitedOn.localeCompare(b.visitedOn) || a.createdAt.localeCompare(b.createdAt);
 
 /** Todos los detalles que pasan los filtros, cada uno con la fecha de su visita (en el orden de las visitas). */
@@ -105,8 +106,9 @@ export function areaSuggestions(inspections: readonly Inspection[]): string[] {
   const out: string[] = [];
   const add = (a: string | null | undefined) => {
     const v = a?.trim();
-    if (!v || seen.has(v.toLocaleLowerCase("es"))) return;
-    seen.add(v.toLocaleLowerCase("es"));
+    const key = normalizeSearchText(v);
+    if (!v || seen.has(key)) return;
+    seen.add(key);
     out.push(v);
   };
   for (const v of inspections) for (const i of v.items) add(i.area);

@@ -19,6 +19,7 @@ import { dimensionCount, optionsAt, reconcile, resolveVariant, selectionOf } fro
 import { Field } from "../../contratistas/field";
 import { registerIssueAction } from "../actions";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 type Project = { id: string; name: string; active: boolean };
 interface CartLine {
@@ -50,11 +51,11 @@ export function IssueShop({
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const groups = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     const shown = items
       .filter((i) => i.active && i.variants.some((v) => v.active))
       .filter((i) => category === "all" || i.categoryId === category)
-      .filter((i) => !q || `${i.name} ${i.variants.map((v) => v.label).join(" ")}`.toLowerCase().includes(q));
+      .filter((i) => !q || matchesSearch(`${i.name} ${i.variants.map((v) => v.label).join(" ")}`, q));
     return categories
       .map((c) => ({ category: c, items: shown.filter((i) => i.categoryId === c.id).sort((a, b) => a.name.localeCompare(b.name, "es")) }))
       .concat([{ category: { id: "", name: ta("no_results"), sortOrder: 99 }, items: shown.filter((i) => !i.categoryId) }])

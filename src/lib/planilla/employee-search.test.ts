@@ -10,7 +10,9 @@ describe("matchesEmployeeQuery", () => {
   it("ignora mayúsculas y acentos", () => {
     expect(matchesEmployeeQuery("José Salcedo", "jose")).toBe(true);
     expect(matchesEmployeeQuery("Jose Salcedo", "JOSÉ")).toBe(true);
-    expect(matchesEmployeeQuery("Edwin Villafañe", "villafane")).toBe(true);
+  });
+  it("conserva la ñ como una letra distinta", () => {
+    expect(matchesEmployeeQuery("Edwin Villafañe", "villafane")).toBe(false);
   });
   it("coincide por fragmento y sin importar el orden de las palabras", () => {
     expect(matchesEmployeeQuery("Mario Loaiza", "loa")).toBe(true);

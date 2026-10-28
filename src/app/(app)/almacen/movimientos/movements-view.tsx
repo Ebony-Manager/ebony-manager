@@ -12,6 +12,7 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { formatQty } from "@/lib/almacen/inventory";
 import { AdjustmentDialog } from "../adjustment-dialog";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 export type MovementFilter = "all" | "salida" | "recepcion" | "ajuste";
 
@@ -68,11 +69,11 @@ export function MovementsView({
   );
 
   const shown = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return movements.filter((m) => {
       if (filter !== "all" && m.kind !== filter) return false;
       if (!q) return true;
-      return `${index.get(m.variantId)?.name ?? ""} ${detail(m)} ${m.createdByName ?? ""}`.toLowerCase().includes(q);
+      return matchesSearch(`${index.get(m.variantId)?.name ?? ""} ${detail(m)} ${m.createdByName ?? ""}`, q);
     });
   }, [movements, filter, query, index, detail]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchInput, ListToolbar } from "@/components/shared/search-input";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Folder, Plus } from "lucide-react";
@@ -49,10 +50,10 @@ export function ProjectsList({
   }, [contracts]);
 
   const shown = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return projects
       .filter((p) => status === "all" || (status === "active" ? p.status === "ACTIVE" : p.status !== "ACTIVE"))
-      .filter((p) => !q || [p.name, p.location, p.clientName].some((s) => (s ?? "").toLowerCase().includes(q)));
+      .filter((p) => !q || [p.name, p.location, p.clientName].some((s) => matchesSearch(s, q)));
   }, [projects, query, status]);
 
   return (

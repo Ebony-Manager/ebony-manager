@@ -1,6 +1,7 @@
 "use client";
 
 import { ListToolbar, SearchInput } from "@/components/shared/search-input";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { EmptyState } from "@/components/shared/page-header";
 import * as React from "react";
 import Link from "next/link";
@@ -50,10 +51,10 @@ export function ContractsView({
   const setAdding = onAddOpenChange;
 
   const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     const list = q
       ? contracts.filter((c) =>
-          [c.name, c.projectName, c.contractorName].some((s) => s.toLowerCase().includes(q))
+          [c.name, c.projectName, c.contractorName].some((s) => matchesSearch(s, q))
         )
       : contracts;
     return sortContracts(list);

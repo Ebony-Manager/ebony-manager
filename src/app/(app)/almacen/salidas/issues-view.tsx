@@ -7,6 +7,7 @@ import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import type { InventoryCategory, InventoryIssue, InventoryItem, InventoryPerson } from "@/types/almacen";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { IssueShop } from "./issue-shop";
 
 type Project = { id: string; name: string; active: boolean };
@@ -39,12 +40,12 @@ export function IssuesView({
   );
 
   const shown = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     if (!q) return issues;
     return issues.filter((i) => {
       const who = personName.get(i.employeeId ?? i.contractorId ?? "")?.name ?? "";
       const what = i.lines.map((l) => index.get(l.variantId)?.name ?? "").join(" ");
-      return `${who} ${destination(i)} ${what}`.toLowerCase().includes(q);
+      return matchesSearch(`${who} ${destination(i)} ${what}`, q);
     });
   }, [issues, query, personName, index, destination]);
 

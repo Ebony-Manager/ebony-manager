@@ -24,6 +24,7 @@ import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import type { OrderMessageLine } from "@/lib/almacen/inventory";
 import { SubTabs } from "@/components/shared/page-header";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 import {
   PURCHASE_HISTORY_DEFAULT_STATUS,
@@ -644,14 +645,13 @@ function History({
   const { ta, lang } = useTa();
   const [q, setQ] = React.useState("");
   const [status, setStatus] = React.useState<PurchaseHistoryStatus>(PURCHASE_HISTORY_DEFAULT_STATUS);
-  const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const needle = norm(q.trim());
+  const needle = normalizeSearchText(q);
   const rows = purchaseHistory(orders, requests).filter((row) =>
     (status === "all" || row.status === status) &&
-    (!needle || norm([
+    (!needle || matchesSearch([
       requestName(row, index), supplierById.get(row.supplierId ?? "")?.name ?? "",
       ...row.requests.flatMap((r) => [r.createdByName ?? "", projectName.get(r.projectId ?? "") ?? ""]),
-    ].join(" ")).includes(needle)),
+    ].join(" "), needle)),
   );
 
   return (

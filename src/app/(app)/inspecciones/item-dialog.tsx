@@ -16,6 +16,7 @@ import { inspectionPhotoPath } from "@/lib/inspections/view";
 import { deleteInspectionPhotoAction, updateInspectionItemAction } from "./actions";
 import { DetailFields, EMPTY_META, type DetailMeta } from "./detail-fields";
 import { useTi } from "./shared";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 /** Lado máximo de las fotos: se ve el detalle sin subir los MB del celular. */
 export const PHOTO_MAX_SIDE = 1600;
@@ -52,8 +53,8 @@ export async function discardUploaded(paths: string[]) {
 /** Área: campo de texto con sugerencias a un toque (las del proyecto primero). */
 export function AreaInput({ id, value, onChange, areas }: { id: string; value: string; onChange: (v: string) => void; areas: string[] }) {
   const { ti } = useTi();
-  const typed = value.trim().toLocaleLowerCase("es");
-  const suggestions = areas.filter((a) => a.toLocaleLowerCase("es") !== typed && (!typed || a.toLocaleLowerCase("es").includes(typed))).slice(0, 8);
+  const typed = normalizeSearchText(value);
+  const suggestions = areas.filter((area) => normalizeSearchText(area) !== typed && (!typed || matchesSearch(area, typed))).slice(0, 8);
   return (
     <>
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={ti("f_area_ph")} autoComplete="off" />

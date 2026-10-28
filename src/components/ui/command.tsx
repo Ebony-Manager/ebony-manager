@@ -5,10 +5,12 @@ import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { matchesSearch } from "@/lib/search";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 function Command({
   className,
+  filter = (value, search, keywords) => (matchesSearch([value, ...(keywords ?? [])].join(" "), search) ? 1 : 0),
   ...props
 }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -18,6 +20,7 @@ function Command({
         "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
         className,
       )}
+      filter={filter}
       {...props}
     />
   );
