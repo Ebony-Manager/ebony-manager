@@ -122,22 +122,23 @@ export async function getNotificationTypes(): Promise<NotificationType[]> {
   return (data ?? []).map((r) => ({ key: r.key, module: r.module, title: r.title, description: r.description, defaultPush: r.default_push, sortOrder: r.sort_order }));
 }
 
-export async function getAllPushPreferences(): Promise<{ preferences: UserPushPreference[]; devices: Record<string, number> }> {
+export async function getMyPushPreferences(userId: string): Promise<{ preferences: UserPushPreference[]; deviceCount: number }> {
   const supabase = await createClient();
-  const [{ data, error }, { data: subscriptions, error: subscriptionError }] = await Promise.all([
-    supabase.from("user_notification_preferences").select("user_id,type_key,push_enabled"),
-    supabase.from("push_subscriptions").select("user_id"),
+  const [{ data, error }, { count, error: deviceError }] = await Promise.all([
+    supabase.from("user_notification_preferences").select("user_id,type_key,push_enabled").eq("user_id", userId),
+    supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", userId),
   ]);
   if (error) throw new Error(error.message);
-  if (subscriptionError) throw new Error(subscriptionError.message);
-  const devices: Record<string, number> = {};
-  for (const row of subscriptions ?? []) devices[row.user_id] = (devices[row.user_id] ?? 0) + 1;
-  return { preferences: (data ?? []).map((r) => ({ userId: r.user_id, typeKey: r.type_key, pushEnabled: r.push_enabled })), devices };
+  if (deviceError) throw new Error(deviceError.message);
+  return {
+    preferences: (data ?? []).map((row) => ({ userId: row.user_id, typeKey: row.type_key, pushEnabled: row.push_enabled })),
+    deviceCount: count ?? 0,
+  };
 }
 
-export async function saveUserPushPreferences(userId: string, values: Record<string, boolean>, updatedBy: string): Promise<void> {
+export async function saveMyPushPreferences(userId: string, values: Record<string, boolean>): Promise<void> {
   const supabase = await createClient();
-  const rows = Object.entries(values).map(([type_key, push_enabled]) => ({ user_id: userId, type_key, push_enabled, updated_by: updatedBy }));
+  const rows = Object.entries(values).map(([type_key, push_enabled]) => ({ user_id: userId, type_key, push_enabled, updated_by: userId }));
   if (!rows.length) return;
   const { error } = await supabase.from("user_notification_preferences").upsert(rows, { onConflict: "user_id,type_key" });
   if (error) throw new Error(error.message);

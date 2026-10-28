@@ -150,6 +150,7 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
  */
 export function breadcrumbFor(pathname: string, lang: "es" | "en"): string[] {
   if (pathname === "/notificaciones") return [t(lang, strings.nav.notificaciones)];
+  if (pathname === "/perfil/notificaciones") return [t(lang, strings.nav.profile), t(lang, strings.nav.my_notifications)];
   for (const panel of NAV_PANELS) {
     const item = panel.items.find((i) => isNavItemActive(i, pathname));
     // "Personal / Personal" (el panel y su lista se llaman igual en español) → un solo crumb.

@@ -59,6 +59,7 @@ export const strings = {
     settings: { es: "Settings", en: "Settings" },
     usuarios: { es: "Usuarios", en: "Users" },
     notificaciones: { es: "Notificaciones", en: "Notifications" },
+    my_notifications: { es: "Mis notificaciones", en: "My notifications" },
     // Panel "Almacén": inventario, salidas, compras (cualquiera pide) y proveedores.
     almacen: { es: "Almacén", en: "Warehouse" },
     directorio: { es: "Directorio", en: "Directory" },

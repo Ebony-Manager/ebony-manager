@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { BellRing, MailPlus, MoreHorizontal, Pencil, Send, UserMinus } from "lucide-react";
+import { MailPlus, MoreHorizontal, Pencil, Send, UserMinus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,10 @@ import { useLang } from "@/context/language-context";
 import { t, strings, type Lang } from "@/lib/i18n";
 import { formatDateCompact } from "@/lib/planilla/format";
 import type { AppUser } from "@/types/usuarios";
-import type { NotificationType, UserPushPreference } from "@/services/notifications";
 import { resendInvitationAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
 import { RemoveUserDialog } from "./remove-user-dialog";
 import { UserFormDialog } from "./user-form-dialog";
-import { UserNotificationsDialog } from "./user-notifications-dialog";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 
 function shortDate(lang: Lang, iso: string | null): string {
@@ -35,14 +33,13 @@ function shortDate(lang: Lang, iso: string | null): string {
  * correo), se cambian permisos, se reenvía la invitación y se quita el
  * acceso. Los datos vienen del servidor; tras cada cambio, router.refresh().
  */
-export function UsuariosClient({ users, myEmail, notificationTypes, pushPreferences, devices }: { users: AppUser[]; myEmail: string; notificationTypes: NotificationType[]; pushPreferences: UserPushPreference[]; devices: Record<string, number> }) {
+export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: string }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AppUser | null>(null);
   const [removing, setRemoving] = React.useState<AppUser | null>(null);
-  const [notificationsFor, setNotificationsFor] = React.useState<AppUser | null>(null);
 
   const isMe = (u: AppUser) => u.email.toLowerCase() === myEmail.toLowerCase();
 
@@ -122,12 +119,6 @@ export function UsuariosClient({ users, myEmail, notificationTypes, pushPreferen
                           <Pencil className="size-3.5" />
                           {tt("edit")}
                         </DropdownMenuItem>
-                        {u.profileId && (
-                          <DropdownMenuItem onSelect={() => setNotificationsFor(u)}>
-                            <BellRing className="size-3.5" />
-                            Notificaciones push
-                          </DropdownMenuItem>
-                        )}
                         {!active && (
                           <DropdownMenuItem onSelect={() => void resend(u)}>
                             <Send className="size-3.5" />
@@ -206,16 +197,6 @@ export function UsuariosClient({ users, myEmail, notificationTypes, pushPreferen
         />
       )}
       {removing && <RemoveUserDialog user={removing} open={Boolean(removing)} onOpenChange={(o) => !o && setRemoving(null)} />}
-      {notificationsFor?.profileId && (
-        <UserNotificationsDialog
-          user={notificationsFor}
-          types={notificationTypes}
-          preferences={pushPreferences.filter((p) => p.userId === notificationsFor.profileId)}
-          deviceCount={devices[notificationsFor.profileId] ?? 0}
-          open
-          onOpenChange={(open) => !open && setNotificationsFor(null)}
-        />
-      )}
     </div>
   );
 }

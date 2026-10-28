@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 
 import { requireAdmin } from "@/lib/auth/dal";
 import * as users from "@/services/app-users";
-import { saveUserPushPreferences } from "@/services/notifications";
 import type { AppUserInput } from "@/types/usuarios";
 
 // Usuarios es solo-admin: cada action verifica `requireAdmin()` al entrar
@@ -63,7 +62,6 @@ export async function resendInvitationAction(email: string): Promise<ActionResul
   revalidatePath(PATH);
   return { ok: true };
 }
-
 export async function updateUserAction(email: string, input: AppUserInput): Promise<ActionResult> {
   const me = await requireAdmin();
   // Nadie se quita a sí mismo el rol de admin: así siempre queda al menos uno.
@@ -78,7 +76,6 @@ export async function updateUserAction(email: string, input: AppUserInput): Prom
   revalidatePath(PATH);
   return { ok: true };
 }
-
 export async function deleteUserAction(email: string): Promise<ActionResult> {
   const me = await requireAdmin();
   if (email.toLowerCase() === me.email.toLowerCase()) {
@@ -92,14 +89,4 @@ export async function deleteUserAction(email: string): Promise<ActionResult> {
   revalidatePath(PATH);
   return { ok: true };
 }
-
-export async function saveUserPushPreferencesAction(userId: string, values: Record<string, boolean>): Promise<ActionResult> {
-  const me = await requireAdmin();
-  try {
-    await saveUserPushPreferences(userId, values, me.id);
-  } catch (err) {
-    return { ok: false, error: message(err) };
-  }
-  revalidatePath(PATH);
-  return { ok: true };
-}
+// Las preferencias push personales se guardan desde Perfil, no desde Usuarios.

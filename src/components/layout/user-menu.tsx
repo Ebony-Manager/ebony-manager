@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import toast from "react-hot-toast";
-import { Languages, LogOut, Monitor, Moon, Share2, Sun } from "lucide-react";
+import { BellRing, Languages, LogOut, Monitor, Moon, Share2, Sun } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
@@ -67,6 +68,13 @@ export function UserMenu() {
           <span className="truncate text-xs text-muted-foreground">{user.email}</span>
           {roleLabel && <span className="text-xs text-muted-foreground">{roleLabel}</span>}
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/perfil/notificaciones">
+            <BellRing className="size-3.5" />
+            {t(lang, strings.nav.my_notifications)}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* Formularios de JotForm (según permiso). */}
         {visibleQuickLinks({ role, modules }).length > 0 && (

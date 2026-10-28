@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
-import { Languages, LogOut, Monitor, Moon, Share2, Sun, X } from "lucide-react";
+import { BellRing, Languages, LogOut, Monitor, Moon, Share2, Sun, X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
@@ -226,6 +226,15 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
               })}
             </nav>
           )}
+
+          <Link
+            href="/perfil/notificaciones"
+            onClick={close}
+            className="flex h-12 items-center gap-2.5 border-t border-border px-2 text-sm font-medium text-foreground active:bg-muted"
+          >
+            <BellRing size={18} className="text-primary" />
+            {t(lang, strings.nav.my_notifications)}
+          </Link>
 
           {/* Preferencias en una franja: tema (íconos), idioma y salir. */}
           <div className="flex items-center gap-2 border-t border-border pt-3">
