@@ -198,7 +198,7 @@ export interface ContractorLoanSummary {
   pendingCents: number;
   paidCount: number;
   paidCents: number;
-  installments: { entryDate: string; amountCents: number; paid: boolean }[];
+  installments: { id: string; entryDate: string; amountCents: number; paid: boolean }[];
   next: { date: string; amountCents: number } | null;
 }
 

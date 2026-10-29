@@ -4,14 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
-import { installmentDate, isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import { installmentDate, isScheduled, periodOfDate, todayInPanama } from "@/lib/contractors/contractor-loans";
 import { contractRetentionCents, type RetentionRule } from "@/lib/contractors/contracts";
 import {
   computeLoanInterestCents,
   computeLoanSchedule,
   defaultLoanStartPeriod,
   isSingleInstallment,
+  reflowLoanSchedule,
   type LoanInterestInput,
+  type PendingInstallment,
+  type ReflowMode,
 } from "@/lib/planilla/payroll-loans";
 import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
 import type { Database } from "@/types/database";
@@ -208,7 +211,7 @@ export async function getContractorsDashboardInput(): Promise<{
     selectAllRows((from, to) =>
       supabase
         .from("contractor_ledger_entries")
-        .select("contractor_id, entry_date, category, direction, amount_cents, project_id, client_text, mt2, ebony_absorbs_material, loan_id")
+        .select("id, contractor_id, entry_date, category, direction, amount_cents, project_id, client_text, mt2, ebony_absorbs_material, loan_id")
         .order("id")
         .range(from, to)
     ),
@@ -1458,9 +1461,79 @@ export async function deleteContractorLoan(loanId: string): Promise<void> {
   if (e2) throw new Error(e2.message);
 }
 
+/**
+ * "Ajustar cuota", igual que en Planilla: una cuota que todavía no llega se
+ * pasa a otra quincena y/o cambia de monto (en 0 se salta). Lo que falta por
+ * descontar no cambia: el resto se reacomoda con `reflowLoanSchedule`. Las
+ * cuotas que ya llegaron (fecha ≤ hoy) no se tocan.
+ */
+export async function adjustContractorInstallment(input: {
+  loanId: string;
+  entryId: string;
+  period: { year: number; month: number; half: 1 | 2 };
+  newAmountCents: number;
+  mode?: ReflowMode;
+}): Promise<void> {
+  const supabase = await createClient();
+  const [{ data: loan, error: eLoan }, { data: rows, error: eRows }] = await Promise.all([
+    supabase.from("contractor_loans").select("contractor_id, category, request_date, status").eq("id", input.loanId).single(),
+    supabase.from("contractor_ledger_entries").select("id, entry_date, amount_cents").eq("loan_id", input.loanId),
+  ]);
+  if (eLoan) throw new Error(eLoan.message);
+  if (eRows) throw new Error(eRows.message);
+  if (loan.status === "cancelled") throw new Error("Este préstamo ya tiene el saldo perdonado.");
+  const today = todayInPanama();
+  const pending: PendingInstallment[] = (rows ?? [])
+    .filter((r) => r.entry_date > today)
+    .map((r) => ({ ledgerEntryId: r.id, period: periodOfDate(r.entry_date), amountCents: r.amount_cents }));
+  const target = pending.find((p) => p.ledgerEntryId === input.entryId);
+  if (!target) throw new Error("Esa cuota ya se descontó y no se puede ajustar.");
+
+  // Primero el cambio de quincena (en memoria), luego el reacomodo del monto.
+  target.period = input.period;
+  const reflowed =
+    input.newAmountCents !== target.amountCents
+      ? reflowLoanSchedule(pending, target.ledgerEntryId, input.newAmountCents, input.mode ?? "extend")
+      : pending;
+  const byId = new Map(reflowed.filter((r) => r.ledgerEntryId).map((r) => [r.ledgerEntryId as string, r]));
+  const original = new Map((rows ?? []).map((r) => [r.id, r]));
+
+  const toDelete = pending.filter((p) => !byId.has(p.ledgerEntryId)).map((p) => p.ledgerEntryId);
+  if (toDelete.length > 0) {
+    const { error } = await supabase.from("contractor_ledger_entries").delete().in("id", toDelete);
+    if (error) throw new Error(error.message);
+  }
+  for (const [id, r] of byId) {
+    const before = original.get(id);
+    const entryDate = installmentDate(r.period, loan.request_date);
+    if (!before || (before.amount_cents === r.amountCents && before.entry_date === entryDate)) continue;
+    const { error } = await supabase
+      .from("contractor_ledger_entries")
+      .update({ amount_cents: r.amountCents, entry_date: entryDate })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+  const added = reflowed.filter((r) => !r.ledgerEntryId);
+  if (added.length > 0) {
+    const label = LOAN_LABEL[loan.category as LoanCategory] ?? "Cuota";
+    const { error } = await supabase.from("contractor_ledger_entries").insert(
+      added.map((r) => ({
+        contractor_id: loan.contractor_id,
+        loan_id: input.loanId,
+        entry_date: installmentDate(r.period, loan.request_date),
+        category: loan.category,
+        direction: "reduce",
+        amount_cents: r.amountCents,
+        description: `${label} · cuota agregada al reacomodar`,
+      }))
+    );
+    if (error) throw new Error(error.message);
+  }
+}
+
 /** Cada préstamo con el avance de sus cuotas, a partir de los movimientos ya leídos. */
 async function getContractorLoanSummaries(
-  rows: { loan_id: string | null; entry_date: string; amount_cents: number }[],
+  rows: { id: string; loan_id: string | null; entry_date: string; amount_cents: number }[],
   contractorId?: string
 ): Promise<ContractorLoanSummary[]> {
   const supabase = await createClient();
@@ -1469,7 +1542,7 @@ async function getContractorLoanSummaries(
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   const today = todayInPanama();
-  const byLoan = new Map<string, { entry_date: string; amount_cents: number }[]>();
+  const byLoan = new Map<string, { id: string; entry_date: string; amount_cents: number }[]>();
   for (const r of rows) {
     if (!r.loan_id) continue;
     const list = byLoan.get(r.loan_id) ?? [];
@@ -1495,7 +1568,7 @@ async function getContractorLoanSummaries(
       pendingCents: pending.reduce((s, c) => s + c.amount_cents, 0),
       paidCount: due.length,
       paidCents: due.reduce((s, c) => s + c.amount_cents, 0),
-      installments: cuotas.map((c) => ({ entryDate: c.entry_date, amountCents: c.amount_cents, paid: c.entry_date <= today })),
+      installments: cuotas.map((c) => ({ id: c.id, entryDate: c.entry_date, amountCents: c.amount_cents, paid: c.entry_date <= today })),
       next: pending[0] ? { date: pending[0].entry_date, amountCents: pending[0].amount_cents } : null,
     };
   });
@@ -1506,12 +1579,12 @@ export async function getContractorLoans(contractorId: string): Promise<Contract
   const supabase = await createClient();
   const [loanRows, ledgerRows] = await Promise.all([
     supabase.from("contractor_loans").select("*").eq("contractor_id", contractorId).order("request_date", { ascending: false }),
-    supabase.from("contractor_ledger_entries").select("loan_id, entry_date, amount_cents").eq("contractor_id", contractorId).not("loan_id", "is", null).order("entry_date"),
+    supabase.from("contractor_ledger_entries").select("id, loan_id, entry_date, amount_cents").eq("contractor_id", contractorId).not("loan_id", "is", null).order("entry_date"),
   ]);
   if (loanRows.error) throw new Error(loanRows.error.message);
   if (ledgerRows.error) throw new Error(ledgerRows.error.message);
   const today = todayInPanama();
-  const byLoan = new Map<string, { entry_date: string; amount_cents: number }[]>();
+  const byLoan = new Map<string, { id: string; entry_date: string; amount_cents: number }[]>();
   for (const row of ledgerRows.data ?? []) {
     if (!row.loan_id) continue;
     const list = byLoan.get(row.loan_id) ?? [];
@@ -1537,7 +1610,7 @@ export async function getContractorLoans(contractorId: string): Promise<Contract
       pendingCents: pending.reduce((sum, i) => sum + i.amount_cents, 0),
       paidCount: due.length,
       paidCents: due.reduce((sum, i) => sum + i.amount_cents, 0),
-      installments: installments.map((i) => ({ entryDate: i.entry_date, amountCents: i.amount_cents, paid: i.entry_date <= today })),
+      installments: installments.map((i) => ({ id: i.id, entryDate: i.entry_date, amountCents: i.amount_cents, paid: i.entry_date <= today })),
       next: pending[0] ? { date: pending[0].entry_date, amountCents: pending[0].amount_cents } : null,
     };
   });

@@ -61,7 +61,7 @@ import {
   contractorBalanceCents,
   withRunningBalance,
 } from "@/lib/contractors/contractor-ledger";
-import { isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import { isScheduled, periodOfDate, todayInPanama } from "@/lib/contractors/contractor-loans";
 import {
   balanceTone,
   categoryDotStyle,
@@ -89,6 +89,7 @@ import {
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
+  adjustContractorInstallmentAction,
   deleteLedgerEntryAction,
   getContractorAllocationsAction,
   getContractorLedgerAction,
@@ -112,6 +113,7 @@ import { importJotformDocumentAction } from "@/app/(app)/personal/staff/actions"
 import { countryName } from "@/lib/countries";
 import { contractorBackPath, type ContractorFrom } from "@/lib/personal/paths";
 import { LedgerEntryDialog } from "./ledger-entry-dialog";
+import { EditInstallmentDialog } from "@/app/(app)/planilla/edit-installment-dialog";
 import { ContractorLiquidationDialog } from "./contractor-liquidation-dialog";
 import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
@@ -248,6 +250,7 @@ export function ContractorProfileView({
   const [helpersOpen, setHelpersOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
+  const [adjusting, setAdjusting] = React.useState<{ loan: ContractorLoanSummary; entryId: string } | null>(null);
   const [editOpen, setEditOpen] = React.useState(false);
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
   const [photoPath, setPhotoPath] = React.useState<string | null>(contractor.photoPath);
@@ -777,6 +780,28 @@ export function ContractorProfileView({
         )}
       </div>
 
+      <EditInstallmentDialog
+        ledgerEntryId={adjusting?.entryId ?? null}
+        pending={(adjusting?.loan.installments ?? [])
+          .filter((i) => !i.paid)
+          .map((i) => ({ ledgerEntryId: i.id, period: periodOfDate(i.entryDate), amountCents: i.amountCents }))}
+        open={adjusting !== null}
+        onOpenChange={(next) => !next && setAdjusting(null)}
+        onSaved={load}
+        save={async (a) => {
+          const loan = adjusting?.loan;
+          const inst = loan?.installments.find((i) => i.id === a.ledgerEntryId);
+          if (!loan || !inst) return;
+          const res = await adjustContractorInstallmentAction({
+            loanId: loan.id,
+            entryId: a.ledgerEntryId,
+            period: a.movedTo ?? periodOfDate(inst.entryDate),
+            newAmountCents: a.newAmountCents ?? inst.amountCents,
+            mode: a.mode,
+          });
+          if (!res.ok) throw new Error(res.error);
+        }}
+      />
       {/* Estado de cuenta */}
       {loans.length > 0 && (
         <section className="flex flex-col gap-3 border-t border-border pt-4">
@@ -795,7 +820,7 @@ export function ContractorProfileView({
                   </div>
                   <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full bg-walnut" style={{ width: `${progress}%` }} /></div><span className="text-muted-foreground">{loan.paidCount} {tt("loan_of")} {loan.installmentCount}</span></div>
                   {loan.next && <p className="mt-2 text-muted-foreground">{tt("loan_next_installment")} {formatDate(lang, loan.next.date)} · {formatCents(loan.next.amountCents)}</p>}
-                  <details className="mt-2 border-t border-border pt-2"><summary className="cursor-pointer font-medium text-muted-foreground">{tt("loan_installments_toggle")}</summary><ul className="mt-1 space-y-1">{loan.installments.map((installment, index) => <li key={`${loan.id}-${installment.entryDate}-${index}`} className="flex justify-between text-muted-foreground"><span>{formatDate(lang, installment.entryDate)} · {tt(installment.paid ? "loan_installment_paid_badge" : "loan_pending")}</span><span className="tabular-nums">{formatCents(installment.amountCents)}</span></li>)}</ul></details>
+                  <details className="mt-2 border-t border-border pt-2"><summary className="cursor-pointer font-medium text-muted-foreground">{tt("loan_installments_toggle")}</summary><ul className="mt-1 space-y-1">{loan.installments.map((installment, index) => <li key={`${loan.id}-${installment.entryDate}-${index}`} className="flex items-center justify-between gap-2 text-muted-foreground"><span>{formatDate(lang, installment.entryDate)} · {tt(installment.paid ? "loan_installment_paid_badge" : "loan_pending")}</span><span className="flex items-center gap-1"><span className="tabular-nums">{formatCents(installment.amountCents)}</span>{!installment.paid && loan.status !== "cancelled" && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setAdjusting({ loan, entryId: installment.id })}><Pencil className="size-3" />{tt("loan_installment_adjust")}</Button>}</span></li>)}</ul></details>
                   {loan.notes && <p className="mt-2 italic text-muted-foreground">{loan.notes}</p>}
                 </article>
               );

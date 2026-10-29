@@ -19,6 +19,12 @@ export function installmentDate(period: Period, requestDate: string): string {
   return start < requestDate ? requestDate : start;
 }
 
+/** La quincena de una fecha (1–15 → 1ra, 16+ → 2da): lo inverso de `installmentDate`. */
+export function periodOfDate(date: string): Period {
+  const [year, month, day] = date.split("-").map(Number);
+  return { year, month, half: day >= 16 ? 2 : 1 };
+}
+
 /** Una cuota que todavía no llega (no cuenta en el saldo de hoy). Los
  *  movimientos sueltos (sin préstamo) cuentan siempre, tengan la fecha que tengan. */
 export function isScheduled(e: { loanId: string | null; entryDate: string }, today: string): boolean {

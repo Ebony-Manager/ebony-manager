@@ -11,7 +11,7 @@ import { isSingleInstallment } from "@/lib/planilla/payroll-loans";
 import { formatDate, monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { cancelLoanAction, deleteLoanAction } from "./actions";
+import { cancelLoanAction, deleteLoanAction, moveLoanInstallmentAction, reflowLoanInstallmentAction } from "./actions";
 import { LoanDialog } from "./loan-dialog";
 import { EditInstallmentDialog } from "./edit-installment-dialog";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
@@ -227,13 +227,17 @@ function LoanCard({
       )}
 
       <EditInstallmentDialog
-        loanId={loan.id}
-        employeeId={loan.employeeId}
         ledgerEntryId={editingInstallment?.ledgerEntryId ?? null}
         pending={pending.map((i) => ({ ledgerEntryId: i.ledgerEntryId, period: i.period, amountCents: i.amountCents }))}
         open={editingInstallment !== null}
         onOpenChange={(next) => !next && setEditingInstallment(null)}
         onSaved={onChanged}
+        save={async (a) => {
+          if (a.movedTo) await moveLoanInstallmentAction({ loanId: loan.id, ledgerEntryId: a.ledgerEntryId, period: a.movedTo });
+          if (a.newAmountCents !== null) {
+            await reflowLoanInstallmentAction({ loanId: loan.id, employeeId: loan.employeeId, ledgerEntryId: a.ledgerEntryId, newAmountCents: a.newAmountCents, mode: a.mode });
+          }
+        }}
       />
       <LoanDialog
         employeeId={employeeId}

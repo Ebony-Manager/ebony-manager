@@ -282,3 +282,7 @@ export async function cancelContractorLoanAction(loanId: string) {
 export async function deleteContractorLoanAction(loanId: string) {
   return loanResult(() => contractors.deleteContractorLoan(loanId));
 }
+
+export async function adjustContractorInstallmentAction(input: Parameters<typeof contractors.adjustContractorInstallment>[0]) {
+  return loanResult(() => contractors.adjustContractorInstallment(input));
+}

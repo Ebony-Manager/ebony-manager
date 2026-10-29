@@ -12,7 +12,6 @@ import { reflowLoanSchedule, type PendingInstallment, type ReflowMode } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { moveLoanInstallmentAction, reflowLoanInstallmentAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
 
 /**
@@ -23,19 +22,26 @@ import { FormDialog, Field } from "./form-dialog";
  *     quincena nueva al final (o acorta el préstamo si pagas de más);
  *   · "spread": la diferencia se reparte en partes iguales entre las cuotas
  *     que quedan, sin cambiar cuántas son.
- * Una cuota ya pagada nunca llega a este diálogo.
+ * Una cuota ya pagada nunca llega a este diálogo. Lo usan Planilla y
+ * Contratistas: cada uno guarda con su `save`.
  */
+export interface InstallmentAdjustment {
+  ledgerEntryId: string;
+  /** null = sigue en su quincena. */
+  movedTo: Period | null;
+  /** null = mismo monto. */
+  newAmountCents: number | null;
+  mode: ReflowMode;
+}
+
 export function EditInstallmentDialog({
-  loanId,
-  employeeId,
   ledgerEntryId,
   pending,
   open,
   onOpenChange,
   onSaved,
+  save,
 }: {
-  loanId: string;
-  employeeId: string;
   /** null mientras no hay nada seleccionado — el diálogo no se abre. */
   ledgerEntryId: string | null;
   /** Todas las cuotas PENDIENTES del préstamo (incluida la que se edita). */
@@ -43,6 +49,7 @@ export function EditInstallmentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  save: (a: InstallmentAdjustment) => Promise<void>;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -110,12 +117,11 @@ export function EditInstallmentDialog({
     setSubmitting(true);
     setError(null);
     try {
-      if (current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)) {
-        await moveLoanInstallmentAction({ loanId, ledgerEntryId, period: selectedPeriod });
-      }
-      if (changed) {
-        await reflowLoanInstallmentAction({ loanId, employeeId, ledgerEntryId, newAmountCents: cents, mode });
-      }
+      const moved =
+        current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)
+          ? selectedPeriod
+          : null;
+      await save({ ledgerEntryId, movedTo: moved, newAmountCents: changed ? cents : null, mode });
       toast.success(tt("loan_edit_saved"));
       onOpenChange(false);
       onSaved();
