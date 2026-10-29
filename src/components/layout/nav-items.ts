@@ -10,6 +10,7 @@ import {
   Settings,
   Contact,
   Warehouse,
+  Wrench,
   Boxes,
   PackageMinus,
   ShoppingCart,
@@ -117,6 +118,7 @@ export const ALMACEN_PANEL: NavPanel = {
     { href: "/almacen/resumen", icon: Layers, label: strings.nav.resumenPersonal, modules: ["almacen"] },
     { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/conteo", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
+    { href: "/almacen/herramientas", icon: Wrench, label: strings.nav.tools, modules: ["almacen"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
   ],
 };

@@ -13,3 +13,7 @@ export function inventoryPhotoUrl(path: string | null | undefined): string | nul
 export function inventoryPhotoPath(itemId: string, ext = "jpg"): string {
   return `items/${itemId}-${Date.now()}.${ext}`;
 }
+
+export function toolPhotoPath(toolId: string, ext = "jpg"): string {
+  return `tools/${toolId}-${Date.now()}.${ext}`;
+}

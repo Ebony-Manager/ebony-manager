@@ -2197,6 +2197,126 @@ export type Database = {
           },
         ]
       }
+      inventory_container_returns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          movement_id: string
+          returned_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          movement_id: string
+          returned_on?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          movement_id?: string
+          returned_on?: string
+        }
+        Relationships: []
+      }
+      inventory_tool_loans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          due_on: string | null
+          id: string
+          lent_on: string
+          notes: string | null
+          project_id: string | null
+          recipient_contractor_id: string | null
+          recipient_employee_id: string | null
+          return_condition: string | null
+          return_notes: string | null
+          returned_by_name: string | null
+          returned_on: string | null
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          due_on?: string | null
+          id?: string
+          lent_on?: string
+          notes?: string | null
+          project_id?: string | null
+          recipient_contractor_id?: string | null
+          recipient_employee_id?: string | null
+          return_condition?: string | null
+          return_notes?: string | null
+          returned_by_name?: string | null
+          returned_on?: string | null
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          due_on?: string | null
+          id?: string
+          lent_on?: string
+          notes?: string | null
+          project_id?: string | null
+          recipient_contractor_id?: string | null
+          recipient_employee_id?: string | null
+          return_condition?: string | null
+          return_notes?: string | null
+          returned_by_name?: string | null
+          returned_on?: string | null
+          tool_id?: string
+        }
+        Relationships: []
+      }
+      inventory_tools: {
+        Row: {
+          active: boolean
+          brand: string | null
+          category: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          number: number | null
+          photo_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          brand?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          number?: number | null
+          photo_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          brand?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          number?: number | null
+          photo_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_issues: {
         Row: {
           created_at: string
@@ -3019,6 +3139,36 @@ export type Database = {
       set_inventory_summary_token: {
         Args: { p_token: string }
         Returns: undefined
+      }
+      lend_tools: {
+        Args: { p_tool_ids: string[]; p_employee_id: string | null; p_contractor_id: string | null; p_project_id: string | null; p_due_on: string | null; p_notes: string | null }
+        Returns: number
+      }
+      return_tool: {
+        Args: { p_loan_id: string; p_condition: string; p_notes: string | null; p_returned_on: string | null }
+        Returns: undefined
+      }
+      inventory_pending_returns: {
+        Args: { p_employee_id: string | null; p_contractor_id: string | null }
+        Returns: {
+          kind: string
+          id: string
+          name: string
+          photo_path: string | null
+          employee_id: string | null
+          contractor_id: string | null
+          person: string | null
+          since: string
+          due_on: string | null
+          overdue: boolean
+          qty: number
+          unit: string | null
+          project: string | null
+        }[]
+      }
+      inventory_tool_overdue_notices: {
+        Args: { p_token: string }
+        Returns: number
       }
       inventory_daily_summary: {
         Args: { p_token: string }

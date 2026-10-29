@@ -43,4 +43,12 @@ describe("buildSummaryEmail", () => {
     expect(e.html).toContain("/email/ebony-logo.png");
     expect(e.text).toContain("- Riel de gaveta · 40 cm: hay 0 pares, mínimo 6");
   });
+
+  it("herramientas vencidas: en el asunto y en una sección", () => {
+    const e = buildSummaryEmail({ ...base, overdue_tools: [{ name: "Engalletadora #1", person: "Wilfredo", lent_on: "2026-10-10", due_on: "2026-10-17", days: 7 }] }, "https://app");
+    expect(e.hasContent).toBe(true);
+    expect(e.subject).toContain("1 herramienta vencida");
+    expect(e.html).toContain("Herramientas vencidas (1)");
+    expect(e.text).toContain("Engalletadora #1: Wilfredo, 7 días tarde");
+  });
 });

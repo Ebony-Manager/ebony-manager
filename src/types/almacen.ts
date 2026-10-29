@@ -237,3 +237,60 @@ export interface ProjectSupplyLine {
   /** Último costo por unidad (centavos); null sin Costos del almacén o sin costo cargado. */
   unitCostCents: number | null;
 }
+
+// ── Herramientas (Etapa 2) ───────────────────────────────────────────────
+
+export const TOOL_CATEGORIES = ["electrica", "manual", "medicion", "corte", "otra"] as const;
+export type ToolCategory = (typeof TOOL_CATEGORIES)[number];
+export type ToolStatus = "disponible" | "prestada" | "reparacion" | "danada" | "perdida";
+export type ToolCondition = "bien" | "reparacion" | "danada" | "perdida";
+
+export interface Tool {
+  id: string;
+  name: string;
+  /** "Engalletadora #1"; null = sin número. */
+  number: number | null;
+  category: ToolCategory;
+  brand: string | null;
+  notes: string | null;
+  photoPath: string | null;
+  status: ToolStatus;
+  active: boolean;
+}
+
+export interface ToolLoan {
+  id: string;
+  toolId: string;
+  employeeId: string | null;
+  contractorId: string | null;
+  projectId: string | null;
+  lentOn: string;
+  /** La fecha pactada o, sin fecha, a los 7 días. */
+  dueOn: string;
+  /** Se puso fecha al prestar (si no, vence a los 7 días). */
+  hasDueDate: boolean;
+  returnedOn: string | null;
+  returnCondition: ToolCondition | null;
+  notes: string | null;
+  returnNotes: string | null;
+  lentByName: string | null;
+  returnedByName: string | null;
+}
+
+/** Lo que una persona tiene por devolver: una herramienta o un envase. */
+export interface PendingReturn {
+  kind: "herramienta" | "envase";
+  /** Préstamo (herramienta) o línea de la salida (envase). */
+  id: string;
+  name: string;
+  photoPath: string | null;
+  employeeId: string | null;
+  contractorId: string | null;
+  person: string | null;
+  since: string;
+  dueOn: string | null;
+  overdue: boolean;
+  qty: number;
+  unit: string | null;
+  project: string | null;
+}

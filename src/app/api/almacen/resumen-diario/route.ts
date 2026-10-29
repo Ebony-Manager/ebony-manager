@@ -52,6 +52,8 @@ export async function GET(request: Request) {
   // cualquier push pendiente, aunque el correo del resumen esté apagado.
   if (isCron) {
     await ensureOverduePurchaseNotices().catch(() => undefined);
+    // Un aviso por herramienta vencida (no se repite); el token es el mismo del resumen.
+    await anon.rpc("inventory_tool_overdue_notices", { p_token: secret! }).then(() => undefined, () => undefined);
     await dispatchPendingPush().catch(() => undefined);
   }
 

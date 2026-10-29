@@ -16,6 +16,7 @@ import type {
   ItemKind,
   OrderDelivery,
   OrderStatus,
+  PendingReturn,
   ProjectSupplyLine,
   PurchaseOrder,
   PurchaseRequest,
@@ -24,6 +25,11 @@ import type {
   SupplierContact,
   SupplierKind,
   SupplierRubro,
+  Tool,
+  ToolCategory,
+  ToolCondition,
+  ToolLoan,
+  ToolStatus,
 } from "@/types/almacen";
 
 /**
@@ -713,4 +719,164 @@ export async function registerAdjustment(reason: AdjustmentReason, notes: string
   });
   fail(error);
   return data as string;
+}
+
+// ── Herramientas (Etapa 2) ──────────────────────────────────────────────
+// Prestar y devolver van por funciones de la base (lend_tools / return_tool):
+// el estado de la herramienta no se cambia a mano a "prestada" ni desde ella.
+
+/** Días sin fecha de devolución hasta que un préstamo se considera vencido. */
+export const TOOL_LOAN_DEFAULT_DAYS = 7;
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function getTools(): Promise<{ tools: Tool[]; loans: ToolLoan[] }> {
+  const supabase = await createClient();
+  const [tools, loans] = await Promise.all([
+    supabase.from("inventory_tools").select("*").order("name").order("number"),
+    supabase.from("inventory_tool_loans").select("*").order("lent_on", { ascending: false }).order("created_at", { ascending: false }),
+  ]);
+  fail(tools.error);
+  fail(loans.error);
+  return {
+    tools: (tools.data ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      number: t.number,
+      category: t.category as ToolCategory,
+      brand: t.brand,
+      notes: t.notes,
+      photoPath: t.photo_path,
+      status: t.status as ToolStatus,
+      active: t.active,
+    })),
+    loans: (loans.data ?? []).map((l) => ({
+      id: l.id,
+      toolId: l.tool_id,
+      employeeId: l.recipient_employee_id,
+      contractorId: l.recipient_contractor_id,
+      projectId: l.project_id,
+      lentOn: l.lent_on,
+      dueOn: l.due_on ?? addDays(l.lent_on, TOOL_LOAN_DEFAULT_DAYS),
+      hasDueDate: l.due_on != null,
+      returnedOn: l.returned_on,
+      returnCondition: l.return_condition as ToolCondition | null,
+      notes: l.notes,
+      returnNotes: l.return_notes,
+      lentByName: l.created_by_name,
+      returnedByName: l.returned_by_name,
+    })),
+  };
+}
+
+export interface ToolInput {
+  name: string;
+  number: number | null;
+  category: ToolCategory;
+  brand: string | null;
+  notes: string | null;
+  /** Solo entre los que no son "prestada" (eso lo mueven prestar/devolver). */
+  status: Exclude<ToolStatus, "prestada">;
+  active: boolean;
+}
+
+function toolRow(input: ToolInput) {
+  return {
+    name: input.name.trim(),
+    number: input.number,
+    category: input.category,
+    brand: input.brand?.trim() || null,
+    notes: input.notes?.trim() || null,
+    active: input.active,
+  };
+}
+
+const duplicateTool = (error: { code?: string; message: string } | null) =>
+  error?.code === "23505" ? { message: "Ya hay una herramienta con ese nombre y número." } : error;
+
+export async function createTool(input: ToolInput): Promise<string> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("inventory_tools").insert({ ...toolRow(input), status: input.status }).select("id").single();
+  fail(duplicateTool(error));
+  return data!.id;
+}
+
+/** El estado solo se toca si no está prestada (una prestada se devuelve). */
+export async function updateTool(id: string, input: ToolInput, currentStatus: ToolStatus): Promise<void> {
+  const supabase = await createClient();
+  const patch = currentStatus === "prestada" ? toolRow(input) : { ...toolRow(input), status: input.status };
+  fail(duplicateTool((await supabase.from("inventory_tools").update(patch).eq("id", id)).error));
+}
+
+export async function setToolPhoto(id: string, path: string | null): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.from("inventory_tools").update({ photo_path: path }).eq("id", id)).error);
+}
+
+export interface LendInput {
+  toolIds: string[];
+  recipient: { kind: "empleado" | "contratista"; id: string };
+  projectId: string | null;
+  dueOn: string | null;
+  notes: string | null;
+}
+
+export async function lendTools(input: LendInput): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("lend_tools", {
+    p_tool_ids: input.toolIds,
+    p_employee_id: input.recipient.kind === "empleado" ? input.recipient.id : null,
+    p_contractor_id: input.recipient.kind === "contratista" ? input.recipient.id : null,
+    p_project_id: input.projectId,
+    p_due_on: input.dueOn,
+    p_notes: input.notes,
+  });
+  fail(error);
+  return data ?? 0;
+}
+
+export async function returnTool(loanId: string, condition: ToolCondition, notes: string | null, returnedOn: string | null): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("return_tool", { p_loan_id: loanId, p_condition: condition, p_notes: notes, p_returned_on: returnedOn });
+  fail(error);
+}
+
+/** Herramientas y envases que tiene por devolver una persona (o todos). */
+export async function getPendingReturns(recipient?: { kind: "empleado" | "contratista"; id: string }): Promise<PendingReturn[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("inventory_pending_returns", {
+    p_employee_id: recipient?.kind === "empleado" ? recipient.id : null,
+    p_contractor_id: recipient?.kind === "contratista" ? recipient.id : null,
+  });
+  fail(error);
+  return (data ?? []).map((r) => ({
+    kind: r.kind as PendingReturn["kind"],
+    id: r.id,
+    name: r.name,
+    photoPath: r.photo_path,
+    employeeId: r.employee_id,
+    contractorId: r.contractor_id,
+    person: r.person,
+    since: r.since,
+    dueOn: r.due_on,
+    overdue: r.overdue,
+    qty: Number(r.qty),
+    unit: r.unit,
+    project: r.project,
+  }));
+}
+
+/** Envases devueltos (las líneas de salida de productos devolvibles). */
+export async function returnContainers(movementIds: string[]): Promise<void> {
+  if (movementIds.length === 0) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("inventory_container_returns").upsert(
+    movementIds.map((id) => ({ movement_id: id })),
+    { onConflict: "movement_id", ignoreDuplicates: true },
+  );
+  fail(error);
 }

@@ -17,7 +17,8 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatQty, parseQty, stockStatus } from "@/lib/almacen/inventory";
 import { dimensionCount, optionsAt, reconcile, resolveVariant, selectionOf } from "@/lib/almacen/variant-picker";
 import { Field } from "../../contratistas/field";
-import { registerIssueAction } from "../actions";
+import { registerIssueAction, returnContainersAction } from "../actions";
+import { PendingReturnsList, usePendingReturns } from "./pending-returns";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
@@ -314,6 +315,23 @@ function CartPanel({
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Lo que la persona tiene por devolver y, si pide otra vez un devolvible sin
+  // haber devuelto el envase anterior, qué se decidió (no bloquea: queda anotado).
+  const { items: pending, setItems: setPending, reload: reloadPending } = usePendingReturns(recipient);
+  const [giveAnyway, setGiveAnyway] = React.useState(false);
+  const owed = pending.filter(
+    (p) => p.kind === "envase" && cart.some((l) => { const r = index.get(l.variantId); return r?.item.kind === "devolvible" && r.name === p.name; }),
+  );
+  const owedNames = [...new Set(owed.map((p) => p.name))].join(", ");
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- otra persona u otro envase: se vuelve a preguntar.
+  React.useEffect(() => setGiveAnyway(false), [recipient, owedNames]);
+
+  async function containersReturnedNow() {
+    const res = await returnContainersAction(owed.map((p) => p.id));
+    if (!res.ok) return toast.error(res.error);
+    toast.success(ta("container_returned"));
+    setPending((ps) => ps.filter((p) => !owed.some((o) => o.id === p.id)));
+  }
 
   const personOptions = React.useMemo(
     () =>
@@ -329,6 +347,7 @@ function CartPanel({
     if (cart.length === 0) return setError(ta("lines_required"));
     if (!recipient) return setError(ta("recipient_required"));
     if (destKind === "project" && !projectId) return setError(ta("destination_required"));
+    if (owed.length > 0 && !giveAnyway) return setError(ta("container_decide"));
     const [kind, id] = recipient.split(":") as ["empleado" | "contratista", string];
     setSaving(true);
     const res = await registerIssueAction({
@@ -336,7 +355,7 @@ function CartPanel({
       recipient: { kind, id },
       projectId: destKind === "project" ? projectId : null,
       internalUse: destKind === "internal" ? internalUse : null,
-      notes,
+      notes: owed.length > 0 ? [notes.trim(), ta("container_exception_note", { p: owedNames })].filter(Boolean).join("\n") : notes,
       lines: cart,
     });
     setSaving(false);
@@ -344,6 +363,7 @@ function CartPanel({
     toast.success(ta("issue_saved"));
     setCart([]);
     setNotes("");
+    reloadPending();
     onDone();
   }
 
@@ -412,6 +432,24 @@ function CartPanel({
       <Field label={ta("f_recipient")}>
         <Combo options={personOptions} value={recipient} onChange={setRecipient} placeholder={ta("pick_person")} />
         {toPainter && <p className="mt-1 text-xs text-warning">{ta("painter_charge_note")}</p>}
+        <PendingReturnsList items={pending} onReturned={(pid) => setPending((ps) => ps.filter((p) => p.id !== pid))} />
+        {owed.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-sm">
+            <p className="text-warning">{ta("container_warning", { p: owedNames })}</p>
+            {giveAnyway ? (
+              <p className="text-xs text-muted-foreground">{ta("container_exception_note", { p: owedNames })}</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => void containersReturnedNow()}>
+                  {ta("container_returned_now")}
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGiveAnyway(true)}>
+                  {ta("container_give_anyway")}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </Field>
       <Field label={ta("f_destination")}>
         <div className="flex flex-col gap-2">

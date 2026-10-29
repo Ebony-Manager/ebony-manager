@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import * as almacen from "@/services/almacen";
-import type { AdjustmentReason, OrderDelivery, RequestStatus } from "@/types/almacen";
+import type { AdjustmentReason, OrderDelivery, RequestStatus, ToolCondition, ToolStatus } from "@/types/almacen";
 import { dispatchPendingPush } from "@/lib/notifications/push";
 
 // Almacén: cada action pide su permiso al entrar (además de la RLS y de los
@@ -155,4 +155,43 @@ export async function registerAdjustmentAction(
 ) {
   await requireModule("almacen", "almacen_ajustes");
   return run(() => almacen.registerAdjustment(reason, notes, counted, lines));
+}
+
+// ── Herramientas y envases (Etapa 2) ────────────────────────────────────
+// Prestar, devolver y marcar envases: el Almacén. Crear o editar
+// herramientas: Ajustes de inventario o Compras (la RLS decide igual).
+
+export async function createToolAction(input: almacen.ToolInput) {
+  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  return run(() => almacen.createTool(input));
+}
+
+export async function updateToolAction(id: string, input: almacen.ToolInput, currentStatus: ToolStatus) {
+  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  return run(() => almacen.updateTool(id, input, currentStatus));
+}
+
+export async function setToolPhotoAction(id: string, path: string | null) {
+  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  return run(() => almacen.setToolPhoto(id, path));
+}
+
+export async function lendToolsAction(input: almacen.LendInput) {
+  await requireModule("almacen");
+  return run(() => almacen.lendTools(input));
+}
+
+export async function returnToolAction(loanId: string, condition: ToolCondition, notes: string | null, returnedOn: string | null) {
+  await requireModule("almacen");
+  return run(() => almacen.returnTool(loanId, condition, notes, returnedOn));
+}
+
+export async function getPendingReturnsAction(recipient: { kind: "empleado" | "contratista"; id: string }) {
+  await requireModule("almacen");
+  return run(() => almacen.getPendingReturns(recipient));
+}
+
+export async function returnContainersAction(movementIds: string[]) {
+  await requireModule("almacen");
+  return run(() => almacen.returnContainers(movementIds));
 }

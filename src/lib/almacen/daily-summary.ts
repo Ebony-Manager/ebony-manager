@@ -16,6 +16,8 @@ export interface DailySummary {
   low_stock: { category: string; name: string; label: string; unit: string; stock: number; min: number; reorder: number | null; requested: boolean }[];
   pending_requests: { name: string; label: string | null; qty: number; unit: string | null; by: string | null; auto: boolean; created_at: string }[];
   open_orders: { supplier: string; ordered_on: string; status: string; days: number; lines: number }[];
+  /** Herramientas prestadas pasadas de su fecha (o de 7 días sin fecha). Puede no venir en resúmenes viejos. */
+  overdue_tools?: { name: string; person: string; lent_on: string; due_on: string; days: number }[];
   yesterday: { issues: number; lines: number; short: string[] };
 }
 
@@ -47,12 +49,14 @@ ${rows.map((r) => `<tr>${r.map((c, i) => cell(c, i)).join("")}</tr>`).join("\n")
 
 export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail {
   const out = s.low_stock.filter((x) => x.stock <= 0);
-  const hasContent = s.low_stock.length > 0 || s.pending_requests.length > 0 || s.open_orders.length > 0 || s.yesterday.issues > 0;
+  const tools = s.overdue_tools ?? [];
+  const hasContent = s.low_stock.length > 0 || s.pending_requests.length > 0 || s.open_orders.length > 0 || tools.length > 0 || s.yesterday.issues > 0;
   const counts =
     [
       s.low_stock.length ? `${s.low_stock.length} bajo stock` : null,
       s.pending_requests.length ? `${s.pending_requests.length} por pedir` : null,
       s.open_orders.length ? `${s.open_orders.length} pedidos por llegar` : null,
+      tools.length ? `${tools.length} ${tools.length === 1 ? "herramienta vencida" : "herramientas vencidas"}` : null,
     ]
       .filter(Boolean)
       .join(", ") || "todo en orden";
@@ -108,6 +112,18 @@ export function buildSummaryEmail(s: DailySummary, appUrl: string): SummaryEmail
         ),
     );
     text.push(`PEDIDOS POR LLEGAR (${s.open_orders.length})`, ...s.open_orders.map((o) => `- ${o.supplier}: hace ${o.days} días, ${o.lines} líneas`), "");
+  }
+
+  if (tools.length) {
+    sections.push(
+      `<h2 style="font-size:16px;margin:0 0 4px">Herramientas vencidas (${tools.length})</h2>` +
+        table(
+          ["Herramienta", "La tiene", "Atraso"],
+          tools.map((t) => [esc(t.name), esc(t.person), `<span style="color:#b42318;font-weight:600">${t.days === 1 ? "1 día" : `${t.days} días`}</span>`]),
+          [2],
+        ),
+    );
+    text.push(`HERRAMIENTAS VENCIDAS (${tools.length})`, ...tools.map((t) => `- ${t.name}: ${t.person}, ${t.days} días tarde`), "");
   }
 
   const y = s.yesterday;
