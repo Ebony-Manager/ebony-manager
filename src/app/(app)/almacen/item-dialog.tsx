@@ -387,57 +387,6 @@ export function ItemDialog({
                     <p className="mt-0.5 truncate px-1 text-[11px] tabular-nums text-muted-foreground">
                       {qtyWithUnit(v.stockQty, unit, lang)}
                     </p>
-                    {canCosts && (
-                      <label className="mt-1 flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                        {ta("item_price")}
-                        <span className="relative block w-24">
-                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs">$</span>
-                          <Input
-                            className="h-8 pl-5 text-right tabular-nums"
-                            inputMode="decimal"
-                            value={v.price}
-                            onChange={(e) => patchVariant(v.key, { price: e.target.value })}
-                            placeholder="0.00"
-                            aria-label={ta("item_price")}
-                          />
-                        </span>
-                        {/* Con presentación: lo que sale la presentación entera, para comparar con la factura. */}
-                        {(() => {
-                          const per = parseQty(v.packQty);
-                          const cents = priceCents(v.price);
-                          return per != null && per > 1 && cents != null && !Number.isNaN(cents) ? (
-                            <span className="font-normal tabular-nums">
-                              {ta("price_pack_equiv", { t: formatCents(Math.round(cents * per)), p: v.packLabel.trim() || formatQty(per, lang) })}
-                            </span>
-                          ) : null;
-                        })()}
-                      </label>
-                    )}
-                    {/* Presentación de compra de esta variante: se pide y recibe así, sale del almacén por unidad. */}
-                    {v.packOpen ? (
-                      <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                        {ta("variant_pack")}
-                        <Input
-                          className="h-8 w-28"
-                          value={v.packLabel}
-                          onChange={(e) => patchVariant(v.key, { packLabel: e.target.value })}
-                          placeholder={ta("variant_pack_label_ph")}
-                          disabled={readOnly}
-                          aria-label={ta("variant_pack")}
-                        />
-                        =
-                        <span className="w-16">
-                          <QtyInput value={v.packQty} onChange={(x) => patchVariant(v.key, { packQty: x })} placeholder="—" disabled={readOnly} aria-label={ta("variant_pack_qty")} />
-                        </span>
-                        {unitLabel(unit, 2, lang)}
-                      </div>
-                    ) : (
-                      !readOnly && (
-                        <button type="button" className="mt-1 px-1 text-[11px] text-primary hover:underline" onClick={() => patchVariant(v.key, { packOpen: true })}>
-                          {ta("variant_pack_add")}
-                        </button>
-                      )
-                    )}
                   </div>
                   <QtyInput value={v.min} onChange={(x) => patchVariant(v.key, { min: x })} placeholder="—" aria-label={ta("col_min")} />
                   <QtyInput value={v.reorder} onChange={(x) => patchVariant(v.key, { reorder: x })} placeholder="—" aria-label={ta("col_reorder")} />
@@ -453,6 +402,60 @@ export function ItemDialog({
                       <X className="size-4" />
                     </button>
                   )}
+                  {/* Precio y presentación de compra: a lo ancho, debajo de la variante. */}
+                  <div className="col-span-full -mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-1 text-[11px] font-medium text-muted-foreground">
+                    {canCosts && (
+                      <label className="flex items-center gap-1">
+                        {ta("item_price")}
+                        <span className="relative block w-20">
+                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs">$</span>
+                          <Input
+                            className="h-8 pl-5 text-right tabular-nums"
+                            inputMode="decimal"
+                            value={v.price}
+                            onChange={(e) => patchVariant(v.key, { price: e.target.value })}
+                            placeholder="0.00"
+                            aria-label={ta("item_price")}
+                          />
+                        </span>
+                        {/* Con presentación: lo que sale la presentación entera, para comparar con la factura. */}
+                        {(() => {
+                          const per = parseQty(v.packQty);
+                          const cents = priceCents(v.price);
+                          return per != null && per > 1 && cents != null && !Number.isNaN(cents) ? (
+                            <span className="whitespace-nowrap font-normal tabular-nums">
+                              {ta("price_pack_equiv", { t: formatCents(Math.round(cents * per)), p: v.packLabel.trim() || formatQty(per, lang) })}
+                            </span>
+                          ) : null;
+                        })()}
+                      </label>
+                    )}
+                    {/* Presentación de compra de esta variante: se pide y recibe así, sale del almacén por unidad. */}
+                    {v.packOpen ? (
+                      <div className="flex items-center gap-1">
+                        <span className="whitespace-nowrap">{ta("variant_pack")}</span>
+                        <Input
+                          className="h-8 w-24"
+                          value={v.packLabel}
+                          onChange={(e) => patchVariant(v.key, { packLabel: e.target.value })}
+                          placeholder={ta("variant_pack_label_ph")}
+                          disabled={readOnly}
+                          aria-label={ta("variant_pack")}
+                        />
+                        =
+                        <span className="w-14">
+                          <QtyInput value={v.packQty} onChange={(x) => patchVariant(v.key, { packQty: x })} placeholder="—" disabled={readOnly} aria-label={ta("variant_pack_qty")} className="h-8" />
+                        </span>
+                        {unitLabel(unit, 2, lang)}
+                      </div>
+                    ) : (
+                      !readOnly && (
+                        <button type="button" className="text-primary hover:underline" onClick={() => patchVariant(v.key, { packOpen: true })}>
+                          {ta("variant_pack_add")}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
               ))}
               {!readOnly && (
