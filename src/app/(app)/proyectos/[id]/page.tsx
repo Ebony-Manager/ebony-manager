@@ -4,11 +4,12 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { getContractors, getContracts, getLaborRates, getProject, getProjects } from "@/services/contractors";
 import { getInspectionPainters, getProjectInspections } from "@/services/inspections";
+import { getProjectSupplies } from "@/services/almacen";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
 // obra. Cada sección pide su módulo (Contratos pide Contratistas;
-// Inspecciones, Inspecciones) y
+// Inspecciones, Inspecciones; Suministros lo ve todo el que entra a la ficha) y
 // acá solo se carga lo de los módulos que el usuario tiene.
 export const dynamic = "force-dynamic";
 
@@ -29,13 +30,14 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
     canContracts ? getLaborRates() : none([]),
     canInspections ? getProjectInspections(id) : none([]),
     canInspections ? getInspectionPainters() : none([]),
+    getProjectSupplies(id),
   ]);
 
   return (
@@ -50,6 +52,7 @@ export default async function ProjectPage({
       canInspections={canInspections}
       inspections={inspections}
       painters={painters}
+      supplies={supplies}
     />
   );
 }

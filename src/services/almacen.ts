@@ -16,6 +16,7 @@ import type {
   ItemKind,
   OrderDelivery,
   OrderStatus,
+  ProjectSupplyLine,
   PurchaseOrder,
   PurchaseRequest,
   RequestStatus,
@@ -390,6 +391,25 @@ export async function getInventoryPeople(): Promise<InventoryPerson[]> {
       contractorType: p.contractor_type,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+/** Lo que salió del almacén para un proyecto (la base decide quién lo ve y quién ve el costo). */
+export async function getProjectSupplies(projectId: string): Promise<ProjectSupplyLine[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("project_supplies", { p_project: projectId });
+  fail(error);
+  return (data ?? []).map((r) => ({
+    id: r.movement_id,
+    issuedOn: r.issued_on,
+    issueId: r.issue_id,
+    variantId: r.variant_id,
+    name: r.variant_label ? `${r.item_name} · ${r.variant_label}` : r.item_name,
+    photoPath: r.photo_path,
+    unit: r.unit,
+    qty: Number(r.qty),
+    recipient: r.recipient,
+    unitCostCents: r.unit_cost_cents != null ? Number(r.unit_cost_cents) : null,
+  }));
 }
 
 export async function getWarehouseProjects(): Promise<{ id: string; name: string; active: boolean }[]> {

@@ -2954,6 +2954,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: { id: string; name: string; active: boolean }[]
       }
+      project_supplies: {
+        Args: { p_project: string }
+        Returns: {
+          movement_id: string
+          issued_on: string
+          issue_id: string
+          variant_id: string
+          item_name: string
+          variant_label: string
+          photo_path: string | null
+          unit: string
+          qty: number
+          recipient: string | null
+          unit_cost_cents: number | null
+        }[]
+      }
       inspection_projects: {
         Args: { p_id?: string | null }
         Returns: {

@@ -222,3 +222,18 @@ export interface InventoryAdjustment {
   createdAt: string;
   lines: MovementLine[];
 }
+
+/** Una línea de lo que salió del almacén para un proyecto (Proyecto → Suministros). */
+export interface ProjectSupplyLine {
+  id: string;
+  issuedOn: string;
+  issueId: string;
+  variantId: string;
+  name: string;
+  photoPath: string | null;
+  unit: string;
+  qty: number;
+  recipient: string | null;
+  /** Último costo por unidad (centavos); null sin Costos del almacén o sin costo cargado. */
+  unitCostCents: number | null;
+}

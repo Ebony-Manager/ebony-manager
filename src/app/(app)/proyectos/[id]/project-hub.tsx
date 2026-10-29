@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from 
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { Inspection, InspectionPainter } from "@/types/inspections";
+import type { ProjectSupplyLine } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -28,15 +29,16 @@ import { ContractDialog, type ContractPerson } from "../../contratistas/contract
 import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
+import { ProjectSupplies } from "./project-supplies";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "contratos" | "inspecciones";
+type SectionKey = "resumen" | "contratos" | "inspecciones" | "suministros";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
  * borrar) y una pestaña por cada cosa que cuelga del proyecto. Hoy:
- * Resumen, Contratos e Inspecciones. Lo que se vaya sumando (cotizaciones,
+ * Resumen, Contratos, Inspecciones y Suministros. Lo que se vaya sumando (cotizaciones,
  * autorizaciones, inventario entregado…) entra como otra pestaña en
  * `sections`, con su propio permiso.
  */
@@ -51,6 +53,7 @@ export function ProjectHub({
   canInspections,
   inspections,
   painters,
+  supplies,
 }: {
   project: Project;
   initialTab?: string;
@@ -62,6 +65,7 @@ export function ProjectHub({
   canInspections: boolean;
   inspections: Inspection[];
   painters: InspectionPainter[];
+  supplies: ProjectSupplyLine[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -71,6 +75,7 @@ export function ProjectHub({
     { key: "resumen", label: tt("tab_resumen"), visible: true },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
+    { key: "suministros", label: tt("tab_suministros"), visible: true },
   ];
   const visible = sections.filter((s) => s.visible);
   const [tab, setTab] = React.useState<SectionKey>(
@@ -135,6 +140,7 @@ export function ProjectHub({
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
+      {tab === "suministros" && <ProjectSupplies lines={supplies} />}
 
       <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
       <DeleteProjectDialog
