@@ -5,6 +5,7 @@ import webpush, { type PushSubscription } from "web-push";
 
 import type { Database } from "@/types/database";
 import { VAPID_PUBLIC_KEY } from "./config";
+import { notificationTitle } from "./presentation";
 
 function configure() {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -84,7 +85,7 @@ export async function dispatchPendingPush(): Promise<number> {
       try {
         await sendPush(
           { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-          { title: notice.title, body: notice.body, href: notice.href, tag: notice.id },
+          { title: notificationTitle(notice.type_key, notice.title), body: notice.body, href: notice.href, tag: notice.id },
         );
         sent += 1;
       } catch (err) {
