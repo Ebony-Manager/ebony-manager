@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { parseQty, unitLabel } from "@/lib/almacen/inventory";
+import { formatQty, parseQty, unitLabel } from "@/lib/almacen/inventory";
+import { formatCents } from "@/lib/planilla/payroll-period";
 import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photos";
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
@@ -387,7 +388,7 @@ export function ItemDialog({
                       {qtyWithUnit(v.stockQty, unit, lang)}
                     </p>
                     {canCosts && (
-                      <label className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                      <label className="mt-1 flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
                         {ta("item_price")}
                         <span className="relative block w-24">
                           <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs">$</span>
@@ -400,6 +401,16 @@ export function ItemDialog({
                             aria-label={ta("item_price")}
                           />
                         </span>
+                        {/* Con presentación: lo que sale la presentación entera, para comparar con la factura. */}
+                        {(() => {
+                          const per = parseQty(v.packQty);
+                          const cents = priceCents(v.price);
+                          return per != null && per > 1 && cents != null && !Number.isNaN(cents) ? (
+                            <span className="font-normal tabular-nums">
+                              {ta("price_pack_equiv", { t: formatCents(Math.round(cents * per)), p: v.packLabel.trim() || formatQty(per, lang) })}
+                            </span>
+                          ) : null;
+                        })()}
                       </label>
                     )}
                     {/* Presentación de compra de esta variante: se pide y recibe así, sale del almacén por unidad. */}

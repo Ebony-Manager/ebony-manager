@@ -2788,6 +2788,7 @@ export const strings = {
     variant_pack: { es: "Se compra por", en: "Bought by" },
     f_pack_price: { es: "Precio por {p}", en: "Price per {p}" },
     price_per_pack: { es: "por {p}", en: "per {p}" },
+    price_pack_equiv: { es: "= {t} por {p}", en: "= {t} per {p}" },
     variant_pack_add: { es: "+ Se compra en rollo, galón, caja…", en: "+ Bought by roll, gallon, box…" },
     variant_pack_label_ph: { es: "Galón, rollo…", en: "Gallon, roll…" },
     variant_pack_qty: { es: "Unidades por presentación", en: "Units per pack" },

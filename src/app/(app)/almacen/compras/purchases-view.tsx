@@ -455,6 +455,10 @@ function PendingRow({
                 className={r.unitCostCents == null ? "border-warning/60" : undefined}
               />
             </div>
+            {/* Para que quede claro qué precio va: el de UNA presentación (un galón), no el de todas. */}
+            <span className="text-xs text-muted-foreground">
+              {pack ? ta("price_per_pack", { p: (pack.label || formatQty(pack.qty, lang)).toLowerCase() }) : ta("price_each")}
+            </span>
             <span className="ml-auto text-sm font-medium tabular-nums">{lineTotal != null ? formatCents(lineTotal) : "—"}</span>
             {last != null && r.unitCostCents == null && (
               <button type="button" onClick={() => setPrice(centsToText(last * per))} className="basis-full text-left text-[11px] text-primary hover:underline">
