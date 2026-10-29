@@ -13,11 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
+import { formatQty, formatUnitCost, parseQty, toPacks } from "@/lib/almacen/inventory";
 import { Field } from "../../contratistas/field";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
-import { QtyInput, qtyWithUnit, useTa, type VariantRef } from "../shared";
-import { PurchasePhoto, StatusBadge } from "./common";
+import { QtyInput, useTa, type VariantRef } from "../shared";
+import { PurchasePhoto, StatusBadge, packOf, purchaseQtyText } from "./common";
 import { DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
@@ -56,6 +56,9 @@ export function OrderDialog({
 }) {
   const { ta, lang } = useTa();
   const lineName = React.useCallback((l: { variantId: string | null; description: string }) => (l.variantId && index.get(l.variantId)?.name) || l.description, [index]);
+  // Por presentación (rollo, galón): se recibe y se pone precio por presentación; se guarda por unidad.
+  const supplierId = order?.supplierId ?? null;
+  const perOf = React.useCallback((variantId: string | null) => packOf(index, variantId, supplierId)?.qty ?? 1, [index, supplierId]);
 
   const [receivedOn, setReceivedOn] = React.useState("");
   const [receive, setReceive] = React.useState<Record<string, string>>({});
@@ -69,9 +72,9 @@ export function OrderDialog({
   React.useEffect(() => {
     if (!order) return;
     setReceivedOn(todayInPanama(new Date()));
-    setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round((l.qty - l.receivedQty) * 100) / 100) : ""])));
+    setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round(((l.qty - l.receivedQty) / perOf(l.variantId)) * 100) / 100) : ""])));
     setInvoiceRef(order.invoiceRef ?? "");
-    setPrices(Object.fromEntries(order.lines.map((l) => [l.id, l.totalCents != null && l.qty > 0 ? centsText(l.totalCents / l.qty) : ""])));
+    setPrices(Object.fromEntries(order.lines.map((l) => [l.id, l.totalCents != null && l.qty > 0 ? centsText((l.totalCents / l.qty) * perOf(l.variantId)) : ""])));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de pedido (o de su estado).
   }, [orderId, order?.status, order?.invoiceRef]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -90,7 +93,8 @@ export function OrderDialog({
     const line = order!.lines.find((l) => l.id === lineId);
     if (!canPurchase) return line && line.totalCents != null && line.qty > 0 ? line.totalCents / line.qty : null;
     const n = parseFloat((prices[lineId] ?? "").replace(",", "."));
-    return Number.isFinite(n) && n >= 0 ? Math.round(n * 10000) / 100 : null;
+    // Lo escrito es por presentación; el precio por unidad = ese ÷ unidades por presentación.
+    return Number.isFinite(n) && n >= 0 ? Math.round((n * 10000) / perOf(line?.variantId ?? null)) / 100 : null;
   };
   const totalCents = order.lines.reduce((sum, l) => {
     const u = unitPrice(l.id);
@@ -107,7 +111,7 @@ export function OrderDialog({
 
   async function doReceive() {
     const lines = order!.lines
-      .map((l) => ({ lineId: l.id, qty: parseQty(receive[l.id] ?? "") ?? 0 }))
+      .map((l) => ({ lineId: l.id, qty: Math.round((parseQty(receive[l.id] ?? "") ?? 0) * perOf(l.variantId) * 100) / 100 }))
       .filter((l) => l.qty > 0);
     if (lines.length === 0) return toast.error(ta("nothing_to_receive"));
     setBusy(true);
@@ -182,6 +186,8 @@ export function OrderDialog({
             {order.lines.map((l) => {
               const unit = unitPrice(l.id);
               const done = l.receivedQty >= l.qty;
+              const pack = packOf(index, l.variantId, supplierId);
+              const per = pack?.qty ?? 1;
               return (
                 <li key={l.id} className="flex flex-col gap-2 border-b border-border px-3 py-2.5 text-sm last:border-0">
                   <div className="flex items-start justify-between gap-3">
@@ -190,7 +196,7 @@ export function OrderDialog({
                       {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
                     </span>
                     <span className={`shrink-0 text-right text-xs tabular-nums ${done ? "text-success" : "text-muted-foreground"}`}>
-                      {ta("received_of", { a: formatQty(l.receivedQty, lang), b: qtyWithUnit(l.qty, l.unit, lang) })}
+                      {ta("received_of", { a: formatQty(pack ? toPacks(l.receivedQty, pack) : l.receivedQty, lang), b: purchaseQtyText(l.qty, l.unit, pack, lang) })}
                     </span>
                   </div>
                   {(receiving || canCosts) && (
@@ -201,6 +207,7 @@ export function OrderDialog({
                           <span className="w-24">
                             <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} aria-label={ta("receive")} />
                           </span>
+                          {pack && <span className="text-xs text-muted-foreground">× {pack.label || formatQty(pack.qty, lang)}</span>}
                         </label>
                       )}
                       {canCosts && (
@@ -210,9 +217,9 @@ export function OrderDialog({
                               <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} aria-label={ta("f_unit_price")} />
                             </span>
                           ) : (
-                            <span className="tabular-nums">{unit != null ? formatUnitCost(unit) : "—"}</span>
+                            <span className="tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
                           )}
-                          <span className="text-xs text-muted-foreground">{ta("price_each")}</span>
+                          <span className="text-xs text-muted-foreground">{pack ? ta("price_per_pack", { p: pack.label || formatQty(pack.qty, lang) }) : ta("price_each")}</span>
                           <span className="min-w-20 text-right font-medium tabular-nums">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
                         </span>
                       )}

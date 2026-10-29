@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatPhonePA, formatQty, formatUnitCost, mapsUrl, orderMessage, parseQty, stockStatus, suggestedOrderQty, unitLabel, variantName, whatsappNumber, whatsappUrl } from "./inventory";
+import { formatPhonePA, formatQty, formatUnitCost, mapsUrl, orderMessage, packText, parseQty, purchasePack, roundUpToPack, stockStatus, suggestedOrderQty, unitLabel, variantName, whatsappNumber, whatsappUrl } from "./inventory";
 
 describe("stockStatus", () => {
   it("sin existencia, bajo el mínimo (incluido) o bien", () => {
@@ -61,6 +61,27 @@ describe("WhatsApp", () => {
     expect(msg).toContain("Hola Juan");
     expect(msg).toContain("• 200 metros — Canto pintable · 0.80 x 22mm");
     expect(msg).toContain("• 1 unidad — High Tack");
+  });
+  it("por presentación: rollos o galones en vez de unidades", () => {
+    const msg = orderMessage(null, [{ name: "Lija · P80", qty: 56, unit: "unidad", pack: { label: "Rollo de 500 cm", qty: 28 } }]);
+    expect(msg).toContain("• 2 × Rollo de 500 cm — Lija · P80");
+  });
+});
+
+describe("presentación de compra", () => {
+  const item = { suppliers: [{ supplierId: "s1", isPrimary: true, packLabel: "Rollo de 500 cm", packQty: 28, supplierRef: null }] };
+  it("manda la de la variante; si no, la del proveedor; 1 o vacío = suelto", () => {
+    expect(purchasePack(item, { packLabel: "Galón", packQty: 10 })).toEqual({ label: "Galón", qty: 10 });
+    expect(purchasePack(item, { packLabel: null, packQty: null })).toEqual({ label: "Rollo de 500 cm", qty: 28 });
+    expect(purchasePack(item, { packLabel: null, packQty: null }, "otro")).toBeNull();
+    expect(purchasePack({ suppliers: [] }, { packLabel: "x", packQty: 1 })).toBeNull();
+  });
+  it("redondea a presentaciones completas", () => {
+    const pack = { label: "Rollo", qty: 28 };
+    expect(roundUpToPack(30, pack)).toBe(56);
+    expect(roundUpToPack(28, pack)).toBe(28);
+    expect(roundUpToPack(5, null)).toBe(5);
+    expect(packText(56, pack)).toBe("2 × Rollo");
   });
 });
 

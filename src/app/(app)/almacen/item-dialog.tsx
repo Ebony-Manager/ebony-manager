@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatQty, parseQty } from "@/lib/almacen/inventory";
+import { formatQty, parseQty, unitLabel } from "@/lib/almacen/inventory";
 import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photos";
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
@@ -29,6 +29,10 @@ interface VariantDraft {
   stockQty: number;
   unitCostCents: number | null;
   price: string;
+  /** Presentación de compra de la variante ("Galón" = 10). */
+  packLabel: string;
+  packQty: string;
+  packOpen: boolean;
 }
 
 interface SupplierDraft {
@@ -44,6 +48,9 @@ const NONE = "none";
 const VARIANT_COLS = "grid-cols-[minmax(0,1fr)_64px_84px_36px] sm:grid-cols-[minmax(0,1fr)_88px_104px_36px]";
 let seq = 0;
 const newKey = () => `k${++seq}`;
+const newVariant = (): VariantDraft => ({
+  key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null, price: "", packLabel: "", packQty: "", packOpen: false,
+});
 const priceText = (cents: number | null) => (cents == null ? "" : String(Number((cents / 100).toFixed(2))));
 const priceCents = (value: string) => {
   const normalized = value.trim().replace(",", ".");
@@ -121,8 +128,11 @@ export function ItemDialog({
             stockQty: v.stockQty,
             unitCostCents: v.unitCostCents,
             price: priceText(v.unitCostCents),
+            packLabel: v.packLabel ?? "",
+            packQty: v.packQty != null ? String(v.packQty) : "",
+            packOpen: v.packQty != null && v.packQty > 1,
           }))
-        : [{ key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null, price: "" }],
+        : [newVariant()],
     );
     setLinks(
       (current?.suppliers ?? []).map((s) => ({
@@ -219,6 +229,8 @@ export function ItemDialog({
         reorderQty: parseQty(v.reorder),
         active: v.active,
         unitCostCents: priceCents(v.price),
+        packLabel: v.packLabel,
+        packQty: parseQty(v.packQty),
       })),
       suppliers: links
         .filter((l) => l.supplierId)
@@ -394,6 +406,31 @@ export function ItemDialog({
                         </span>
                       </label>
                     )}
+                    {/* Presentación de compra de esta variante: se pide y recibe así, sale del almacén por unidad. */}
+                    {v.packOpen ? (
+                      <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        {ta("variant_pack")}
+                        <Input
+                          className="h-8 w-28"
+                          value={v.packLabel}
+                          onChange={(e) => patchVariant(v.key, { packLabel: e.target.value })}
+                          placeholder={ta("variant_pack_label_ph")}
+                          disabled={readOnly}
+                          aria-label={ta("variant_pack")}
+                        />
+                        =
+                        <span className="w-16">
+                          <QtyInput value={v.packQty} onChange={(x) => patchVariant(v.key, { packQty: x })} placeholder="—" disabled={readOnly} aria-label={ta("variant_pack_qty")} />
+                        </span>
+                        {unitLabel(unit, 2, lang)}
+                      </div>
+                    ) : (
+                      !readOnly && (
+                        <button type="button" className="mt-1 px-1 text-[11px] text-primary hover:underline" onClick={() => patchVariant(v.key, { packOpen: true })}>
+                          {ta("variant_pack_add")}
+                        </button>
+                      )
+                    )}
                   </div>
                   <QtyInput value={v.min} onChange={(x) => patchVariant(v.key, { min: x })} placeholder="—" aria-label={ta("col_min")} />
                   <QtyInput value={v.reorder} onChange={(x) => patchVariant(v.key, { reorder: x })} placeholder="—" aria-label={ta("col_reorder")} />
@@ -418,10 +455,7 @@ export function ItemDialog({
                   size="sm"
                   className="self-start"
                   onClick={() =>
-                    setVariants((vs) => [
-                      ...vs,
-                      { key: newKey(), label: "", min: "", reorder: "", active: true, stockQty: 0, unitCostCents: null, price: "" },
-                    ])
+                    setVariants((vs) => [...vs, newVariant()])
                   }
                 >
                   <Plus className="size-3.5" />

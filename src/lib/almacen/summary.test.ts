@@ -15,7 +15,7 @@ const item = (id: string, variants: { id: string; stock: number; cost: number | 
     photoPath: null,
     active: true,
     suppliers: [],
-    variants: variants.map((v, i) => ({ id: v.id, itemId: id, label: "", stockQty: v.stock, minQty: null, reorderQty: null, sortOrder: i, active: true, unitCostCents: v.cost })),
+    variants: variants.map((v, i) => ({ id: v.id, itemId: id, label: "", stockQty: v.stock, minQty: null, reorderQty: null, sortOrder: i, active: true, unitCostCents: v.cost, packLabel: null, packQty: null })),
   }) as InventoryItem;
 
 const out = (variantId: string, qty: number, movedOn: string, issueId: string, who = "e1", project: string | null = "p1"): InventoryMovement => ({

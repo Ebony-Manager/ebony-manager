@@ -2452,6 +2452,8 @@ export type Database = {
           item_id: string
           label: string
           min_qty: number | null
+          pack_label: string | null
+          pack_qty: number | null
           reorder_qty: number | null
           sort_order: number
           stock_qty: number
@@ -2464,6 +2466,8 @@ export type Database = {
           item_id: string
           label?: string
           min_qty?: number | null
+          pack_label?: string | null
+          pack_qty?: number | null
           reorder_qty?: number | null
           sort_order?: number
           stock_qty?: number
@@ -2476,6 +2480,8 @@ export type Database = {
           item_id?: string
           label?: string
           min_qty?: number | null
+          pack_label?: string | null
+          pack_qty?: number | null
           reorder_qty?: number | null
           sort_order?: number
           stock_qty?: number

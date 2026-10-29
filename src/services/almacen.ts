@@ -167,6 +167,8 @@ export async function getCatalog(): Promise<InventoryItem[]> {
       sortOrder: v.sort_order,
       active: v.active,
       unitCostCents: cost.get(v.id) ?? null,
+      packLabel: v.pack_label,
+      packQty: num(v.pack_qty),
     })),
     suppliers: (linksByItem.get(i.id) ?? []).map((l) => ({
       supplierId: l.supplier_id,
@@ -187,7 +189,16 @@ export interface ItemInput {
   notes: string | null;
   active: boolean;
   /** Variantes: con id se actualizan; sin id se crean; las que falten se desactivan. */
-  variants: { id?: string; label: string; minQty: number | null; reorderQty: number | null; active: boolean; unitCostCents: number | null }[];
+  variants: {
+    id?: string;
+    label: string;
+    minQty: number | null;
+    reorderQty: number | null;
+    active: boolean;
+    unitCostCents: number | null;
+    packLabel: string | null;
+    packQty: number | null;
+  }[];
   suppliers: { supplierId: string; isPrimary: boolean; packLabel: string | null; packQty: number | null }[];
 }
 
@@ -211,9 +222,18 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<numbe
   const keep = new Set(input.variants.map((v) => v.id).filter(Boolean));
   const variants = input.variants.length
     ? input.variants
-    : [{ label: "", minQty: null, reorderQty: null, active: true, unitCostCents: null }];
+    : [{ label: "", minQty: null, reorderQty: null, active: true, unitCostCents: null, packLabel: null, packQty: null }];
   for (const [i, v] of variants.entries()) {
-    const row = { label: v.label.trim(), min_qty: v.minQty, reorder_qty: v.reorderQty, active: v.active, sort_order: i };
+    const packQty = v.packQty != null && v.packQty > 1 ? v.packQty : null;
+    const row = {
+      label: v.label.trim(),
+      min_qty: v.minQty,
+      reorder_qty: v.reorderQty,
+      active: v.active,
+      sort_order: i,
+      pack_label: packQty ? v.packLabel?.trim() || null : null,
+      pack_qty: packQty,
+    };
     const res = v.id
       ? await supabase.from("inventory_variants").update(row).eq("id", v.id).select("id").single()
       : await supabase.from("inventory_variants").insert({ ...row, item_id: itemId }).select("id").single();

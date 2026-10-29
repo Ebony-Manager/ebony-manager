@@ -94,6 +94,9 @@ export interface InventoryVariant {
   active: boolean;
   /** Último costo por unidad base, en centavos (solo con Compras o Costos). */
   unitCostCents: number | null;
+  /** Presentación de compra de esta variante ("Galón" = 10 botellas); manda sobre la del proveedor. */
+  packLabel: string | null;
+  packQty: number | null;
 }
 
 export interface ItemSupplier {

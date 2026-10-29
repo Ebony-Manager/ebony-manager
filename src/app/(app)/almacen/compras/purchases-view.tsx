@@ -16,13 +16,13 @@ import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
-import { PurchasePhoto, RequestOrigin, StatusBadge, requestName } from "./common";
+import { PurchasePhoto, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
 import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
-import type { OrderMessageLine } from "@/lib/almacen/inventory";
+import { toPacks, type OrderMessageLine, type PurchasePack } from "@/lib/almacen/inventory";
 import { SubTabs } from "@/components/shared/page-header";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
@@ -119,7 +119,7 @@ export function PurchasesView({
                 onMessage={(supplierId, picked) =>
                   setMessaging({
                     supplier: supplierId ? (supplierById.get(supplierId) ?? null) : null,
-                    lines: picked.map((r) => ({ name: requestName(r, index), qty: r.qty, unit: r.unit })),
+                    lines: picked.map((r) => ({ name: requestName(r, index), qty: r.qty, unit: r.unit, pack: packOf(index, r.variantId, supplierId) })),
                   })
                 }
               />
@@ -251,7 +251,17 @@ function ToOrder({
             </header>
             <ul>
               {list.map((r) => (
-                <PendingRow key={r.id} r={r} index={index} projectName={projectName} checked={!unchecked.has(r.id)} onToggle={() => toggle(r.id)} lang={lang} withPrice={!!supplierId} />
+                <PendingRow
+                  key={r.id}
+                  r={r}
+                  index={index}
+                  projectName={projectName}
+                  checked={!unchecked.has(r.id)}
+                  onToggle={() => toggle(r.id)}
+                  lang={lang}
+                  withPrice={!!supplierId}
+                  pack={packOf(index, r.variantId, supplierId || null)}
+                />
               ))}
             </ul>
             {/* Precios, WhatsApp al proveedor y, confirmado y pagado, «Pedido ✓» → En camino. */}
@@ -344,6 +354,7 @@ function PendingRow({
   onToggle,
   lang,
   withPrice,
+  pack,
 }: {
   r: PurchaseRequest;
   index: Map<string, VariantRef>;
@@ -353,26 +364,38 @@ function PendingRow({
   lang: "es" | "en";
   /** Con proveedor: se le pone el precio por unidad (Compras). */
   withPrice: boolean;
+  /** Se compra por presentación (rollo, galón): cantidad y precio van por presentación. */
+  pack: PurchasePack | null;
 }) {
   const { ta } = useTa();
-  const [qty, setQty] = React.useState(String(r.qty));
-  const [price, setPrice] = React.useState(r.unitCostCents != null ? centsToText(r.unitCostCents) : "");
+  // Con presentación, lo que se escribe es por presentación (2 rollos, $18 el rollo);
+  // se guarda en la unidad del almacén (56 pedazos, $0.64 c/u).
+  const per = pack?.qty ?? 1;
+  const shownQty = (q: number) => String(pack ? toPacks(q, pack) : q);
+  const shownPrice = (c: number | null) => (c != null ? centsToText(c * per) : "");
+  const [qty, setQty] = React.useState(shownQty(r.qty));
+  const [price, setPrice] = React.useState(shownPrice(r.unitCostCents));
+  /* eslint-disable react-hooks/set-state-in-effect -- al cambiar la solicitud (o su presentación) por fuera. */
+  React.useEffect(() => setQty(shownQty(r.qty)), [r.qty, per]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => setPrice(shownPrice(r.unitCostCents)), [r.unitCostCents, per]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/set-state-in-effect */
   const ref = r.variantId ? index.get(r.variantId) : undefined;
   const last = ref?.variant.unitCostCents ?? null;
-  const unitName = qtyWithUnit(1, r.unit, lang).replace(/^1 /, "");
+  const unitName = pack ? `× ${pack.label || formatQty(pack.qty, lang)}` : qtyWithUnit(1, r.unit, lang).replace(/^1 /, "");
 
   function saveQty() {
     const n = parseQty(qty);
-    if (n == null || n <= 0 || n === r.qty) return setQty(String(r.qty));
-    void updatePurchaseRequestAction(r.id, { qty: n }).then((res) => (res.ok ? toast.success(ta("saved")) : toast.error(res.error)));
+    const base = n == null ? null : Math.round(n * per * 100) / 100;
+    if (base == null || base <= 0 || base === r.qty) return setQty(shownQty(r.qty));
+    void updatePurchaseRequestAction(r.id, { qty: base }).then((res) => (res.ok ? toast.success(ta("saved")) : toast.error(res.error)));
   }
 
   function savePrice() {
     const text = price.trim();
     const n = text ? parseFloat(text.replace(",", ".")) : null;
-    if (n != null && (!Number.isFinite(n) || n < 0)) return setPrice(r.unitCostCents != null ? centsToText(r.unitCostCents) : "");
-    // Centavos con hasta 2 decimales (ej. $0.0125 por tornillo).
-    const cents = n == null ? null : Math.round(n * 10000) / 100;
+    if (n != null && (!Number.isFinite(n) || n < 0)) return setPrice(shownPrice(r.unitCostCents));
+    // Centavos con hasta 2 decimales (ej. $0.0125 por tornillo); con presentación, el precio escrito es por presentación.
+    const cents = n == null ? null : Math.round((n * 10000) / per) / 100;
     if (cents === r.unitCostCents) return;
     void setRequestCostAction(r.id, cents).then((res) => (res.ok ? toast.success(ta("price_saved")) : toast.error(res.error)));
   }
@@ -418,23 +441,24 @@ function PendingRow({
           </div>
           <span className="text-xs text-muted-foreground">{unitName}</span>
         </div>
+        {pack && <span className="text-xs text-muted-foreground">= {qtyWithUnit(r.qty, r.unit, lang)}</span>}
         {withPrice && (
           <>
             <span className="text-xs text-muted-foreground">×</span>
-            <div className="w-24" title={ta("f_unit_price")}>
+            <div className="w-24" title={pack ? ta("f_pack_price", { p: pack.label }) : ta("f_unit_price")}>
               <MoneyInput
                 value={price}
                 onValueChange={setPrice}
                 onBlur={savePrice}
-                placeholder={last != null ? centsToText(last) : "0.00"}
-                aria-label={ta("f_unit_price")}
+                placeholder={last != null ? centsToText(last * per) : "0.00"}
+                aria-label={pack ? ta("f_pack_price", { p: pack.label }) : ta("f_unit_price")}
                 className={r.unitCostCents == null ? "border-warning/60" : undefined}
               />
             </div>
             <span className="ml-auto text-sm font-medium tabular-nums">{lineTotal != null ? formatCents(lineTotal) : "—"}</span>
             {last != null && r.unitCostCents == null && (
-              <button type="button" onClick={() => setPrice(centsToText(last))} className="basis-full text-left text-[11px] text-primary hover:underline">
-                {ta("last_price", { p: formatUnitCost(last) })}
+              <button type="button" onClick={() => setPrice(centsToText(last * per))} className="basis-full text-left text-[11px] text-primary hover:underline">
+                {ta("last_price", { p: formatUnitCost(last * per) })}
               </button>
             )}
           </>
@@ -510,7 +534,7 @@ function RequestsTable({
                 </div>
                 </div>
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{qtyWithUnit(r.qty, r.unit, lang)}</td>
+              <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{purchaseQtyText(r.qty, r.unit, packOf(index, r.variantId, r.supplierId), lang)}</td>
               {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? "—" : (r.createdByName ?? "—")}</td>}
               <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{formatDateCompact(lang, todayInPanama(new Date(r.createdAt)))}</td>
               <td className="px-3.5 py-2.5 text-right">
@@ -605,6 +629,7 @@ function InTransit({
           <ul>
             {outstandingPurchaseLines(o).map((l) => {
               const who = whoByLine.get(l.id);
+              const pack = packOf(index, l.variantId, o.supplierId);
               return (
                 <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
                   <PurchasePhoto variantId={l.variantId} index={index} />
@@ -614,8 +639,8 @@ function InTransit({
                   </span>
                   <span className="shrink-0 text-right tabular-nums">
                     {l.receivedQty > 0
-                      ? ta("received_of", { a: formatQty(l.receivedQty, lang), b: qtyWithUnit(l.qty, l.unit, lang) })
-                      : qtyWithUnit(l.qty, l.unit, lang)}
+                      ? ta("received_of", { a: formatQty(pack ? toPacks(l.receivedQty, pack) : l.receivedQty, lang), b: purchaseQtyText(l.qty, l.unit, pack, lang) })
+                      : purchaseQtyText(l.qty, l.unit, pack, lang)}
                   </span>
                 </li>
               );
@@ -682,7 +707,7 @@ function History({
                   <span className="block break-words font-medium">{requestName(row, index)}</span>
                   <span className="block text-xs text-muted-foreground">{details}</span>
                   <span className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-sm tabular-nums">{qtyWithUnit(row.qty, row.unit, lang)}</span>
+                    <span className="text-sm tabular-nums">{purchaseQtyText(row.qty, row.unit, packOf(index, row.variantId, row.supplierId), lang)}</span>
                     <StatusBadge status={row.status} />
                   </span>
                 </span>

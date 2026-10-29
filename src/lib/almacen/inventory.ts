@@ -1,7 +1,7 @@
 // Reglas puras del Almacén (sin Supabase ni React): estado de existencia,
 // nombres, cantidades y el mensaje de pedido para WhatsApp.
 
-import type { InventoryUnit, InventoryVariant } from "@/types/almacen";
+import type { InventoryItem, InventoryUnit, InventoryVariant } from "@/types/almacen";
 
 export type StockStatus = "sin" | "bajo" | "ok";
 
@@ -23,6 +23,44 @@ export function suggestedOrderQty(v: Pick<InventoryVariant, "stockQty" | "minQty
   const need = target - Math.max(v.stockQty, 0);
   if (need <= 0) return allowsDecimals ? 0.01 : 1;
   return allowsDecimals ? Math.round(need * 100) / 100 : Math.ceil(need);
+}
+
+/** Presentación de compra: el proveedor vende "Rollo de 500 cm" y al almacén entran 28 pedazos. */
+export interface PurchasePack {
+  label: string;
+  qty: number;
+}
+
+/**
+ * La presentación en que se le compra una variante a un proveedor (o al
+ * principal): la de la variante manda ("Botella 12 oz" se compra por galón);
+ * si no tiene, la del proveedor del producto. null = se compra suelto.
+ */
+export function purchasePack(
+  item: Pick<InventoryItem, "suppliers">,
+  variant: Pick<InventoryVariant, "packLabel" | "packQty">,
+  supplierId?: string | null,
+): PurchasePack | null {
+  if (variant.packQty != null && variant.packQty > 1) return { label: variant.packLabel?.trim() || "", qty: variant.packQty };
+  const link = supplierId ? item.suppliers.find((s) => s.supplierId === supplierId) : (item.suppliers.find((s) => s.isPrimary) ?? item.suppliers[0]);
+  if (link?.packQty != null && link.packQty > 1) return { label: link.packLabel?.trim() || "", qty: link.packQty };
+  return null;
+}
+
+/** Redondea hacia arriba a presentaciones completas (30 pedazos, rollo de 28 → 56). */
+export function roundUpToPack(qty: number, pack: PurchasePack | null): number {
+  if (!pack || qty <= 0) return qty;
+  return Math.ceil(qty / pack.qty - 1e-9) * pack.qty;
+}
+
+/** Cantidad del almacén → presentaciones (56 pedazos → 2 rollos), con hasta 2 decimales. */
+export function toPacks(qty: number, pack: PurchasePack): number {
+  return Math.round((qty / pack.qty) * 100) / 100;
+}
+
+/** "2 × Rollo de 500 cm" (sin nombre de presentación: "2 × 28"). */
+export function packText(qty: number, pack: PurchasePack, lang: "es" | "en" = "es"): string {
+  return `${formatQty(toPacks(qty, pack), lang)} × ${pack.label || formatQty(pack.qty, lang)}`;
 }
 
 /** 1234.5 → "1,234.5" con hasta 2 decimales. */
@@ -108,12 +146,16 @@ export interface OrderMessageLine {
   name: string;
   qty: number;
   unit: string | null;
+  /** Se pide por presentación: "2 × Rollo de 500 cm (56 unidades)". */
+  pack?: PurchasePack | null;
 }
 
 /** El mensaje del pedido para el proveedor: va siempre en español (proveedores de Panamá). */
 export function orderMessage(contactName: string | null, lines: OrderMessageLine[], notes?: string | null): string {
   const hello = contactName?.trim() ? `Hola ${contactName.trim()}, buen día.` : "Hola, buen día.";
-  const items = lines.map((l) => `• ${formatQty(l.qty)} ${unitLabel(l.unit, l.qty)} — ${l.name}`);
+  const items = lines.map((l) =>
+    l.pack ? `• ${packText(l.qty, l.pack)} — ${l.name}` : `• ${formatQty(l.qty)} ${unitLabel(l.unit, l.qty)} — ${l.name}`,
+  );
   const parts = [hello, "Les escribimos de Ebony Custom Woodwork para hacer el siguiente pedido:", "", ...items];
   if (notes?.trim()) parts.push("", notes.trim());
   parts.push("", "Por favor confírmennos disponibilidad, precio y tiempo de entrega. ¡Gracias!");
