@@ -1089,8 +1089,26 @@ export async function moveLoanInstallment(input: {
 /** Borra un préstamo/adelanto/herramienta/daño COMPLETO: sus cuotas (pagadas
  *  o no), el monto otorgado y el préstamo mismo. Para un registro que nunca
  *  debió existir; para cortar uno vigente está `cancelLoan`. */
+/** Borra un préstamo y todo su rastro — solo si ninguna cuota se ha pagado
+ *  (se registró por error). Si ya hay pagos, se perdona el saldo (`cancelLoan`). */
 export async function deleteLoan(loanId: string): Promise<void> {
   const supabase = await createClient();
+  const { data: rows, error: e0 } = await supabase
+    .from("payroll_ledger_entries")
+    .select("payroll_entry_id")
+    .eq("loan_id", loanId)
+    .not("payroll_entry_id", "is", null);
+  if (e0) throw new Error(e0.message);
+  const entryIds = [...new Set((rows ?? []).map((r) => r.payroll_entry_id as string))];
+  if (entryIds.length > 0) {
+    const { count, error: e1 } = await supabase
+      .from("payroll_entries")
+      .select("id", { count: "exact", head: true })
+      .in("id", entryIds)
+      .eq("paid", true);
+    if (e1) throw new Error(e1.message);
+    if ((count ?? 0) > 0) throw new Error("Ya tiene cuotas pagadas: perdona el saldo en vez de eliminarlo.");
+  }
   const { error } = await supabase.from("payroll_ledger_entries").delete().eq("loan_id", loanId);
   if (error) throw new Error(error.message);
   const { error: e2 } = await supabase.from("payroll_loans").delete().eq("id", loanId);

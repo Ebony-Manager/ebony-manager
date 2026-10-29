@@ -1453,7 +1453,7 @@ export async function deleteContractorLoan(loanId: string): Promise<void> {
     .eq("loan_id", loanId)
     .lte("entry_date", todayInPanama());
   if (error) throw new Error(error.message);
-  if ((count ?? 0) > 0) throw new Error("Ya hay cuotas descontadas: cancélalo en vez de borrarlo.");
+  if ((count ?? 0) > 0) throw new Error("Ya hay cuotas descontadas: perdona el saldo en vez de borrarlo.");
   const { error: e2 } = await supabase.from("contractor_loans").delete().eq("id", loanId);
   if (e2) throw new Error(e2.message);
 }

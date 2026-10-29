@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Pencil, SkipForward, X } from "lucide-react";
+import { Ban, ChevronDown, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { LoanCategory, PayrollLoanInstallment, PayrollLoanWithSchedule } from "@/types/planilla";
@@ -11,7 +11,7 @@ import { isSingleInstallment } from "@/lib/planilla/payroll-loans";
 import { formatDate, monthShort } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { cancelLoanAction, deleteLoanAction, reflowLoanInstallmentAction } from "./actions";
+import { cancelLoanAction, deleteLoanAction } from "./actions";
 import { LoanDialog } from "./loan-dialog";
 import { EditInstallmentDialog } from "./edit-installment-dialog";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
@@ -35,10 +35,8 @@ function LoanCard({
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const [busy, setBusy] = React.useState(false);
-  const [skippingId, setSkippingId] = React.useState<string | null>(null);
   const [installmentsOpen, setInstallmentsOpen] = React.useState(isSingleInstallment(loan.category));
   const [editingInstallment, setEditingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
-  const [movingInstallment, setMovingInstallment] = React.useState<PayrollLoanInstallment | null>(null);
   const [editLoanOpen, setEditLoanOpen] = React.useState(false);
 
   const sorted = [...loan.installments].sort((a, b) => ordinalOf(a.period) - ordinalOf(b.period));
@@ -48,9 +46,11 @@ function LoanCard({
   const last = sorted[sorted.length - 1];
   const isAdelanto = isSingleInstallment(loan.category);
   const isCancelled = loan.status === "cancelled";
-  const canCancel = !isCancelled && Boolean(nextPending);
+  // Perdonar: lo pagado se queda y lo que falta deja de cobrarse.
+  const canForgive = !isCancelled && Boolean(nextPending);
   const canEdit = !isCancelled && paidCount === 0;
-  const canMovePending = !isCancelled && pending.length > 0;
+  // Eliminar borra todo rastro: solo si nada se ha pagado (se registró por error).
+  const canDelete = paidCount === 0;
   const pendingBalanceCents = pending.reduce((sum, i) => sum + i.amountCents, 0);
   const progress = sorted.length > 0 ? Math.round((paidCount / sorted.length) * 100) : 0;
 
@@ -77,24 +77,6 @@ function LoanCard({
 
   function handleDelete() {
     void run(() => deleteLoanAction(loan.id), tt("loan_deleted"));
-  }
-
-  async function handleSkip(inst: PayrollLoanInstallment) {
-    setSkippingId(inst.ledgerEntryId);
-    try {
-      await reflowLoanInstallmentAction({
-        loanId: loan.id,
-        employeeId: loan.employeeId,
-        ledgerEntryId: inst.ledgerEntryId,
-        newAmountCents: 0,
-      });
-      toast.success(tt("loan_installment_skipped"));
-      onChanged();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : tt("load_failed"));
-    } finally {
-      setSkippingId(null);
-    }
   }
 
   const label = t(lang, strings.planilla[LEDGER_CATEGORY_LABEL_KEY[loan.category] as keyof typeof strings.planilla]);
@@ -141,25 +123,27 @@ function LoanCard({
               <Pencil className="size-3.5" />
             </Button>
           )}
-          {canCancel && (
+          {canForgive && (
             <ConfirmButton
               iconOnly
-              icon={X}
+              icon={Ban}
               className="p-1.5"
               label={tt("loan_cancel_btn")}
-              confirmLabel={t(lang, strings.nav.confirm_cancel)}
+              confirmLabel={tt("loan_forgive_confirm").replace("{amount}", formatCents(pendingBalanceCents))}
               disabled={busy}
               onConfirm={handleCancel}
             />
           )}
-          <ConfirmButton
-            iconOnly
-            className="p-1.5"
-            label={tt("loan_delete")}
-            confirmLabel={t(lang, strings.nav.confirm_delete)}
-            disabled={busy}
-            onConfirm={handleDelete}
-          />
+          {canDelete && (
+            <ConfirmButton
+              iconOnly
+              className="p-1.5"
+              label={tt("loan_delete_hint")}
+              confirmLabel={t(lang, strings.nav.confirm_delete)}
+              disabled={busy}
+              onConfirm={handleDelete}
+            />
+          )}
         </div>
       </div>
 
@@ -201,9 +185,6 @@ function LoanCard({
         </p>
       )}
       {loan.notes && <p className="mt-1 italic text-muted-foreground">{loan.notes}</p>}
-      {!isCancelled && !canEdit && paidCount > 0 && !canMovePending && (
-        <p className="mt-1 text-[11px] text-muted-foreground">{tt("loan_edit_locked")}</p>
-      )}
 
       {sorted.length > 0 && (
         <div className="mt-2 border-t border-border pt-2">
@@ -227,28 +208,15 @@ function LoanCard({
                     <span className="text-[10px] font-medium text-muted-foreground">{tt("loan_installment_paid_badge")}</span>
                   ) : (
                     !isCancelled && (
-                      <span className="flex items-center gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size={isAdelanto ? "sm" : "icon"}
-                          className={isAdelanto ? "h-7 px-2 text-[11px]" : "size-5 text-muted-foreground hover:text-foreground"}
-                          title={tt(isAdelanto ? "loan_move_installment" : "loan_installment_edit")}
-                          aria-label={tt(isAdelanto ? "loan_move_installment" : "loan_installment_edit")}
-                          onClick={() => isAdelanto ? setMovingInstallment(inst) : setEditingInstallment(inst)}
-                        >
-                          {isAdelanto ? tt("loan_move_installment") : <Pencil className="size-3" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-5 text-muted-foreground hover:text-destructive"
-                          title={tt("loan_installment_skip")}
-                          disabled={skippingId === inst.ledgerEntryId}
-                          onClick={() => handleSkip(inst)}
-                        >
-                          <SkipForward className="size-3" />
-                        </Button>
-                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                        onClick={() => setEditingInstallment(inst)}
+                      >
+                        <Pencil className="size-3" />
+                        {tt("loan_installment_adjust")}
+                      </Button>
                     )
                   )}
                 </li>
@@ -258,7 +226,7 @@ function LoanCard({
         </div>
       )}
 
-      {editingInstallment && <EditInstallmentDialog
+      <EditInstallmentDialog
         loanId={loan.id}
         employeeId={loan.employeeId}
         ledgerEntryId={editingInstallment?.ledgerEntryId ?? null}
@@ -266,16 +234,6 @@ function LoanCard({
         open={editingInstallment !== null}
         onOpenChange={(next) => !next && setEditingInstallment(null)}
         onSaved={onChanged}
-      />}
-      <EditInstallmentDialog
-        loanId={loan.id}
-        employeeId={loan.employeeId}
-        ledgerEntryId={movingInstallment?.ledgerEntryId ?? null}
-        pending={pending.map((i) => ({ ledgerEntryId: i.ledgerEntryId, period: i.period, amountCents: i.amountCents }))}
-        open={movingInstallment !== null}
-        onOpenChange={(next) => !next && setMovingInstallment(null)}
-        onSaved={onChanged}
-        moveOnly
       />
       <LoanDialog
         employeeId={employeeId}

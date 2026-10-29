@@ -16,8 +16,8 @@ import { moveLoanInstallmentAction, reflowLoanInstallmentAction } from "./action
 import { FormDialog, Field } from "./form-dialog";
 
 /**
- * Edita el monto de UNA cuota pendiente de un préstamo — dejarlo en $0 la
- * salta. La suma de lo que falta por pagar nunca cambia: lo que sobra o falta
+ * "Ajustar cuota": UNA cuota pendiente de un préstamo o adelanto se puede
+ * pasar a otra quincena y/o cambiar de monto — dejarlo en $0 la salta. La suma de lo que falta por pagar nunca cambia: lo que sobra o falta
  * de esta cuota se acomoda en las demás de la forma que elijas:
  *   · "extend": las cuotas que siguen quedan igual y la diferencia va a una
  *     quincena nueva al final (o acorta el préstamo si pagas de más);
@@ -33,7 +33,6 @@ export function EditInstallmentDialog({
   open,
   onOpenChange,
   onSaved,
-  moveOnly = false,
 }: {
   loanId: string;
   employeeId: string;
@@ -44,7 +43,6 @@ export function EditInstallmentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
-  moveOnly?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -87,7 +85,7 @@ export function EditInstallmentDialog({
     }
   }, [pending, current, cents]);
 
-  const changed = current ? cents !== current.amountCents && !moveOnly : false;
+  const changed = current ? cents !== current.amountCents : false;
   const same = preview.extend.map((i) => i.amountCents).join() === preview.spread.map((i) => i.amountCents).join();
   const shown = mode === "spread" ? preview.spread : preview.extend;
   const pl = (p: Period) => `${monthShort(lang, p.month)} ${p.year} · ${p.half === 1 ? "1ra" : "2da"}`;
@@ -115,7 +113,7 @@ export function EditInstallmentDialog({
       if (current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)) {
         await moveLoanInstallmentAction({ loanId, ledgerEntryId, period: selectedPeriod });
       }
-      if (current && cents !== current.amountCents && !moveOnly) {
+      if (changed) {
         await reflowLoanInstallmentAction({ loanId, employeeId, ledgerEntryId, newAmountCents: cents, mode });
       }
       toast.success(tt("loan_edit_saved"));
@@ -132,7 +130,7 @@ export function EditInstallmentDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={tt(moveOnly ? "loan_move_installment" : "loan_edit_dlg_title")}
+      title={tt("loan_edit_dlg_title")}
       description={tt("loan_edit_dlg_desc")}
       onSubmit={onSubmit}
       submitting={submitting}
@@ -152,10 +150,10 @@ export function EditInstallmentDialog({
           </SelectContent>
         </Select>
       </Field>
-      {!moveOnly && <Field label={tt("loan_edit_f_amount")}>
-        <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
-      </Field>}
-      {!moveOnly && <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>}
+      <Field label={tt("loan_edit_f_amount")}>
+        <MoneyInput value={amount} onValueChange={setAmount} />
+      </Field>
+      <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>
 
       {changed && !same && (
         <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">
