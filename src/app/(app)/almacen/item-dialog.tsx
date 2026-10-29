@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatQty, parseQty, unitLabel } from "@/lib/almacen/inventory";
+import { parseQty, unitLabel } from "@/lib/almacen/inventory";
 import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photos";
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
@@ -39,8 +39,6 @@ interface SupplierDraft {
   key: string;
   supplierId: string | null;
   isPrimary: boolean;
-  packLabel: string;
-  packQty: string;
 }
 
 const NONE = "none";
@@ -139,8 +137,6 @@ export function ItemDialog({
         key: newKey(),
         supplierId: s.supplierId,
         isPrimary: s.isPrimary,
-        packLabel: s.packLabel ?? "",
-        packQty: s.packQty != null ? String(s.packQty) : "",
       })),
     );
     setError(null);
@@ -234,7 +230,7 @@ export function ItemDialog({
       })),
       suppliers: links
         .filter((l) => l.supplierId)
-        .map((l) => ({ supplierId: l.supplierId!, isPrimary: l.isPrimary, packLabel: l.packLabel, packQty: parseQty(l.packQty) })),
+        .map((l) => ({ supplierId: l.supplierId!, isPrimary: l.isPrimary })),
     };
     setSaving(true);
     const res = current ? await updateItemAction(current.id, input) : await createItemAction(input);
@@ -507,24 +503,12 @@ export function ItemDialog({
                 <p className="text-xs text-muted-foreground">{ta("suppliers_hint")}</p>
               </div>
               {links.map((l) => (
-                <div key={l.key} className="grid grid-cols-[1fr_28px] items-center gap-2 sm:grid-cols-[1fr_1fr_80px_auto_28px]">
+                <div key={l.key} className="grid grid-cols-[1fr_auto_28px] items-center gap-2">
                   <Combo
                     options={supplierOptions}
                     value={l.supplierId}
                     onChange={(id) => patchLink(l.key, { supplierId: id })}
                     placeholder={ta("pick_supplier")}
-                  />
-                  <Input
-                    className="col-span-2 sm:col-span-1"
-                    value={l.packLabel}
-                    onChange={(e) => patchLink(l.key, { packLabel: e.target.value })}
-                    placeholder={ta("pack_label_ph")}
-                  />
-                  <QtyInput
-                    value={l.packQty}
-                    onChange={(x) => patchLink(l.key, { packQty: x })}
-                    placeholder={formatQty(1, lang)}
-                    aria-label={ta("pack_label_ph")}
                   />
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="radio" name="primary-supplier" checked={l.isPrimary} onChange={() => patchLink(l.key, { isPrimary: true })} />
@@ -548,7 +532,7 @@ export function ItemDialog({
                   variant="outline"
                   size="sm"
                   className="self-start"
-                  onClick={() => setLinks((ls) => [...ls, { key: newKey(), supplierId: null, isPrimary: ls.length === 0, packLabel: "", packQty: "" }])}
+                  onClick={() => setLinks((ls) => [...ls, { key: newKey(), supplierId: null, isPrimary: ls.length === 0 }])}
                 >
                   <Plus className="size-3.5" />
                   {ta("add_supplier_link")}

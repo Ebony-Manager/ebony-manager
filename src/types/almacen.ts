@@ -102,8 +102,6 @@ export interface InventoryVariant {
 export interface ItemSupplier {
   supplierId: string;
   isPrimary: boolean;
-  packLabel: string | null;
-  packQty: number | null;
   supplierRef: string | null;
 }
 

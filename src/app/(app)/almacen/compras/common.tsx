@@ -51,10 +51,10 @@ export function PurchasePhoto({ variantId, index }: { variantId: string | null; 
   return <ItemThumb path={(variantId && index.get(variantId)?.item.photoPath) || null} size={48} />;
 }
 
-/** La presentación en que se le compra este producto a ese proveedor (o al principal); null = suelto o texto libre. */
-export function packOf(index: Map<string, VariantRef>, variantId: string | null, supplierId?: string | null): PurchasePack | null {
+/** La presentación en que se compra este producto (rollo, galón); null = suelto o texto libre. */
+export function packOf(index: Map<string, VariantRef>, variantId: string | null): PurchasePack | null {
   const ref = variantId ? index.get(variantId) : undefined;
-  return ref ? purchasePack(ref.item, ref.variant, supplierId) : null;
+  return ref ? purchasePack(ref.variant) : null;
 }
 
 /** "2 × Rollo de 500 cm (56 unidades)", o "12 unidades" si se compra suelto. */

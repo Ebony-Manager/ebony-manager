@@ -1,7 +1,7 @@
 // Reglas puras del Almacén (sin Supabase ni React): estado de existencia,
 // nombres, cantidades y el mensaje de pedido para WhatsApp.
 
-import type { InventoryItem, InventoryUnit, InventoryVariant } from "@/types/almacen";
+import type { InventoryUnit, InventoryVariant } from "@/types/almacen";
 
 export type StockStatus = "sin" | "bajo" | "ok";
 
@@ -32,19 +32,12 @@ export interface PurchasePack {
 }
 
 /**
- * La presentación en que se le compra una variante a un proveedor (o al
- * principal): la de la variante manda ("Botella 12 oz" se compra por galón);
- * si no tiene, la del proveedor del producto. null = se compra suelto.
+ * La presentación en que se compra una variante ("Botella 12 oz" se compra por
+ * galón = 10; el "Galón", suelto). null = se compra suelto.
  */
-export function purchasePack(
-  item: Pick<InventoryItem, "suppliers">,
-  variant: Pick<InventoryVariant, "packLabel" | "packQty">,
-  supplierId?: string | null,
-): PurchasePack | null {
-  if (variant.packQty != null && variant.packQty > 1) return { label: variant.packLabel?.trim() || "", qty: variant.packQty };
-  const link = supplierId ? item.suppliers.find((s) => s.supplierId === supplierId) : (item.suppliers.find((s) => s.isPrimary) ?? item.suppliers[0]);
-  if (link?.packQty != null && link.packQty > 1) return { label: link.packLabel?.trim() || "", qty: link.packQty };
-  return null;
+export function purchasePack(variant: Pick<InventoryVariant, "packLabel" | "packQty">): PurchasePack | null {
+  if (variant.packQty == null || variant.packQty <= 1) return null;
+  return { label: variant.packLabel?.trim() || "", qty: variant.packQty };
 }
 
 /** Redondea hacia arriba a presentaciones completas (30 pedazos, rollo de 28 → 56). */

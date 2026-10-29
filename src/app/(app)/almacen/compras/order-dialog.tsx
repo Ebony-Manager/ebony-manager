@@ -57,8 +57,7 @@ export function OrderDialog({
   const { ta, lang } = useTa();
   const lineName = React.useCallback((l: { variantId: string | null; description: string }) => (l.variantId && index.get(l.variantId)?.name) || l.description, [index]);
   // Por presentación (rollo, galón): se recibe y se pone precio por presentación; se guarda por unidad.
-  const supplierId = order?.supplierId ?? null;
-  const perOf = React.useCallback((variantId: string | null) => packOf(index, variantId, supplierId)?.qty ?? 1, [index, supplierId]);
+  const perOf = React.useCallback((variantId: string | null) => packOf(index, variantId)?.qty ?? 1, [index]);
 
   const [receivedOn, setReceivedOn] = React.useState("");
   const [receive, setReceive] = React.useState<Record<string, string>>({});
@@ -186,7 +185,7 @@ export function OrderDialog({
             {order.lines.map((l) => {
               const unit = unitPrice(l.id);
               const done = l.receivedQty >= l.qty;
-              const pack = packOf(index, l.variantId, supplierId);
+              const pack = packOf(index, l.variantId);
               const per = pack?.qty ?? 1;
               return (
                 <li key={l.id} className="flex flex-col gap-2 border-b border-border px-3 py-2.5 text-sm last:border-0">

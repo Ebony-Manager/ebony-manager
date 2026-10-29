@@ -119,7 +119,7 @@ export function PurchasesView({
                 onMessage={(supplierId, picked) =>
                   setMessaging({
                     supplier: supplierId ? (supplierById.get(supplierId) ?? null) : null,
-                    lines: picked.map((r) => ({ name: requestName(r, index), qty: r.qty, unit: r.unit, pack: packOf(index, r.variantId, supplierId) })),
+                    lines: picked.map((r) => ({ name: requestName(r, index), qty: r.qty, unit: r.unit, pack: packOf(index, r.variantId) })),
                   })
                 }
               />
@@ -260,7 +260,7 @@ function ToOrder({
                   onToggle={() => toggle(r.id)}
                   lang={lang}
                   withPrice={!!supplierId}
-                  pack={packOf(index, r.variantId, supplierId || null)}
+                  pack={packOf(index, r.variantId)}
                 />
               ))}
             </ul>
@@ -534,7 +534,7 @@ function RequestsTable({
                 </div>
                 </div>
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{purchaseQtyText(r.qty, r.unit, packOf(index, r.variantId, r.supplierId), lang)}</td>
+              <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{purchaseQtyText(r.qty, r.unit, packOf(index, r.variantId), lang)}</td>
               {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? "—" : (r.createdByName ?? "—")}</td>}
               <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{formatDateCompact(lang, todayInPanama(new Date(r.createdAt)))}</td>
               <td className="px-3.5 py-2.5 text-right">
@@ -629,7 +629,7 @@ function InTransit({
           <ul>
             {outstandingPurchaseLines(o).map((l) => {
               const who = whoByLine.get(l.id);
-              const pack = packOf(index, l.variantId, o.supplierId);
+              const pack = packOf(index, l.variantId);
               return (
                 <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
                   <PurchasePhoto variantId={l.variantId} index={index} />
@@ -707,7 +707,7 @@ function History({
                   <span className="block break-words font-medium">{requestName(row, index)}</span>
                   <span className="block text-xs text-muted-foreground">{details}</span>
                   <span className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-sm tabular-nums">{purchaseQtyText(row.qty, row.unit, packOf(index, row.variantId, row.supplierId), lang)}</span>
+                    <span className="text-sm tabular-nums">{purchaseQtyText(row.qty, row.unit, packOf(index, row.variantId), lang)}</span>
                     <StatusBadge status={row.status} />
                   </span>
                 </span>

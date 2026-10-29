@@ -85,14 +85,14 @@ export function RequestDialog({
 
   const patch = (key: string, p: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...p } : l)));
   const lineVariant = (l: Line) => (mode === "catalog" && l.variantId ? index.get(l.variantId) : undefined);
-  const linePack = (l: Line) => (mode === "catalog" ? packOf(index, l.variantId, l.supplierId) : null);
+  const linePack = (l: Line) => (mode === "catalog" ? packOf(index, l.variantId) : null);
 
   function pickVariant(key: string, id: string) {
     const r = index.get(id);
     // El proveedor principal del producto, si tiene; la cantidad sugerida, en presentaciones si se compra así.
     const primary = r?.item.suppliers.find((s) => s.isPrimary) ?? r?.item.suppliers[0];
     const supplierId = primary?.supplierId ?? null;
-    const pack = packOf(index, id, supplierId);
+    const pack = packOf(index, id);
     const suggested = r ? suggestedOrderQty(r.variant, r.item.allowsDecimals) : 0;
     patch(key, { variantId: id, supplierId, qty: r ? String(pack ? toPacks(roundUpToPack(suggested, pack), pack) : suggested) : "" });
   }

@@ -173,8 +173,6 @@ export async function getCatalog(): Promise<InventoryItem[]> {
     suppliers: (linksByItem.get(i.id) ?? []).map((l) => ({
       supplierId: l.supplier_id,
       isPrimary: l.is_primary,
-      packLabel: l.pack_label,
-      packQty: num(l.pack_qty),
       supplierRef: l.supplier_ref,
     })),
   }));
@@ -199,7 +197,7 @@ export interface ItemInput {
     packLabel: string | null;
     packQty: number | null;
   }[];
-  suppliers: { supplierId: string; isPrimary: boolean; packLabel: string | null; packQty: number | null }[];
+  suppliers: { supplierId: string; isPrimary: boolean }[];
 }
 
 function itemRow(input: ItemInput) {
@@ -264,8 +262,6 @@ async function saveItemChildren(itemId: string, input: ItemInput): Promise<numbe
       item_id: itemId,
       supplier_id: s.supplierId,
       is_primary: s.isPrimary,
-      pack_label: s.packLabel?.trim() || null,
-      pack_qty: s.packQty,
     }));
     fail((await supabase.from("inventory_item_suppliers").insert(rows)).error);
   }

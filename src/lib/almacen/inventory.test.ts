@@ -69,12 +69,10 @@ describe("WhatsApp", () => {
 });
 
 describe("presentación de compra", () => {
-  const item = { suppliers: [{ supplierId: "s1", isPrimary: true, packLabel: "Rollo de 500 cm", packQty: 28, supplierRef: null }] };
-  it("manda la de la variante; si no, la del proveedor; 1 o vacío = suelto", () => {
-    expect(purchasePack(item, { packLabel: "Galón", packQty: 10 })).toEqual({ label: "Galón", qty: 10 });
-    expect(purchasePack(item, { packLabel: null, packQty: null })).toEqual({ label: "Rollo de 500 cm", qty: 28 });
-    expect(purchasePack(item, { packLabel: null, packQty: null }, "otro")).toBeNull();
-    expect(purchasePack({ suppliers: [] }, { packLabel: "x", packQty: 1 })).toBeNull();
+  it("la de la variante; 1 o vacío = suelto", () => {
+    expect(purchasePack({ packLabel: "Galón", packQty: 10 })).toEqual({ label: "Galón", qty: 10 });
+    expect(purchasePack({ packLabel: null, packQty: null })).toBeNull();
+    expect(purchasePack({ packLabel: "x", packQty: 1 })).toBeNull();
   });
   it("redondea a presentaciones completas", () => {
     const pack = { label: "Rollo", qty: 28 };
