@@ -2819,6 +2819,10 @@ export const strings = {
     },
     no_fraction: { es: "Este producto no se entrega en fracciones.", en: "This product can't be issued in fractions." },
     recipient_required: { es: "Falta quién recibe.", en: "Pick who receives it." },
+    painter_charge_note: {
+      es: "Es pintor: este material se le descuenta completo de su estado de cuenta (costo + 10%).",
+      en: "Painter: this material is deducted in full from their account statement (cost + 10%).",
+    },
     destination_required: { es: "Falta el proyecto o el uso interno.", en: "Pick a project or internal use." },
     lines_required: { es: "Agrega al menos un producto con cantidad.", en: "Add at least one product with a quantity." },
     col_recipient: { es: "Recibió", en: "Received by" },

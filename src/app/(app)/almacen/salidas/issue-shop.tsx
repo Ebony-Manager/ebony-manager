@@ -320,6 +320,8 @@ function CartPanel({
       people.filter((p) => p.active).map((p) => ({ value: `${p.kind}:${p.id}`, label: p.name, group: ta(p.kind === "empleado" ? "employee" : "contractor") })),
     [people, ta],
   );
+  // A un pintor, lo que se lleva se le descuenta (costo + 10%) en su estado de cuenta.
+  const toPainter = people.some((p) => `${p.kind}:${p.id}` === recipient && p.kind === "contratista" && p.contractorType === "pintor");
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
 
   async function submit() {
@@ -409,6 +411,7 @@ function CartPanel({
 
       <Field label={ta("f_recipient")}>
         <Combo options={personOptions} value={recipient} onChange={setRecipient} placeholder={ta("pick_person")} />
+        {toPainter && <p className="mt-1 text-xs text-warning">{ta("painter_charge_note")}</p>}
       </Field>
       <Field label={ta("f_destination")}>
         <div className="flex flex-col gap-2">

@@ -281,6 +281,7 @@ export type Database = {
           ebony_absorbs_material: boolean
           entry_date: string
           id: string
+          inventory_issue_id: string | null
           loan_id: string | null
           mt2: number | null
           notes: string | null
@@ -300,6 +301,7 @@ export type Database = {
           ebony_absorbs_material?: boolean
           entry_date: string
           id?: string
+          inventory_issue_id?: string | null
           loan_id?: string | null
           mt2?: number | null
           notes?: string | null
@@ -319,6 +321,7 @@ export type Database = {
           ebony_absorbs_material?: boolean
           entry_date?: string
           id?: string
+          inventory_issue_id?: string | null
           loan_id?: string | null
           mt2?: number | null
           notes?: string | null
