@@ -406,7 +406,9 @@ function PendingRow({
         label={ta("cancel_request")}
         confirmLabel={ta("cancel_request_confirm")}
         onConfirm={() => cancelRequest(r.id, ta)}
-        className="min-h-7 min-w-7"
+        // Pegado a la derecha: al pedir confirmación la pastilla crece hacia
+        // la izquierda (sobre el nombre) en vez de cortarse contra el borde.
+        className="relative z-10 min-h-7 min-w-7 self-start justify-self-end"
       />
       {/* Cantidad × precio por unidad = total de la línea. */}
       <div className="col-start-2 col-end-5 flex flex-wrap items-center gap-x-2 gap-y-1">
