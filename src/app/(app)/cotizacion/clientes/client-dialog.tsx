@@ -3,7 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { MessageCircle, UserPlus, X } from "lucide-react";
+import { UserPlus, X } from "lucide-react";
+
+import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
 import { CLIENT_KINDS, type Client, type ClientKind, type Opportunity } from "@/types/ventas";
 import { Button } from "@/components/ui/button";
@@ -148,7 +150,7 @@ export function ClientDialog({
                 {wa && (
                   <Button asChild variant="outline" size="icon" className="shrink-0" title={tv("whatsapp_open")} aria-label={tv("whatsapp_open")}>
                     <a href={wa.replace(/\?text=$/, "")} target="_blank" rel="noreferrer">
-                      <MessageCircle className="size-4" />
+                      <WhatsAppIcon brand className="size-[18px]" />
                     </a>
                   </Button>
                 )}
@@ -187,6 +189,18 @@ export function ClientDialog({
                           <Input type="tel" inputMode="tel" value={c.phone} onChange={(e) => edit({ phone: e.target.value })} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />
                           <Input type="email" value={c.email} onChange={(e) => edit({ email: e.target.value })} placeholder={tv("f_email")} aria-label={tv("f_email")} />
                         </div>
+                        {whatsappUrl(c.phone, "") && (
+                          <a
+                            href={whatsappUrl(c.phone, "")!.replace(/\?text=$/, "")}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={tv("whatsapp_open")}
+                            title={tv("whatsapp_open")}
+                            className="mt-1.5 flex size-7 shrink-0 items-center justify-center rounded hover:bg-muted"
+                          >
+                            <WhatsAppIcon brand className="size-[18px]" />
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={() => set("contacts", form.contacts.filter((_, j) => j !== i))}
