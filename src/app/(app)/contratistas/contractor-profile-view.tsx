@@ -482,7 +482,8 @@ export function ContractorProfileView({
         ? tt("bal_owes_ebony")
         : tt("bal_settled");
   const isInactive = contractor.status === "INACTIVE";
-  const totalColSpan = 10;
+  // Sin columnas de m² ni costo/m²: el estado de cuenta es el registro del trabajo y su valor.
+  const totalColSpan = 8;
 
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const bankTypeLabel =
@@ -1001,7 +1002,7 @@ export function ContractorProfileView({
           </p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[1150px] border-collapse text-sm">
+            <table className="w-full min-w-[950px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
                   {/* Columna "Fecha" congelada al hacer scroll horizontal,
@@ -1012,8 +1013,6 @@ export function ContractorProfileView({
                   <th className="px-3 py-2 text-left font-medium">{tt("col_category")}</th>
                   <th className="px-3 py-2 text-left font-medium">{tt("col_project")}</th>
                   <th className="px-3 py-2 text-left font-medium">{tt("col_description")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{tt("col_mt2")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{tt("col_cost_mt2")}</th>
                   <th className="px-3 py-2 text-right font-medium">{tt("col_a_favor")}</th>
                   <th className="px-3 py-2 text-right font-medium">{tt("col_reduce")}</th>
                   <th className="px-3 py-2 text-right font-medium">{tt("col_balance")}</th>
@@ -1120,12 +1119,6 @@ export function ContractorProfileView({
                           )}
                           {row.itemsSummary ?? row.description ?? "—"}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                          {row.mt2 != null ? row.mt2.toFixed(2) : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                          {row.costPerMt2Cents != null ? formatCents(row.costPerMt2Cents) : "—"}
-                        </td>
                         <td
                           className={`px-3 py-2 text-right tabular-nums ${absorbed ? "line-through opacity-60" : ""}`}
                           style={row.direction === "a_favor" ? toneTextStyle("a_favor") : undefined}
@@ -1172,7 +1165,7 @@ export function ContractorProfileView({
 
                   {groupBy !== "none" && (
                     <tr className="border-b-2 border-border bg-muted/10 text-xs">
-                      <td colSpan={6} className="px-3 py-1.5 text-right text-muted-foreground">
+                      <td colSpan={4} className="px-3 py-1.5 text-right text-muted-foreground">
                         {tt("group_subtotal")}
                       </td>
                       <td className="px-3 py-1.5 text-right tabular-nums" style={toneTextStyle("a_favor")}>
