@@ -361,6 +361,8 @@ export const strings = {
     att_day_error: { es: "No se pudo guardar la revisión.", en: "Could not save the review." },
     att_day_need_both: { es: "Anota la entrada y la salida, o marca que no vino.", en: "Enter both clock-in and clock-out, or mark as absent." },
     att_day_order: { es: "La salida debe ser después de la entrada.", en: "Clock-out must be after clock-in." },
+    att_day_need_in: { es: "Anota al menos la hora de entrada, o marca que no vino.", en: "Enter at least the clock-in time, or mark as absent." },
+    att_day_out_later: { es: "opcional hoy", en: "optional today" },
     att_day_note: { es: "Nota (por qué)", en: "Note (why)" },
     att_day_note_ph: { es: "Ej. olvidó ponchar la salida, confirmó la jefa de taller", en: "E.g. forgot to clock out, confirmed by workshop manager" },
     att_day_absent_hint: { es: "¿No vino ese día? Se descuenta el día completo.", en: "Didn't come that day? The full day is docked." },

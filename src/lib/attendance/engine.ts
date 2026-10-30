@@ -118,6 +118,10 @@ export function analyzeDay(
     }
     // Revisado sin ninguna hora (ej. "no vino"): sigue siendo falta.
     if (result.arrival === null && result.departure === null) flags.push("absent");
+    // Revisado hoy solo con la entrada: pasado el día, si nadie anotó la salida
+    // (ni la trajo el reloj), vuelve a pedirla. A favor de la empresa.
+    else if (result.departure === null && !opts.inProgress) flags.push("missing_out");
+    else if (result.arrival === null) flags.push("missing_in");
   }
 
   if (result.arrival !== null) result.lateMinutes = Math.max(0, result.arrival - start);

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { resolveAttendanceDayAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
 
@@ -55,6 +56,7 @@ export function AttendanceDayDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!day) return null;
+  const isToday = day.date === todayInPanama();
 
   async function save(a: number | null, d: number | null) {
     setSubmitting(true);
@@ -75,9 +77,14 @@ export function AttendanceDayDialog({
   function submit() {
     const a = fromHHMM(arrival);
     const d = fromHHMM(departure);
-    // Ante la duda, a favor de la empresa: para quitar la duda hacen falta las dos horas.
+    // Hoy (todavía no se va): basta la entrada; la salida se anota después o la trae el reloj.
+    if (isToday && a !== null && d === null) {
+      void save(a, null);
+      return;
+    }
+    // Ante la duda, a favor de la empresa: un día que ya pasó necesita las dos horas.
     if (a === null || d === null) {
-      setError(tg("att_day_need_both"));
+      setError(isToday ? tg("att_day_need_in") : tg("att_day_need_both"));
       return;
     }
     if (d <= a) {
@@ -98,12 +105,13 @@ export function AttendanceDayDialog({
       submitLabel={tg("att_day_save")}
       error={error}
     >
+      {/* min-w-0: en el iPhone el campo de hora no se encoge solo y se montaban uno sobre otro. */}
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tg("att_in")}>
-          <Input type="time" value={arrival} onChange={(e) => setArrival(e.target.value)} />
+        <Field label={tg("att_in")} className="min-w-0">
+          <Input type="time" value={arrival} onChange={(e) => setArrival(e.target.value)} className="w-full min-w-0 appearance-none" />
         </Field>
-        <Field label={tg("att_out")}>
-          <Input type="time" value={departure} onChange={(e) => setDeparture(e.target.value)} />
+        <Field label={isToday ? `${tg("att_out")} · ${tg("att_day_out_later")}` : tg("att_out")} className="min-w-0">
+          <Input type="time" value={departure} onChange={(e) => setDeparture(e.target.value)} className="w-full min-w-0 appearance-none" />
         </Field>
       </div>
       <Field label={tg("att_day_note")}>

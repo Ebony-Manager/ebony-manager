@@ -82,6 +82,14 @@ describe("analyzeDay", () => {
     expect(analyzeDay("2026-10-06", [], undefined, { resolution: { arrival: null, departure: null, note: "no vino" } }).flags).toEqual(["absent"]);
   });
 
+  it("revisado hoy solo con la entrada: vale hoy; pasado el día vuelve a pedir la salida", () => {
+    const r = { resolution: { arrival: t("08:30"), departure: null, note: "llegó, no ponchó" } };
+    expect(analyzeDay("2026-10-30", [], undefined, { ...r, inProgress: true })).toMatchObject({ arrival: t("08:30"), lateMinutes: 60, flags: [] });
+    expect(analyzeDay("2026-10-30", [], undefined, r).flags).toEqual(["missing_out"]);
+    // Si después el reloj trae la salida, se completa sola.
+    expect(analyzeDay("2026-10-30", [punch("2026-10-30", "17:05")], undefined, r)).toMatchObject({ departure: t("17:05"), flags: [] });
+  });
+
   it("hoy (día de pago) está en curso: sin salida no es duda, pero sin ninguna ponchada es falta", () => {
     expect(analyzeDay("2026-10-06", [punch("2026-10-06", "07:35")], undefined, { inProgress: true }).flags).toEqual([]);
     expect(analyzeDay("2026-10-06", [], undefined, { inProgress: true }).flags).toEqual(["absent"]);
