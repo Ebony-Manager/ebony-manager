@@ -2321,13 +2321,21 @@ export const strings = {
   drive: {
     title: { es: "Archivos", en: "Files" },
     not_connected: { es: "Google Drive todavía no está conectado.", en: "Google Drive isn't connected yet." },
-    create_folder: { es: "Crear carpeta en Drive", en: "Create Drive folder" },
+    create_folder: { es: "Crear carpeta vacía", en: "Create empty folder" },
     create_folder_hint: {
       es: "Planos, renders, fotos y PDFs de este trabajo, en su propia carpeta de la Unidad compartida.",
       en: "Plans, renders, photos and PDFs for this job, in its own shared drive folder.",
     },
     creating: { es: "Creando…", en: "Creating…" },
     upload: { es: "Subir", en: "Upload" },
+    upload_files: { es: "Subir archivos", en: "Upload files" },
+    attach: { es: "Adjuntar archivos", en: "Attach files" },
+    attach_hint: {
+      es: "Planos, renders, PDFs… (o arrástralos aquí). Al guardar se crea su carpeta en Drive y se suben ahí.",
+      en: "Plans, renders, PDFs… (or drop them here). On save, its Drive folder is created and they're uploaded there.",
+    },
+    uploading_files: { es: "Subiendo archivos…", en: "Uploading files…" },
+    remove: { es: "Quitar", en: "Remove" },
     uploading: { es: "Subiendo {n}…", en: "Uploading {n}…" },
     uploaded: { es: "Subido", en: "Uploaded" },
     new_folder: { es: "Carpeta", en: "Folder" },

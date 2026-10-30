@@ -30,7 +30,7 @@ import {
 import { ClientPicker, StageBadge, StageLabel, useTv } from "../ventas-common";
 import { ClientDialog } from "../clientes/client-dialog";
 import { cn } from "@/lib/utils";
-import { DriveFiles } from "@/components/shared/drive-files";
+import { DriveFiles, PendingFiles, uploadFilesToDrive } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
 
 export interface SalesProject {
@@ -107,6 +107,9 @@ export function OpportunityDialog({
   const [created, setCreated] = React.useState<Client[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /** Nueva: archivos elegidos antes de guardar (se suben a su carpeta al guardar). */
+  const [pending, setPending] = React.useState<File[]>([]);
+  const [uploadingNew, setUploadingNew] = React.useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -114,6 +117,8 @@ export function OpportunityDialog({
     setForm(formOf(existing, currentUserId));
     setError(null);
     setSaving(false);
+    setPending([]);
+    setUploadingNew(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de ficha.
   }, [open, existing?.id]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -152,9 +157,29 @@ export function OpportunityDialog({
       driveFolderUrl: driveEnabled ? (existing?.driveFolderUrl ?? null) : form.driveFolderUrl,
       notes: form.notes,
     };
-    const res = existing ? await updateOpportunityAction(existing.id, input) : await createOpportunityAction(input);
-    setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (existing) {
+      const res = await updateOpportunityAction(existing.id, input);
+      setSaving(false);
+      if (!res.ok) return setError(res.error);
+    } else {
+      const res = await createOpportunityAction(input);
+      if (!res.ok) {
+        setSaving(false);
+        return setError(res.error);
+      }
+      // Con archivos: se crea su carpeta en Drive y se suben ahí.
+      if (driveEnabled && pending.length) {
+        setUploadingNew(true);
+        const folder = await ensureOpportunityFolderAction(res.data);
+        if (!folder.ok) toast.error(folder.error);
+        else {
+          const { done, failed } = await uploadFilesToDrive(folder.data, pending);
+          for (const f of failed) toast.error(`${f.name}: ${f.error}`);
+          if (done) toast.success(`${t(lang, strings.drive.uploaded)} (${done})`);
+        }
+      }
+      setSaving(false);
+    }
     toast.success(tv("saved"));
     onClose();
   }
@@ -310,6 +335,13 @@ export function OpportunityDialog({
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("optional")} />
           </Field>
 
+          {!existing && driveEnabled && (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold text-foreground">{t(lang, strings.drive.title)}</h3>
+              <PendingFiles files={pending} onChange={setPending} disabled={saving} />
+            </section>
+          )}
+
           {existing && (
             <>
               <LinkedQuotes o={existing} lang={lang} />
@@ -359,7 +391,7 @@ export function OpportunityDialog({
               {tv("cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={saving}>
-              {saving ? tv("saving") : tv("save")}
+              {uploadingNew ? t(lang, strings.drive.uploading_files) : saving ? tv("saving") : tv("save")}
             </Button>
           </div>
         </DialogFooter>
