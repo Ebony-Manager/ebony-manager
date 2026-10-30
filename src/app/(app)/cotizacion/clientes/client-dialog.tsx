@@ -36,39 +36,47 @@ interface Form {
 const formOf = (c: Client | null): Form => ({
   name: c?.name ?? "",
   kind: c?.kind ?? "arquitecto",
-  phone: c?.phone ?? "",
-  whatsapp: c?.whatsapp ?? "",
+  // Un solo número: el celular (también es el de WhatsApp).
+  phone: c?.phone ?? c?.whatsapp ?? "",
+  whatsapp: "",
   email: c?.email ?? "",
   company: c?.company ?? "",
   notes: c?.notes ?? "",
   active: c?.active ?? true,
 });
 
-/** Ficha del cliente: datos de contacto y, si ya existe, sus números, oportunidades y proyectos. */
+/**
+ * Ficha del cliente: datos de contacto y, si ya existe, sus números,
+ * oportunidades y proyectos. Nuevo: `client` = "new" o { name, kind } (desde
+ * la oportunidad, con el nombre ya escrito); `onCreated` recibe el creado.
+ */
 export function ClientDialog({
   client,
   clients,
   opportunities,
   projects,
   onClose,
+  onCreated,
 }: {
-  client: Client | "new" | null;
+  client: Client | "new" | { name: string; kind: ClientKind } | null;
   clients: Client[];
   opportunities: Opportunity[];
   projects: SalesProject[];
   onClose: () => void;
+  onCreated?: (c: Client) => void;
 }) {
   const { tv, lang } = useTv();
   const open = client !== null;
-  const existing = client && client !== "new" ? client : null;
-  const [form, setForm] = React.useState<Form>(() => formOf(existing));
+  const existing = client && client !== "new" && "id" in client ? client : null;
+  const draft = client && client !== "new" && !("id" in client) ? client : null;
+  const [form, setForm] = React.useState<Form>(() => ({ ...formOf(existing), ...draft }));
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(formOf(existing));
+    setForm({ ...formOf(existing), ...draft });
     setError(null);
     setSaving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de ficha.
@@ -79,15 +87,22 @@ export function ClientDialog({
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const stats = existing ? clientStats(existing.id, opportunities) : null;
   const myProjects = existing ? projects.filter((p) => p.designerId === existing.id || p.clientId === existing.id) : [];
-  const wa = whatsappUrl(form.whatsapp || form.phone, "");
+  const wa = whatsappUrl(form.phone, "");
 
   async function save() {
     if (!form.name.trim()) return setError(tv("name_required"));
     setSaving(true);
     setError(null);
-    const res = existing ? await updateClientAction(existing.id, form) : await createClientAction(form);
-    setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (existing) {
+      const res = await updateClientAction(existing.id, form);
+      setSaving(false);
+      if (!res.ok) return setError(res.error);
+    } else {
+      const res = await createClientAction(form);
+      setSaving(false);
+      if (!res.ok) return setError(res.error);
+      onCreated?.(res.data);
+    }
     toast.success(tv("saved"));
     onClose();
   }
@@ -124,11 +139,8 @@ export function ClientDialog({
               <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("optional")} />
             </Field>
             <Field label={tv("f_phone")}>
-              <Input type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-            </Field>
-            <Field label={tv("f_whatsapp")} hint={tv("f_whatsapp_hint")}>
               <div className="flex gap-2">
-                <Input type="tel" value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder={tv("optional")} />
+                <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
                 {wa && (
                   <Button asChild variant="outline" size="icon" className="shrink-0" title={tv("whatsapp_open")} aria-label={tv("whatsapp_open")}>
                     <a href={wa.replace(/\?text=$/, "")} target="_blank" rel="noreferrer">
@@ -138,7 +150,7 @@ export function ClientDialog({
                 )}
               </div>
             </Field>
-            <Field label={tv("f_email")} className="sm:col-span-2">
+            <Field label={tv("f_email")}>
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={tv("optional")} />
             </Field>
           </div>

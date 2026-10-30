@@ -1,7 +1,7 @@
 // Seguimiento de cotizaciones (sin Supabase ni React): monto vigente, nombre
 // para mostrar, días en la etapa, alertas y números del período.
 
-import type { Client, Opportunity, Stage } from "@/types/ventas";
+import type { Client, Opportunity } from "@/types/ventas";
 
 /** El monto que vale: el de la cotización vigente (la más reciente) o, si no hay, el escrito a mano. */
 export function opportunityAmount(o: Pick<Opportunity, "quotes" | "amount">): number | null {
@@ -77,14 +77,6 @@ export function visibleOnBoard(o: Pick<Opportunity, "stage" | "closedOn">, today
   if (o.stage !== "aprobada" && o.stage !== "perdida") return true;
   return !!o.closedOn && daysSince(o.closedOn, today) <= days;
 }
-
-export const STAGE_TONE: Record<Stage, "secondary" | "warning" | "default" | "success" | "outline"> = {
-  por_cotizar: "warning",
-  cotizando: "secondary",
-  enviada: "default",
-  aprobada: "success",
-  perdida: "outline",
-};
 
 export interface ClientStats {
   opportunities: Opportunity[];

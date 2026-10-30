@@ -11,6 +11,8 @@ export interface RowMenuItem {
   icon: LucideIcon;
   onSelect: () => void;
   disabled?: boolean;
+  /** Color propio del ícono (ej. el de una etapa de Ventas). */
+  iconColor?: string;
   /** Borrar y similares: el primer toque cambia el texto a la pregunta (en
    *  rojo) y el menú sigue abierto; el segundo toque lo hace. */
   confirmLabel?: string;
@@ -50,7 +52,7 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
                 item.onSelect();
               }}
             >
-              <Icon className="size-3.5" />
+              <Icon className="size-3.5" style={item.iconColor ? { color: item.iconColor } : undefined} />
               {isArmed ? item.confirmLabel : item.label}
             </DropdownMenuItem>
           );

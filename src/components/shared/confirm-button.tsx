@@ -83,7 +83,8 @@ export function ConfirmButton({
       variant={armed ? "destructive" : "outline"}
       size="sm"
       disabled={disabled}
-      className={cn("h-9 whitespace-nowrap", className)}
+      // Borrar se ve rojo siempre (también antes del segundo toque).
+      className={cn("h-9 whitespace-nowrap", !armed && "text-destructive hover:bg-destructive/10 hover:text-destructive", className)}
       onClick={onClick}
     >
       <Icon className="size-3.5" />

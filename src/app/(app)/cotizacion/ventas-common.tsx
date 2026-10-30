@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Calculator, Check, CheckCircle2, ChevronDown, Inbox, Plus, Send, XCircle, type LucideIcon } from "lucide-react";
 
 import type { Client, ClientKind, Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { SubTabs } from "@/components/shared/page-header";
-import { STAGE_TONE } from "@/lib/ventas/opportunities";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -52,12 +51,46 @@ export function CotizacionTabs({ value }: { value: "seguimiento" | "cotizaciones
   );
 }
 
-export function StageBadge({ stage, className }: { stage: Stage; className?: string }) {
+/**
+ * Color e ícono de cada etapa, los mismos en todo Ventas (badge, selector,
+ * columnas del tablero, "Mover a…"): ámbar = por cotizar, violeta =
+ * cotizando, azul = enviada, verde = aprobada, rojo = perdida.
+ */
+export const STAGE_META: Record<Stage, { icon: LucideIcon; color: string }> = {
+  por_cotizar: { icon: Inbox, color: "var(--warning)" },
+  cotizando: { icon: Calculator, color: "var(--stage-cotizando)" },
+  enviada: { icon: Send, color: "var(--primary)" },
+  aprobada: { icon: CheckCircle2, color: "var(--success)" },
+  perdida: { icon: XCircle, color: "var(--destructive)" },
+};
+
+export function StageIcon({ stage, className }: { stage: Stage; className?: string }) {
+  const { icon: Icon, color } = STAGE_META[stage];
+  return <Icon className={cn("size-3.5 shrink-0", className)} style={{ color }} />;
+}
+
+/** El nombre de la etapa con su ícono (para selectores y menús). */
+export function StageLabel({ stage }: { stage: Stage }) {
   const { tv } = useTv();
   return (
-    <Badge variant={STAGE_TONE[stage]} className={className}>
+    <span className="inline-flex items-center gap-1.5">
+      <StageIcon stage={stage} />
       {tv(`stage_${stage}`)}
-    </Badge>
+    </span>
+  );
+}
+
+export function StageBadge({ stage, className }: { stage: Stage; className?: string }) {
+  const { tv } = useTv();
+  const { icon: Icon, color } = STAGE_META[stage];
+  return (
+    <span
+      className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", className)}
+      style={{ color, backgroundColor: `color-mix(in oklch, ${color} 14%, transparent)` }}
+    >
+      <Icon className="size-3" />
+      {tv(`stage_${stage}`)}
+    </span>
   );
 }
 

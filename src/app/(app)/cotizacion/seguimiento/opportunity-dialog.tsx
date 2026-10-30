@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen, X } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -22,13 +22,14 @@ import { Field } from "../../contratistas/field";
 import { projectPath } from "../../proyectos/paths";
 import {
   addOpportunityNoteAction,
-  createClientAction,
   createOpportunityAction,
   deleteOpportunityAction,
   getOpportunityNotesAction,
   updateOpportunityAction,
 } from "../ventas-actions";
-import { ClientPicker, StageBadge, useTv } from "../ventas-common";
+import { ClientPicker, StageBadge, StageLabel, useTv } from "../ventas-common";
+import { ClientDialog } from "../clientes/client-dialog";
+import { cn } from "@/lib/utils";
 import { DriveFiles } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
 
@@ -52,12 +53,12 @@ interface Form {
   dueOn: string;
   nextFollowUp: string;
   ownerId: string | null;
-  amount: string;
   driveFolderUrl: string;
   notes: string;
 }
 
-function formOf(o: Opportunity | null): Form {
+/** Nueva: el responsable por defecto es quien la crea (se puede cambiar). */
+function formOf(o: Opportunity | null, currentUserId: string | null): Form {
   return {
     title: o?.title ?? "",
     designerId: o?.designerId ?? null,
@@ -69,8 +70,7 @@ function formOf(o: Opportunity | null): Form {
     receivedOn: o?.receivedOn ?? todayInPanama(),
     dueOn: o?.dueOn ?? "",
     nextFollowUp: o?.nextFollowUp ?? "",
-    ownerId: o?.ownerId ?? null,
-    amount: o?.amount == null ? "" : String(o.amount),
+    ownerId: o ? o.ownerId : currentUserId,
     driveFolderUrl: o?.driveFolderUrl ?? "",
     notes: o?.notes ?? "",
   };
@@ -78,8 +78,9 @@ function formOf(o: Opportunity | null): Form {
 
 /**
  * La ficha de una oportunidad: quiénes (arquitecto y/o cliente final, se
- * crean ahí mismo si no existen), etapa, fechas, responsable, monto (a mano
- * o el de la cotización vigente), carpeta de Drive y notas. Si ya existe,
+ * crean ahí mismo si no existen), etapa, fechas, responsable y notas. El
+ * monto sale siempre de la cotización vigente y el próximo seguimiento se
+ * pone solo al enviarla. Si ya existe,
  * además: sus cotizaciones del cotizador, la bitácora y Aprobar.
  */
 export function OpportunityDialog({
@@ -89,6 +90,7 @@ export function OpportunityDialog({
   onClose,
   onApprove,
   driveEnabled,
+  currentUserId,
 }: {
   opportunity: Opportunity | "new" | null;
   clients: Client[];
@@ -96,11 +98,12 @@ export function OpportunityDialog({
   onClose: () => void;
   onApprove: (o: Opportunity) => void;
   driveEnabled: boolean;
+  currentUserId: string | null;
 }) {
   const { tv, lang } = useTv();
   const open = opportunity !== null;
   const existing = opportunity && opportunity !== "new" ? opportunity : null;
-  const [form, setForm] = React.useState<Form>(() => formOf(existing));
+  const [form, setForm] = React.useState<Form>(() => formOf(existing, currentUserId));
   const [created, setCreated] = React.useState<Client[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -108,7 +111,7 @@ export function OpportunityDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(formOf(existing));
+    setForm(formOf(existing, currentUserId));
     setError(null);
     setSaving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de ficha.
@@ -119,18 +122,18 @@ export function OpportunityDialog({
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
   const fromQuote = (existing?.quotes.length ?? 0) > 0;
   const stageOptions = STAGES.filter((s) => s !== "aprobada" || form.stage === "aprobada");
+  // Solo tiene sentido ya enviada (la base la pone sola a los 7 días); se puede mover.
+  const showFollowUp = existing?.stage === "enviada" && form.stage === "enviada";
 
+  // "Crear «Nombre»" en el selector abre la ficha completa del cliente (celular, correo, empresa…).
+  const [newClient, setNewClient] = React.useState<{ name: string; kind: ClientKind } | null>(null);
   async function createClient(kind: ClientKind, name: string) {
-    const res = await createClientAction({ name, kind, phone: null, whatsapp: null, email: null, company: null, notes: null, active: true });
-    if (!res.ok) return void toast.error(res.error);
-    setCreated((c) => [...c, res.data]);
-    set(kind === "arquitecto" ? "designerId" : "clientId", res.data.id);
+    setNewClient({ name, kind });
   }
 
   async function save() {
     if (!form.designerId && !form.clientId) return setError(tv("someone_required"));
     if (form.stage === "perdida" && !form.lostReason) return setError(tv("lost_reason_required"));
-    const amount = form.amount.trim() === "" ? null : Number(form.amount);
     setSaving(true);
     setError(null);
     const input = {
@@ -145,7 +148,6 @@ export function OpportunityDialog({
       dueOn: form.dueOn || null,
       nextFollowUp: form.nextFollowUp || null,
       ownerId: form.ownerId,
-      amount: amount != null && Number.isFinite(amount) ? amount : null,
       // Con Drive conectado la carpeta la maneja la app: se conserva la guardada.
       driveFolderUrl: driveEnabled ? (existing?.driveFolderUrl ?? null) : form.driveFolderUrl,
       notes: form.notes,
@@ -217,7 +219,7 @@ export function OpportunityDialog({
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className={cn("grid gap-4", fromQuote ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
             <Field label={tv("f_stage")}>
               <Select value={form.stage} onValueChange={(v) => set("stage", v as Stage)} disabled={form.stage === "aprobada"}>
                 <SelectTrigger className="w-full">
@@ -226,7 +228,7 @@ export function OpportunityDialog({
                 <SelectContent>
                   {stageOptions.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {tv(`stage_${s}`)}
+                      <StageLabel stage={s} />
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -246,13 +248,11 @@ export function OpportunityDialog({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={tv("f_amount")} hint={fromQuote ? tv("f_amount_hint_quote") : tv("f_amount_hint_manual")}>
-              {fromQuote ? (
+            {fromQuote && (
+              <Field label={tv("f_amount")} hint={tv("f_amount_hint_quote")}>
                 <Input readOnly value={formatMoney(opportunityAmount(existing!) ?? 0)} className="bg-muted/40 tabular-nums" />
-              ) : (
-                <Input type="number" inputMode="decimal" min={0} step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00" />
-              )}
-            </Field>
+              </Field>
+            )}
           </div>
 
           {form.stage === "perdida" && (
@@ -277,16 +277,18 @@ export function OpportunityDialog({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className={cn("grid gap-4", showFollowUp ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
             <Field label={tv("f_received")}>
               <Input type="date" value={form.receivedOn} onChange={(e) => set("receivedOn", e.target.value)} />
             </Field>
             <Field label={tv("f_due")}>
               <Input type="date" value={form.dueOn} onChange={(e) => set("dueOn", e.target.value)} />
             </Field>
-            <Field label={tv("f_follow_up")}>
-              <Input type="date" value={form.nextFollowUp} onChange={(e) => set("nextFollowUp", e.target.value)} />
-            </Field>
+            {showFollowUp && (
+              <Field label={tv("f_follow_up")} hint={tv("f_follow_up_hint")}>
+                <Input type="date" value={form.nextFollowUp} onChange={(e) => set("nextFollowUp", e.target.value)} />
+              </Field>
+            )}
           </div>
 
           {!driveEnabled && (
@@ -362,6 +364,17 @@ export function OpportunityDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+      <ClientDialog
+        client={newClient}
+        clients={allClients}
+        opportunities={[]}
+        projects={[]}
+        onClose={() => setNewClient(null)}
+        onCreated={(c) => {
+          setCreated((list) => [...list, c]);
+          set(c.kind === "arquitecto" ? "designerId" : "clientId", c.id);
+        }}
+      />
     </Dialog>
   );
 }
@@ -372,7 +385,14 @@ function PickerWithRemove({ value, picker, onRemove }: { value: string | null; p
     <div className="flex gap-2">
       <div className="min-w-0 flex-1">{picker}</div>
       {value && (
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-3.5" />
           {tv("remove")}
         </Button>
       )}

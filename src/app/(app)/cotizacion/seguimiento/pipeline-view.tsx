@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ArrowRight, CalendarClock, CheckCircle2, Inbox, Percent, Plus, Send } from "lucide-react";
+import { CalendarClock, Columns3, List, CheckCircle2, Inbox, Percent, Plus, Send } from "lucide-react";
 
 import { STAGES, type Client, type LostReason, type Opportunity, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { daysSince, opportunityAlert, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
 import { cn } from "@/lib/utils";
 import { setOpportunityStageAction } from "../ventas-actions";
-import { CotizacionTabs, StageBadge, useTv } from "../ventas-common";
+import { CotizacionTabs, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
 import { OpportunityDialog, type SalesProject } from "./opportunity-dialog";
 import { ApproveDialog, LostDialog } from "./stage-dialogs";
 
@@ -40,6 +40,7 @@ export function PipelineView({
   projects,
   openId,
   driveEnabled,
+  currentUserId,
 }: {
   opportunities: Opportunity[];
   clients: Client[];
@@ -47,6 +48,7 @@ export function PipelineView({
   projects: SalesProject[];
   openId: string | null;
   driveEnabled: boolean;
+  currentUserId: string;
 }) {
   const { tv } = useTv();
   const today = todayInPanama();
@@ -140,8 +142,8 @@ export function PipelineView({
           value={view}
           onChange={setView}
           options={[
-            { value: "board", label: tv("view_board") },
-            { value: "list", label: tv("view_list") },
+            { value: "board", label: tv("view_board"), icon: Columns3 },
+            { value: "list", label: tv("view_list"), icon: List },
           ]}
         />
       </ListToolbar>
@@ -173,9 +175,14 @@ export function PipelineView({
               const list = byStage.get(s)!;
               const total = list.reduce((sum, o) => sum + (opportunityAmount(o) ?? 0), 0);
               return (
-                <section key={s} className="flex min-w-0 flex-col gap-2 rounded-lg bg-muted/40 p-2">
+                <section
+                  key={s}
+                  className="flex min-w-0 flex-col gap-2 rounded-lg border-t-[3px] bg-muted/40 p-2"
+                  style={{ borderTopColor: STAGE_META[s].color }}
+                >
                   <header className="flex items-center justify-between gap-2 px-1 pt-0.5">
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <StageIcon stage={s} />
                       {tv(`stage_${s}`)}
                       <span className="font-normal text-muted-foreground">{list.length}</span>
                     </span>
@@ -197,6 +204,7 @@ export function PipelineView({
         clients={clients}
         people={people}
         driveEnabled={driveEnabled}
+        currentUserId={people.some((p) => p.id === currentUserId) ? currentUserId : null}
         onClose={() => setEditing(null)}
         onApprove={(o) => {
           setEditing(null);
@@ -243,7 +251,8 @@ function OppCard({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className="flex cursor-pointer flex-col gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/30"
+      className="flex cursor-pointer flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/30"
+      style={{ borderLeftColor: STAGE_META[o.stage].color }}
     >
       <div className="flex items-start gap-1">
         <span className="min-w-0 flex-1">
@@ -255,7 +264,8 @@ function OppCard({
             label={tv("move_to")}
             items={STAGES.filter((s) => s !== o.stage).map((s) => ({
               label: `${tv("move_to")} ${tv(`stage_${s}`)}`,
-              icon: ArrowRight,
+              icon: STAGE_META[s].icon,
+              iconColor: STAGE_META[s].color,
               onSelect: () => onMove(s),
             }))}
           />

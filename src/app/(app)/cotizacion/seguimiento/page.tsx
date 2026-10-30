@@ -8,7 +8,7 @@ import { PipelineView } from "./pipeline-view";
 export const dynamic = "force-dynamic";
 
 export default async function SeguimientoPage({ searchParams }: { searchParams: Promise<{ abrir?: string }> }) {
-  await requireModule("cotizacion");
+  const profile = await requireModule("cotizacion");
   const [{ abrir }, opportunities, clients, people, projects] = await Promise.all([
     searchParams,
     getOpportunities(),
@@ -16,5 +16,5 @@ export default async function SeguimientoPage({ searchParams }: { searchParams: 
     getSalesPeople(),
     getSalesProjects(),
   ]);
-  return <PipelineView opportunities={opportunities} clients={clients} people={people} projects={projects} openId={abrir ?? null} driveEnabled={driveEnabled()} />;
+  return <PipelineView opportunities={opportunities} clients={clients} people={people} projects={projects} openId={abrir ?? null} driveEnabled={driveEnabled()} currentUserId={profile.id} />;
 }

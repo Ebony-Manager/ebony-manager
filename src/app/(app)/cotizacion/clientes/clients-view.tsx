@@ -124,7 +124,7 @@ export function ClientsView({ clients, opportunities, projects }: { clients: Cli
                       </span>
                       {c.company && <span className="block text-xs text-muted-foreground">{c.company}</span>}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{c.phone ?? c.whatsapp ?? "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{c.phone ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{stats.opportunities.length}</td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{stats.quoted ? formatMoney(stats.quoted) : "—"}</td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{stats.approved ? formatMoney(stats.approved) : "—"}</td>

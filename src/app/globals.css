@@ -64,6 +64,8 @@
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.68 0.15 65);
   --warning-foreground: oklch(0.985 0 0);
+  /* Ventas: "Cotizando" (violeta), la única etapa sin color propio del tema. */
+  --stage-cotizando: oklch(0.56 0.2 300);
   --border: oklch(0.9163 0.0162 286.0759);
   --input: oklch(0.9163 0.0162 286.0759);
   --ring: oklch(0.5565 0.243 261.9529);
@@ -120,6 +122,7 @@
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.78 0.14 70);
   --warning-foreground: oklch(0.145 0 0);
+  --stage-cotizando: oklch(0.72 0.15 300);
   --border: oklch(0.2258 0.0025 247.9355);
   --input: oklch(0.2989 0.0165 275.4735);
   --ring: oklch(0.7034 0.1543 265.1217);
@@ -307,6 +310,7 @@ tr:hover > .payroll-col-hot {
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-stage-cotizando: var(--stage-cotizando);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

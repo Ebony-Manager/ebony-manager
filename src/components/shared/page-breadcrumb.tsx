@@ -1,5 +1,7 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
@@ -42,7 +44,7 @@ export function SegmentedFilter<T extends string>({
   className,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon?: LucideIcon }[];
   onChange: (value: T) => void;
   fill?: boolean;
   className?: string;
@@ -63,11 +65,12 @@ export function SegmentedFilter<T extends string>({
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "shrink-0 rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
+            "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
             fill && "flex-1 sm:flex-none",
             value === o.value ? "bg-card font-semibold text-foreground shadow-sm" : "font-medium text-muted-foreground hover:text-foreground",
           )}
         >
+          {o.icon && <o.icon className="size-3.5" />}
           {o.label}
         </button>
       ))}
