@@ -697,6 +697,15 @@ export const strings = {
     col_vacacion: { es: "Vacación", en: "Vacation" },
     col_prima: { es: "Prima Antigüedad", en: "Seniority Premium" },
     col_pagado: { es: "Pagado", en: "Paid" },
+    paid_mark_q: { es: "¿Pagado?", en: "Paid?" },
+    paid_unmark_q: { es: "¿Quitar pagado?", en: "Unmark paid?" },
+    paid_all: { es: "Marcar todos pagados", en: "Mark all paid" },
+    paid_all_confirm: {
+      es: "Se marcan como pagados {n} empleados de esta quincena (total {t}). Las cuotas de préstamos de la quincena cuentan como cobradas.",
+      en: "{n} employees in this pay period will be marked paid (total {t}). Loan installments in the period count as collected.",
+    },
+    paid_all_done: { es: "{n} marcados como pagados", en: "{n} marked as paid" },
+    paid_all_none: { es: "Todos ya están marcados como pagados.", en: "Everyone is already marked as paid." },
     col_total: { es: "Total", en: "Total" },
     total_quincena: { es: "Total quincena", en: "Period total" },
 

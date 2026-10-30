@@ -13,6 +13,7 @@ import {
   UserX,
   Timer,
   Check,
+  CheckCheck,
   Pencil,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -43,6 +44,7 @@ import { QuincenaEntryDialog } from "./quincena-entry-dialog";
 import { downloadQuincenaPdf } from "./quincena-pdf";
 import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 
 type Row = RegistroRow;
 
@@ -116,6 +118,8 @@ export function RegistroView({
 
   const samePeriod = (a: Period, b: Period) => a.year === b.year && a.month === b.month && a.half === b.half;
   const visibleRows = rows && samePeriod(rows.period, period) ? rows.data : null;
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const [markingAll, setMarkingAll] = React.useState(false);
   // Período atado a los datos en pantalla: los guardados lo usan en vez del
   // `period` del closure, así nunca se le atribuye un valor a otra quincena.
   const dataPeriod = rows?.period ?? period;
@@ -156,6 +160,35 @@ export function RegistroView({
       toast.error(tt("save_failed"));
       load();
     }
+  }
+
+  /** Marca Pagado a todos los de la quincena (con el filtro de categoría, sin la búsqueda), con confirmación. */
+  async function markAllPaid() {
+    if (!visibleRows) return;
+    const p = dataPeriod;
+    const pending = allRows.filter((r) => !r.total.entry?.paid);
+    if (pending.length === 0) return void toast(tt("paid_all_none"));
+    const total = pending.reduce((sum, r) => sum + r.total.totalCents, 0);
+    const ok = await confirm({
+      title: tt("paid_all"),
+      message: tt("paid_all_confirm").replace("{n}", String(pending.length)).replace("{t}", formatCents(total)),
+      confirmLabel: tt("paid_all"),
+    });
+    if (!ok) return;
+    setMarkingAll(true);
+    const failed: string[] = [];
+    for (const r of pending) {
+      try {
+        await upsertPayrollEntryAction({ employeeId: r.employee.id, periodYear: p.year, periodMonth: p.month, periodHalf: p.half, paid: true });
+      } catch (err) {
+        console.error("Planilla: no se pudo marcar pagado a", r.employee.name, err);
+        failed.push(r.employee.name);
+      }
+    }
+    setMarkingAll(false);
+    if (failed.length) toast.error(`${tt("save_failed")}: ${failed.join(", ")}`, { duration: 10000 });
+    else toast.success(tt("paid_all_done").replace("{n}", String(pending.length)));
+    load();
   }
 
   /** PDF del resumen de la quincena que se está viendo (todos los empleados
@@ -333,9 +366,20 @@ export function RegistroView({
           </Button>
         </div>
 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          disabled={visibleRows === null || markingAll || allRows.every((r) => r.total.entry?.paid)}
+          onClick={() => void markAllPaid()}
+        >
+          <CheckCheck className="size-3.5" />
+          <span className="hidden sm:inline">{markingAll ? tt("saving") : tt("paid_all")}</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" className="ml-auto" disabled={visibleRows === null}>
+            <Button type="button" variant="outline" size="sm" disabled={visibleRows === null}>
               <Download className="size-3.5" />
               {tt("export_menu")}
             </Button>
@@ -419,20 +463,12 @@ export function RegistroView({
                   <td className="px-3 py-[11px] text-right text-[13.5px] font-bold tabular-nums text-ink-900">{formatCents(total.totalCents)}</td>
                   <td className="px-3 py-[11px]" onClick={(ev) => ev.stopPropagation()}>
                     <div className="flex justify-center">
-                      <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={e?.paid ?? false}
-                        aria-label={tt("col_pagado")}
-                        onClick={() => togglePaid(employee.id, dataPeriod, !(e?.paid ?? false))}
-                        className={
-                          e?.paid
-                            ? "flex size-[18px] items-center justify-center rounded-[5px] bg-walnut"
-                            : "size-[18px] rounded-[5px] border-[1.5px] border-ink-900/20"
-                        }
-                      >
-                        {e?.paid && <Check className="size-3 text-white" strokeWidth={2.4} />}
-                      </button>
+                      <PaidToggle
+                        paid={e?.paid ?? false}
+                        label={tt("col_pagado")}
+                        armLabel={e?.paid ? tt("paid_unmark_q") : tt("paid_mark_q")}
+                        onConfirm={() => togglePaid(employee.id, dataPeriod, !(e?.paid ?? false))}
+                      />
                     </div>
                   </td>
                   <td className="pr-3 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100">
@@ -462,6 +498,7 @@ export function RegistroView({
         </p>
       )}
 
+      {confirmDialog}
       <BankExportDialog open={bankOpen} onOpenChange={setBankOpen} period={dataPeriod} rows={fullRows} />
       <QuincenaEntryDialog
         row={editing}
@@ -474,5 +511,52 @@ export function RegistroView({
 
       {(pending || visibleRows === null) && <p className="text-xs text-muted-foreground">{tt("loading")}</p>}
     </div>
+  );
+}
+
+/**
+ * La casilla de Pagado, en dos toques (marcar y desmarcar): el primero muestra
+ * la pregunta al lado ("¿Pagado?" / "¿Quitar pagado?"), el segundo lo hace. Si
+ * no se vuelve a tocar en 3 segundos, se cancela. Así un clic sin querer no cambia nada.
+ */
+function PaidToggle({ paid, label, armLabel, onConfirm }: { paid: boolean; label: string; armLabel: string; onConfirm: () => void }) {
+  const [armed, setArmed] = React.useState(false);
+  React.useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(id);
+  }, [armed]);
+  const click = () => {
+    if (!armed) return setArmed(true);
+    setArmed(false);
+    onConfirm();
+  };
+  return (
+    <span className="relative inline-flex items-center">
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={paid}
+        aria-label={armed ? armLabel : label}
+        title={armed ? armLabel : label}
+        onClick={click}
+        className={
+          paid
+            ? `flex size-[18px] items-center justify-center rounded-[5px] bg-walnut ${armed ? "ring-2 ring-destructive ring-offset-1" : ""}`
+            : `size-[18px] rounded-[5px] border-[1.5px] ${armed ? "border-primary ring-2 ring-primary/40 ring-offset-1" : "border-ink-900/20"}`
+        }
+      >
+        {paid && <Check className="size-3 text-white" strokeWidth={2.4} />}
+      </button>
+      {armed && (
+        <button
+          type="button"
+          onClick={click}
+          className={`absolute right-full mr-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-white shadow-sm ${paid ? "bg-destructive" : "bg-primary"}`}
+        >
+          {armLabel}
+        </button>
+      )}
+    </span>
   );
 }

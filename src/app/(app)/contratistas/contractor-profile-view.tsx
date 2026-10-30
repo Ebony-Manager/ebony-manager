@@ -228,7 +228,7 @@ export function ContractorProfileView({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas | keyof typeof strings.planilla) =>
-    t(lang, k in strings.planilla ? strings.planilla[k as keyof typeof strings.planilla] : strings.contratistas[k as keyof typeof strings.contratistas]);
+    t(lang, ((k in strings.planilla ? strings.planilla : strings.contratistas) as Record<string, { es: string; en: string }>)[k]);
   const router = useRouter();
 
   const [entries, setEntries] = React.useState<ContractorLedgerEntry[]>(initialEntries);
