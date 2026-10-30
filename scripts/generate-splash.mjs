@@ -19,8 +19,8 @@ for (const [width, height, scale] of screens) {
     const logoWidth = Math.min(width * 0.5, 220) * scale;
     const logoHeight = logoWidth * vh / vw;
     for (const theme of ["light", "dark"]) {
-      const background = theme === "dark" ? "#141618" : "#D8D5CF";
-      const foreground = theme === "dark" ? "#D8D5CF" : "#030605";
+      const background = theme === "dark" ? "#141618" : "#fcfcfd";
+      const foreground = theme === "dark" ? "#fcfcfd" : "#030605";
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="${background}"/><svg x="${(w-logoWidth)/2}" y="${(h-logoHeight)/2}" width="${logoWidth}" height="${logoHeight}" viewBox="${viewBox}"><path fill="${foreground}" d="${path}"/></svg></svg>`;
       const target = new URL(`${width}x${height}@${scale}-${orientation}-${theme}.png`, directory);
       await sharp(Buffer.from(svg)).png({ palette: true, compressionLevel: 9 }).toFile(target.pathname);

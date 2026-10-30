@@ -539,17 +539,17 @@ a,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #d8d5cf;
+    background: #fcfcfd;
     color: #030605;
   }
   .startup-splash .startup-splash-logo {
-    color: inherit;
-    max-width: 50vw;
+    width: min(28vw, 112px);
+    height: min(28vw, 112px);
   }
 }
 @media (display-mode: standalone) and (prefers-color-scheme: dark) {
   .startup-splash {
     background: #141618;
-    color: #d8d5cf;
+    color: #fcfcfd;
   }
 }

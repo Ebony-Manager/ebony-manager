@@ -29,7 +29,7 @@ it("streams the brand before the session resolves, then replaces it with the app
   try {
     await shell;
     expect(html).toContain('class="startup-splash"');
-    expect(html).toContain('aria-label="Ebony"');
+    expect(html).toContain('aria-label="Cargando Ebony"');
     expect(html).not.toContain("APP_READY");
     expect(html.slice(0, html.indexOf("</head>"))).toContain("440x956@3-portrait-light.png");
     resolveUser(null);
