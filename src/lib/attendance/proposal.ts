@@ -34,6 +34,8 @@ export interface EmployeeProposal {
   absentSaturdays: number;
   earlyLeaveMinutes: number;
   overtimeMinutes: number;
+  /** Días de la quincena antes de su ingreso (o después de su salida): no se pagan. */
+  notEmployedDays: number;
   review: { date: string; flags: DayFlag[] }[];
   /** Días a los que les falta la entrada o la salida, sin revisar: mientras haya, no pasa a la Quincena. */
   blockingDays: number;
@@ -58,6 +60,28 @@ export function periodDateRange(year: number, month: number, half: 1 | 2): { fro
   const mm = String(month).padStart(2, "0");
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   return half === 1 ? { from: `${year}-${mm}-01`, to: `${year}-${mm}-15` } : { from: `${year}-${mm}-16`, to: `${year}-${mm}-${String(lastDay).padStart(2, "0")}` };
+}
+
+/**
+ * Días de la quincena en que todavía no trabajaba (antes del ingreso) o ya no
+ * (después de la salida). Como siempre en Ebony: el base de la quincena va
+ * completo y estos días van a "Días descontados" (sueldo ÷ 30 cada uno; la
+ * quincena vale 15 días, el 31 no cuenta aparte). Ej.: entra el 21 → 16 al 20 = 5.
+ */
+export function notEmployedDays(from: string, to: string, startDate?: string | null, endDate?: string | null): number {
+  const day = (d: string) => Number(d.slice(8, 10));
+  const first = day(from);
+  const last = Math.min(day(to), first === 1 ? 15 : 30);
+  let days = 0;
+  if (startDate) {
+    if (startDate > to) return 15;
+    if (startDate > from) days += day(startDate) - first;
+  }
+  if (endDate) {
+    if (endDate < from) return 15;
+    if (endDate < to) days += Math.max(0, last - day(endDate));
+  }
+  return Math.min(15, days);
 }
 
 export function buildProposal(input: {
@@ -101,9 +125,30 @@ export function buildProposal(input: {
   for (const e of employees) {
     const punches = byEmployee.get(e.id) ?? [];
     const overtimeMinutes = overtimeBy.get(e.id) ?? 0;
+    const outside = notEmployedDays(from, to, e.startDate, e.status === "INACTIVE" ? e.endDate : null);
     // Quien no marca en ningún archivo (administrativas, o gente que solo sale a proyectos
-    // sin Jotform) no se toca: sin datos no se inventan descuentos.
-    if (punches.length === 0 && overtimeMinutes === 0) continue;
+    // sin Jotform) no se toca: sin datos no se inventan descuentos. Salvo los días antes de
+    // su ingreso (o después de su salida), que no se pagan aunque no ponche.
+    if (punches.length === 0 && overtimeMinutes === 0) {
+      if (outside > 0)
+        proposals.push({
+          employeeId: e.id,
+          name: e.name,
+          hasPunches: false,
+          lateMinutes: 0,
+          absentWeekdays: 0,
+          absentSaturdays: 0,
+          earlyLeaveMinutes: 0,
+          overtimeMinutes: 0,
+          notEmployedDays: outside,
+          review: [],
+          blockingDays: 0,
+          days: [],
+          punches: [],
+          suggested: { horasDescontadas: 0, diasDescontados: outside, extraHours: 0 },
+        });
+      continue;
+    }
     const a = analyzePeriod(
       from,
       to,
@@ -122,13 +167,14 @@ export function buildProposal(input: {
       absentSaturdays: a.absentSaturdays,
       earlyLeaveMinutes: a.earlyLeaveMinutes,
       overtimeMinutes,
+      notEmployedDays: outside,
       review: a.review,
       blockingDays: a.blockingDays,
       days: a.days,
       punches,
       suggested: {
         horasDescontadas: Math.round(lateHours * 100) / 100,
-        diasDescontados: punches.length > 0 ? a.absentWeekdays + a.absentSaturdays : 0,
+        diasDescontados: (punches.length > 0 ? a.absentWeekdays + a.absentSaturdays : 0) + outside,
         extraHours: minutesToHours(overtimeMinutes),
       },
     });

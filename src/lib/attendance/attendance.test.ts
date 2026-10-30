@@ -264,7 +264,7 @@ describe("matchEmployees", () => {
   });
 });
 
-import { buildProposal, periodDateRange, type ProposalEmployee } from "./proposal";
+import { buildProposal, notEmployedDays, periodDateRange, type ProposalEmployee } from "./proposal";
 
 describe("buildProposal", () => {
   const emp = (id: string, name: string, extra: Partial<ProposalEmployee> = {}): ProposalEmployee => ({
@@ -343,5 +343,18 @@ describe("buildProposal", () => {
       punches: [p("Jose Salcedo", "2026-10-05", "07:30"), p("Jose Salcedo", "2026-10-05", "20:06")],
     });
     expect(proposals[0].suggested).toEqual({ horasDescontadas: 0, diasDescontados: 0, extraHours: 0 });
+  });
+});
+
+describe("notEmployedDays (ingreso / salida a mitad de quincena)", () => {
+  it("cuenta los días antes del ingreso y después de la salida, en quincenas de 15", () => {
+    expect(notEmployedDays("2026-10-16", "2026-10-31", "2026-10-21")).toBe(5); // Oyden: 16–20
+    expect(notEmployedDays("2026-10-16", "2026-10-31", "2026-10-26")).toBe(10); // Eimilly: 16–25
+    expect(notEmployedDays("2026-10-01", "2026-10-15", "2026-10-08")).toBe(7); // Javier Alonzo: 1–7
+    expect(notEmployedDays("2026-07-16", "2026-07-31", "2026-07-27")).toBe(11); // como se hacía (Aldair)
+    expect(notEmployedDays("2026-10-01", "2026-10-15", null, "2026-10-07")).toBe(8); // sale el 7: 8–15
+    expect(notEmployedDays("2026-10-16", "2026-10-31", null, "2026-10-30")).toBe(0); // el 31 no cuenta aparte
+    expect(notEmployedDays("2026-10-16", "2026-10-31", "2025-01-01")).toBe(0);
+    expect(notEmployedDays("2026-10-16", "2026-10-31", "2026-11-03")).toBe(15); // todavía no entra
   });
 });

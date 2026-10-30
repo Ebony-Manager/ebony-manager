@@ -383,6 +383,11 @@ export function AttendanceImportDialog({
                           <td className="px-2 py-1.5 text-right tabular-nums">
                             {p.absentWeekdays}
                             {p.absentSaturdays > 0 && <span className="text-xs text-muted-foreground"> +{p.absentSaturdays} {tt("att_sat")}</span>}
+                            {p.notEmployedDays > 0 && (
+                              <span className="block text-[11px] text-muted-foreground">
+                                +{p.notEmployedDays} {tg("att_not_employed")}
+                              </span>
+                            )}
                           </td>
                           <td className="px-2 py-1.5 text-right">
                             {p.review.length > 0 ? (

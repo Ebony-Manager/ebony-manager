@@ -215,7 +215,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
     const byId = new Map(employees.map((e, i) => [e.id, { e, i }]));
     const rows = proposals.flatMap((p) =>
       byId.has(p.employeeId)
-        ? [{ employeeId: p.employeeId, month: period.month, half: period.half, hours: p.suggested.horasDescontadas, days: p.suggested.diasDescontados, cents: 0 }]
+        ? [{ employeeId: p.employeeId, month: period.month, half: period.half, hours: p.suggested.horasDescontadas, days: p.absentWeekdays + p.absentSaturdays, cents: 0 }]
         : []
     );
     return {
