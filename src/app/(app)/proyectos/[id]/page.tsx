@@ -7,6 +7,7 @@ import { getInspectionPainters, getProjectInspections } from "@/services/inspect
 import { getProjectSupplies } from "@/services/almacen";
 import { createClient } from "@/lib/supabase/server";
 import { driveEnabled } from "@/lib/google/drive";
+import { getClients } from "@/services/ventas";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -32,7 +33,7 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder, clients] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -41,7 +42,9 @@ export default async function ProjectPage({
     canInspections ? getInspectionPainters() : none([]),
     getProjectSupplies(id),
     createClient().then((s) => s.from("projects").select("drive_folder_id").eq("id", id).maybeSingle()),
+    project.designerId || project.clientId ? getClients().catch(() => []) : none([]),
   ]);
+  const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
   return (
     <ProjectHub
@@ -57,6 +60,7 @@ export default async function ProjectPage({
       painters={painters}
       supplies={supplies}
       drive={{ enabled: driveEnabled(), folderId: folder.data?.drive_folder_id ?? null }}
+      projectPeople={{ designer: nameOf(project.designerId), client: nameOf(project.clientId) }}
     />
   );
 }

@@ -58,6 +58,7 @@ export function ProjectHub({
   painters,
   supplies,
   drive,
+  projectPeople,
 }: {
   project: Project;
   initialTab?: string;
@@ -72,6 +73,8 @@ export function ProjectHub({
   supplies: ProjectSupplyLine[];
   /** Carpeta del proyecto en Google Drive (heredada de su oportunidad o creada aquí). */
   drive: { enabled: boolean; folderId: string | null };
+  /** Nombres del arquitecto/diseñador (con su contacto) y del cliente final. */
+  projectPeople: { designer: string | null; client: string | null };
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -141,7 +144,7 @@ export function ProjectHub({
       <SubTabs value={tab} onChange={changeTab} tabs={visible.map((s) => ({ value: s.key, label: s.label }))} />
 
       {tab === "resumen" && (
-        <Overview project={project} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
+        <Overview project={project} people={projectPeople} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
       )}
       {tab === "contratos" && canContracts && (
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
@@ -192,11 +195,13 @@ export function ProjectHub({
 /** Resumen: la información general y, con Contratistas, la plata de sus contratos. */
 function Overview({
   project,
+  people: links,
   canContracts,
   contracts,
   onOpenContracts,
 }: {
   project: Project;
+  people: { designer: string | null; client: string | null };
   canContracts: boolean;
   contracts: ContractorContract[];
   onOpenContracts: () => void;
@@ -236,7 +241,14 @@ function Overview({
         <h2 className="mb-3 text-sm font-semibold text-foreground">{tt("info_title")}</h2>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
           <Item label={tt("f_location")} value={project.location || tt("none")} />
-          <Item label={tt("f_client")} value={project.clientName || tt("none")} />
+          {project.designerId || project.clientId ? (
+            <>
+              <Item label={tt("f_designer")} value={links.designer || tt("none")} />
+              <Item label={tt("f_end_client")} value={links.client || tt("none")} />
+            </>
+          ) : (
+            <Item label={tt("f_client")} value={project.clientName || tt("none")} />
+          )}
           <Item
             label={tt("f_status")}
             value={project.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}

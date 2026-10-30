@@ -116,7 +116,8 @@ export function ClientPicker({
   kind: ClientKind;
   value: string | null;
   onChange: (id: string) => void;
-  onCreate: (name: string) => Promise<void>;
+  /** Sin esto no se ofrece "Crear «X»" (quien no tiene Ventas solo elige). */
+  onCreate?: (name: string) => Promise<void>;
   placeholder: string;
   disabled?: boolean;
 }) {
@@ -130,7 +131,7 @@ export function ClientPicker({
 
   async function create() {
     const name = query.trim();
-    if (!name) return;
+    if (!name || !onCreate) return;
     setCreating(true);
     await onCreate(name);
     setCreating(false);
@@ -169,7 +170,7 @@ export function ClientPicker({
                 </CommandItem>
               ))}
             </CommandGroup>
-            {query.trim() && !exact && (
+            {onCreate && query.trim() && !exact && (
               <CommandGroup>
                 <CommandItem value={`__crear__ ${query}`} onSelect={() => void create()} disabled={creating}>
                   <Plus className="size-4" />

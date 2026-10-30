@@ -21,7 +21,11 @@ export type ProjectStatus = "ACTIVE" | "COMPLETED";
 export interface Project {
   id: string;
   name: string;
+  /** Texto que se muestra en listas: "Firma · Cliente final" (se arma al guardar). */
   clientName: string | null;
+  /** Arquitecto/diseñador y cliente final (Clientes de Ventas), como en la oportunidad. */
+  designerId: string | null;
+  clientId: string | null;
   status: ProjectStatus;
   notes: string | null;
   /** Dónde queda la obra. */

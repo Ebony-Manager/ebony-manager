@@ -4,6 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 
 import type { Project, ProjectStatus } from "@/types/contractors";
+import type { Client, ClientKind } from "@/types/ventas";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createProjectAction, updateProjectAction } from "./actions";
+import { getProjectPeopleAction } from "../proyectos/people-actions";
+import { ClientPicker } from "../cotizacion/ventas-common";
+import { ClientDialog } from "../cotizacion/clientes/client-dialog";
 import { Field } from "./field";
 
 /** "12.5" → 12.5 ; vacío o no-número o negativo → null. */
@@ -53,7 +57,11 @@ export function ProjectFormDialog({
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const [name, setName] = React.useState("");
-  const [clientName, setClientName] = React.useState("");
+  const [designerId, setDesignerId] = React.useState<string | null>(null);
+  const [clientId, setClientId] = React.useState<string | null>(null);
+  const [clients, setClients] = React.useState<Client[]>([]);
+  const [canCreate, setCanCreate] = React.useState(false);
+  const [newClient, setNewClient] = React.useState<{ name: string; kind: ClientKind } | null>(null);
   const [location, setLocation] = React.useState("");
   const [status, setStatus] = React.useState<ProjectStatus>("ACTIVE");
   const [notes, setNotes] = React.useState("");
@@ -71,7 +79,8 @@ export function ProjectFormDialog({
   React.useEffect(() => {
     if (!open) return;
     setName(project?.name ?? "");
-    setClientName(project?.clientName ?? "");
+    setDesignerId(project?.designerId ?? null);
+    setClientId(project?.clientId ?? null);
     setLocation(project?.location ?? "");
     setStatus(project?.status ?? "ACTIVE");
     setNotes(project?.notes ?? "");
@@ -85,6 +94,22 @@ export function ProjectFormDialog({
   }, [open, project]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // La lista de arquitectos/diseñadores y clientes finales, al abrir.
+  React.useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    void getProjectPeopleAction().then((r) => {
+      if (!alive) return;
+      setClients(r.clients);
+      setCanCreate(r.canCreate);
+    }, () => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+
+  const nameOf = (id: string | null) => (id ? clients.find((c) => c.id === id)?.name : null);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
@@ -96,7 +121,10 @@ export function ProjectFormDialog({
     try {
       const payload = {
         name: name.trim(),
-        clientName: clientName.trim() || null,
+        designerId,
+        clientId,
+        // Lo que muestran las listas: "Firma · Cliente final" (o el texto que ya tenía).
+        clientName: [nameOf(designerId), nameOf(clientId)].filter(Boolean).join(" · ") || (designerId || clientId ? null : (project?.clientName ?? null)),
         location: location.trim() || null,
         status,
         notes: notes.trim() || null,
@@ -141,11 +169,26 @@ export function ProjectFormDialog({
             />
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={tt("proj_f_client")}>
-              <Input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder={tt("f_optional")}
+            <Field label={tt("proj_f_designer")}>
+              <PersonPicker
+                clients={clients}
+                kind="arquitecto"
+                value={designerId}
+                onChange={setDesignerId}
+                onCreate={canCreate ? async (n) => setNewClient({ name: n, kind: "arquitecto" }) : undefined}
+                placeholder={tt("proj_pick_designer")}
+                removeLabel={tt("proj_remove")}
+              />
+            </Field>
+            <Field label={tt("proj_f_end_client")}>
+              <PersonPicker
+                clients={clients}
+                kind="cliente"
+                value={clientId}
+                onChange={setClientId}
+                onCreate={canCreate ? async (n) => setNewClient({ name: n, kind: "cliente" }) : undefined}
+                placeholder={tt("proj_pick_client")}
+                removeLabel={tt("proj_remove")}
               />
             </Field>
             <Field label={tt("proj_f_status")}>
@@ -180,6 +223,43 @@ export function ProjectFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      <ClientDialog
+        client={newClient}
+        clients={clients}
+        opportunities={[]}
+        projects={[]}
+        onClose={() => setNewClient(null)}
+        onCreated={(c) => {
+          setClients((list) => [...list, c]);
+          if (c.kind === "arquitecto") setDesignerId(c.id);
+          else setClientId(c.id);
+        }}
+      />
     </Dialog>
+  );
+}
+
+/** Elegir arquitecto/diseñador o cliente final, con "Quitar" en rojo. */
+function PersonPicker({
+  removeLabel,
+  ...props
+}: React.ComponentProps<typeof ClientPicker> & { onChange: (id: string | null) => void; removeLabel: string }) {
+  return (
+    <div className="flex gap-2">
+      <div className="min-w-0 flex-1">
+        <ClientPicker {...props} />
+      </div>
+      {props.value && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => props.onChange(null)}
+          className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          {removeLabel}
+        </Button>
+      )}
+    </div>
   );
 }
