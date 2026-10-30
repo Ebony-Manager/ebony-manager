@@ -54,6 +54,8 @@ export async function GET(request: Request) {
     await ensureOverduePurchaseNotices().catch(() => undefined);
     // Un aviso por herramienta vencida (no se repite); el token es el mismo del resumen.
     await anon.rpc("inventory_tool_overdue_notices", { p_token: secret! }).then(() => undefined, () => undefined);
+    // Los lunes: el seguimiento semanal de cotizaciones a quienes tienen Cotización (la función decide si es lunes).
+    await anon.rpc("sales_weekly_follow_up", { p_token: secret! }).then(() => undefined, () => undefined);
     await dispatchPendingPush().catch(() => undefined);
   }
 

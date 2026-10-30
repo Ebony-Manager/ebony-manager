@@ -17,6 +17,7 @@ import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cot
 import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
 import { RowMenu } from "@/components/shared/row-menu";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { CotizacionTabs } from "./ventas-common";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 const STATUS_STYLE: Record<QuoteStatus, string> = {
@@ -104,6 +105,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
           </>
         }
       />
+      <CotizacionTabs value="cotizaciones" />
 
       <ListToolbar>
         <SearchInput value={search} onChange={setSearch} placeholder={tt("search_ph")} className="w-full flex-[1_1_220px] sm:max-w-xs" />

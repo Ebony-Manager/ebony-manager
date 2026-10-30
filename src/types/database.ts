@@ -1582,6 +1582,8 @@ export type Database = {
           status: string
           total_mt2: number | null
           updated_at: string
+          designer_id: string | null
+          client_id: string | null
         }
         Insert: {
           client_name?: string | null
@@ -1598,6 +1600,8 @@ export type Database = {
           status?: string
           total_mt2?: number | null
           updated_at?: string
+          designer_id?: string | null
+          client_id?: string | null
         }
         Update: {
           client_name?: string | null
@@ -1614,6 +1618,8 @@ export type Database = {
           status?: string
           total_mt2?: number | null
           updated_at?: string
+          designer_id?: string | null
+          client_id?: string | null
         }
         Relationships: []
       }
@@ -1966,6 +1972,7 @@ export type Database = {
           status: string
           total: number
           updated_at: string
+          opportunity_id: string | null
         }
         Insert: {
           client_name?: string
@@ -1987,6 +1994,7 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string
+          opportunity_id?: string | null
         }
         Update: {
           client_name?: string
@@ -2008,6 +2016,7 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string
+          opportunity_id?: string | null
         }
         Relationships: [
           {
@@ -2272,6 +2281,159 @@ export type Database = {
           returned_by_name?: string | null
           returned_on?: string | null
           tool_id?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          active: boolean
+          company: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          active?: boolean
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          active?: boolean
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      sales_opportunities: {
+        Row: {
+          amount: number | null
+          client_id: string | null
+          closed_on: string | null
+          created_at: string
+          created_by: string | null
+          designer_id: string | null
+          drive_folder_id: string | null
+          drive_folder_url: string | null
+          due_on: string | null
+          id: string
+          location: string | null
+          lost_note: string | null
+          lost_reason: string | null
+          next_follow_up: string | null
+          notes: string | null
+          owner_id: string | null
+          owner_name: string | null
+          project_id: string | null
+          received_on: string
+          sent_on: string | null
+          stage: string
+          stage_changed_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          client_id?: string | null
+          closed_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          designer_id?: string | null
+          drive_folder_id?: string | null
+          drive_folder_url?: string | null
+          due_on?: string | null
+          id?: string
+          location?: string | null
+          lost_note?: string | null
+          lost_reason?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          project_id?: string | null
+          received_on?: string
+          sent_on?: string | null
+          stage?: string
+          stage_changed_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          client_id?: string | null
+          closed_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          designer_id?: string | null
+          drive_folder_id?: string | null
+          drive_folder_url?: string | null
+          due_on?: string | null
+          id?: string
+          location?: string | null
+          lost_note?: string | null
+          lost_reason?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          project_id?: string | null
+          received_on?: string
+          sent_on?: string | null
+          stage?: string
+          stage_changed_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_opportunity_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          opportunity_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          opportunity_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          opportunity_id?: string
         }
         Relationships: []
       }
@@ -3139,6 +3301,18 @@ export type Database = {
       set_inventory_summary_token: {
         Args: { p_token: string }
         Returns: undefined
+      }
+      sales_people: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string }[]
+      }
+      approve_opportunity: {
+        Args: { p_id: string; p_project_name: string | null; p_project_id: string | null }
+        Returns: string
+      }
+      sales_weekly_follow_up: {
+        Args: { p_token: string }
+        Returns: number
       }
       lend_tools: {
         Args: { p_tool_ids: string[]; p_employee_id: string | null; p_contractor_id: string | null; p_project_id: string | null; p_due_on: string | null; p_notes: string | null }

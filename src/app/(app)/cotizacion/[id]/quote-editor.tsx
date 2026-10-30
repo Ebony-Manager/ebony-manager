@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, Plus, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, Loader2, Plus, TriangleAlert, Waypoints, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { formatMoney, newSection, quoteTotals, sectionTotals, syncDraftPrices } from "@/lib/cotizador/pricing";
@@ -194,7 +194,18 @@ export function QuoteEditor({
       {/* Encabezado: el cliente es lo que más se ve */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <BackLink href="/cotizacion" label={tt("title")} />
+          <span className="flex flex-wrap items-center gap-1">
+            <BackLink href="/cotizacion" label={tt("title")} />
+            {quote.opportunityId && (
+              <Link
+                href={`/cotizacion/seguimiento?abrir=${quote.opportunityId}`}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                <Waypoints className="size-3.5" />
+                {tt("from_follow_up")}
+              </Link>
+            )}
+          </span>
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
               {saveState === "saved" && isPersisted && <Check className="size-3.5 text-[var(--status-ok)]" />}

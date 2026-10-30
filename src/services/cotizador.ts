@@ -154,6 +154,7 @@ function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
     itbmsPct: num(r.itbms_pct),
     notes: r.notes,
     sections,
+    opportunityId: r.opportunity_id,
   };
 }
 
@@ -352,6 +353,8 @@ function headerPatch(q: Quote): Tables["quotes"]["Update"] {
     itbms_pct: num(q.itbmsPct),
     notes: q.notes,
     total: Math.round(quoteTotals(q).total * 100) / 100,
+    // Solo si la cotización lo trae (las cargadas siempre): así nunca se borra el enlace por omisión.
+    ...(q.opportunityId !== undefined && { opportunity_id: q.opportunityId }),
   };
 }
 
@@ -396,6 +399,10 @@ export async function createQuote(q: Quote): Promise<void> {
   const { error } = await supabase.from("quotes").insert({ id: q.id, ...headerPatch(q) });
   if (error) throw new Error(error.message);
   await saveQuote(q);
+  // Empezar a cotizar una oportunidad de Seguimiento la pasa a "Cotizando".
+  if (q.opportunityId) {
+    await supabase.from("sales_opportunities").update({ stage: "cotizando" }).eq("id", q.opportunityId).eq("stage", "por_cotizar");
+  }
 }
 
 /** Copia una cotización como borrador nuevo (para una nueva versión). */

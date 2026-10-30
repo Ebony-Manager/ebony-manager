@@ -163,6 +163,8 @@ export interface Quote {
   itbmsPct: number;
   notes: string;
   sections: QuoteSection[];
+  /** La oportunidad de Seguimiento a la que pertenece (si viene de ahí). */
+  opportunityId?: string | null;
 }
 
 /** Fila de la lista de cotizaciones (sin ítems ni renglones). */
