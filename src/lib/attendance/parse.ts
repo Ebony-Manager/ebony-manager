@@ -60,6 +60,9 @@ export function parseCsv(text: string): string[][] {
  * continuación sin fecha. "Missing OUT" = no hay salida (la columna OUT viene vacía).
  * Desde la quincena del 16 de octubre de 2026 el reloj exporta la fecha con guiones
  * ("2026-10-16") y el número del empleado en otra línea de la misma celda; se leen los dos.
+ * Si entre la entrada y la salida pasan más de 12 horas, el reloj no las une: deja la
+ * entrada en la fila del día ("Missing OUT") y la salida en una fila de continuación con
+ * IN vacío ("Missing IN"). Esa salida es del mismo día y también se lee.
  */
 export function parseClockReport(rows: string[][]): RawPunch[] {
   const out: RawPunch[] = [];
@@ -74,7 +77,12 @@ export function parseClockReport(rows: string[][]): RawPunch[] {
     if (!name) continue;
     const day = clockDate(r[1] ?? "");
     const isDayRow = day !== null;
-    const isContinuation = !isDayRow && (r[0] ?? "") === "" && (r[1] ?? "") === "" && Boolean(r[2]) && date !== null;
+    const isContinuation =
+      !isDayRow &&
+      (r[0] ?? "") === "" &&
+      (r[1] ?? "") === "" &&
+      (Boolean(r[2]) || toMinutes(r[3] ?? "") !== null) &&
+      date !== null;
     if (!isDayRow && !isContinuation) continue;
     if (isDayRow) date = day;
     const tin = toMinutes(r[2] ?? "");

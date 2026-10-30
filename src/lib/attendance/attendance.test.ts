@@ -174,6 +174,28 @@ describe("parseClockReport", () => {
       ["Jhosep Soto", "2026-10-19", t("17:00"), "out"],
     ]);
   });
+
+  it("salida en fila aparte (más de 12 h): el reloj la deja sin entrada y es del mismo día", () => {
+    // Tal como viene el .xls de la quincena 16–30 oct (celdas vacías = null).
+    const rows = [
+      ["Employee", null, null, "Jose Salcedo\n(9)"],
+      ["Date", null, "IN", "OUT", "Work Time", "Daily Total", "Note"],
+      ["MON", "2026-10-26", "08:02", null, null, null, "Missing OUT"],
+      [null, null, null, "20:04", null, null, "Missing IN"],
+      ["THU", "2026-10-29", "09:05", "18:10", "09:04", "09:04"],
+      ["Total Hours", null, null, null, null, "83:15"],
+    ] as unknown as string[][];
+    const p = parseClockReport(rows);
+    expect(p.map((x) => [x.date, x.minutes, x.kind])).toEqual([
+      ["2026-10-26", t("08:02"), "in"],
+      ["2026-10-26", t("20:04"), "out"],
+      ["2026-10-29", t("09:05"), "in"],
+      ["2026-10-29", t("18:10"), "out"],
+    ]);
+    // El día queda completo: entrada 8:02 (tarde 32 min), salida 20:04 (sin descuento ni extra).
+    const day = analyzeDay("2026-10-26", p.filter((x) => x.date === "2026-10-26"));
+    expect(day).toMatchObject({ arrival: t("08:02"), departure: t("20:04"), lateMinutes: 32, earlyLeaveMinutes: 0, flags: [] });
+  });
 });
 
 describe("parseCsv", () => {
