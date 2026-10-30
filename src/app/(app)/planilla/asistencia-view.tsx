@@ -380,8 +380,9 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
         </details>
       )}
 
-      <div className="rounded-lg border border-border bg-card">
-        {!ready || pending ? (
+      {/* Al guardar una revisión se actualiza sin quitar la lista (no se pierde la posición). */}
+      <div className={`rounded-lg border border-border bg-card transition-opacity ${ready && pending ? "opacity-70" : ""}`} aria-busy={pending}>
+        {!ready ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">{tp("loading")}</p>
         ) : proposals.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">{tg("att_no_punches")}</p>
