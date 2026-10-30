@@ -37,6 +37,9 @@ export interface LedgerRowLite {
   direction: "debt" | "payment";
   amountCents: number;
   payrollEntryId: string | null;
+  /** Solo con `datedLedger`: ubica en su quincena (por fecha) lo que no
+   *  está atado a una (ej. el monto de un préstamo o adelanto otorgado). */
+  entryDate?: string;
 }
 
 /** Clave año+mes+quincena — un empleado tiene historial en varios años,
@@ -374,10 +377,26 @@ export interface EmployeeAccrualContext {
  * `computePeriodTotalFromEntry` con el camino de fetch-por-llamada, así
  * el total nunca drifta entre los dos.
  */
-export function buildEmployeeContext(entries: PayrollEntry[], ledgerRows: LedgerRowLite[]): EmployeeAccrualContext {
+export function buildEmployeeContext(
+  entries: PayrollEntry[],
+  ledgerRows: LedgerRowLite[],
+  /** Estado de cuenta: los movimientos sin quincena cuentan en la quincena
+   *  de su fecha (solo en las columnas de préstamos; nunca en el neto). */
+  opts: { datedLedger?: boolean } = {},
+): EmployeeAccrualContext {
   const ledgerByEntryId = new Map<string, { debt: number; payment: number }>();
+  const datedByPeriod = new Map<string, { debt: number; payment: number }>();
   for (const row of ledgerRows) {
-    if (!row.payrollEntryId) continue;
+    if (!row.payrollEntryId) {
+      const p = opts.datedLedger && row.entryDate ? periodFromDateString(row.entryDate) : null;
+      if (p) {
+        const acc = datedByPeriod.get(fullPeriodKey(p)) ?? { debt: 0, payment: 0 };
+        if (row.direction === "payment") acc.payment += row.amountCents;
+        else acc.debt += row.amountCents;
+        datedByPeriod.set(fullPeriodKey(p), acc);
+      }
+      continue;
+    }
     const acc = ledgerByEntryId.get(row.payrollEntryId) ?? { debt: 0, payment: 0 };
     if (row.direction === "payment") acc.payment += row.amountCents;
     else acc.debt += row.amountCents;
@@ -414,7 +433,12 @@ export function buildEmployeeContext(entries: PayrollEntry[], ledgerRows: Ledger
   const lookup: PeriodTotalLookup = (p) => {
     const entry = entryByKey.get(fullPeriodKey(p)) ?? null;
     const ledger = entry ? (ledgerByEntryId.get(entry.id) ?? { debt: 0, payment: 0 }) : { debt: 0, payment: 0 };
-    return computePeriodTotalFromEntry(entry, ledger);
+    const total = computePeriodTotalFromEntry(entry, ledger);
+    const dated = datedByPeriod.get(fullPeriodKey(p));
+    // Fuera del neto a propósito: no se descontó en la planilla.
+    return dated
+      ? { ...total, ledgerDebtCents: total.ledgerDebtCents + dated.debt, ledgerPaymentCents: total.ledgerPaymentCents + dated.payment }
+      : total;
   };
 
   const lastVacationPayout = (asOf: Period): Period | null => {

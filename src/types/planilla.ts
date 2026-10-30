@@ -189,6 +189,8 @@ export interface PayrollLedgerEntry {
    *  si aplica — null para un movimiento agregado a mano. */
   loanId: string | null;
   notes: string | null;
+  /** Si su quincena ya se marcó pagada (null = no está atada a una quincena). */
+  paid?: boolean | null;
 }
 
 /** Esquema de reparto de las cuotas de un préstamo. Hoy solo existe

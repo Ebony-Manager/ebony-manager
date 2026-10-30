@@ -48,6 +48,24 @@ describe("buildLoanStatement", () => {
     expect(s.movements[1].occurred).toBe(false);
   });
 
+  it("una cuota cuenta a hoy solo si su quincena se marcó pagada (caso Romina, 30 oct)", () => {
+    const q = (x: PayrollLedgerEntry, paid: boolean): PayrollLedgerEntry => ({ ...x, payrollEntryId: `pe-${x.id}`, paid });
+    const s = buildLoanStatement(
+      [
+        e("prestamo", "debt", 48000, "2026-09-15"),
+        q(e("prestamo", "payment", 18500, "2026-09-15"), true),
+        q(e("prestamo", "payment", 12000, "2026-10-15"), true),
+        e("adelanto", "debt", 15000, "2026-10-21"),
+        q(e("adelanto", "payment", 15000, "2026-10-28"), false), // quincena 31 oct, abierta
+        q(e("prestamo", "payment", 12000, "2026-10-31"), false),
+        q(e("prestamo", "payment", 5500, "2026-11-15"), false),
+      ],
+      { year: 2026, month: 10, half: 2 }
+    );
+    expect(s.totals.balanceTodayCents).toBe(32500); // 175 del préstamo + 150 del adelanto
+    expect(s.totals.balanceEndCents).toBe(0);
+  });
+
   it("resumen por mes con saldo al cierre de cada mes", () => {
     const s = buildLoanStatement(
       [e("prestamo", "debt", 36000, "2026-01-15"), e("prestamo", "payment", 18000, "2026-01-31"), e("prestamo", "payment", 18000, "2026-02-15")],

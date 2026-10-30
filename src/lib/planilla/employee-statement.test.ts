@@ -26,9 +26,10 @@ function row(month: number, half: 1 | 2, o: Partial<AnnualDetailRow> & { e?: Par
 const NOW = { year: 2026, month: 2, half: 1 as const };
 
 const ROWS = [
-  row(1, 1, { e: { basePayCents: 47500, extraHoursCents: 1338, horasDescontadasCents: 435 }, totalCents: 48403 }),
-  row(1, 2, { e: { basePayCents: 47500, bonusCents: 4496 }, ledgerDebtCents: 6000, ledgerPaymentCents: 6000, totalCents: 46000, runningLedgerBalanceCents: 0 }),
-  row(2, 1, { e: { basePayCents: 47500 }, ledgerDebtCents: 36000, ledgerPaymentCents: 18000, totalCents: 29500, runningLedgerBalanceCents: 18000 }),
+  row(1, 1, { e: { basePayCents: 47500, extraHoursCents: 1338, horasDescontadasCents: 435, paid: true }, totalCents: 48403 }),
+  row(1, 2, { e: { basePayCents: 47500, bonusCents: 4496, paid: true }, ledgerDebtCents: 6000, ledgerPaymentCents: 6000, totalCents: 46000, runningLedgerBalanceCents: 0 }),
+  row(2, 1, { e: { basePayCents: 47500, paid: true }, ledgerDebtCents: 36000, ledgerPaymentCents: 18000, totalCents: 29500, runningLedgerBalanceCents: 18000 }),
+  // Ya empezó (NOW) pero no se ha cerrado ni pagado.
   row(2, 2, { e: { basePayCents: 47500 }, totalCents: 47500, runningLedgerBalanceCents: 18000 }),
   row(3, 1, { e: null }),
 ];
@@ -42,17 +43,20 @@ describe("buildEmployeeStatement", () => {
     expect(s[3].occurred).toBe(false);
   });
 
-  it("por mes: suma las dos quincenas y toma el saldo de la última", () => {
+  it("por mes: suma las quincenas pagadas y toma el saldo de la última", () => {
     const s = buildEmployeeStatement(ROWS, "month", NOW);
-    expect(s).toHaveLength(2);
+    expect(s).toHaveLength(3);
     expect(s[0]).toMatchObject({ month: 1, half: null, salaryCents: 95000, bonusCents: 5834, deductionCents: 435, loanGivenCents: 6000, loanPaidCents: 6000, netCents: 94403 });
-    expect(s[1]).toMatchObject({ month: 2, loanGivenCents: 36000, loanPaidCents: 18000, loanBalanceCents: 18000, netCents: 77000 });
+    expect(s[1]).toMatchObject({ month: 2, half: null, loanGivenCents: 36000, loanPaidCents: 18000, loanBalanceCents: 18000, netCents: 29500, occurred: true });
   });
 
-  it("un mes cuenta como ocurrido si su primera quincena ya empezó", () => {
+  it("una quincena que ya empezó pero no se ha pagado no cuenta: va aparte, en gris", () => {
     const s = buildEmployeeStatement(ROWS, "month", NOW);
-    expect(s.every((r) => r.occurred)).toBe(true);
-    expect(buildEmployeeStatement(ROWS, "month", { year: 2026, month: 1, half: 2 })[1].occurred).toBe(false);
+    expect(s[2]).toMatchObject({ month: 2, half: 2, netCents: 47500, occurred: false });
+    // Préstamo con cuota en la quincena abierta: la cuota no baja el saldo todavía.
+    const open = buildEmployeeStatement([row(10, 2, { e: { paid: false }, ledgerPaymentCents: 27000 })], "quincena", { year: 2026, month: 10, half: 2 });
+    expect(open[0].occurred).toBe(false);
+    expect(statementTotals(open).loanPaidCents).toBe(0);
   });
 
   it("quincenas sin entrada ni préstamo no aparecen", () => {

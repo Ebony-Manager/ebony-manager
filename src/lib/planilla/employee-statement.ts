@@ -54,21 +54,30 @@ export function buildEmployeeStatement(
   now: Period
 ): StatementRow[] {
   const withData = rows.filter((r) => r.entry !== null || r.ledgerDebtCents > 0 || r.ledgerPaymentCents > 0);
+  // Una quincena cuenta (en totales y saldo) solo cuando se cerró y se marcó
+  // pagada; sin planilla (ej. solo un adelanto otorgado), desde que empezó.
+  const counted = (r: AnnualDetailRow) => (r.entry ? r.entry.paid : isPeriodOccurred(r.year, r.month, r.half, now));
 
   if (granularity === "quincena") {
     return withData.map((r) => ({
       ...fromDetail(r),
       key: `${r.year}-${r.month}-${r.half}`,
       half: r.half,
-      occurred: isPeriodOccurred(r.year, r.month, r.half, now),
+      occurred: counted(r),
     }));
   }
 
+  // Por mes: las quincenas pagadas se suman en la fila del mes; una que todavía
+  // no se paga va aparte (en gris), para no mezclar lo pagado con lo pendiente.
   const out: StatementRow[] = [];
   for (const r of withData) {
     const d = fromDetail(r);
+    if (!counted(r)) {
+      out.push({ ...d, key: `${r.year}-${r.month}-${r.half}`, half: r.half, occurred: false });
+      continue;
+    }
     let row = out[out.length - 1];
-    if (!row || row.year !== r.year || row.month !== r.month) {
+    if (!row || row.year !== r.year || row.month !== r.month || row.half !== null) {
       row = { ...d, key: `${r.year}-${r.month}`, half: null, occurred: isMonthOccurred(r.year, r.month, now) };
       out.push(row);
       continue;

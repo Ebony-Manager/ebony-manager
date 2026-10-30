@@ -596,7 +596,8 @@ export async function getEmployeeAnnualDetail(
     history.entries,
     history.ledger
       .filter((r) => r.category !== "seguro_social")
-      .map((r) => ({ direction: r.direction, amountCents: r.amountCents, payrollEntryId: r.payrollEntryId }))
+      .map((r) => ({ direction: r.direction, amountCents: r.amountCents, payrollEntryId: r.payrollEntryId, entryDate: r.entryDate })),
+    { datedLedger: true }
   );
   return computeAnnualDetail(history.employee, ctx, year, projectFuture);
 }
@@ -607,13 +608,15 @@ export async function getEmployeeAnnualDetail(
 
 export async function getLedgerEntries(employeeId: string): Promise<PayrollLedgerEntry[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("payroll_ledger_entries")
-    .select("*")
-    .eq("employee_id", employeeId)
-    .order("entry_date", { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(mapLedger);
+  const [ledger, entries] = await Promise.all([
+    supabase.from("payroll_ledger_entries").select("*").eq("employee_id", employeeId).order("entry_date", { ascending: true }),
+    supabase.from("payroll_entries").select("id, paid").eq("employee_id", employeeId),
+  ]);
+  if (ledger.error) throw new Error(ledger.error.message);
+  if (entries.error) throw new Error(entries.error.message);
+  const paidById = new Map((entries.data ?? []).map((r) => [r.id, r.paid]));
+  // Si su quincena ya se cerró y se pagó (las cuotas solo cuentan desde ahí).
+  return (ledger.data ?? []).map((r) => ({ ...mapLedger(r), paid: r.payroll_entry_id ? (paidById.get(r.payroll_entry_id) ?? false) : null }));
 }
 
 /** Saldo que el empleado debe ahora mismo. */

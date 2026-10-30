@@ -50,7 +50,7 @@ export interface LoanStatement {
   totals: {
     debtCents: number;
     paymentCents: number;
-    /** Saldo contando solo lo que ya ocurrió. */
+    /** Saldo a hoy: lo otorgado hasta hoy menos las cuotas de quincenas ya pagadas. */
     balanceTodayCents: number;
     /** Saldo contando también las cuotas ya programadas a futuro. */
     balanceEndCents: number;
@@ -77,7 +77,12 @@ export function buildLoanStatement(entries: readonly PayrollLedgerEntry[], now: 
   const movements: LoanMovement[] = rows.map(({ e, period }) => {
     const sign = e.direction === "debt" ? 1 : -1;
     balance += sign * e.amountCents;
-    const occurred = isPeriodOccurred(period.year, period.month, period.half, now);
+    // Una cuota cuenta solo cuando su quincena se cerró y se marcó pagada; lo
+    // otorgado (y un abono suelto, sin quincena) desde su fecha.
+    const occurred =
+      e.direction === "payment" && e.payrollEntryId && e.paid != null
+        ? e.paid
+        : isPeriodOccurred(period.year, period.month, period.half, now);
     if (occurred) balanceToday += sign * e.amountCents;
     if (e.direction === "debt") debtTotal += e.amountCents;
     else paymentTotal += e.amountCents;

@@ -523,8 +523,8 @@ export const strings = {
     st_total_row: { es: "Total a hoy", en: "Total to date" },
     st_empty: { es: "Sin movimientos registrados en este año.", en: "No activity recorded this year." },
     st_future_hint: {
-      es: "Las filas en gris todavía no han llegado (proyección).",
-      en: "Grey rows haven't happened yet (projection).",
+      es: "En gris: quincenas que todavía no se han cerrado y pagado (no cuentan en los totales ni en el saldo).",
+      en: "Grey: pay periods not yet closed and paid (not counted in totals or balance).",
     },
     pd_title: { es: "Datos del empleado", en: "Employee details" },
     pd_document: { es: "Documento", en: "Document" },
