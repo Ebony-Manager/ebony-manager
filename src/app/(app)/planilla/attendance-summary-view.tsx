@@ -36,11 +36,17 @@ export function AttendanceSummaryView({
   collapsible = false,
   from = "resumen",
   period,
+  live,
 }: {
   collapsible?: boolean;
   from?: EmployeeFrom;
   /** Con esto el resumen es de ESA quincena (la de arriba en Pagos → Asistencia) y no tiene selector propio. */
   period?: Period;
+  /**
+   * Lo que dicen las ponchadas de esa quincena (Pagos → Asistencia), aunque
+   * todavía no se haya aplicado a la planilla. Sin esto se lee lo ya aplicado.
+   */
+  live?: { employees: AttendanceEmployee[]; rows: AttendancePeriodRow[] } | null;
 }) {
   const { lang } = useLang();
   const ta = (k: keyof typeof strings.attSummary) => t(lang, strings.attSummary[k]);
@@ -55,7 +61,7 @@ export function AttendanceSummaryView({
   const [data, setData] = React.useState<Record<number, { employees: AttendanceEmployee[]; rows: AttendancePeriodRow[] } | "error">>({});
 
   React.useEffect(() => {
-    if (!open || data[year]) return;
+    if (!open || data[year] || live !== undefined) return;
     let alive = true;
     getAttendanceSummaryAction(year)
       .then((d) => alive && setData((prev) => ({ ...prev, [year]: d })))
@@ -63,7 +69,7 @@ export function AttendanceSummaryView({
     return () => {
       alive = false;
     };
-  }, [open, year, data]);
+  }, [open, year, data, live]);
 
   // Siguiendo la quincena de arriba: ese año, ese mes, esa quincena.
   const dataYear = period ? period.year : year;
@@ -71,7 +77,7 @@ export function AttendanceSummaryView({
     if (!period || period.year === year) return;
     setYear(period.year); // eslint-disable-line react-hooks/set-state-in-effect -- sigue la quincena de arriba.
   }, [period, year]);
-  const loaded = data[dataYear];
+  const loaded = live !== undefined ? (live ?? undefined) : data[dataYear];
   const summary =
     loaded && loaded !== "error"
       ? period
@@ -167,11 +173,14 @@ export function AttendanceSummaryView({
                   <span className="font-semibold tabular-nums">{hoursLabel(summary.hours)}</span>
                   <span className="text-muted-foreground">{ta("of_lateness")}</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <TrendingDown className="size-4 text-muted-foreground" />
-                  <span className="font-semibold tabular-nums">{formatCents(summary.cents)}</span>
-                  <span className="text-muted-foreground">{ta("deducted")}</span>
-                </span>
+                {/* De las ponchadas todavía no hay dinero (sale al aplicar a la quincena). */}
+                {live === undefined && (
+                  <span className="flex items-center gap-1.5">
+                    <TrendingDown className="size-4 text-muted-foreground" />
+                    <span className="font-semibold tabular-nums">{formatCents(summary.cents)}</span>
+                    <span className="text-muted-foreground">{ta("deducted")}</span>
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

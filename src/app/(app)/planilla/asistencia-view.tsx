@@ -208,6 +208,22 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
       return next;
     });
 
+  // Resumen (quién falta más / llega más tarde) de esta quincena, con lo que dicen
+  // las ponchadas: lo mismo que se aplicaría a la Quincena (tardanza + salida temprano, faltas).
+  const liveSummary = React.useMemo(() => {
+    if (!ready) return null;
+    const byId = new Map(employees.map((e, i) => [e.id, { e, i }]));
+    const rows = proposals.flatMap((p) =>
+      byId.has(p.employeeId)
+        ? [{ employeeId: p.employeeId, month: period.month, half: period.half, hours: p.suggested.horasDescontadas, days: p.suggested.diasDescontados, cents: 0 }]
+        : []
+    );
+    return {
+      employees: [...byId.values()].map(({ e, i }) => ({ id: e.id, name: e.name, categoria: e.categoria, active: e.status === "ACTIVE", sortOrder: i })),
+      rows,
+    };
+  }, [ready, proposals, employees, period]);
+
   // Para las tarjetas: días con tardanza, minutos tarde, faltas, días por revisar y % de días a tiempo.
   const kpis = React.useMemo(() => {
     let lateDays = 0;
@@ -290,7 +306,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
       )}
 
       {/* El resumen de la quincena elegida arriba (quién falta más…), plegado para no estorbar. */}
-      {canPayroll && <AttendanceSummaryView collapsible from="registro" period={period} />}
+      {canPayroll && <AttendanceSummaryView collapsible from="registro" period={period} live={liveSummary} />}
 
       {canPayroll && ready && unmatched.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">

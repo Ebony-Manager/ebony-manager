@@ -177,8 +177,8 @@ export const strings = {
     spotless: { es: "Sin faltas ni tardanzas:", en: "No absences or lateness:" },
     empty: { es: "No hay quincenas registradas en este período.", en: "No pay periods recorded in this period." },
     empty_period: {
-      es: "Esta quincena todavía no tiene asistencia pasada a la planilla. Aparece al usar «Aplicar a la Quincena».",
-      en: "This pay period has no attendance applied yet. It shows up after «Apply to Pay period».",
+      es: "Todavía no hay ponchadas de esta quincena.",
+      en: "No punches for this pay period yet.",
     },
     see_all: { es: "Ver todos", en: "See all" },
     see_less: { es: "Ver menos", en: "See less" },
