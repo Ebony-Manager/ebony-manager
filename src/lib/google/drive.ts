@@ -22,11 +22,22 @@ interface Credentials {
   privateKey: string;
 }
 
+/** El JSON de la llave; si al copiarlo se quedó fuera la "}" final, se completa. */
+function parseKeyJson(raw: string): { client_email?: string; private_key?: string; type?: string } {
+  const text = raw.trim();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    if (!text.endsWith("}")) return JSON.parse(`${text}\n}`);
+    throw err;
+  }
+}
+
 function credentials(): Credentials | null {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!raw) return null;
   try {
-    const json = JSON.parse(raw) as { client_email?: string; private_key?: string };
+    const json = parseKeyJson(raw);
     if (!json.client_email || !json.private_key) return null;
     return { clientEmail: json.client_email, privateKey: json.private_key.replace(/\\n/g, "\n") };
   } catch {
@@ -45,8 +56,8 @@ export async function driveDiagnosis(): Promise<Record<string, string | boolean>
   };
   if (raw) {
     try {
-      const json = JSON.parse(raw) as { client_email?: string; private_key?: string; type?: string };
-      out.json_valido = true;
+      const json = parseKeyJson(raw);
+      out.json_valido = raw.trim().endsWith("}") ? true : "sí (le faltaba la } final; la app la completa)";
       out.tipo = json.type ?? "?";
       out.cuenta_de_servicio = json.client_email ?? "FALTA client_email";
       out.llave_privada = json.private_key ? "presente" : "FALTA private_key";
