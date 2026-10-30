@@ -34,6 +34,40 @@ function credentials(): Credentials | null {
   }
 }
 
+/** Para el diagnóstico (/api/drive/estado): qué falta, sin mostrar secretos. */
+export async function driveDiagnosis(): Promise<Record<string, string | boolean>> {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const out: Record<string, string | boolean> = {
+    GOOGLE_SERVICE_ACCOUNT_JSON: raw ? `presente (${raw.length} caracteres)` : "FALTA",
+    GOOGLE_DRIVE_ROOT_FOLDER_ID: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ? "presente" : "FALTA",
+    GOOGLE_DRIVE_IMPERSONATE: process.env.GOOGLE_DRIVE_IMPERSONATE ? "presente" : "no (está bien con Unidad compartida)",
+    otras_variables_google: Object.keys(process.env).filter((k) => k.includes("GOOGLE") || k.includes("DRIVE")).join(", ") || "ninguna",
+  };
+  if (raw) {
+    try {
+      const json = JSON.parse(raw) as { client_email?: string; private_key?: string; type?: string };
+      out.json_valido = true;
+      out.tipo = json.type ?? "?";
+      out.cuenta_de_servicio = json.client_email ?? "FALTA client_email";
+      out.llave_privada = json.private_key ? "presente" : "FALTA private_key";
+    } catch (err) {
+      out.json_valido = `NO se puede leer: ${err instanceof Error ? err.message : "error"} (empieza con «${raw.trim().slice(0, 1)}», termina con «${raw.trim().slice(-1)}»)`;
+    }
+  }
+  out.conectado = driveEnabled();
+  if (driveEnabled()) {
+    try {
+      await accessToken();
+      out.llave_aceptada_por_google = true;
+      const root = await getItem(driveRoot()!);
+      out.raiz = `OK: «${root.name}»`;
+    } catch (err) {
+      out.error = err instanceof Error ? err.message : "error";
+    }
+  }
+  return out;
+}
+
 export function driveRoot(): string | null {
   return process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID?.trim() || null;
 }
