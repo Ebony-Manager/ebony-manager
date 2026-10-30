@@ -88,6 +88,7 @@ export function ClientDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const isFirm = form.kind === "arquitecto";
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const stats = existing ? clientStats(existing.id, opportunities) : null;
   const myProjects = existing ? projects.filter((p) => p.designerId === existing.id || p.clientId === existing.id) : [];
@@ -138,12 +139,19 @@ export function ClientDialog({
             />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={tv("f_name")}>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus={!existing} />
+            {/* Arquitecto/diseñador: el nombre ES la firma (las personas van en Contactos). */}
+            <Field
+              label={isFirm ? tv("f_firm") : tv("f_name")}
+              hint={isFirm ? tv("f_firm_hint") : undefined}
+              className={isFirm && !form.company ? "sm:col-span-2" : undefined}
+            >
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus={!existing} placeholder={isFirm ? tv("f_firm_ph") : undefined} />
             </Field>
-            <Field label={tv("f_company")}>
-              <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("optional")} />
-            </Field>
+            {(!isFirm || form.company) && (
+              <Field label={tv("f_company")}>
+                <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("optional")} />
+              </Field>
+            )}
             <Field label={tv("f_phone")}>
               <div className="flex gap-2">
                 <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
