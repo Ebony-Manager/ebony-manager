@@ -289,8 +289,8 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
         </div>
       )}
 
-      {/* El resumen del mes / año (quién falta más…), plegado para no estorbar. */}
-      {canPayroll && <AttendanceSummaryView collapsible from="registro" />}
+      {/* El resumen de la quincena elegida arriba (quién falta más…), plegado para no estorbar. */}
+      {canPayroll && <AttendanceSummaryView collapsible from="registro" period={period} />}
 
       {canPayroll && ready && unmatched.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">

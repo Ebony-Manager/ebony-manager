@@ -7,7 +7,7 @@ import { RankList, type RankItem } from "@/components/shared/rank-list";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { SectionHeader, Stepper } from "@/components/shared/page-header";
 import { summarizeAttendance, type AttendanceEmployee, type AttendancePeriodRow, type AttendancePersonTotal } from "@/lib/planilla/attendance-summary";
-import { currentPeriod, formatCents, monthLabel } from "@/lib/planilla/payroll-period";
+import { currentPeriod, formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
 import { employeeProfilePath, type EmployeeFrom } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -32,7 +32,16 @@ const daysLabel = (d: number, lang: "es" | "en") => `${Number(d.toFixed(2))} ${l
  * año, quién falta más, quién llega tarde más y quién no tuvo nada. Va en
  * Personal → Resumen (Todos y Empleados) y, plegado, en Pagos → Asistencia.
  */
-export function AttendanceSummaryView({ collapsible = false, from = "resumen" }: { collapsible?: boolean; from?: EmployeeFrom }) {
+export function AttendanceSummaryView({
+  collapsible = false,
+  from = "resumen",
+  period,
+}: {
+  collapsible?: boolean;
+  from?: EmployeeFrom;
+  /** Con esto el resumen es de ESA quincena (la de arriba en Pagos → Asistencia) y no tiene selector propio. */
+  period?: Period;
+}) {
   const { lang } = useLang();
   const ta = (k: keyof typeof strings.attSummary) => t(lang, strings.attSummary[k]);
   const tp = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -56,8 +65,19 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
     };
   }, [open, year, data]);
 
-  const loaded = data[year];
-  const summary = loaded && loaded !== "error" ? summarizeAttendance(loaded.employees, loaded.rows, scope === "month" ? month : null, categoria) : null;
+  // Siguiendo la quincena de arriba: ese año, ese mes, esa quincena.
+  const dataYear = period ? period.year : year;
+  React.useEffect(() => {
+    if (!period || period.year === year) return;
+    setYear(period.year); // eslint-disable-line react-hooks/set-state-in-effect -- sigue la quincena de arriba.
+  }, [period, year]);
+  const loaded = data[dataYear];
+  const summary =
+    loaded && loaded !== "error"
+      ? period
+        ? summarizeAttendance(loaded.employees, loaded.rows, period.month, categoria, period.half)
+        : summarizeAttendance(loaded.employees, loaded.rows, scope === "month" ? month : null, categoria)
+      : null;
 
   const shiftMonth = (d: -1 | 1) => {
     const m = month + d;
@@ -82,6 +102,7 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
 
   const controls = (
     <>
+      {!period && (
       <SegmentedFilter
         value={scope}
         onChange={setScope}
@@ -90,7 +111,8 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
           { value: "year", label: ta("scope_year") },
         ]}
       />
-      {scope === "month" ? (
+      )}
+      {period ? null : scope === "month" ? (
         <Stepper label={`${monthLabel(lang, month)} ${year}`} onPrev={() => shiftMonth(-1)} onNext={() => shiftMonth(1)} className="[&>span]:min-w-28" />
       ) : (
         <Stepper label={year} onPrev={() => setYear((y) => y - 1)} onNext={() => setYear((y) => y + 1)} className="[&>span]:min-w-14" />
@@ -132,7 +154,7 @@ export function AttendanceSummaryView({ collapsible = false, from = "resumen" }:
           ) : !summary ? (
             <p className="text-xs text-muted-foreground">{tp("loading")}</p>
           ) : summary.byAbsences.length === 0 && summary.byLateness.length === 0 && summary.spotless.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">{ta("empty")}</p>
+            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">{period ? ta("empty_period") : ta("empty")}</p>
           ) : (
             <>
               {/* Totales en una línea, cada uno con su ícono de color. */}
