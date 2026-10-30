@@ -191,7 +191,7 @@ export function ClientDialog({
                     const edit = (patch: Partial<typeof c>) => set("contacts", form.contacts.map((x, j) => (j === i ? { ...x, ...patch } : x)));
                     return (
                       <li key={c.id ?? `new-${i}`} className="flex items-start gap-2 rounded-lg border border-border p-2">
-                        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-[1.5fr_1fr_1fr_1.2fr]">
                           <Input value={c.name} onChange={(e) => edit({ name: e.target.value })} placeholder={tv("contact_name")} aria-label={tv("contact_name")} />
                           <Input value={c.role} onChange={(e) => edit({ role: e.target.value })} placeholder={tv("contact_role")} aria-label={tv("contact_role")} />
                           <Input type="tel" inputMode="tel" value={c.phone} onChange={(e) => edit({ phone: e.target.value })} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />

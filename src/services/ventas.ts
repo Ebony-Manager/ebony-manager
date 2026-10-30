@@ -103,7 +103,8 @@ async function syncContacts(clientId: string, contacts: NonNullable<ClientInput[
       (
         await supabase.from("client_contacts").upsert(
           rows.map((c, i) => ({
-            ...(c.id ? { id: c.id } : {}),
+            // Siempre con id: en un mismo upsert, a las filas sin id les quedaría null.
+            id: c.id ?? crypto.randomUUID(),
             client_id: clientId,
             name: c.name.trim(),
             role: t(c.role),
