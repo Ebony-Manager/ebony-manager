@@ -94,8 +94,6 @@ export function AttendanceImportDialog({
   React.useEffect(() => {
     if (!open) return;
     setOvertime([]);
-    setSelected(new Set());
-    setEdits({});
     setExpanded(new Set());
     setOtDate(range.from);
   }, [open, range.from]);
@@ -135,8 +133,9 @@ export function AttendanceImportDialog({
     );
     // Quien tiene días sin revisar no se puede aplicar.
     setSelected(new Set(proposals.filter((p) => p.blockingDays === 0).map((p) => p.employeeId)));
+    // También al volver a abrir: antes se vaciaba al abrir y, con la misma propuesta, no se volvía a llenar.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- depende de la clave resumida.
-  }, [proposalKey]);
+  }, [proposalKey, open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function addOvertime() {
@@ -187,12 +186,17 @@ export function AttendanceImportDialog({
   async function apply() {
     setApplying(true);
     let ok = 0;
+    const failed: string[] = [];
     try {
       for (const p of proposals) {
         if (!selected.has(p.employeeId) || p.blockingDays > 0) continue;
         const row = rowById.get(p.employeeId);
         if (!row) continue;
-        const e = edits[p.employeeId];
+        const e = edits[p.employeeId] ?? {
+          horas: String(p.suggested.horasDescontadas),
+          dias: String(p.suggested.diasDescontados),
+          extras: String(p.suggested.extraHours),
+        };
         const num = (s: string) => {
           const n = parseFloat(s || "0");
           return Number.isFinite(n) ? n : 0;
@@ -202,6 +206,8 @@ export function AttendanceImportDialog({
         const extras = num(e.extras);
         const hourly = hourlyRateCents({ baseSalaryCents: row.monthlySalaryCents });
         const daily = dailyRateCents({ baseSalaryCents: row.monthlySalaryCents });
+        // Uno que falle no frena a los demás: al final se dice quién no se aplicó.
+        try {
         await upsertPayrollEntryAction({
           employeeId: p.employeeId,
           periodYear: period.year,
@@ -215,8 +221,17 @@ export function AttendanceImportDialog({
           ...(p.overtimeMinutes > 0 ? { extraHours: extras, extraHoursCents: quantityToCents(extras, hourly) } : {}),
         });
         ok += 1;
+        } catch (err) {
+          console.error("Asistencia: no se pudo aplicar a", p.name, err);
+          failed.push(`${p.name}${err instanceof Error && err.message ? ` (${err.message})` : ""}`);
+        }
       }
-      toast.success(`${tt("att_applied")}: ${ok}`);
+      if (ok) toast.success(`${tt("att_applied")}: ${ok}`);
+      if (failed.length) {
+        toast.error(`${tt("att_apply_failed_for")}: ${failed.join(", ")}`, { duration: 10000 });
+        onApplied();
+        return;
+      }
       onApplied();
       onOpenChange(false);
     } catch (err) {
@@ -229,6 +244,7 @@ export function AttendanceImportDialog({
   }
 
   const hasFiles = punches.length > 0;
+  const eligible = proposals.filter((p) => p.blockingDays === 0 && rowById.has(p.employeeId)).map((p) => p.employeeId);
   const th = "px-2 py-2 font-medium whitespace-nowrap";
   const diffClass = (a: string, current: number) => (Math.abs((parseFloat(a || "0") || 0) - current) > 0.004 ? "bg-amber-50 dark:bg-amber-950/30" : "");
   const quincenaLabel = `${period.half === 1 ? "1Q" : "2Q"} ${monthLabel(lang, period.month)} ${period.year}`;
@@ -305,7 +321,20 @@ export function AttendanceImportDialog({
               <table className="w-full min-w-[980px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className={th} />
+                    <th className={th}>
+                      {/* Todos / ninguno (los que tienen días sin revisar no se pueden marcar). */}
+                      <input
+                        type="checkbox"
+                        aria-label={tt("att_select_all")}
+                        title={tt("att_select_all")}
+                        disabled={eligible.length === 0}
+                        checked={eligible.length > 0 && eligible.every((id) => selected.has(id))}
+                        ref={(el) => {
+                          if (el) el.indeterminate = selected.size > 0 && !eligible.every((id) => selected.has(id));
+                        }}
+                        onChange={(ev) => setSelected(ev.target.checked ? new Set(eligible) : new Set())}
+                      />
+                    </th>
                     <th className={th}>{tt("col_empleado")}</th>
                     <th className={`${th} text-right`}>{tg("att_col_late_early")}</th>
                     <th className={`${th} text-right`}>{tt("att_col_absent")}</th>

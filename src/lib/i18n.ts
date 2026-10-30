@@ -1167,6 +1167,8 @@ export const strings = {
     att_apply: { es: "Aplicar a la Quincena", en: "Apply to Pay period" },
     att_applied: { es: "Empleados actualizados", en: "Employees updated" },
     att_apply_error: { es: "No se pudo aplicar todo; revisa la Quincena.", en: "Could not apply everything; check the Pay period." },
+    att_apply_failed_for: { es: "No se pudo aplicar a", en: "Could not apply to" },
+    att_select_all: { es: "Seleccionar todos", en: "Select all" },
     att_flag_absent: { es: "sin ninguna marcación", en: "no punches" },
     att_flag_missing_out: { es: "sin salida", en: "no clock-out" },
     att_flag_missing_in: { es: "sin entrada", en: "no clock-in" },
