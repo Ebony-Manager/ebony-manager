@@ -9,6 +9,7 @@ import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { PushControls } from "../../settings/notificaciones/push-controls";
 import type { NotificationType, UserPushPreference } from "@/services/notifications";
 import { saveMyPushPreferencesAction } from "./actions";
+import { notificationTitle } from "@/lib/notifications/presentation";
 
 const MODULE_NAMES: Record<string, string> = { documentos: "Personal", asistencia: "Asistencia", planilla: "Planilla", almacen: "Almacén", almacen_compras: "Compras", inspecciones: "Inspecciones" };
 
@@ -46,7 +47,7 @@ export function MyNotifications({ types, preferences, deviceCount }: { types: No
                 <label key={type.key} className="flex cursor-pointer items-start gap-3 px-3.5 py-3 hover:bg-muted/30">
                   <input type="checkbox" className="mt-1" checked={Boolean(values[type.key])} onChange={(event) => setValues((current) => ({ ...current, [type.key]: event.target.checked }))} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">{type.title}</span>
+                    <span className="block text-sm font-medium">{notificationTitle(type.key, type.title)}</span>
                     <span className="block text-xs text-muted-foreground">{type.description}</span>
                   </span>
                   <BellRing className={`mt-0.5 size-4 ${values[type.key] ? "text-primary" : "text-muted-foreground/40"}`} />

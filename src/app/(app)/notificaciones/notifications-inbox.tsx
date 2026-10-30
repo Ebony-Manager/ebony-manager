@@ -11,6 +11,7 @@ import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-hea
 import type { AppNotice } from "@/services/notifications";
 import { PushControls } from "../settings/notificaciones/push-controls";
 import { markAllNotificationsReadAction, markNotificationReadAction } from "./actions";
+import { notificationTitle } from "@/lib/notifications/presentation";
 
 type ReadFilter = "all" | "unread";
 const MODULE_NAMES: Record<string, string> = {
@@ -87,7 +88,7 @@ export function NotificationsInbox({ notices }: { notices: AppNotice[] }) {
                 <span className={`mt-1 size-2 shrink-0 rounded-full ${notice.seenAt ? "bg-transparent" : "bg-primary"}`} />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">{notice.title}</span>
+                    <span className="text-sm font-semibold text-foreground">{notificationTitle(notice.typeKey, notice.title)}</span>
                     {notice.module && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{MODULE_NAMES[notice.module] ?? notice.module}</span>}
                   </span>
                   {notice.body && <span className="mt-0.5 block text-sm text-foreground/80">{notice.body}</span>}
