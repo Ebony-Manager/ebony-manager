@@ -1584,6 +1584,7 @@ export type Database = {
           updated_at: string
           designer_id: string | null
           client_id: string | null
+          drive_folder_id: string | null
         }
         Insert: {
           client_name?: string | null
@@ -1602,6 +1603,7 @@ export type Database = {
           updated_at?: string
           designer_id?: string | null
           client_id?: string | null
+          drive_folder_id?: string | null
         }
         Update: {
           client_name?: string | null
@@ -1620,6 +1622,7 @@ export type Database = {
           updated_at?: string
           designer_id?: string | null
           client_id?: string | null
+          drive_folder_id?: string | null
         }
         Relationships: []
       }
@@ -3313,6 +3316,10 @@ export type Database = {
       sales_weekly_follow_up: {
         Args: { p_token: string }
         Returns: number
+      }
+      set_project_drive_folder: {
+        Args: { p_id: string; p_folder_id: string }
+        Returns: string
       }
       lend_tools: {
         Args: { p_tool_ids: string[]; p_employee_id: string | null; p_contractor_id: string | null; p_project_id: string | null; p_due_on: string | null; p_notes: string | null }

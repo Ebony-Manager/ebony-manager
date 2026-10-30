@@ -2319,6 +2319,40 @@ export const strings = {
     whatsapp_open: { es: "Escribir por WhatsApp", en: "Message on WhatsApp" },
   },
 
+  // Archivos en Google Drive (oportunidades de Ventas y proyectos).
+  drive: {
+    title: { es: "Archivos", en: "Files" },
+    not_connected: { es: "Google Drive todavía no está conectado.", en: "Google Drive isn't connected yet." },
+    create_folder: { es: "Crear carpeta en Drive", en: "Create Drive folder" },
+    create_folder_hint: {
+      es: "Planos, renders, fotos y PDFs de este trabajo, en su propia carpeta de la Unidad compartida.",
+      en: "Plans, renders, photos and PDFs for this job, in its own shared drive folder.",
+    },
+    creating: { es: "Creando…", en: "Creating…" },
+    upload: { es: "Subir", en: "Upload" },
+    uploading: { es: "Subiendo {n}…", en: "Uploading {n}…" },
+    uploaded: { es: "Subido", en: "Uploaded" },
+    new_folder: { es: "Carpeta", en: "Folder" },
+    new_folder_ph: { es: "Nombre de la carpeta", en: "Folder name" },
+    open_in_drive: { es: "Abrir en Drive", en: "Open in Drive" },
+    empty: { es: "Carpeta vacía.", en: "Empty folder." },
+    loading: { es: "Cargando…", en: "Loading…" },
+    error: { es: "No se pudo leer la carpeta.", en: "Couldn't read the folder." },
+    retry: { es: "Reintentar", en: "Retry" },
+    root: { es: "Inicio", en: "Home" },
+    no_preview: {
+      es: "Este archivo no se puede ver aquí. Ábrelo en Drive.",
+      en: "This file can't be previewed here. Open it in Drive.",
+    },
+    too_big: {
+      es: "Es pesado para verlo aquí. Ábrelo en Drive.",
+      en: "Too large to preview here. Open it in Drive.",
+    },
+    download: { es: "Descargar", en: "Download" },
+    add: { es: "Crear", en: "Create" },
+    cancel: { es: "Cancelar", en: "Cancel" },
+  },
+
   // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
   proyectos: {
     title: { es: "Proyectos", en: "Projects" },
@@ -2348,6 +2382,7 @@ export const strings = {
     tab_resumen: { es: "Resumen", en: "Overview" },
     tab_contratos: { es: "Contratos", en: "Contracts" },
     tab_inspecciones: { es: "Inspecciones", en: "Inspections" },
+    tab_archivos: { es: "Archivos", en: "Files" },
     tab_suministros: { es: "Suministros", en: "Supplies" },
     sup_hint: {
       es: "Todo lo que salió del almacén para esta obra.",

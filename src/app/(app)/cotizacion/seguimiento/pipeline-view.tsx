@@ -39,12 +39,14 @@ export function PipelineView({
   people,
   projects,
   openId,
+  driveEnabled,
 }: {
   opportunities: Opportunity[];
   clients: Client[];
   people: SalesPerson[];
   projects: SalesProject[];
   openId: string | null;
+  driveEnabled: boolean;
 }) {
   const { tv } = useTv();
   const today = todayInPanama();
@@ -194,6 +196,7 @@ export function PipelineView({
         opportunity={editingNow}
         clients={clients}
         people={people}
+        driveEnabled={driveEnabled}
         onClose={() => setEditing(null)}
         onApprove={(o) => {
           setEditing(null);

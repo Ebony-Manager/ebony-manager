@@ -29,6 +29,8 @@ import {
   updateOpportunityAction,
 } from "../ventas-actions";
 import { ClientPicker, StageBadge, useTv } from "../ventas-common";
+import { DriveFiles } from "@/components/shared/drive-files";
+import { ensureOpportunityFolderAction } from "../../drive-actions";
 
 export interface SalesProject {
   id: string;
@@ -86,12 +88,14 @@ export function OpportunityDialog({
   people,
   onClose,
   onApprove,
+  driveEnabled,
 }: {
   opportunity: Opportunity | "new" | null;
   clients: Client[];
   people: SalesPerson[];
   onClose: () => void;
   onApprove: (o: Opportunity) => void;
+  driveEnabled: boolean;
 }) {
   const { tv, lang } = useTv();
   const open = opportunity !== null;
@@ -142,7 +146,8 @@ export function OpportunityDialog({
       nextFollowUp: form.nextFollowUp || null,
       ownerId: form.ownerId,
       amount: amount != null && Number.isFinite(amount) ? amount : null,
-      driveFolderUrl: form.driveFolderUrl,
+      // Con Drive conectado la carpeta la maneja la app: se conserva la guardada.
+      driveFolderUrl: driveEnabled ? (existing?.driveFolderUrl ?? null) : form.driveFolderUrl,
       notes: form.notes,
     };
     const res = existing ? await updateOpportunityAction(existing.id, input) : await createOpportunityAction(input);
@@ -284,6 +289,7 @@ export function OpportunityDialog({
             </Field>
           </div>
 
+          {!driveEnabled && (
           <Field label={tv("f_drive")}>
             <div className="flex gap-2">
               <Input value={form.driveFolderUrl} onChange={(e) => set("driveFolderUrl", e.target.value)} placeholder={tv("f_drive_ph")} />
@@ -296,6 +302,7 @@ export function OpportunityDialog({
               )}
             </div>
           </Field>
+          )}
 
           <Field label={tv("f_notes")}>
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("optional")} />
@@ -304,6 +311,20 @@ export function OpportunityDialog({
           {existing && (
             <>
               <LinkedQuotes o={existing} lang={lang} />
+              {driveEnabled && (
+                <section className="flex flex-col gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">{t(lang, strings.drive.title)}</h3>
+                  <DriveFiles
+                    enabled
+                    folderId={existing.driveFolderId}
+                    onCreate={async () => {
+                      const res = await ensureOpportunityFolderAction(existing.id);
+                      if (!res.ok) toast.error(res.error);
+                      return res.ok ? res.data : null;
+                    }}
+                  />
+                </section>
+              )}
               <NotesLog id={existing.id} />
             </>
           )}

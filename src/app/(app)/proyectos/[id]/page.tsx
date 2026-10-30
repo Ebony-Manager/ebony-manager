@@ -5,6 +5,8 @@ import { hasModule } from "@/lib/auth/modules";
 import { getContractors, getContracts, getLaborRates, getProject, getProjects } from "@/services/contractors";
 import { getInspectionPainters, getProjectInspections } from "@/services/inspections";
 import { getProjectSupplies } from "@/services/almacen";
+import { createClient } from "@/lib/supabase/server";
+import { driveEnabled } from "@/lib/google/drive";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -30,7 +32,7 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -38,6 +40,7 @@ export default async function ProjectPage({
     canInspections ? getProjectInspections(id) : none([]),
     canInspections ? getInspectionPainters() : none([]),
     getProjectSupplies(id),
+    createClient().then((s) => s.from("projects").select("drive_folder_id").eq("id", id).maybeSingle()),
   ]);
 
   return (
@@ -53,6 +56,7 @@ export default async function ProjectPage({
       inspections={inspections}
       painters={painters}
       supplies={supplies}
+      drive={{ enabled: driveEnabled(), folderId: folder.data?.drive_folder_id ?? null }}
     />
   );
 }

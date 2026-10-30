@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
@@ -30,10 +31,12 @@ import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
+import { DriveFiles } from "@/components/shared/drive-files";
+import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "contratos" | "inspecciones" | "suministros";
+type SectionKey = "resumen" | "contratos" | "inspecciones" | "suministros" | "archivos";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -54,6 +57,7 @@ export function ProjectHub({
   inspections,
   painters,
   supplies,
+  drive,
 }: {
   project: Project;
   initialTab?: string;
@@ -66,6 +70,8 @@ export function ProjectHub({
   inspections: Inspection[];
   painters: InspectionPainter[];
   supplies: ProjectSupplyLine[];
+  /** Carpeta del proyecto en Google Drive (heredada de su oportunidad o creada aquí). */
+  drive: { enabled: boolean; folderId: string | null };
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -76,6 +82,7 @@ export function ProjectHub({
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: true },
+    { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
   ];
   const visible = sections.filter((s) => s.visible);
   const [tab, setTab] = React.useState<SectionKey>(
@@ -141,6 +148,17 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
+      {tab === "archivos" && (
+        <DriveFiles
+          enabled={drive.enabled}
+          folderId={drive.folderId}
+          onCreate={async () => {
+            const res = await ensureProjectFolderAction(project.id);
+            if (!res.ok) toast.error(res.error);
+            return res.ok ? res.data : null;
+          }}
+        />
+      )}
 
       <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
       <DeleteProjectDialog

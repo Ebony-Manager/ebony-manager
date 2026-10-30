@@ -1,5 +1,6 @@
 import { requireModule } from "@/lib/auth/dal";
 import { getClients, getOpportunities, getSalesPeople, getSalesProjects } from "@/services/ventas";
+import { driveEnabled } from "@/lib/google/drive";
 import { PipelineView } from "./pipeline-view";
 
 // Cotización → Seguimiento: lo que llega para cotizar (reemplaza la lista
@@ -15,5 +16,5 @@ export default async function SeguimientoPage({ searchParams }: { searchParams: 
     getSalesPeople(),
     getSalesProjects(),
   ]);
-  return <PipelineView opportunities={opportunities} clients={clients} people={people} projects={projects} openId={abrir ?? null} />;
+  return <PipelineView opportunities={opportunities} clients={clients} people={people} projects={projects} openId={abrir ?? null} driveEnabled={driveEnabled()} />;
 }
