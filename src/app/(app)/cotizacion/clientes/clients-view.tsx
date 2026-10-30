@@ -36,7 +36,7 @@ export function ClientsView({ clients, opportunities, projects }: { clients: Cli
     return clients
       .filter((c) => c.active || showInactive)
       .filter((c) => kind === "all" || c.kind === kind)
-      .filter((c) => !q || matchesSearch(`${c.name} ${c.company ?? ""} ${c.phone ?? ""} ${c.whatsapp ?? ""} ${c.email ?? ""}`, q))
+      .filter((c) => !q || matchesSearch(`${c.name} ${c.company ?? ""} ${c.phone ?? ""} ${c.whatsapp ?? ""} ${c.email ?? ""} ${c.contacts.map((k) => k.name).join(" ")}`, q))
       .map((c) => ({ client: c, stats: clientStats(c.id, opportunities) }));
   }, [clients, opportunities, kind, query, showInactive]);
   const count = (k: KindFilter) => clients.filter((c) => (c.active || showInactive) && (k === "all" || c.kind === k)).length;
@@ -92,7 +92,9 @@ export function ClientsView({ clients, opportunities, projects }: { clients: Cli
                     <span className="font-semibold text-foreground">{c.name}</span>
                     <KindBadge kind={c.kind} />
                   </span>
-                  {(c.company || c.phone) && <span className="text-xs text-muted-foreground">{[c.company, c.phone].filter(Boolean).join(" · ")}</span>}
+                  {(c.company || c.phone || c.contacts.length > 0) && (
+                    <span className="text-xs text-muted-foreground">{[c.company, c.phone, c.contacts.map((k) => k.name).join(", ")].filter(Boolean).join(" · ")}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {stats.opportunities.length} {tv("cli_opps").toLowerCase()} · {tv("cli_approved")} {formatMoney(stats.approved)}
                   </span>
@@ -122,7 +124,9 @@ export function ClientsView({ clients, opportunities, projects }: { clients: Cli
                         <span className="font-semibold text-foreground">{c.name}</span>
                         <KindBadge kind={c.kind} />
                       </span>
-                      {c.company && <span className="block text-xs text-muted-foreground">{c.company}</span>}
+                      {(c.company || c.contacts.length > 0) && (
+                        <span className="block text-xs text-muted-foreground">{[c.company, c.contacts.map((k) => k.name).join(", ")].filter(Boolean).join(" · ")}</span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{c.phone ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{stats.opportunities.length}</td>

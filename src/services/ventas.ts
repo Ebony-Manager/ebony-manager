@@ -11,7 +11,9 @@ import type { Client, ClientKind, LinkedQuote, LostReason, Opportunity, Opportun
  * crea el proyecto con approve_opportunity.
  */
 
-type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
+type ClientRow = Database["public"]["Tables"]["clients"]["Row"] & {
+  client_contacts?: Database["public"]["Tables"]["client_contacts"]["Row"][];
+};
 type OppRow = Database["public"]["Tables"]["sales_opportunities"]["Row"];
 
 function fail(error: { message: string } | null): void {
@@ -30,6 +32,9 @@ function mapClient(r: ClientRow): Client {
     company: r.company,
     notes: r.notes,
     active: r.active,
+    contacts: [...(r.client_contacts ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
+      .map((c) => ({ id: c.id, name: c.name, role: c.role, phone: c.phone, email: c.email })),
   };
 }
 
@@ -38,6 +43,7 @@ function mapOpp(r: OppRow, quotes: LinkedQuote[]): Opportunity {
     id: r.id,
     title: r.title,
     designerId: r.designer_id,
+    designerContactId: r.designer_contact_id,
     clientId: r.client_id,
     location: r.location,
     stage: r.stage as Stage,
@@ -65,7 +71,7 @@ function mapOpp(r: OppRow, quotes: LinkedQuote[]): Opportunity {
 
 export async function getClients(): Promise<Client[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("clients").select("*").order("name");
+  const { data, error } = await supabase.from("clients").select("*, client_contacts(*)").order("name");
   fail(error);
   return (data ?? []).map(mapClient);
 }
@@ -79,6 +85,36 @@ export interface ClientInput {
   company: string | null;
   notes: string | null;
   active: boolean;
+  /** Las personas de la firma; las que no vengan se borran. */
+  contacts?: { id?: string; name: string; role: string | null; phone: string | null; email: string | null }[];
+}
+
+/** Guarda los contactos de un cliente tal como quedaron en la ficha. */
+async function syncContacts(clientId: string, contacts: NonNullable<ClientInput["contacts"]>): Promise<void> {
+  const supabase = await createClient();
+  const t = (v: string | null) => v?.trim() || null;
+  const rows = contacts.filter((c) => c.name.trim());
+  const keep = rows.map((c) => c.id).filter((id): id is string => !!id);
+  let del = supabase.from("client_contacts").delete().eq("client_id", clientId);
+  if (keep.length) del = del.not("id", "in", `(${keep.join(",")})`);
+  fail((await del).error);
+  if (rows.length) {
+    fail(
+      (
+        await supabase.from("client_contacts").upsert(
+          rows.map((c, i) => ({
+            ...(c.id ? { id: c.id } : {}),
+            client_id: clientId,
+            name: c.name.trim(),
+            role: t(c.role),
+            phone: t(c.phone),
+            email: t(c.email),
+            sort_order: i,
+          })),
+        )
+      ).error,
+    );
+  }
 }
 
 function clientRow(i: ClientInput) {
@@ -90,12 +126,15 @@ export async function createClientRecord(input: ClientInput): Promise<Client> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("clients").insert(clientRow(input)).select("*").single();
   fail(error);
-  return mapClient(data!);
+  if (input.contacts?.length) await syncContacts(data!.id, input.contacts);
+  const { data: full } = await supabase.from("clients").select("*, client_contacts(*)").eq("id", data!.id).single();
+  return mapClient(full ?? data!);
 }
 
 export async function updateClientRecord(id: string, input: ClientInput): Promise<void> {
   const supabase = await createClient();
   fail((await supabase.from("clients").update(clientRow(input)).eq("id", id)).error);
+  if (input.contacts) await syncContacts(id, input.contacts);
 }
 
 // ── Oportunidades ───────────────────────────────────────────────────────
@@ -125,6 +164,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
 export interface OpportunityInput {
   title: string;
   designerId: string | null;
+  designerContactId: string | null;
   clientId: string | null;
   location: string | null;
   stage: Stage;
@@ -143,6 +183,7 @@ function oppRow(i: OpportunityInput) {
   return {
     title: i.title.trim(),
     designer_id: i.designerId,
+    designer_contact_id: i.designerId ? i.designerContactId : null,
     client_id: i.clientId,
     location: t(i.location),
     stage: i.stage,

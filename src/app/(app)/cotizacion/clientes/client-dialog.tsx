@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, UserPlus, X } from "lucide-react";
 
 import { CLIENT_KINDS, type Client, type ClientKind, type Opportunity } from "@/types/ventas";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ interface Form {
   company: string;
   notes: string;
   active: boolean;
+  contacts: { id?: string; name: string; role: string; phone: string; email: string }[];
 }
 
 const formOf = (c: Client | null): Form => ({
@@ -43,6 +44,7 @@ const formOf = (c: Client | null): Form => ({
   company: c?.company ?? "",
   notes: c?.notes ?? "",
   active: c?.active ?? true,
+  contacts: (c?.contacts ?? []).map((k) => ({ id: k.id, name: k.name, role: k.role ?? "", phone: k.phone ?? "", email: k.email ?? "" })),
 });
 
 /**
@@ -93,12 +95,14 @@ export function ClientDialog({
     if (!form.name.trim()) return setError(tv("name_required"));
     setSaving(true);
     setError(null);
+    // Los contactos son de las firmas (arquitecto/diseñador); un cliente final no los usa.
+    const input = { ...form, contacts: form.kind === "arquitecto" ? form.contacts : undefined };
     if (existing) {
-      const res = await updateClientAction(existing.id, form);
+      const res = await updateClientAction(existing.id, input);
       setSaving(false);
       if (!res.ok) return setError(res.error);
     } else {
-      const res = await createClientAction(form);
+      const res = await createClientAction(input);
       setSaving(false);
       if (!res.ok) return setError(res.error);
       onCreated?.(res.data);
@@ -154,6 +158,52 @@ export function ClientDialog({
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={tv("optional")} />
             </Field>
           </div>
+          {form.kind === "arquitecto" && (
+            <section className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{tv("contacts_title")}</h3>
+                  <p className="text-xs text-muted-foreground">{tv("contacts_hint")}</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => set("contacts", [...form.contacts, { name: "", role: "", phone: "", email: "" }])}
+                >
+                  <UserPlus className="size-3.5" />
+                  {tv("contact_add")}
+                </Button>
+              </div>
+              {form.contacts.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {form.contacts.map((c, i) => {
+                    const edit = (patch: Partial<typeof c>) => set("contacts", form.contacts.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+                    return (
+                      <li key={c.id ?? `new-${i}`} className="flex items-start gap-2 rounded-lg border border-border p-2">
+                        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+                          <Input value={c.name} onChange={(e) => edit({ name: e.target.value })} placeholder={tv("contact_name")} aria-label={tv("contact_name")} />
+                          <Input value={c.role} onChange={(e) => edit({ role: e.target.value })} placeholder={tv("contact_role")} aria-label={tv("contact_role")} />
+                          <Input type="tel" inputMode="tel" value={c.phone} onChange={(e) => edit({ phone: e.target.value })} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />
+                          <Input type="email" value={c.email} onChange={(e) => edit({ email: e.target.value })} placeholder={tv("f_email")} aria-label={tv("f_email")} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => set("contacts", form.contacts.filter((_, j) => j !== i))}
+                          aria-label={tv("remove")}
+                          title={tv("remove")}
+                          className="mt-1.5 flex size-7 shrink-0 items-center justify-center rounded text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
           <Field label={tv("f_notes")}>
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("optional")} />
           </Field>

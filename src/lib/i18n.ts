@@ -2315,6 +2315,12 @@ export const strings = {
     as_designer: { es: "como arquitecto", en: "as architect" },
     as_client: { es: "como cliente", en: "as client" },
     whatsapp_open: { es: "Escribir por WhatsApp", en: "Message on WhatsApp" },
+    contacts_title: { es: "Contactos de la firma", en: "Firm contacts" },
+    contacts_hint: { es: "Las personas con quienes se habla (arquitecta, diseñadora, asistente…).", en: "The people you deal with (architect, designer, assistant…)." },
+    contact_add: { es: "Agregar contacto", en: "Add contact" },
+    contact_any: { es: "Contacto: la firma en general", en: "Contact: the firm in general" },
+    contact_name: { es: "Nombre", en: "Name" },
+    contact_role: { es: "Cargo", en: "Role" },
   },
 
   // Archivos en Google Drive (oportunidades de Ventas y proyectos).

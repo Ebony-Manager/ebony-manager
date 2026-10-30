@@ -44,6 +44,7 @@ export interface SalesProject {
 interface Form {
   title: string;
   designerId: string | null;
+  designerContactId: string | null;
   clientId: string | null;
   location: string;
   stage: Stage;
@@ -62,6 +63,7 @@ function formOf(o: Opportunity | null, currentUserId: string | null): Form {
   return {
     title: o?.title ?? "",
     designerId: o?.designerId ?? null,
+    designerContactId: o?.designerContactId ?? null,
     clientId: o?.clientId ?? null,
     location: o?.location ?? "",
     stage: o?.stage ?? "por_cotizar",
@@ -126,6 +128,7 @@ export function OpportunityDialog({
   const allClients = React.useMemo(() => [...clients, ...created.filter((c) => !clients.some((x) => x.id === c.id))], [clients, created]);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
   const fromQuote = (existing?.quotes.length ?? 0) > 0;
+  const firmContacts = allClients.find((c) => c.id === form.designerId)?.contacts ?? [];
   const stageOptions = STAGES.filter((s) => s !== "aprobada" || form.stage === "aprobada");
   // Solo tiene sentido ya enviada (la base la pone sola a los 7 días); se puede mover.
   const showFollowUp = existing?.stage === "enviada" && form.stage === "enviada";
@@ -144,6 +147,7 @@ export function OpportunityDialog({
     const input = {
       title: form.title,
       designerId: form.designerId,
+      designerContactId: form.designerContactId,
       clientId: form.clientId,
       location: form.location,
       stage: form.stage,
@@ -207,18 +211,33 @@ export function OpportunityDialog({
             <Field label={tv("f_designer")}>
               <PickerWithRemove
                 value={form.designerId}
-                onRemove={() => set("designerId", null)}
+                onRemove={() => setForm((f) => ({ ...f, designerId: null, designerContactId: null }))}
                 picker={
                   <ClientPicker
                     clients={allClients}
                     kind="arquitecto"
                     value={form.designerId}
-                    onChange={(id) => set("designerId", id)}
+                    onChange={(id) => setForm((f) => ({ ...f, designerId: id, designerContactId: null }))}
                     onCreate={(n) => createClient("arquitecto", n)}
                     placeholder={tv("pick_designer")}
                   />
                 }
               />
+              {firmContacts.length > 0 && (
+                <Select value={form.designerContactId ?? "__firm"} onValueChange={(v) => set("designerContactId", v === "__firm" ? null : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__firm">{tv("contact_any")}</SelectItem>
+                    {firmContacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.role ? `${c.name} · ${c.role}` : c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </Field>
             <Field label={tv("f_client")} hint={!form.designerId && !form.clientId ? tv("f_someone_hint") : undefined}>
               <PickerWithRemove

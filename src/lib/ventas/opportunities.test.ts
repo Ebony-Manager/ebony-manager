@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import type { Client, Opportunity } from "@/types/ventas";
-import { clientStats, opportunityAlert, opportunityAmount, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
+import { clientStats, opportunityAlert, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
 
 const opp = (p: Partial<Opportunity>): Opportunity => ({
-  id: "o", title: "", designerId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
+  id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
   receivedOn: "2026-10-01", dueOn: null, nextFollowUp: null, stageChangedAt: "2026-10-01T12:00:00Z", sentOn: null, closedOn: null,
   ownerId: null, ownerName: null, amount: null, projectId: null, driveFolderId: null, driveFolderUrl: null, notes: null,
   createdAt: "2026-10-01T12:00:00Z", quotes: [], ...p,
 });
 const client = (id: string, name: string, kind: Client["kind"]): Client =>
-  ({ id, name, kind, phone: null, whatsapp: null, email: null, company: null, notes: null, active: true });
+  ({ id, name, kind, phone: null, whatsapp: null, email: null, company: null, notes: null, active: true, contacts: [] });
 
 describe("oportunidades", () => {
   it("monto: el de la cotización vigente o el escrito a mano", () => {
@@ -23,6 +23,8 @@ describe("oportunidades", () => {
     const m = new Map([["a", client("a", "Ada Hidrogo", "arquitecto")], ["c", client("c", "Juan Pérez", "cliente")]]);
     expect(opportunityTitle(opp({ title: "Peninsula 25B", designerId: "a" }), m)).toBe("Peninsula 25B");
     expect(opportunityTitle(opp({ designerId: "a", clientId: "c" }), m)).toBe("Ada Hidrogo · Juan Pérez");
+    const firm = { ...client("f", "Estudio Norte", "arquitecto"), contacts: [{ id: "k", name: "Laura Gómez", role: null, phone: null, email: null }] };
+    expect(opportunityPeople(opp({ designerId: "f", designerContactId: "k" }), new Map([["f", firm]]))).toBe("Estudio Norte (Laura Gómez)");
   });
 
   it("alertas: entrega vencida y enviada sin respuesta", () => {

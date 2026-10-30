@@ -8,10 +8,11 @@ export function opportunityAmount(o: Pick<Opportunity, "quotes" | "amount">): nu
   return o.quotes[0]?.total ?? o.amount;
 }
 
-/** "Ada Hidrogo · Juan Pérez": arquitecto y cliente final (los que haya). */
-export function opportunityPeople(o: Pick<Opportunity, "designerId" | "clientId">, clients: Map<string, Client>): string {
-  return [o.designerId, o.clientId]
-    .map((id) => (id ? clients.get(id)?.name : null))
+/** "Estudio Norte (Laura) · Juan Pérez": la firma (con su contacto, si se eligió) y el cliente final. */
+export function opportunityPeople(o: Pick<Opportunity, "designerId" | "clientId"> & { designerContactId?: string | null }, clients: Map<string, Client>): string {
+  const firm = o.designerId ? clients.get(o.designerId) : undefined;
+  const contact = firm && o.designerContactId ? firm.contacts.find((c) => c.id === o.designerContactId)?.name : undefined;
+  return [firm ? (contact ? `${firm.name} (${contact})` : firm.name) : null, o.clientId ? clients.get(o.clientId)?.name : null]
     .filter(Boolean)
     .join(" · ");
 }

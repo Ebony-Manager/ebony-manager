@@ -4,6 +4,15 @@ export const CLIENT_KINDS = ["arquitecto", "cliente"] as const;
 /** arquitecto = arquitecto/diseñador (trae el trabajo); cliente = cliente final. */
 export type ClientKind = (typeof CLIENT_KINDS)[number];
 
+/** Una persona de la firma (arquitecta, diseñadora, asistente…). */
+export interface ClientContact {
+  id: string;
+  name: string;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -14,6 +23,8 @@ export interface Client {
   company: string | null;
   notes: string | null;
   active: boolean;
+  /** Las personas de la firma (sobre todo arquitectos/diseñadores). */
+  contacts: ClientContact[];
 }
 
 export const STAGES = ["por_cotizar", "cotizando", "enviada", "aprobada", "perdida"] as const;
@@ -38,6 +49,8 @@ export interface Opportunity {
   id: string;
   title: string;
   designerId: string | null;
+  /** Con cuál persona de la firma se lleva (opcional). */
+  designerContactId: string | null;
   clientId: string | null;
   location: string | null;
   stage: Stage;

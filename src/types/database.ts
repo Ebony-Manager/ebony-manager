@@ -2287,6 +2287,14 @@ export type Database = {
         }
         Relationships: []
       }
+      client_contacts: {
+        Row: { id: string; client_id: string; name: string; role: string | null; phone: string | null; email: string | null; sort_order: number; created_at: string }
+        Insert: { id?: string; client_id: string; name: string; role?: string | null; phone?: string | null; email?: string | null; sort_order?: number; created_at?: string }
+        Update: { id?: string; client_id?: string; name?: string; role?: string | null; phone?: string | null; email?: string | null; sort_order?: number; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "client_contacts_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"] },
+        ]
+      }
       clients: {
         Row: {
           active: boolean
@@ -2340,6 +2348,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           designer_id: string | null
+          designer_contact_id: string | null
           drive_folder_id: string | null
           drive_folder_url: string | null
           due_on: string | null
@@ -2366,6 +2375,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           designer_id?: string | null
+          designer_contact_id?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           due_on?: string | null
@@ -2392,6 +2402,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           designer_id?: string | null
+          designer_contact_id?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           due_on?: string | null
