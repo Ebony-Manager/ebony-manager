@@ -186,6 +186,15 @@ export async function getItem(id: string): Promise<DriveItem & { thumbnailLink: 
   return { ...mapItem(raw), thumbnailLink: raw.thumbnailLink ?? null };
 }
 
+/** Borrar = mandar a la papelera de Drive (se puede recuperar ahí por 30 días). */
+export async function trashItem(id: string): Promise<void> {
+  await driveFetch(`${API}/files/${encodeURIComponent(id)}?fields=id&${ALL_DRIVES}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trashed: true }),
+  });
+}
+
 export async function createFolder(name: string, parentId: string): Promise<string> {
   const res = await driveFetch(`${API}/files?fields=id&${ALL_DRIVES}`, {
     method: "POST",

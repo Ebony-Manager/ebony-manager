@@ -12,7 +12,8 @@ import { useLang } from "@/context/language-context";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { strings, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { createDriveSubfolderAction, listDriveFolderAction, startDriveUploadAction } from "@/app/(app)/drive-actions";
+import { createDriveSubfolderAction, listDriveFolderAction, startDriveUploadAction, trashDriveItemAction } from "@/app/(app)/drive-actions";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 
 /** Hasta este tamaño se ve dentro de la app (pasa por Vercel); más pesado, en Drive. */
 const PREVIEW_MAX = 4 * 1024 * 1024;
@@ -193,6 +194,14 @@ function FolderBrowser({ rootId, className }: { rootId: string; className?: stri
     setReload((r) => r + 1);
   }
 
+  /** Borrar en dos toques: va a la papelera de Drive (recuperable 30 días). */
+  async function remove(item: DriveItem) {
+    const res = await trashDriveItemAction(item.id);
+    if (!res.ok) return void toast.error(res.error);
+    setItems((list) => list?.filter((i) => i.id !== item.id) ?? null);
+    toast.success(td("deleted"));
+  }
+
   async function createSubfolder() {
     const name = naming?.trim();
     if (!name) return;
@@ -284,8 +293,8 @@ function FolderBrowser({ rootId, className }: { rootId: string; className?: stri
       ) : (
         <ul className="flex max-h-80 flex-col overflow-y-auto rounded-lg border border-border">
           {items.map((item) => (
-            <li key={item.id} className="border-b border-border last:border-0">
-              <button type="button" onClick={() => open(item)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-muted/30">
+            <li key={item.id} className="flex items-center border-b border-border pr-3 last:border-0 hover:bg-muted/30">
+              <button type="button" onClick={() => open(item)} className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left text-sm">
                 {item.hasThumbnail && item.mimeType.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element -- miniatura de Drive vía la app.
                   <img src={`${fileUrl(item.id)}?thumb=1`} alt="" loading="lazy" className="size-8 shrink-0 rounded object-cover" />
@@ -300,6 +309,12 @@ function FolderBrowser({ rootId, className }: { rootId: string; className?: stri
                 </span>
                 {item.isFolder && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
               </button>
+              <ConfirmButton
+                iconOnly
+                label={td("delete")}
+                confirmLabel={td("delete_confirm")}
+                onConfirm={() => void remove(item)}
+              />
             </li>
           ))}
         </ul>

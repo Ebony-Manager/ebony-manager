@@ -2338,6 +2338,9 @@ export const strings = {
     creating: { es: "Creando…", en: "Creating…" },
     upload: { es: "Subir", en: "Upload" },
     upload_files: { es: "Subir archivos", en: "Upload files" },
+    delete: { es: "Borrar", en: "Delete" },
+    delete_confirm: { es: "¿Borrar?", en: "Delete?" },
+    deleted: { es: "Borrado (queda en la papelera de Drive 30 días)", en: "Deleted (stays in Drive's trash for 30 days)" },
     attach: { es: "Adjuntar archivos", en: "Attach files" },
     attach_hint: {
       es: "Planos, renders, PDFs… (o arrástralos aquí). Al guardar se crea su carpeta en Drive y se suben ahí.",

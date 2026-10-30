@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
-import { createFolder, driveRoot, folderUrl, listFolder, startUpload, type DriveItem } from "@/lib/google/drive";
+import { createFolder, driveRoot, folderUrl, listFolder, startUpload, trashItem, type DriveItem } from "@/lib/google/drive";
 
 // Archivos de Drive (oportunidades de Ventas y proyectos). Ver lib/google/drive.ts.
 
@@ -29,6 +29,16 @@ export async function listDriveFolderAction(folderId: string): Promise<DriveResu
 export async function createDriveSubfolderAction(parentId: string, name: string): Promise<DriveResult<string>> {
   await requireAnyModule(...VIEWERS);
   return run(() => createFolder(name, parentId));
+}
+
+/** Borra un archivo o subcarpeta (va a la papelera de Drive). Nunca la raíz. */
+export async function trashDriveItemAction(id: string): Promise<DriveResult<null>> {
+  await requireAnyModule(...VIEWERS);
+  return run(async () => {
+    if (id === driveRoot()) throw new Error("No se puede borrar la carpeta raíz.");
+    await trashItem(id);
+    return null;
+  });
 }
 
 export async function startDriveUploadAction(parentId: string, name: string, mimeType: string, size: number): Promise<DriveResult<string>> {
