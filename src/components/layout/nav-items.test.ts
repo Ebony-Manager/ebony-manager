@@ -43,7 +43,7 @@ describe("prioridad de navegación", () => {
     expect(orderNavigation(destinations(admin), "mobile", admin).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/proyectos", "personal"]);
   });
   it("admin web: Dashboard, Proyectos, Personal y Almacén", () => {
-    expect(orderNavigation(destinations(admin), "desktop", admin).map((e) => e.key)).toEqual(["/dashboard", "/proyectos", "personal", "almacen", "/inspecciones", "/cotizacion", "/directorio", "settings"]);
+    expect(orderNavigation(destinations(admin), "desktop", admin).map((e) => e.key)).toEqual(["/dashboard", "/proyectos", "personal", "almacen", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "settings"]);
   });
   it("solo inspecciones: mantiene su herramienta accesible y no inventa permisos", () => {
     const subject = { role: "vendedor" as const, modules: ["inspecciones"] };
@@ -51,6 +51,6 @@ describe("prioridad de navegación", () => {
   });
   it("almacén sin Personal: llena los espacios con módulos permitidos", () => {
     const subject = { role: "vendedor" as const, modules: ["almacen", "cotizacion"] };
-    expect(orderNavigation(destinations(subject), "mobile", subject).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/cotizacion", "/directorio"]);
+    expect(orderNavigation(destinations(subject), "mobile", subject).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/cotizacion/seguimiento", "/directorio"]);
   });
 });

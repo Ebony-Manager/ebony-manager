@@ -1,5 +1,5 @@
 import {
-  FileText,
+  Handshake,
   Folder,
   BarChart2,
   CalendarCheck,
@@ -56,7 +56,8 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 
 // Módulos de trabajo del día a día — links directos del rail, sin panel.
 export const RAIL_ITEMS: NavItem[] = [
-  { href: "/cotizacion", icon: FileText, label: strings.nav.cotizacion, modules: ["cotizacion"] },
+  // Ventas: Seguimiento (entrada), Cotizaciones y Clientes, como pestañas dentro.
+  { href: "/cotizacion/seguimiento", icon: Handshake, label: strings.nav.cotizacion, modules: ["cotizacion"], alsoActive: ["/cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
   // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
   { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
@@ -170,7 +171,7 @@ export function orderNavigation<T extends { key: string }>(entries: T[], device:
     : ["/dashboard", "/proyectos", "personal", "almacen"];
   const order = [
     ...primary.filter((key) => key !== "almacen" || hasModule(subject, "almacen")),
-    "/inspecciones", "/cotizacion", "/directorio", "almacen", "settings",
+    "/inspecciones", "/cotizacion/seguimiento", "/directorio", "almacen", "settings",
   ];
   const rank = (key: string) => { const index = order.indexOf(key); return index < 0 ? order.length : index; };
   return [...entries].sort((a, b) => rank(a.key) - rank(b.key));

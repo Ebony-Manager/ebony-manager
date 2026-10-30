@@ -24,7 +24,7 @@ const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.
 /** Secciones grandes (botón grande, con sus pestañas debajo) y accesos chicos. */
 const BIG = ["/dashboard", "almacen", "/proyectos", "personal"];
 /** Herramientas: chicas, salvo para quien no tiene ninguna sección grande (solo el Dashboard), que las ve grandes. */
-const TOOLS = ["/cotizacion", "/inspecciones"];
+const TOOLS = ["/cotizacion/seguimiento", "/inspecciones"];
 const SMALL = ["/directorio", "settings"];
 
 interface Entry {
