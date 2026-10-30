@@ -95,8 +95,6 @@ export function AttendanceSummaryView({
     label: p.employee.name,
     value,
     display,
-    // Lo que pasó se ve siempre; quien ya no está, marcado.
-    sub: p.employee.active ? undefined : ta("inactive"),
     href: employeeProfilePath(p.employee.id, from),
   });
 

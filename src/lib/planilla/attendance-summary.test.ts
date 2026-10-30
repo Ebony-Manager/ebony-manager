@@ -37,8 +37,8 @@ describe("summarizeAttendance", () => {
       ["e2", 3],
       ["e1", 2],
     ]);
-    // Sin descuentos en el período, activo o no.
-    expect(s.spotless.map((e) => e.id)).toEqual(["e3", "e4"]);
+    // Sin descuentos en el período (e4 está inactivo: no sale).
+    expect(s.spotless.map((e) => e.id)).toEqual(["e3"]);
   });
 
   it("el año junta todos los meses", () => {
@@ -50,10 +50,10 @@ describe("summarizeAttendance", () => {
     ]);
   });
 
-  it("lo que pasó cuenta aunque hoy esté inactivo", () => {
+  it("quien está inactivo no sale en el resumen", () => {
     const s = summarizeAttendance(employees, [...rows, row("e4", 10, 2, 4, 3, 9000)], 10);
-    expect(s).toMatchObject({ days: 4, hours: 9, cents: 16500 });
-    expect(s.byAbsences.map((t) => t.employee.id)).toEqual(["e4", "e1"]);
+    expect(s).toMatchObject({ days: 1, hours: 5, cents: 7500 });
+    expect(s.byAbsences.map((t) => t.employee.id)).toEqual(["e1"]);
   });
 
   it("filtra por categoría", () => {
