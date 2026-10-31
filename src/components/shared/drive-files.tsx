@@ -96,7 +96,8 @@ export function DriveFiles({
 }: {
   enabled: boolean;
   folderId: string | null;
-  onCreate: () => Promise<string | null>;
+  /** Crea la carpeta: devuelve su id y dónde caen los archivos que se suben al crearla (INFORMACION DE CLIENTE). */
+  onCreate: () => Promise<{ folderId: string; uploadTo: string } | null>;
   className?: string;
 }) {
   const { td } = useTd();
@@ -107,9 +108,10 @@ export function DriveFiles({
   /** Sin carpeta todavía: la primera subida la crea (o "Crear carpeta" vacía). */
   async function createAndUpload(files: File[]) {
     setCreating(true);
-    const id = await onCreate();
-    if (id && files.length) {
-      const { done, failed } = await uploadFilesToDrive(id, files);
+    const created = await onCreate();
+    const id = created?.folderId ?? null;
+    if (created && files.length) {
+      const { done, failed } = await uploadFilesToDrive(created.uploadTo, files);
       for (const f of failed) toast.error(`${f.name}: ${f.error}`);
       if (done) toast.success(`${td("uploaded")} (${done})`);
     }

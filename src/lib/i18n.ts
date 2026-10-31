@@ -2280,6 +2280,10 @@ export const strings = {
     delete_confirm: { es: "¿Borrar?", en: "Delete?" },
     deleted: { es: "Borrada", en: "Deleted" },
     someone_required: { es: "Elige el arquitecto o el cliente (al menos uno).", en: "Pick the architect or the client (at least one)." },
+    lost_drive_warning: {
+      es: "Al pasarla a Perdida se borra su carpeta de Drive (queda 30 días en la papelera de Drive).",
+      en: "Moving it to Lost deletes its Drive folder (it stays 30 days in Drive's trash).",
+    },
     lost_reason_required: { es: "Elige el motivo de pérdida.", en: "Pick the reason it was lost." },
     quotes_title: { es: "Cotizaciones", en: "Quotes" },
     quotes_empty: { es: "Todavía no tiene cotización en la app.", en: "No quote in the app yet." },
@@ -2366,8 +2370,8 @@ export const strings = {
     deleted: { es: "Borrado (queda en la papelera de Drive 30 días)", en: "Deleted (stays in Drive's trash for 30 days)" },
     attach: { es: "Adjuntar archivos", en: "Attach files" },
     attach_hint: {
-      es: "Planos, renders, PDFs… (o arrástralos aquí). Al guardar se crea su carpeta en Drive y se suben ahí.",
-      en: "Plans, renders, PDFs… (or drop them here). On save, its Drive folder is created and they're uploaded there.",
+      es: "Planos, diseño, PDFs del cliente… (o arrástralos aquí). Al guardar se crea su carpeta en Drive y caen en INFORMACION DE CLIENTE.",
+      en: "Client plans, design, PDFs… (or drop them here). On save, its Drive folder is created and they go into INFORMACION DE CLIENTE.",
     },
     uploading_files: { es: "Subiendo archivos…", en: "Uploading files…" },
     remove: { es: "Quitar", en: "Remove" },

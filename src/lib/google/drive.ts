@@ -236,3 +236,20 @@ export async function startUpload(parentId: string, name: string, mimeType: stri
 }
 
 export const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${id}`;
+
+/** Donde cae lo que manda el cliente (planos, diseño): se crea con la oportunidad. */
+export const CLIENT_INFO_FOLDER = "INFORMACION DE CLIENTE";
+/** Las subcarpetas de un proyecto (como se organizan hoy en Ebony); se crean al aprobar. */
+export const PROJECT_SUBFOLDERS = ["COTIZACION", "DESPIECE", CLIENT_INFO_FOLDER, "LAYOUT", "MEDIDAS", "PRESENTACION", "SKETCHUP"] as const;
+
+/** Crea las subcarpetas que falten (por nombre) y devuelve nombre → id. */
+export async function ensureSubfolders(parentId: string, names: readonly string[]): Promise<Map<string, string>> {
+  const existing = (await listFolder(parentId)).filter((i) => i.isFolder);
+  const byName = new Map(existing.map((i) => [i.name.trim().toUpperCase(), i.id]));
+  const out = new Map<string, string>();
+  for (const name of names) {
+    const id = byName.get(name.toUpperCase()) ?? (await createFolder(name, parentId));
+    out.set(name, id);
+  }
+  return out;
+}

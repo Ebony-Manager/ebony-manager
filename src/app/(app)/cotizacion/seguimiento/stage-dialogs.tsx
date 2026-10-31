@@ -69,6 +69,7 @@ export function LostDialog({
           <Field label={tv("f_lost_note")}>
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={tv("optional")} />
           </Field>
+          {opportunity?.driveFolderId && !opportunity.projectId && <p className="text-xs text-destructive">{tv("lost_drive_warning")}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

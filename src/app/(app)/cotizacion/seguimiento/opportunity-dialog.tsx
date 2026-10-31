@@ -177,7 +177,8 @@ export function OpportunityDialog({
         const folder = await ensureOpportunityFolderAction(res.data);
         if (!folder.ok) toast.error(folder.error);
         else {
-          const { done, failed } = await uploadFilesToDrive(folder.data, pending);
+          // Lo que se adjunta al crearla es lo que mandó el cliente: va a INFORMACION DE CLIENTE.
+          const { done, failed } = await uploadFilesToDrive(folder.data.uploadTo, pending);
           for (const f of failed) toast.error(`${f.name}: ${f.error}`);
           if (done) toast.success(`${t(lang, strings.drive.uploaded)} (${done})`);
         }
@@ -318,6 +319,9 @@ export function OpportunityDialog({
               <Field label={tv("f_lost_note")}>
                 <Input value={form.lostNote} onChange={(e) => set("lostNote", e.target.value)} placeholder={tv("optional")} />
               </Field>
+              {existing?.stage !== "perdida" && existing?.driveFolderId && !existing.projectId && (
+                <p className="text-xs text-destructive sm:col-span-2">{tv("lost_drive_warning")}</p>
+              )}
             </div>
           )}
 
