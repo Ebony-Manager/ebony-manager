@@ -90,6 +90,7 @@ describe("programación", () => {
     const plan = planSchedules(list, items, { projectId: "p" }, weekDays("2026-11-02"));
     expect(plan.map((x) => x.itemId)).toEqual(["a", "b"]);
     expect(planSchedules(list, items, { personId: "pedro" }, weekDays("2026-11-02")).map((x) => x.itemId)).toEqual(["c", "a"]);
+    expect(planSchedules(list, items, { projectId: "p", personId: "pedro" }, weekDays("2026-11-02")).map((x) => x.itemId)).toEqual(["a"]);
     const text = planText("Plan · Golden Palace", plan, items, () => "Martes 3", { noArea: "Sin área" });
     expect(text).toBe("*Plan · Golden Palace*\n\n*Martes 3*\n▸ Cocina — Pedro\n  _llevar lija_\n1. retocar puerta\n2. masillar");
   });

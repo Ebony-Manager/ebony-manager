@@ -66,6 +66,15 @@
   --warning-foreground: oklch(0.985 0 0);
   /* Ventas: "Cotizando" (violeta), la única etapa sin color propio del tema. */
   --stage-cotizando: oklch(0.56 0.2 300);
+  /* Programación: un color por obra (sin verde ni rojo, que son del estado). */
+  --project-1: oklch(0.58 0.17 255);
+  --project-2: oklch(0.58 0.2 305);
+  --project-3: oklch(0.68 0.16 55);
+  --project-4: oklch(0.62 0.12 200);
+  --project-5: oklch(0.62 0.2 350);
+  --project-6: oklch(0.5 0.08 50);
+  --project-7: oklch(0.72 0.15 95);
+  --project-8: oklch(0.55 0.04 260);
   --border: oklch(0.9163 0.0162 286.0759);
   --input: oklch(0.9163 0.0162 286.0759);
   --ring: oklch(0.5565 0.243 261.9529);
@@ -123,6 +132,14 @@
   --warning: oklch(0.78 0.14 70);
   --warning-foreground: oklch(0.145 0 0);
   --stage-cotizando: oklch(0.72 0.15 300);
+  --project-1: oklch(0.7 0.15 255);
+  --project-2: oklch(0.7 0.17 305);
+  --project-3: oklch(0.76 0.14 55);
+  --project-4: oklch(0.74 0.11 200);
+  --project-5: oklch(0.72 0.17 350);
+  --project-6: oklch(0.66 0.07 50);
+  --project-7: oklch(0.82 0.13 95);
+  --project-8: oklch(0.68 0.04 260);
   --border: oklch(0.2258 0.0025 247.9355);
   --input: oklch(0.2989 0.0165 275.4735);
   --ring: oklch(0.7034 0.1543 265.1217);

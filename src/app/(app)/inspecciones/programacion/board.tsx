@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -8,11 +9,32 @@ import {
   ChevronDown,
   ExternalLink,
   GripVertical,
+  Maximize2,
+  StickyNote,
   UserRound,
   X,
 } from "lucide-react";
 
-import type { InspectionSchedule, ScheduleItem } from "@/types/inspections";
+import type {
+  InspectionPhoto,
+  InspectionSchedule,
+  ScheduleItem,
+  SchedulePerson,
+} from "@/types/inspections";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { RowMenu } from "@/components/shared/row-menu";
 import {
   blockPeople,
@@ -25,7 +47,8 @@ import {
 import { cn } from "@/lib/utils";
 import { DetailTags } from "../detail-fields";
 import { inspectionsPath } from "../paths";
-import { useTi } from "../shared";
+import { PhotoViewer, useTi } from "../shared";
+import { PersonOptions } from "./assign-dialog";
 
 /** Lo que se está moviendo (arrastrando o elegido con un toque): una obra, un área, un bloque o un detalle. */
 export interface Pick {
@@ -131,6 +154,7 @@ function pickable(
 export function Tray({
   items,
   expandAll,
+  colorOf,
   pick,
   dragging,
   onPick,
@@ -140,6 +164,8 @@ export function Tray({
 }: {
   items: ScheduleItem[];
   expandAll: boolean;
+  /** Color de cada obra (el mismo de sus tarjetas en la semana). */
+  colorOf: (projectId: string) => string;
   pick: Pick | null;
   dragging: Pick | null;
   onPick: (p: Pick | null) => void;
@@ -209,9 +235,10 @@ export function Tray({
               <div
                 {...pickable(pPick, pick, onPick, onDragStart, onDragEnd)}
                 className={cn(
-                  "flex cursor-grab items-center gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-left active:cursor-grabbing",
+                  "flex cursor-grab items-center gap-2 rounded-md border-l-[3px] bg-muted/50 px-2 py-1.5 text-left active:cursor-grabbing",
                   pick?.key === pKey && "bg-primary/10 ring-2 ring-primary",
                 )}
+                style={{ borderLeftColor: colorOf(projectId) }}
               >
                 <GripVertical className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1">
@@ -346,10 +373,129 @@ function ExpandButton({
   );
 }
 
+/** Computadora (≥ lg): ahí se arrastra, así que los menús no repiten subir / bajar / mover. */
+export function useIsDesktop() {
+  return React.useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia("(min-width: 1024px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(min-width: 1024px)").matches,
+    () => true,
+  );
+}
+
+const NONE = "none";
+
+/** Quién atiende, directo en la tarjeta: un toque abre la lista de personas. */
+function PersonPicker({
+  schedules,
+  people,
+  prefer,
+  onChange,
+}: {
+  schedules: InspectionSchedule[];
+  people: SchedulePerson[];
+  prefer: "pintor" | "ebanista" | null;
+  onChange: (
+    person: { kind: "empleado" | "contratista"; id: string } | null,
+  ) => void;
+}) {
+  const { ti } = useTi();
+  const { names, unassigned } = blockPeople(schedules);
+  const ids = [
+    ...new Set(
+      schedules.map((s) =>
+        s.personId ? `${s.personKind}:${s.personId}` : NONE,
+      ),
+    ),
+  ];
+  const value = ids.length === 1 ? ids[0] : "";
+  const label =
+    names.length === 0
+      ? ti("sch_unassigned")
+      : names.length === 1 && !unassigned
+        ? names[0]
+        : `${names.join(", ")}${unassigned ? ` +${unassigned}` : ""}`;
+  return (
+    <span
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      className="min-w-0"
+    >
+      <Select
+        value={value}
+        onValueChange={(v) => {
+          if (v === NONE) return onChange(null);
+          const [kind, id] = v.split(":");
+          onChange({
+            kind: kind === "empleado" ? "empleado" : "contratista",
+            id,
+          });
+        }}
+      >
+        <SelectTrigger
+          size="sm"
+          className={cn(
+            "max-w-full min-w-0 gap-1 rounded px-1.5 data-[size=sm]:h-6 text-[11px] font-medium shadow-none [&_svg]:size-3",
+            names.length === 0
+              ? "border-warning/40 bg-warning/10 text-warning"
+              : "border-border bg-muted text-foreground",
+          )}
+          aria-label={ti("sch_person")}
+          title={ti("sch_person")}
+        >
+          <UserRound className="shrink-0" />
+          <span className="truncate">{label}</span>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>{ti("sch_no_person")}</SelectItem>
+          <PersonOptions people={people} prefer={prefer} />
+        </SelectContent>
+      </Select>
+    </span>
+  );
+}
+
+/** Ícono pequeño de la tarjeta (no inicia arrastre ni elige la tarjeta). */
+function CardIcon({
+  label,
+  onClick,
+  children,
+  active,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      draggable={false}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3.5",
+        active && "text-primary",
+      )}
+      aria-label={label}
+      title={label}
+    >
+      {children}
+    </button>
+  );
+}
+
 /**
  * Un área (de una obra) en un día: nombre, cuántos detalles y cuántos hechos,
- * quién lo atiende, la nota, las fotos y el estado al borde. Se arrastra a
- * otro día o antes de otro bloque; abierto, muestra sus detalles en orden.
+ * quién lo atiende (se cambia ahí mismo), la nota, las fotos y el estado al
+ * borde. En computadora se arrastra a otro día o antes de otro bloque; en el
+ * celular, el menú sube, baja o mueve. El ícono de ampliar abre los detalles
+ * en grande.
  */
 export function BlockCard({
   block,
@@ -359,12 +505,17 @@ export function BlockCard({
   when,
   pick,
   dropActive,
+  people,
+  prefer,
+  color,
   onPick,
   onDragStart,
   onDragEnd,
   onDropBefore,
   onMove,
-  onAssign,
+  onPerson,
+  onNote,
+  onOpen,
   onRemove,
   onItemMove,
   onItemRemove,
@@ -377,24 +528,32 @@ export function BlockCard({
   when?: string;
   pick: Pick | null;
   dropActive: boolean;
+  people: SchedulePerson[];
+  prefer: "pintor" | "ebanista" | null;
+  /** Color de la obra (borde de la tarjeta). */
+  color: string;
   onPick: (p: Pick | null) => void;
   onDragStart: (p: Pick) => void;
   onDragEnd: () => void;
   onDropBefore: () => void;
   onMove?: (dir: -1 | 1) => void;
-  onAssign: () => void;
+  onPerson: (
+    person: { kind: "empleado" | "contratista"; id: string } | null,
+  ) => void;
+  onNote: () => void;
+  onOpen: () => void;
   onRemove: () => void;
   onItemMove: (s: InspectionSchedule, dir: -1 | 1) => void;
   onItemRemove: (s: InspectionSchedule) => void;
 }) {
   const { ti } = useTi();
+  const desktop = useIsDesktop();
   const [open, setOpen] = React.useState(false);
   const [over, setOver] = React.useState(false);
   const first = items.get(block.schedules[0].itemId);
   const state = blockState(block.schedules, today);
   const openOnes = block.schedules.filter((s) => s.outcome === "programado");
   const done = block.schedules.length - openOnes.length;
-  const { names, unassigned } = blockPeople(block.schedules);
   const notes = [
     ...new Set(block.schedules.map((s) => s.note).filter(Boolean)),
   ];
@@ -427,15 +586,15 @@ export function BlockCard({
         onDropBefore();
       }}
       className={cn(
-        "relative flex flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-2.5 py-2 text-left",
+        "relative flex min-w-0 flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-2.5 py-2 text-left",
         movable && "cursor-grab active:cursor-grabbing",
         pick?.key === bPick.key && "ring-2 ring-primary",
         over &&
           "before:absolute before:inset-x-0 before:-top-1.5 before:h-1 before:rounded-full before:bg-primary",
       )}
-      style={{ borderLeftColor: STATE_COLOR[state] }}
+      style={{ borderLeftColor: color }}
     >
-      <div className="flex items-start gap-1">
+      <div className="flex min-w-0 items-start gap-0.5">
         <span className="min-w-0 flex-1">
           {when && (
             <span className="block text-[11px] font-medium capitalize text-destructive">
@@ -443,115 +602,135 @@ export function BlockCard({
             </span>
           )}
           {showProject && (
-            <span className="block truncate text-[11px] text-muted-foreground">
+            <span
+              className="block truncate text-[11px] font-medium"
+              style={{ color }}
+            >
               {first?.projectName ?? "—"}
             </span>
           )}
-          <span className="block text-sm leading-snug font-semibold text-foreground">
+          <span className="block text-sm leading-snug font-semibold break-words text-foreground">
             {areaName}
           </span>
           <span className="block text-[11px] text-muted-foreground">
             {ti("sch_n_items", { n: block.schedules.length })}
             {done > 0 &&
+              state !== "hecho" &&
               ` · ${ti("sch_done_of", { done, n: block.schedules.length })}`}
           </span>
+          {state !== "programado" && (
+            <span
+              className="mt-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10.5px] leading-none font-medium"
+              style={{
+                color: STATE_COLOR[state],
+                backgroundColor: `color-mix(in oklch, ${STATE_COLOR[state]} 12%, transparent)`,
+              }}
+            >
+              {ti(state === "hecho" ? "sch_state_hecho" : "sch_state_vencido")}
+            </span>
+          )}
         </span>
-        <span className="-mt-1 -mr-1.5" onClick={(e) => e.stopPropagation()}>
-          <RowMenu
-            label={ti("sch_assign")}
-            items={[
-              ...(onMove && movable
-                ? [
-                    {
-                      label: ti("sch_up"),
-                      icon: ArrowUp,
-                      onSelect: () => onMove(-1),
-                    },
-                    {
-                      label: ti("sch_down"),
-                      icon: ArrowDown,
-                      onSelect: () => onMove(1),
-                    },
-                  ]
-                : []),
-              ...(movable
-                ? [
-                    {
-                      label: ti("sch_assign"),
-                      icon: UserRound,
-                      onSelect: onAssign,
-                    },
-                    {
-                      label: ti("sch_move_day"),
-                      icon: CalendarClock,
-                      onSelect: () => onPick(bPick),
-                    },
-                  ]
-                : []),
-              ...(first
-                ? [
-                    {
-                      label: ti("sch_open_item"),
-                      icon: ExternalLink,
-                      onSelect: () =>
-                        window.location.assign(
-                          inspectionsPath(first.projectId),
-                        ),
-                    },
-                  ]
-                : []),
-              ...(movable
-                ? [
-                    {
-                      label: ti("sch_remove_all"),
-                      icon: X,
-                      onSelect: onRemove,
-                      confirmLabel: ti("sch_remove_all_q"),
-                    },
-                  ]
-                : []),
-            ]}
-          />
+        <span
+          className="-mt-1 -mr-1.5 flex shrink-0 items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {movable && (
+            <RowMenu
+              label={ti("sch_unschedule")}
+              items={[
+                ...(!desktop && onMove
+                  ? [
+                      {
+                        label: ti("sch_up"),
+                        icon: ArrowUp,
+                        onSelect: () => onMove(-1),
+                      },
+                      {
+                        label: ti("sch_down"),
+                        icon: ArrowDown,
+                        onSelect: () => onMove(1),
+                      },
+                    ]
+                  : []),
+                ...(!desktop || when
+                  ? [
+                      {
+                        label: ti("sch_move_day"),
+                        icon: CalendarClock,
+                        onSelect: () => onPick(bPick),
+                      },
+                    ]
+                  : []),
+                {
+                  label: ti("sch_remove_all"),
+                  icon: X,
+                  onSelect: onRemove,
+                  confirmLabel: ti("sch_remove_all_q"),
+                },
+              ]}
+            />
+          )}
         </span>
       </div>
-      <span className="flex flex-wrap items-center gap-1">
-        {names.map((n) => (
+      {movable ? (
+        <span className="flex min-w-0 items-center gap-0.5">
+          <PersonPicker
+            schedules={openOnes}
+            people={people}
+            prefer={prefer}
+            onChange={onPerson}
+          />
+          <CardIcon
+            label={ti("sch_note")}
+            onClick={onNote}
+            active={notes.length > 0}
+          >
+            <StickyNote />
+          </CardIcon>
+        </span>
+      ) : (
+        blockPeople(block.schedules).names.map((n) => (
           <span
             key={n}
-            className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-foreground"
+            className="inline-flex items-center gap-1 self-start rounded bg-muted px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-foreground"
           >
             <UserRound className="size-3" />
             {n}
           </span>
-        ))}
-        {unassigned > 0 && (
-          <button
-            type="button"
-            draggable={false}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAssign();
-            }}
-            className="inline-flex items-center gap-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-warning hover:bg-warning/25"
-          >
-            <UserRound className="size-3" />
-            {ti("sch_unassigned")}
-            {names.length > 0 && ` (${unassigned})`}
-          </button>
-        )}
-      </span>
+        ))
+      )}
       {notes.map((n) => (
-        <span key={n} className="text-[11px] text-muted-foreground italic">
+        <span
+          key={n}
+          className="text-[11px] break-words text-muted-foreground italic"
+        >
           {n}
         </span>
       ))}
       <span className="flex min-w-0 items-center justify-between gap-1">
-        <ThumbStrip
-          items={block.schedules.map((s) => items.get(s.itemId))}
-          max={3}
-          size="size-7"
-        />
-        <ExpandButton open={open} onClick={() => setOpen((o) => !o)} />
+        <button
+          type="button"
+          draggable={false}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+          className="min-w-0 overflow-hidden rounded"
+          aria-label={ti("sch_open_big")}
+          title={ti("sch_open_big")}
+        >
+          <ThumbStrip
+            items={block.schedules.map((s) => items.get(s.itemId))}
+            max={3}
+            size="size-7"
+          />
+        </button>
+        <span className="flex shrink-0 items-center">
+          <CardIcon label={ti("sch_open_big")} onClick={onOpen}>
+            <Maximize2 />
+          </CardIcon>
+          <ExpandButton open={open} onClick={() => setOpen((o) => !o)} />
+        </span>
       </span>
       {open && (
         <ol
@@ -575,7 +754,7 @@ export function BlockCard({
                   ? pickable(sPick, pick, onPick, onDragStart, onDragEnd)
                   : {})}
                 className={cn(
-                  "flex items-start gap-1.5 rounded px-0.5 py-0.5",
+                  "flex min-w-0 items-start gap-1.5 rounded px-0.5 py-0.5",
                   isOpen && "cursor-grab",
                   pick?.key === sPick.key &&
                     "bg-primary/10 ring-2 ring-primary",
@@ -588,7 +767,7 @@ export function BlockCard({
                   {k + 1}
                 </span>
                 <Thumb item={it} className="size-8" />
-                <span className="line-clamp-3 min-w-0 flex-1 text-[11.5px] leading-snug text-foreground">
+                <span className="line-clamp-3 min-w-0 flex-1 text-[11.5px] leading-snug break-words text-foreground">
                   {it?.comment || ti("no_comment")}
                 </span>
                 {isOpen && (
@@ -597,25 +776,29 @@ export function BlockCard({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <RowMenu
-                      label={ti("sch_reschedule")}
+                      label={ti("sch_unschedule")}
                       items={[
-                        {
-                          label: ti("sch_up"),
-                          icon: ArrowUp,
-                          onSelect: () => onItemMove(s, -1),
-                          disabled: k === 0,
-                        },
-                        {
-                          label: ti("sch_down"),
-                          icon: ArrowDown,
-                          onSelect: () => onItemMove(s, 1),
-                          disabled: k === block.schedules.length - 1,
-                        },
-                        {
-                          label: ti("sch_move_day"),
-                          icon: CalendarClock,
-                          onSelect: () => onPick(sPick),
-                        },
+                        ...(!desktop
+                          ? [
+                              {
+                                label: ti("sch_up"),
+                                icon: ArrowUp,
+                                onSelect: () => onItemMove(s, -1),
+                                disabled: k === 0,
+                              },
+                              {
+                                label: ti("sch_down"),
+                                icon: ArrowDown,
+                                onSelect: () => onItemMove(s, 1),
+                                disabled: k === block.schedules.length - 1,
+                              },
+                              {
+                                label: ti("sch_move_day"),
+                                icon: CalendarClock,
+                                onSelect: () => onPick(sPick),
+                              },
+                            ]
+                          : []),
                         {
                           label: ti("sch_unschedule"),
                           icon: X,
@@ -632,5 +815,120 @@ export function BlockCard({
         </ol>
       )}
     </div>
+  );
+}
+
+/** Los detalles de un bloque en grande: fotos de antes, qué hacer y su estado; un toque en la foto la amplía. */
+export function BlockDetailDialog({
+  block,
+  items,
+  today,
+  onClose,
+}: {
+  block: DayBlock | null;
+  items: ReadonlyMap<string, ScheduleItem>;
+  today: string;
+  onClose: () => void;
+}) {
+  const { ti } = useTi();
+  const [viewer, setViewer] = React.useState<{
+    photos: InspectionPhoto[];
+    index: number;
+  } | null>(null);
+  const first = block ? items.get(block.schedules[0].itemId) : undefined;
+  return (
+    <>
+      <Dialog open={block !== null} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{block?.area ?? ti("no_area")}</DialogTitle>
+            <DialogDescription>
+              {first?.projectName}
+              {first?.location ? ` · ${first.location}` : ""} ·{" "}
+              {ti("sch_n_items", { n: block?.schedules.length ?? 0 })}
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="flex flex-col gap-3">
+            {block?.schedules.map((s, k) => {
+              const it = items.get(s.itemId);
+              const st = scheduleState(s, today);
+              return (
+                <li
+                  key={s.id}
+                  className="flex flex-col gap-2 rounded-lg border border-l-[3px] border-border p-3"
+                  style={{ borderLeftColor: STATE_COLOR[st] }}
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-background tabular-nums"
+                      style={{ backgroundColor: STATE_COLOR[st] }}
+                    >
+                      {k + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm break-words text-foreground">
+                        {it?.comment || ti("no_comment")}
+                      </span>
+                      {it && (
+                        <DetailTags
+                          item={{ ...it, painterName: null }}
+                          className="mt-1"
+                        />
+                      )}
+                      {s.note && (
+                        <span className="mt-1 block text-xs text-muted-foreground italic">
+                          {s.note}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {it && it.photos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {it.photos.map((ph, j) => (
+                        <button
+                          key={ph.id}
+                          type="button"
+                          onClick={() =>
+                            setViewer({ photos: it.photos, index: j })
+                          }
+                          className="overflow-hidden rounded-md"
+                        >
+                          {ph.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- foto firmada del detalle.
+                            <img
+                              src={ph.url}
+                              alt=""
+                              loading="lazy"
+                              className="aspect-square w-full object-cover"
+                            />
+                          ) : (
+                            <span className="block aspect-square w-full bg-muted" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {first && (
+            <Button asChild variant="outline" className="self-start">
+              <Link href={inspectionsPath(first.projectId)}>
+                <ExternalLink className="size-4" />
+                {ti("sch_open_item")}
+              </Link>
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
+      <PhotoViewer
+        photos={viewer?.photos ?? []}
+        index={viewer?.index ?? null}
+        onIndex={(i) =>
+          setViewer((v) => (v && i !== null ? { ...v, index: i } : null))
+        }
+      />
+    </>
   );
 }

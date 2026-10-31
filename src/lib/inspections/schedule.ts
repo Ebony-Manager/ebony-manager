@@ -154,8 +154,8 @@ export function compliance(schedules: readonly InspectionSchedule[], since: stri
     .sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0) || b.total - a.total);
 }
 
-/** De quién o de qué es un plan: una obra, una persona o todo. */
-export type PlanTarget = { projectId: string } | { personId: string } | null;
+/** De qué es un plan: una obra, una persona, las dos (lo de esa persona en esa obra) o todo (null). */
+export type PlanTarget = { projectId?: string | null; personId?: string | null } | null;
 
 /** Las programaciones (abiertas o hechas) de una obra o persona en unos días, por día y orden. */
 export function planSchedules(
@@ -167,11 +167,8 @@ export function planSchedules(
   const set = new Set(days);
   return schedules
     .filter((s) => set.has(s.date) && (s.outcome === "programado" || s.outcome === "hecho"))
-    .filter((s) => {
-      if (!target) return true;
-      if ("personId" in target) return s.personId === target.personId;
-      return items.get(s.itemId)?.projectId === target.projectId;
-    })
+    .filter((s) => !target?.personId || s.personId === target.personId)
+    .filter((s) => !target?.projectId || items.get(s.itemId)?.projectId === target.projectId)
     .sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order);
 }
 
