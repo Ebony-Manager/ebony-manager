@@ -45,6 +45,8 @@ export interface InspectionItem {
   resolvedByName: string | null;
   createdAt: string;
   photos: InspectionPhoto[];
+  /** Su programación abierta (quién y qué día), si tiene. */
+  schedule?: { personName: string; date: string } | null;
 }
 
 export interface Inspection {
@@ -56,6 +58,58 @@ export interface Inspection {
   createdByName: string | null;
   createdAt: string;
   items: InspectionItem[];
+}
+
+// ── Programación: qué detalle atiende quién y qué día ───────────────────
+
+/** Quien puede atender un detalle: empleado o contratista (pintor / ebanista). */
+export interface SchedulePerson {
+  kind: "empleado" | "contratista";
+  id: string;
+  name: string;
+  /** pintor / ebanista (contratistas) o taller / administrativo (empleados). */
+  role: string;
+}
+
+/** programado = abierta; hecho = la supervisora lo dio por resuelto; reprogramado / cancelado = historia. */
+export type ScheduleOutcome = "programado" | "hecho" | "reprogramado" | "cancelado";
+
+export interface InspectionSchedule {
+  id: string;
+  itemId: string;
+  personKind: "empleado" | "contratista";
+  personId: string;
+  personName: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** Orden de ese día para esa persona (1, 2, 3…). */
+  order: number;
+  note: string | null;
+  outcome: ScheduleOutcome;
+  closedAt: string | null;
+}
+
+/** Un detalle visto desde la programación (con su obra y sus fotos de antes). */
+export interface ScheduleItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  location: string | null;
+  area: string | null;
+  comment: string;
+  kind: InspectionKind | null;
+  responsible: InspectionResponsible;
+  thirdParty: string | null;
+  status: InspectionItemStatus;
+  visitedOn: string;
+  photos: InspectionPhoto[];
+}
+
+export interface ScheduleBoard {
+  people: SchedulePerson[];
+  items: ScheduleItem[];
+  /** Las abiertas (de cualquier día) y todas las de la semana, más las de los últimos 30 días (cumplimiento). */
+  schedules: InspectionSchedule[];
 }
 
 /** Lo que quien inspecciona ve de un proyecto (sin montos). */

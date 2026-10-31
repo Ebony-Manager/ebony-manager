@@ -75,3 +75,20 @@ export async function deleteInspectionPhotoAction(id: string) {
   await requireModule("inspecciones");
   return run(() => inspections.deleteInspectionPhoto(id));
 }
+
+// ── Programación ────────────────────────────────────────────────────────
+
+export async function scheduleItemsAction(itemIds: string[], personKind: "empleado" | "contratista", personId: string, date: string, note: string | null) {
+  await requireModule("inspecciones");
+  return run(() => inspections.scheduleItems(itemIds, personKind, personId, date, note));
+}
+
+export async function cancelScheduleAction(id: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.cancelSchedule(id));
+}
+
+export async function moveScheduleAction(id: string, direction: -1 | 1) {
+  await requireModule("inspecciones");
+  return run(() => inspections.moveSchedule(id, direction));
+}

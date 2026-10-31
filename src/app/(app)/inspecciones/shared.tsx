@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { InspectionPhoto } from "@/types/inspections";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { SubTabs } from "@/components/shared/page-header";
 
 export type InspeccionesKey = keyof typeof strings.inspecciones;
 
@@ -83,5 +85,23 @@ export function PhotoViewer({ photos, index, onIndex }: { photos: InspectionPhot
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+export const SCHEDULE_PATH = "/inspecciones/programacion";
+
+/** Obras · Programación: las dos pantallas de Inspecciones. */
+export function InspeccionesTabs({ value }: { value: "obras" | "programacion" }) {
+  const { ti } = useTi();
+  const router = useRouter();
+  return (
+    <SubTabs
+      value={value}
+      onChange={(v) => router.push(v === "obras" ? "/inspecciones" : SCHEDULE_PATH)}
+      tabs={[
+        { value: "obras", label: ti("tab_obras") },
+        { value: "programacion", label: ti("tab_programacion") },
+      ]}
+    />
   );
 }

@@ -3077,6 +3077,24 @@ export type Database = {
           },
         ]
       }
+      inspection_schedules: {
+        Row: {
+          id: string; item_id: string; person_kind: string; person_id: string; person_name: string; scheduled_on: string
+          sort_order: number; note: string | null; outcome: string; closed_at: string | null
+          created_by: string | null; created_by_name: string | null; created_at: string
+        }
+        Insert: {
+          id?: string; item_id: string; person_kind: string; person_id: string; person_name: string; scheduled_on: string
+          sort_order?: number; note?: string | null; outcome?: string; closed_at?: string | null
+          created_by?: string | null; created_by_name?: string | null; created_at?: string
+        }
+        Update: {
+          id?: string; item_id?: string; person_kind?: string; person_id?: string; person_name?: string; scheduled_on?: string
+          sort_order?: number; note?: string | null; outcome?: string; closed_at?: string | null
+          created_by?: string | null; created_by_name?: string | null; created_at?: string
+        }
+        Relationships: []
+      }
       inspection_items: {
         Row: {
           area: string | null
@@ -3249,6 +3267,14 @@ export type Database = {
       inspection_painters: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; name: string; active: boolean }[]
+      }
+      inspection_people: {
+        Args: Record<PropertyKey, never>
+        Returns: { kind: string; id: string; name: string; role: string }[]
+      }
+      schedule_inspection_items: {
+        Args: { p_item_ids: string[]; p_person_kind: string; p_person_id: string; p_date: string; p_note?: string | null }
+        Returns: number
       }
       project_supplies: {
         Args: { p_project: string }

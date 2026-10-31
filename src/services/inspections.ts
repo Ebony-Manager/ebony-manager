@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 import {
   INSPECTION_PHOTOS_BUCKET,
   type Inspection,
@@ -12,6 +13,9 @@ import {
   type InspectionOverview,
   type InspectionProject,
   type InspectionProjectCard,
+  type InspectionSchedule,
+  type ScheduleBoard,
+  type ScheduleOutcome,
 } from "@/types/inspections";
 
 /**
@@ -143,6 +147,14 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
   const byOrder = <T extends { sort_order: number; created_at: string }>(a: T, b: T) =>
     a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at);
 
+  // Su programación abierta (quién y qué día), para mostrarla en cada detalle.
+  const itemIds = rows.flatMap((v) => (v.inspection_items ?? []).map((i) => i.id));
+  const openSchedule = new Map<string, { personName: string; date: string }>();
+  if (itemIds.length) {
+    const { data: sch } = await supabase.from("inspection_schedules").select("item_id, person_name, scheduled_on").eq("outcome", "programado").in("item_id", itemIds);
+    for (const s of sch ?? []) openSchedule.set(s.item_id, { personName: s.person_name, date: s.scheduled_on });
+  }
+
   return rows.map((v) => ({
     id: v.id,
     projectId: v.project_id,
@@ -164,6 +176,7 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
       resolvedAt: i.resolved_at,
       resolvedByName: i.resolved_by_name,
       createdAt: i.created_at,
+      schedule: openSchedule.get(i.id) ?? null,
       photos: [...(i.inspection_photos ?? [])].sort(byOrder).map((p) => ({
         id: p.id,
         path: p.path,
@@ -306,4 +319,147 @@ async function removeFiles(paths: string[]): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).remove(paths);
   if (error) console.error("No se pudieron borrar fotos de inspección", error);
+}
+
+// ── Programación: qué detalle atiende quién y qué día ───────────────────
+
+type ScheduleRow = Database["public"]["Tables"]["inspection_schedules"]["Row"];
+const mapSchedule = (r: ScheduleRow): InspectionSchedule => ({
+  id: r.id,
+  itemId: r.item_id,
+  personKind: r.person_kind === "empleado" ? "empleado" : "contratista",
+  personId: r.person_id,
+  personName: r.person_name,
+  date: r.scheduled_on,
+  order: r.sort_order,
+  note: r.note,
+  outcome: (["programado", "hecho", "reprogramado", "cancelado"].includes(r.outcome) ? r.outcome : "programado") as ScheduleOutcome,
+  closedAt: r.closed_at,
+});
+
+/**
+ * Todo para la pantalla de Programación de una semana: quién puede atender,
+ * los detalles pendientes (con su obra y fotos de antes) y las programaciones:
+ * las abiertas de cualquier día, las de la semana y las de los últimos 30 días
+ * (para el cumplimiento). Los detalles ya resueltos que salen en la semana
+ * también vienen (para verlos como hechos).
+ */
+export async function getScheduleBoard(from: string, to: string, since: string): Promise<ScheduleBoard> {
+  const supabase = await createClient();
+  const itemSelect =
+    "id, area, comment, kind, responsible, third_party, status, inspections!inner(project_id, visited_on), inspection_photos(id, path, kind, sort_order, created_at)";
+  const [people, projects, pending, schedules] = await Promise.all([
+    supabase.rpc("inspection_people"),
+    getInspectionProjects(),
+    supabase.from("inspection_items").select(itemSelect).eq("status", "pendiente"),
+    supabase
+      .from("inspection_schedules")
+      .select("*")
+      .or(`outcome.eq.programado,and(scheduled_on.gte.${since},scheduled_on.lte.${to})`)
+      .neq("outcome", "cancelado"),
+  ]);
+  if (people.error) throw new Error(people.error.message);
+  if (pending.error) throw new Error(pending.error.message);
+  if (schedules.error) throw new Error(schedules.error.message);
+
+  const scheduleRows = (schedules.data ?? []).map(mapSchedule);
+  let itemRows = pending.data ?? [];
+  // Los de la semana que ya se resolvieron (no vienen en "pendientes").
+  const have = new Set(itemRows.map((i) => i.id));
+  const missing = [
+    ...new Set(scheduleRows.filter((s) => s.date >= from && s.date <= to && !have.has(s.itemId)).map((s) => s.itemId)),
+  ];
+  if (missing.length) {
+    const extra = await supabase.from("inspection_items").select(itemSelect).in("id", missing);
+    if (extra.error) throw new Error(extra.error.message);
+    itemRows = [...itemRows, ...(extra.data ?? [])];
+  }
+
+  // Solo las fotos de "antes" (lo que hay que arreglar).
+  const before = (i: (typeof itemRows)[number]) =>
+    [...(i.inspection_photos ?? [])]
+      .filter((p) => p.kind !== "despues")
+      .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
+  const paths = itemRows.flatMap((i) => before(i).map((p) => p.path));
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const signed = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).createSignedUrls(paths, 3600);
+    for (const d of signed.data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  }
+
+  const projectById = new Map(projects.map((p) => [p.id, p]));
+  const insp = (i: (typeof itemRows)[number]) => (Array.isArray(i.inspections) ? i.inspections[0] : i.inspections) as { project_id: string; visited_on: string };
+  return {
+    people: (people.data ?? []).map((p) => ({ kind: p.kind === "empleado" ? "empleado" : "contratista", id: p.id, name: p.name, role: p.role })),
+    items: itemRows.map((i) => {
+      const project = projectById.get(insp(i).project_id);
+      return {
+        id: i.id,
+        projectId: insp(i).project_id,
+        projectName: project?.name ?? "—",
+        location: project?.location ?? null,
+        area: i.area,
+        comment: i.comment,
+        kind: asKind(i.kind),
+        responsible: i.responsible === "tercero" ? "tercero" : "ebony",
+        thirdParty: i.third_party,
+        status: i.status === "resuelto" ? "resuelto" : "pendiente",
+        visitedOn: insp(i).visited_on,
+        photos: before(i).map((p) => ({ id: p.id, path: p.path, kind: "antes" as const, url: urls.get(p.path) ?? null })),
+      };
+    }),
+    schedules: scheduleRows,
+  };
+}
+
+/** Programa (o reprograma) detalles a una persona y un día: quedan al final de su lista de ese día. */
+export async function scheduleItems(itemIds: string[], personKind: "empleado" | "contratista", personId: string, date: string, note: string | null): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("schedule_inspection_items", {
+    p_item_ids: itemIds,
+    p_person_kind: personKind,
+    p_person_id: personId,
+    p_date: date,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}
+
+/** Quita una programación abierta (el detalle vuelve a "por programar"). */
+export async function cancelSchedule(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("inspection_schedules")
+    .update({ outcome: "cancelado", closed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("outcome", "programado");
+  if (error) throw new Error(error.message);
+}
+
+/** Sube o baja un detalle en el orden del día de esa persona (intercambia con el vecino). */
+export async function moveSchedule(id: string, direction: -1 | 1): Promise<void> {
+  const supabase = await createClient();
+  const { data: me, error } = await supabase.from("inspection_schedules").select("*").eq("id", id).single();
+  if (error) throw new Error(error.message);
+  const { data: day, error: e2 } = await supabase
+    .from("inspection_schedules")
+    .select("id, sort_order")
+    .eq("person_id", me.person_id)
+    .eq("scheduled_on", me.scheduled_on)
+    .in("outcome", ["programado", "hecho"])
+    .order("sort_order");
+  if (e2) throw new Error(e2.message);
+  const list = day ?? [];
+  const i = list.findIndex((r) => r.id === id);
+  const j = i + direction;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  // Renumera 1..n con el intercambio hecho (así no quedan órdenes repetidos).
+  const ordered = [...list];
+  [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
+  for (let k = 0; k < ordered.length; k++) {
+    if (ordered[k].sort_order === k + 1) continue;
+    const { error: e3 } = await supabase.from("inspection_schedules").update({ sort_order: k + 1 }).eq("id", ordered[k].id);
+    if (e3) throw new Error(e3.message);
+  }
 }

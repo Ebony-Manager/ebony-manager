@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { EmptyState, PAGE_CLASS, PageHeader, SectionHeader, ShowToggle } from "@/components/shared/page-header";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { inspectionsPath, newInspectionPath } from "./paths";
-import { useTi } from "./shared";
+import { InspeccionesTabs, useTi } from "./shared";
 
 /**
  * Inicio de Inspecciones: lo que importa es lo abierto, no la lista de
@@ -41,6 +41,7 @@ export function InspectionsHome({ projects, overview }: { projects: InspectionPr
   return (
     <div className={PAGE_CLASS}>
       <PageHeader title={ti("title")} subtitle={ti("subtitle")} action={newButton("hidden sm:inline-flex")} />
+      <InspeccionesTabs value="obras" />
 
       {/* En el celular, el botón grande: es a lo que se viene. */}
       <button

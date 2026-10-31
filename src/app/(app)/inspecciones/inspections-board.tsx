@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { CalendarClock, Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 import type { Inspection, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
@@ -598,6 +598,12 @@ function ItemCard({
           </span>
         )}
         <DetailTags item={item} className="my-0.5" />
+        {!resolved && item.schedule && (
+          <span className="inline-flex items-center gap-1 self-start rounded bg-primary/10 px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-primary capitalize">
+            <CalendarClock className="size-3" />
+            {ti("sch_scheduled_chip", { day: formatDateCompact(lang, item.schedule.date), name: item.schedule.personName })}
+          </span>
+        )}
         <span className={`line-clamp-3 text-xs leading-snug ${resolved ? "text-muted-foreground" : "text-foreground"}`}>
           {item.comment || <span className="text-muted-foreground">{ti("no_comment")}</span>}
         </span>
