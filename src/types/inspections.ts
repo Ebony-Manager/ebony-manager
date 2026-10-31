@@ -46,7 +46,7 @@ export interface InspectionItem {
   createdAt: string;
   photos: InspectionPhoto[];
   /** Su programación abierta (quién y qué día), si tiene. */
-  schedule?: { personName: string; date: string } | null;
+  schedule?: { personName: string | null; date: string } | null;
 }
 
 export interface Inspection {
@@ -77,12 +77,13 @@ export type ScheduleOutcome = "programado" | "hecho" | "reprogramado" | "cancela
 export interface InspectionSchedule {
   id: string;
   itemId: string;
-  personKind: "empleado" | "contratista";
-  personId: string;
-  personName: string;
+  /** Quién lo atiende; null = todavía sin asignar. */
+  personKind: "empleado" | "contratista" | null;
+  personId: string | null;
+  personName: string | null;
   /** YYYY-MM-DD */
   date: string;
-  /** Orden de ese día para esa persona (1, 2, 3…). */
+  /** Orden dentro del día (de todo lo de ese día: 1, 2, 3…). */
   order: number;
   note: string | null;
   outcome: ScheduleOutcome;
@@ -102,6 +103,8 @@ export interface ScheduleItem {
   thirdParty: string | null;
   status: InspectionItemStatus;
   visitedOn: string;
+  /** Cuándo se anotó (para el orden dentro del área). */
+  createdAt: string;
   photos: InspectionPhoto[];
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { InspectionSchedule, ScheduleItem } from "@/types/inspections";
-import { compliance, personPlan, planText, scheduleState, weekDays, weekStart } from "./schedule";
+import { areaKey, blockState, compliance, dayBlocks, groupByArea, planSchedules, planText, scheduleState, weekDays, weekStart } from "./schedule";
 
 const s = (p: Partial<InspectionSchedule>): InspectionSchedule => ({
   id: Math.random().toString(36).slice(2), itemId: "i1", personKind: "contratista", personId: "pedro", personName: "Pedro",
@@ -34,19 +34,63 @@ describe("programación", () => {
     expect(p).toMatchObject({ total: 4, onTime: 1, late: 1, missed: 2, rate: 0.25 });
   });
 
-  it("plan de una persona y su texto para WhatsApp", () => {
+  it("el cumplimiento no cuenta lo que no tenía a nadie asignado", () => {
+    const list = [s({ outcome: "reprogramado", date: "2026-11-03", personId: null, personName: null, personKind: null })];
+    expect(compliance(list, "2026-10-06", "2026-11-05")).toEqual([]);
+  });
+
+  const item = (id: string, area: string | null, comment: string, p: Partial<ScheduleItem> = {}): ScheduleItem => ({
+    id, projectId: "p", projectName: "Nómada – Golden Palace", location: null, area, comment,
+    kind: "pintura", responsible: "ebony", thirdParty: null, status: "pendiente", visitedOn: "2026-10-30",
+    createdAt: `2026-10-30T10:00:0${id.length}Z`, photos: [], ...p,
+  });
+
+  it("áreas: mismo nombre con mayúsculas, acentos o espacios distintos es la misma área", () => {
+    expect(areaKey(" Cocína  principal ")).toBe("cocina principal");
+    expect(areaKey(null)).toBe("");
+    const groups = groupByArea([
+      item("a", "Cocina", "uno", { createdAt: "2026-10-30T10:00:02Z" }),
+      item("b", "cocina ", "dos", { createdAt: "2026-10-30T10:00:01Z" }),
+      item("c", null, "tres"),
+      item("d", "Baño", "cuatro", { visitedOn: "2026-10-20" }),
+    ]);
+    expect(groups.map((g) => [g.area, g.items.map((i) => i.id)])).toEqual([
+      ["Baño", ["d"]],
+      ["cocina", ["b", "a"]],
+      [null, ["c"]],
+    ]);
+  });
+
+  it("bloques del día por obra · área, en el orden del día", () => {
+    const items = new Map([
+      ["a", item("a", "Cocina", "uno")],
+      ["b", item("b", "Baño", "dos")],
+      ["c", item("c", "cocina", "tres")],
+    ]);
+    const blocks = dayBlocks([s({ itemId: "c", order: 3 }), s({ itemId: "b", order: 2 }), s({ itemId: "a", order: 1 })], items);
+    expect(blocks.map((b) => [b.area, b.schedules.map((x) => x.itemId)])).toEqual([
+      ["Cocina", ["a", "c"]],
+      ["Baño", ["b"]],
+    ]);
+    expect(blockState([s({ outcome: "hecho" }), s({ date: "2026-11-01" })], "2026-11-05")).toBe("vencido");
+    expect(blockState([s({ outcome: "hecho" })], "2026-11-05")).toBe("hecho");
+  });
+
+  it("plan de una obra y su texto para WhatsApp", () => {
+    const items = new Map([
+      ["a", item("a", "Cocina", "retocar puerta")],
+      ["b", item("b", "Cocina", "masillar")],
+      ["c", item("c", "Baño", "sellar", { projectId: "otra" })],
+    ]);
     const list = [
-      s({ itemId: "b", date: "2026-11-03", order: 2 }),
+      s({ itemId: "b", date: "2026-11-03", order: 2, personId: null, personName: null }),
       s({ itemId: "a", date: "2026-11-03", order: 1, note: "llevar lija" }),
-      s({ itemId: "c", date: "2026-11-02", order: 1, personId: "otro" }),
+      s({ itemId: "c", date: "2026-11-02", order: 1 }),
     ];
-    const plan = personPlan(list, "pedro", weekDays("2026-11-02"));
+    const plan = planSchedules(list, items, { projectId: "p" }, weekDays("2026-11-02"));
     expect(plan.map((x) => x.itemId)).toEqual(["a", "b"]);
-    const item = (id: string, comment: string): ScheduleItem => ({
-      id, projectId: "p", projectName: "Ponticelli – PH Buenavista 4B", location: null, area: "Cocina", comment,
-      kind: "pintura", responsible: "ebony", thirdParty: null, status: "pendiente", visitedOn: "2026-10-30", photos: [],
-    });
-    const text = planText("Plan de Pedro", plan, new Map([["a", item("a", "retocar puerta")], ["b", item("b", "masillar")]]), () => "Martes 3");
-    expect(text).toBe("*Plan de Pedro*\n\n*Martes 3*\n1. Ponticelli – PH Buenavista 4B · Cocina: retocar puerta — llevar lija\n2. Ponticelli – PH Buenavista 4B · Cocina: masillar");
+    expect(planSchedules(list, items, { personId: "pedro" }, weekDays("2026-11-02")).map((x) => x.itemId)).toEqual(["c", "a"]);
+    const text = planText("Plan · Golden Palace", plan, items, () => "Martes 3", { noArea: "Sin área" });
+    expect(text).toBe("*Plan · Golden Palace*\n\n*Martes 3*\n▸ Cocina — Pedro\n  _llevar lija_\n1. retocar puerta\n2. masillar");
   });
 });

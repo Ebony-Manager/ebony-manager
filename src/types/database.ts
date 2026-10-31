@@ -3079,17 +3079,17 @@ export type Database = {
       }
       inspection_schedules: {
         Row: {
-          id: string; item_id: string; person_kind: string; person_id: string; person_name: string; scheduled_on: string
+          id: string; item_id: string; person_kind: string | null; person_id: string | null; person_name: string | null; scheduled_on: string
           sort_order: number; note: string | null; outcome: string; closed_at: string | null
           created_by: string | null; created_by_name: string | null; created_at: string
         }
         Insert: {
-          id?: string; item_id: string; person_kind: string; person_id: string; person_name: string; scheduled_on: string
+          id?: string; item_id: string; person_kind?: string | null; person_id?: string | null; person_name?: string | null; scheduled_on: string
           sort_order?: number; note?: string | null; outcome?: string; closed_at?: string | null
           created_by?: string | null; created_by_name?: string | null; created_at?: string
         }
         Update: {
-          id?: string; item_id?: string; person_kind?: string; person_id?: string; person_name?: string; scheduled_on?: string
+          id?: string; item_id?: string; person_kind?: string | null; person_id?: string | null; person_name?: string | null; scheduled_on?: string
           sort_order?: number; note?: string | null; outcome?: string; closed_at?: string | null
           created_by?: string | null; created_by_name?: string | null; created_at?: string
         }
@@ -3274,6 +3274,14 @@ export type Database = {
       }
       schedule_inspection_items: {
         Args: { p_item_ids: string[]; p_person_kind: string; p_person_id: string; p_date: string; p_note?: string | null }
+        Returns: number
+      }
+      plan_inspection_items: {
+        Args: { p_item_ids: string[]; p_date: string; p_before?: string | null; p_person_kind?: string | null; p_person_id?: string | null }
+        Returns: number
+      }
+      assign_inspection_schedules: {
+        Args: { p_ids: string[]; p_person_kind?: string | null; p_person_id?: string | null }
         Returns: number
       }
       project_supplies: {

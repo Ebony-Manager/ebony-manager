@@ -601,7 +601,9 @@ function ItemCard({
         {!resolved && item.schedule && (
           <span className="inline-flex items-center gap-1 self-start rounded bg-primary/10 px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-primary capitalize">
             <CalendarClock className="size-3" />
-            {ti("sch_scheduled_chip", { day: formatDateCompact(lang, item.schedule.date), name: item.schedule.personName })}
+            {item.schedule.personName
+              ? ti("sch_scheduled_chip", { day: formatDateCompact(lang, item.schedule.date), name: item.schedule.personName })
+              : formatDateCompact(lang, item.schedule.date)}
           </span>
         )}
         <span className={`line-clamp-3 text-xs leading-snug ${resolved ? "text-muted-foreground" : "text-foreground"}`}>

@@ -78,17 +78,24 @@ export async function deleteInspectionPhotoAction(id: string) {
 
 // ── Programación ────────────────────────────────────────────────────────
 
-export async function scheduleItemsAction(itemIds: string[], personKind: "empleado" | "contratista", personId: string, date: string, note: string | null) {
+type PersonRef = { kind: "empleado" | "contratista"; id: string } | null;
+
+export async function planItemsAction(itemIds: string[], date: string, before: string | null, person: PersonRef) {
   await requireModule("inspecciones");
-  return run(() => inspections.scheduleItems(itemIds, personKind, personId, date, note));
+  return run(() => inspections.planItems(itemIds, date, before, person));
 }
 
-export async function cancelScheduleAction(id: string) {
+export async function assignSchedulesAction(ids: string[], person: PersonRef) {
   await requireModule("inspecciones");
-  return run(() => inspections.cancelSchedule(id));
+  return run(() => inspections.assignSchedules(ids, person));
 }
 
-export async function moveScheduleAction(id: string, direction: -1 | 1) {
+export async function setScheduleNoteAction(ids: string[], note: string | null) {
   await requireModule("inspecciones");
-  return run(() => inspections.moveSchedule(id, direction));
+  return run(() => inspections.setScheduleNote(ids, note));
+}
+
+export async function unplanItemsAction(itemIds: string[]) {
+  await requireModule("inspecciones");
+  return run(() => inspections.unplanItems(itemIds));
 }

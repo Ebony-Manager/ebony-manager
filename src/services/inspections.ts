@@ -149,7 +149,7 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
 
   // Su programación abierta (quién y qué día), para mostrarla en cada detalle.
   const itemIds = rows.flatMap((v) => (v.inspection_items ?? []).map((i) => i.id));
-  const openSchedule = new Map<string, { personName: string; date: string }>();
+  const openSchedule = new Map<string, { personName: string | null; date: string }>();
   if (itemIds.length) {
     const { data: sch } = await supabase.from("inspection_schedules").select("item_id, person_name, scheduled_on").eq("outcome", "programado").in("item_id", itemIds);
     for (const s of sch ?? []) openSchedule.set(s.item_id, { personName: s.person_name, date: s.scheduled_on });
@@ -327,7 +327,7 @@ type ScheduleRow = Database["public"]["Tables"]["inspection_schedules"]["Row"];
 const mapSchedule = (r: ScheduleRow): InspectionSchedule => ({
   id: r.id,
   itemId: r.item_id,
-  personKind: r.person_kind === "empleado" ? "empleado" : "contratista",
+  personKind: r.person_id ? (r.person_kind === "empleado" ? "empleado" : "contratista") : null,
   personId: r.person_id,
   personName: r.person_name,
   date: r.scheduled_on,
@@ -347,7 +347,7 @@ const mapSchedule = (r: ScheduleRow): InspectionSchedule => ({
 export async function getScheduleBoard(from: string, to: string, since: string): Promise<ScheduleBoard> {
   const supabase = await createClient();
   const itemSelect =
-    "id, area, comment, kind, responsible, third_party, status, inspections!inner(project_id, visited_on), inspection_photos(id, path, kind, sort_order, created_at)";
+    "id, area, comment, kind, responsible, third_party, status, created_at, inspections!inner(project_id, visited_on), inspection_photos(id, path, kind, sort_order, created_at)";
   const [people, projects, pending, schedules] = await Promise.all([
     supabase.rpc("inspection_people"),
     getInspectionProjects(),
@@ -405,6 +405,7 @@ export async function getScheduleBoard(from: string, to: string, since: string):
         thirdParty: i.third_party,
         status: i.status === "resuelto" ? "resuelto" : "pendiente",
         visitedOn: insp(i).visited_on,
+        createdAt: i.created_at,
         photos: before(i).map((p) => ({ id: p.id, path: p.path, kind: "antes" as const, url: urls.get(p.path) ?? null })),
       };
     }),
@@ -412,54 +413,60 @@ export async function getScheduleBoard(from: string, to: string, since: string):
   };
 }
 
-/** Programa (o reprograma) detalles a una persona y un día: quedan al final de su lista de ese día. */
-export async function scheduleItems(itemIds: string[], personKind: "empleado" | "contratista", personId: string, date: string, note: string | null): Promise<number> {
+/**
+ * Pone detalles en un día, en el orden dado: al final del día o antes de otra
+ * programación (`before`). Si ya estaban ese día solo cambian de lugar; si
+ * estaban en otro, se reprograman (conservan persona y nota). Con persona, se
+ * les asigna.
+ */
+export async function planItems(
+  itemIds: string[],
+  date: string,
+  before: string | null,
+  person: { kind: "empleado" | "contratista"; id: string } | null,
+): Promise<number> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("schedule_inspection_items", {
+  const { data, error } = await supabase.rpc("plan_inspection_items", {
     p_item_ids: itemIds,
-    p_person_kind: personKind,
-    p_person_id: personId,
     p_date: date,
-    p_note: note,
+    p_before: before,
+    p_person_kind: person?.kind ?? null,
+    p_person_id: person?.id ?? null,
   });
   if (error) throw new Error(error.message);
   return data ?? 0;
 }
 
-/** Quita una programación abierta (el detalle vuelve a "por programar"). */
-export async function cancelSchedule(id: string): Promise<void> {
+/** Asigna (o quita, con null) quién atiende unas programaciones abiertas. */
+export async function assignSchedules(ids: string[], person: { kind: "empleado" | "contratista"; id: string } | null): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("assign_inspection_schedules", {
+    p_ids: ids,
+    p_person_kind: person?.kind ?? null,
+    p_person_id: person?.id ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}
+
+/** La nota (para ese día) de unas programaciones abiertas, ej. las de un área. */
+export async function setScheduleNote(ids: string[], note: string | null): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .from("inspection_schedules")
-    .update({ outcome: "cancelado", closed_at: new Date().toISOString() })
-    .eq("id", id)
+    .update({ note: note?.trim() || null })
+    .in("id", ids)
     .eq("outcome", "programado");
   if (error) throw new Error(error.message);
 }
 
-/** Sube o baja un detalle en el orden del día de esa persona (intercambia con el vecino). */
-export async function moveSchedule(id: string, direction: -1 | 1): Promise<void> {
+/** Quita la programación abierta de unos detalles (vuelven a "por programar"). */
+export async function unplanItems(itemIds: string[]): Promise<void> {
   const supabase = await createClient();
-  const { data: me, error } = await supabase.from("inspection_schedules").select("*").eq("id", id).single();
-  if (error) throw new Error(error.message);
-  const { data: day, error: e2 } = await supabase
+  const { error } = await supabase
     .from("inspection_schedules")
-    .select("id, sort_order")
-    .eq("person_id", me.person_id)
-    .eq("scheduled_on", me.scheduled_on)
-    .in("outcome", ["programado", "hecho"])
-    .order("sort_order");
-  if (e2) throw new Error(e2.message);
-  const list = day ?? [];
-  const i = list.findIndex((r) => r.id === id);
-  const j = i + direction;
-  if (i < 0 || j < 0 || j >= list.length) return;
-  // Renumera 1..n con el intercambio hecho (así no quedan órdenes repetidos).
-  const ordered = [...list];
-  [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
-  for (let k = 0; k < ordered.length; k++) {
-    if (ordered[k].sort_order === k + 1) continue;
-    const { error: e3 } = await supabase.from("inspection_schedules").update({ sort_order: k + 1 }).eq("id", ordered[k].id);
-    if (e3) throw new Error(e3.message);
-  }
+    .update({ outcome: "cancelado", closed_at: new Date().toISOString() })
+    .in("item_id", itemIds)
+    .eq("outcome", "programado");
+  if (error) throw new Error(error.message);
 }
