@@ -2237,6 +2237,7 @@ export const strings = {
     search_ph: { es: "Buscar cliente, arquitecto o proyecto…", en: "Search client, architect or project…" },
     empty: { es: "Todavía no hay oportunidades. Crea la primera con «Nueva».", en: "No opportunities yet. Create the first one with “New”." },
     empty_stage: { es: "Nada aquí.", en: "Nothing here." },
+    drop_here: { es: "Suelta aquí", en: "Drop here" },
     no_results: { es: "Sin resultados.", en: "No results." },
     alert_vencida: { es: "Entrega vencida", en: "Overdue" },
     alert_seguimiento: { es: "Dar seguimiento", en: "Follow up" },

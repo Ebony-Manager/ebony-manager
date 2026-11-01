@@ -25,6 +25,7 @@ import { OpportunityDialog, type SalesProject } from "./opportunity-dialog";
 import { ApproveDialog, LostDialog } from "./stage-dialogs";
 
 type View = "board" | "list";
+const EMPTY_MOVED: ReadonlyMap<string, Stage> = new Map();
 
 /**
  * Cotización → Seguimiento: lo que entra para cotizar, por etapa (Por
@@ -59,6 +60,15 @@ export function PipelineView({
   const [editing, setEditing] = React.useState<Opportunity | "new" | null>(() => opportunities.find((o) => o.id === openId) ?? null);
   const [losing, setLosing] = React.useState<Opportunity | null>(null);
   const [approving, setApproving] = React.useState<Opportunity | null>(null);
+  // Arrastrar entre columnas (computadora): la que se arrastra, la columna encima y lo movido mientras llega del servidor.
+  const dragRef = React.useRef<Opportunity | null>(null);
+  const [dragging, setDragging] = React.useState<string | null>(null);
+  const [overStage, setOverStage] = React.useState<Stage | null>(null);
+  // Lo provisional vale solo para los datos con que se movió: al llegar los nuevos del servidor, se descarta.
+  const [movedState, setMovedState] = React.useState<{ base: Opportunity[]; map: ReadonlyMap<string, Stage> }>({ base: opportunities, map: new Map() });
+  const moved = movedState.base === opportunities ? movedState.map : EMPTY_MOVED;
+  const setMoved = (fn: (m: ReadonlyMap<string, Stage>) => ReadonlyMap<string, Stage>) =>
+    setMovedState((st) => ({ base: opportunities, map: fn(st.base === opportunities ? st.map : EMPTY_MOVED) }));
 
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   // La ficha abierta se refresca con los datos nuevos del servidor.
@@ -72,24 +82,59 @@ export function PipelineView({
   }, [opportunities, owner, query, clientById]);
 
   const monthStart = `${today.slice(0, 7)}-01`;
-  const stats = React.useMemo(() => salesStats(opportunities, monthStart, today), [opportunities, monthStart, today]);
-  const byStage = React.useMemo(() => {
+  // Sin useMemo: el compilador de React ya los memoriza.
+  const stats = salesStats(opportunities, monthStart, today);
+  const byStage = (() => {
     const map = new Map<Stage, Opportunity[]>(STAGES.map((s) => [s, []]));
-    for (const o of filtered) if (visibleOnBoard(o, today)) map.get(o.stage)!.push(o);
+    for (const raw of filtered) {
+      const o = moved.has(raw.id) ? { ...raw, stage: moved.get(raw.id)! } : raw;
+      if (visibleOnBoard(o, today)) map.get(o.stage)!.push(o);
+    }
     for (const s of STAGES) map.set(s, sortForBoard(map.get(s)!, today));
     return map;
-  }, [filtered, today]);
+  })();
 
   async function move(o: Opportunity, stage: Stage, lostReason: LostReason | null = null, lostNote: string | null = null) {
     if (stage === "perdida" && !lostReason) return setLosing(o);
     if (stage === "aprobada") return setApproving(o);
+    setMoved((m) => new Map(m).set(o.id, stage));
     const res = await setOpportunityStageAction(o.id, stage, lostReason, lostNote);
-    if (!res.ok) return void toast.error(res.error);
+    if (!res.ok) {
+      setMoved((m) => {
+        const n = new Map(m);
+        n.delete(o.id);
+        return n;
+      });
+      return void toast.error(res.error);
+    }
     toast.success(tv("moved", { s: tv(`stage_${stage}`) }));
   }
 
-  const card = (o: Opportunity) => (
-    <OppCard key={o.id} o={o} clients={clientById} today={today} onOpen={() => setEditing(o)} onMove={(s) => void move(o, s)} />
+  const card = (o: Opportunity, draggable = false) => (
+    <OppCard
+      key={o.id}
+      o={o}
+      clients={clientById}
+      today={today}
+      onOpen={() => setEditing(o)}
+      onMove={(s) => void move(o, s)}
+      drag={
+        draggable
+          ? {
+              active: dragging === o.id,
+              onStart: () => {
+                dragRef.current = o;
+                setDragging(o.id);
+              },
+              onEnd: () => {
+                dragRef.current = null;
+                setDragging(null);
+                setOverStage(null);
+              },
+            }
+          : undefined
+      }
+    />
   );
 
   return (
@@ -166,7 +211,7 @@ export function PipelineView({
               onChange={setMobileStage}
               options={STAGES.map((s) => ({ value: s, label: `${tv(`stage_${s}`)} (${byStage.get(s)!.length})` }))}
             />
-            {byStage.get(mobileStage)!.length === 0 ? <EmptyState>{tv("empty_stage")}</EmptyState> : byStage.get(mobileStage)!.map(card)}
+            {byStage.get(mobileStage)!.length === 0 ? <EmptyState>{tv("empty_stage")}</EmptyState> : byStage.get(mobileStage)!.map((o) => card(o))}
           </div>
 
           {/* Computadora: las cinco columnas. */}
@@ -177,7 +222,29 @@ export function PipelineView({
               return (
                 <section
                   key={s}
-                  className="flex min-w-0 flex-col gap-2 rounded-lg border-t-[3px] bg-muted/40 p-2"
+                  onDragOver={(e) => {
+                    const o = dragRef.current;
+                    if (!o || o.stage === s) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setOverStage(s);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverStage((x) => (x === s ? null : x));
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const o = dragRef.current;
+                    dragRef.current = null;
+                    setDragging(null);
+                    setOverStage(null);
+                    if (o && o.stage !== s) void move(o, s);
+                  }}
+                  className={cn(
+                    "flex min-w-0 flex-col gap-2 rounded-lg border-t-[3px] bg-muted/40 p-2 transition-colors",
+                    dragging && "outline-2 outline-dashed outline-border",
+                    overStage === s && "bg-primary/10 outline-primary/50",
+                  )}
                   style={{ borderTopColor: STAGE_META[s].color }}
                 >
                   <header className="flex items-center justify-between gap-2 px-1 pt-0.5">
@@ -188,7 +255,11 @@ export function PipelineView({
                     </span>
                     {total > 0 && <span className="text-xs tabular-nums text-muted-foreground">{formatMoney(total)}</span>}
                   </header>
-                  {list.length === 0 ? <p className="px-1 py-4 text-center text-xs text-muted-foreground">{tv("empty_stage")}</p> : list.map(card)}
+                  {list.length === 0 ? (
+                    <p className="px-1 py-4 text-center text-xs text-muted-foreground">{dragging ? tv("drop_here") : tv("empty_stage")}</p>
+                  ) : (
+                    list.map((o) => card(o, true))
+                  )}
                 </section>
               );
             })}
@@ -232,12 +303,15 @@ function OppCard({
   today,
   onOpen,
   onMove,
+  drag,
 }: {
   o: Opportunity;
   clients: Map<string, Client>;
   today: string;
   onOpen: () => void;
   onMove: (stage: Stage) => void;
+  /** En computadora: se arrastra a otra columna. */
+  drag?: { active: boolean; onStart: () => void; onEnd: () => void };
 }) {
   const { tv, lang } = useTv();
   const title = opportunityTitle(o, clients);
@@ -251,7 +325,18 @@ function OppCard({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className="flex cursor-pointer flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/30"
+      draggable={!!drag}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", o.id);
+        drag?.onStart();
+      }}
+      onDragEnd={() => drag?.onEnd()}
+      className={cn(
+        "flex cursor-pointer flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/30",
+        drag && "cursor-grab active:cursor-grabbing",
+        drag?.active && "opacity-50",
+      )}
       style={{ borderLeftColor: STAGE_META[o.stage].color }}
     >
       <div className="flex items-start gap-1">

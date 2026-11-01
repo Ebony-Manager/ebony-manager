@@ -10,7 +10,8 @@ import {
   ExternalLink,
   GripVertical,
   Maximize2,
-  StickyNote,
+  AlignLeft,
+  ListOrdered,
   UserRound,
   X,
 } from "lucide-react";
@@ -393,7 +394,37 @@ export function useIsDesktop() {
 
 const NONE = "none";
 
-/** Quién atiende, directo en la tarjeta: un toque abre la lista de personas. */
+/** Iniciales de un nombre: "Wilfredo Mendoza" → "WM". */
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+
+/** Color estable por persona (de la misma paleta que las obras). */
+const personColor = (name: string) => {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `var(--project-${(h % 8) + 1})`;
+};
+
+function Avatar({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-background ring-2 ring-card", className)}
+      style={{ backgroundColor: personColor(name) }}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+/** Botón cuadrado de la tarjeta (como en ClickUp); no arrastra ni elige la tarjeta. */
+const squareBtn = "flex size-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [&_svg]:size-3.5";
+
+/** Quién atiende, directo en la tarjeta: el avatar (o un círculo punteado si nadie); un toque abre la lista. */
 function PersonPicker({
   schedules,
   people,
@@ -403,56 +434,42 @@ function PersonPicker({
   schedules: InspectionSchedule[];
   people: SchedulePerson[];
   prefer: "pintor" | "ebanista" | null;
-  onChange: (
-    person: { kind: "empleado" | "contratista"; id: string } | null,
-  ) => void;
+  onChange: (person: { kind: "empleado" | "contratista"; id: string } | null) => void;
 }) {
   const { ti } = useTi();
   const { names, unassigned } = blockPeople(schedules);
-  const ids = [
-    ...new Set(
-      schedules.map((s) =>
-        s.personId ? `${s.personKind}:${s.personId}` : NONE,
-      ),
-    ),
-  ];
+  const ids = [...new Set(schedules.map((s) => (s.personId ? `${s.personKind}:${s.personId}` : NONE)))];
   const value = ids.length === 1 ? ids[0] : "";
-  const label =
-    names.length === 0
-      ? ti("sch_unassigned")
-      : names.length === 1 && !unassigned
-        ? names[0]
-        : `${names.join(", ")}${unassigned ? ` +${unassigned}` : ""}`;
+  const title = names.length === 0 ? ti("sch_unassigned") : `${names.join(", ")}${unassigned ? ` · ${ti("sch_unassigned")} (${unassigned})` : ""}`;
   return (
-    <span
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-      className="min-w-0"
-    >
+    <span onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} className="flex">
       <Select
         value={value}
         onValueChange={(v) => {
           if (v === NONE) return onChange(null);
           const [kind, id] = v.split(":");
-          onChange({
-            kind: kind === "empleado" ? "empleado" : "contratista",
-            id,
-          });
+          onChange({ kind: kind === "empleado" ? "empleado" : "contratista", id });
         }}
       >
         <SelectTrigger
           size="sm"
           className={cn(
-            "max-w-full min-w-0 gap-1 rounded px-1.5 data-[size=sm]:h-6 text-[11px] font-medium shadow-none [&_svg]:size-3",
-            names.length === 0
-              ? "border-warning/40 bg-warning/10 text-warning"
-              : "border-border bg-muted text-foreground",
+            "h-7 w-auto min-w-0 gap-0 rounded-md p-0 shadow-none data-[size=sm]:h-7 [&>svg:last-child]:hidden",
+            names.length === 0 ? "size-7 justify-center border-dashed text-muted-foreground hover:bg-muted" : "border-transparent bg-transparent px-0.5",
           )}
-          aria-label={ti("sch_person")}
-          title={ti("sch_person")}
+          aria-label={`${ti("sch_person")}: ${title}`}
+          title={title}
         >
-          <UserRound className="shrink-0" />
-          <span className="truncate">{label}</span>
+          {names.length === 0 ? (
+            <UserRound className="size-3.5" />
+          ) : (
+            <span className="flex -space-x-1.5">
+              {names.slice(0, 2).map((n) => (
+                <Avatar key={n} name={n} />
+              ))}
+              {names.length > 2 && <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-semibold ring-2 ring-card">+{names.length - 2}</span>}
+            </span>
+          )}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>{ti("sch_no_person")}</SelectItem>
@@ -463,17 +480,19 @@ function PersonPicker({
   );
 }
 
-/** Ícono pequeño de la tarjeta (no inicia arrastre ni elige la tarjeta). */
+/** Botón de la tarjeta (no inicia arrastre ni elige la tarjeta). */
 function CardIcon({
   label,
   onClick,
   children,
   active,
+  className,
 }: {
   label: string;
   onClick: () => void;
   children: React.ReactNode;
   active?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -483,10 +502,7 @@ function CardIcon({
         e.stopPropagation();
         onClick();
       }}
-      className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3.5",
-        active && "text-primary",
-      )}
+      className={cn(className ?? squareBtn, active && "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary")}
       aria-label={label}
       title={label}
     >
@@ -496,11 +512,12 @@ function CardIcon({
 }
 
 /**
- * Un área (de una obra) en un día: nombre, cuántos detalles y cuántos hechos,
- * quién lo atiende (se cambia ahí mismo), la nota, las fotos y el estado al
- * borde. En computadora se arrastra a otro día o antes de otro bloque; en el
- * celular, el menú sube, baja o mueve. El ícono de ampliar abre los detalles
- * en grande.
+ * Un área (de una obra) en un día, como tarjeta: la obra (en su color), el
+ * área, cuántos detalles y el estado, las fotos y, abajo, botones cuadrados:
+ * quién la atiende (avatar), la nota (rayitas) y sus detalles. "Ver en
+ * grande" y el menú flotan arriba a la derecha al pasar el mouse (en el
+ * celular quedan abajo). En computadora se arrastra; en el celular, el menú
+ * sube, baja o mueve.
  */
 export function BlockCard({
   block,
@@ -542,9 +559,7 @@ export function BlockCard({
   onDragEnd: () => void;
   onDropBefore: () => void;
   onMove?: (dir: -1 | 1) => void;
-  onPerson: (
-    person: { kind: "empleado" | "contratista"; id: string } | null,
-  ) => void;
+  onPerson: (person: { kind: "empleado" | "contratista"; id: string } | null) => void;
   onNote: () => void;
   onOpen: () => void;
   onRemove: () => void;
@@ -559,23 +574,30 @@ export function BlockCard({
   const state = blockState(block.schedules, today);
   const openOnes = block.schedules.filter((s) => s.outcome === "programado");
   const done = block.schedules.length - openOnes.length;
-  const notes = [
-    ...new Set(block.schedules.map((s) => s.note).filter(Boolean)),
-  ];
+  const notes = [...new Set(block.schedules.map((s) => s.note).filter(Boolean))];
   const areaName = block.area ?? ti("no_area");
-  const bPick: Pick = {
-    key: `b|${block.key}|${block.schedules[0].date}`,
-    label: `${areaName} · ${first?.projectName ?? ""}`,
-    itemIds: openOnes.map((s) => s.itemId),
-    scheduled: true,
-  };
+  const bPick: Pick = { key: `b|${block.key}|${block.schedules[0].date}`, label: `${areaName} · ${first?.projectName ?? ""}`, itemIds: openOnes.map((s) => s.itemId), scheduled: true };
   const movable = openOnes.length > 0;
+
+  const menu = movable ? (
+    <RowMenu
+      label={ti("sch_unschedule")}
+      items={[
+        ...(!desktop && onMove
+          ? [
+              { label: ti("sch_up"), icon: ArrowUp, onSelect: () => onMove(-1) },
+              { label: ti("sch_down"), icon: ArrowDown, onSelect: () => onMove(1) },
+            ]
+          : []),
+        ...(!desktop || when ? [{ label: ti("sch_move_day"), icon: CalendarClock, onSelect: () => onPick(bPick) }] : []),
+        { label: ti("sch_remove_all"), icon: X, onSelect: onRemove, confirmLabel: ti("sch_remove_all_q") },
+      ]}
+    />
+  ) : null;
 
   return (
     <div
-      {...(movable
-        ? pickable(bPick, pick, onPick, onDragStart, onDragEnd)
-        : {})}
+      {...(movable ? pickable(bPick, pick, onPick, onDragStart, onDragEnd) : {})}
       onDragOver={(e) => {
         if (!dropActive) return;
         e.preventDefault();
@@ -591,151 +613,94 @@ export function BlockCard({
         onDropBefore();
       }}
       className={cn(
-        "relative flex min-w-0 flex-col gap-1.5 rounded-lg border border-l-[3px] border-border bg-card px-2.5 py-2 text-left",
+        "group relative flex min-w-0 flex-col gap-2 rounded-xl border border-l-[3px] border-border bg-card px-3 py-2.5 text-left shadow-xs transition-shadow hover:shadow-sm",
         movable && "cursor-grab active:cursor-grabbing",
         pick?.key === bPick.key && "ring-2 ring-primary",
-        over &&
-          "before:absolute before:inset-x-0 before:-top-1.5 before:h-1 before:rounded-full before:bg-primary",
+        over && "before:absolute before:inset-x-0 before:-top-1.5 before:h-1 before:rounded-full before:bg-primary",
       )}
       style={{ borderLeftColor: color }}
     >
-      <div className="flex min-w-0 items-start gap-0.5">
-        <span className="min-w-0 flex-1">
-          {when && (
-            <span className="block text-[11px] font-medium capitalize text-destructive">
-              {when}
-            </span>
-          )}
-          {showProject && (
-            <span
-              className="block truncate text-[11px] font-medium"
-              style={{ color }}
-            >
-              {first?.projectName ?? "—"}
-            </span>
-          )}
-          <span className="block text-sm leading-snug font-semibold break-words text-foreground">
-            {areaName}
+      {/* Acciones flotantes (computadora): aparecen al pasar el mouse, como en ClickUp. */}
+      {desktop && (
+        <span
+          className="absolute top-1.5 right-1.5 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <CardIcon label={ti("sch_open_big")} onClick={onOpen} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3.5">
+            <Maximize2 />
+          </CardIcon>
+          {menu}
+        </span>
+      )}
+
+      <div className="min-w-0">
+        {when && <span className="block text-[11px] font-medium capitalize text-destructive">{when}</span>}
+        {showProject && (
+          <span className="block truncate text-[11px] font-medium" style={{ color }}>
+            {first?.projectName ?? "—"}
           </span>
-          <span className="block text-[11px] text-muted-foreground">
+        )}
+        <span className="block text-[15px] leading-snug font-semibold break-words text-foreground">{areaName}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+          <span>
             {ti("sch_n_items", { n: block.schedules.length })}
-            {done > 0 &&
-              state !== "hecho" &&
-              ` · ${ti("sch_done_of", { done, n: block.schedules.length })}`}
+            {done > 0 && state !== "hecho" && ` · ${ti("sch_done_of", { done, n: block.schedules.length })}`}
           </span>
           {state !== "programado" && (
             <span
-              className="mt-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10.5px] leading-none font-medium"
-              style={{
-                color: STATE_COLOR[state],
-                backgroundColor: `color-mix(in oklch, ${STATE_COLOR[state]} 12%, transparent)`,
-              }}
+              className="inline-flex items-center rounded px-1.5 py-0.5 text-[10.5px] leading-none font-medium"
+              style={{ color: STATE_COLOR[state], backgroundColor: `color-mix(in oklch, ${STATE_COLOR[state]} 12%, transparent)` }}
             >
               {ti(state === "hecho" ? "sch_state_hecho" : "sch_state_vencido")}
             </span>
           )}
         </span>
-        <span
-          className="-mt-1 -mr-1.5 flex shrink-0 items-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {movable && (
-            <RowMenu
-              label={ti("sch_unschedule")}
-              items={[
-                ...(!desktop && onMove
-                  ? [
-                      {
-                        label: ti("sch_up"),
-                        icon: ArrowUp,
-                        onSelect: () => onMove(-1),
-                      },
-                      {
-                        label: ti("sch_down"),
-                        icon: ArrowDown,
-                        onSelect: () => onMove(1),
-                      },
-                    ]
-                  : []),
-                ...(!desktop || when
-                  ? [
-                      {
-                        label: ti("sch_move_day"),
-                        icon: CalendarClock,
-                        onSelect: () => onPick(bPick),
-                      },
-                    ]
-                  : []),
-                {
-                  label: ti("sch_remove_all"),
-                  icon: X,
-                  onSelect: onRemove,
-                  confirmLabel: ti("sch_remove_all_q"),
-                },
-              ]}
-            />
-          )}
-        </span>
+        {notes.length > 0 && <span className="mt-1 line-clamp-2 block text-[11px] break-words text-muted-foreground italic">{notes.join(" · ")}</span>}
       </div>
-      {movable ? (
-        <span className="flex min-w-0 items-center gap-0.5">
-          <PersonPicker
-            schedules={openOnes}
-            people={people}
-            prefer={prefer}
-            onChange={onPerson}
-          />
-          <CardIcon
-            label={ti("sch_note")}
-            onClick={onNote}
-            active={notes.length > 0}
-          >
-            <StickyNote />
-          </CardIcon>
-        </span>
-      ) : (
-        blockPeople(block.schedules).names.map((n) => (
-          <span
-            key={n}
-            className="inline-flex items-center gap-1 self-start rounded bg-muted px-1.5 py-0.5 text-[10.5px] leading-none font-medium text-foreground"
-          >
-            <UserRound className="size-3" />
-            {n}
+
+      <button
+        type="button"
+        draggable={false}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen();
+        }}
+        className="min-w-0 self-start overflow-hidden rounded"
+        aria-label={ti("sch_open_big")}
+        title={ti("sch_open_big")}
+      >
+        <ThumbStrip items={block.schedules.map((s) => items.get(s.itemId))} max={4} size="size-8" />
+      </button>
+
+      {/* Abajo: botones cuadrados (persona, nota, detalles) como en ClickUp. */}
+      <span className="flex min-w-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        {movable ? (
+          <PersonPicker schedules={openOnes} people={people} prefer={prefer} onChange={onPerson} />
+        ) : (
+          <span className="flex -space-x-1.5">
+            {blockPeople(block.schedules).names.map((n) => (
+              <span key={n} title={n}>
+                <Avatar name={n} />
+              </span>
+            ))}
           </span>
-        ))
-      )}
-      {notes.map((n) => (
-        <span
-          key={n}
-          className="text-[11px] break-words text-muted-foreground italic"
-        >
-          {n}
-        </span>
-      ))}
-      <span className="flex min-w-0 items-center justify-between gap-1">
-        <button
-          type="button"
-          draggable={false}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          className="min-w-0 overflow-hidden rounded"
-          aria-label={ti("sch_open_big")}
-          title={ti("sch_open_big")}
-        >
-          <ThumbStrip
-            items={block.schedules.map((s) => items.get(s.itemId))}
-            max={3}
-            size="size-7"
-          />
-        </button>
-        <span className="flex shrink-0 items-center">
-          <CardIcon label={ti("sch_open_big")} onClick={onOpen}>
-            <Maximize2 />
+        )}
+        {movable && (
+          <CardIcon label={notes.length ? `${ti("sch_note")}: ${notes.join(" · ")}` : ti("sch_note")} onClick={onNote} active={notes.length > 0}>
+            <AlignLeft />
           </CardIcon>
-          <ExpandButton open={open} onClick={() => setOpen((o) => !o)} />
-        </span>
+        )}
+        <CardIcon label={open ? ti("sch_hide_items") : ti("sch_show_items")} onClick={() => setOpen((o) => !o)} active={open}>
+          <ListOrdered />
+        </CardIcon>
+        {!desktop && (
+          <span className="ml-auto flex items-center">
+            <CardIcon label={ti("sch_open_big")} onClick={onOpen}>
+              <Maximize2 />
+            </CardIcon>
+            {menu}
+          </span>
+        )}
       </span>
       {open && (
         <ol
