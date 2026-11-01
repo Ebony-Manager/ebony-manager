@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -210,19 +210,14 @@ export function OpportunityDialog({
         <div className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={tv("f_designer")}>
-              <PickerWithRemove
+              <ClientPicker
+                clients={allClients}
+                kind="arquitecto"
                 value={form.designerId}
-                onRemove={() => setForm((f) => ({ ...f, designerId: null, designerContactId: null }))}
-                picker={
-                  <ClientPicker
-                    clients={allClients}
-                    kind="arquitecto"
-                    value={form.designerId}
-                    onChange={(id) => setForm((f) => ({ ...f, designerId: id, designerContactId: null }))}
-                    onCreate={(n) => createClient("arquitecto", n)}
-                    placeholder={tv("pick_designer")}
-                  />
-                }
+                onChange={(id) => setForm((f) => ({ ...f, designerId: id, designerContactId: null }))}
+                onClear={() => setForm((f) => ({ ...f, designerId: null, designerContactId: null }))}
+                onCreate={(n) => createClient("arquitecto", n)}
+                placeholder={tv("pick_designer")}
               />
               {firmContacts.length > 0 && (
                 <Select value={form.designerContactId ?? "__firm"} onValueChange={(v) => set("designerContactId", v === "__firm" ? null : v)}>
@@ -241,19 +236,14 @@ export function OpportunityDialog({
               )}
             </Field>
             <Field label={tv("f_client")} hint={!form.designerId && !form.clientId ? tv("f_someone_hint") : undefined}>
-              <PickerWithRemove
+              <ClientPicker
+                clients={allClients}
+                kind="cliente"
                 value={form.clientId}
-                onRemove={() => set("clientId", null)}
-                picker={
-                  <ClientPicker
-                    clients={allClients}
-                    kind="cliente"
-                    value={form.clientId}
-                    onChange={(id) => set("clientId", id)}
-                    onCreate={(n) => createClient("cliente", n)}
-                    placeholder={tv("pick_client")}
-                  />
-                }
+                onChange={(id) => set("clientId", id)}
+                onClear={() => set("clientId", null)}
+                onCreate={(n) => createClient("cliente", n)}
+                placeholder={tv("pick_client")}
               />
             </Field>
             <Field label={tv("f_project")}>
@@ -431,27 +421,6 @@ export function OpportunityDialog({
         }}
       />
     </Dialog>
-  );
-}
-
-function PickerWithRemove({ value, picker, onRemove }: { value: string | null; picker: React.ReactNode; onRemove: () => void }) {
-  const { tv } = useTv();
-  return (
-    <div className="flex gap-2">
-      <div className="min-w-0 flex-1">{picker}</div>
-      {value && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onRemove}
-          className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
-        >
-          <X className="size-3.5" />
-          {tv("remove")}
-        </Button>
-      )}
-    </div>
   );
 }
 

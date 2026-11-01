@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Calculator, Check, CheckCircle2, ChevronDown, Inbox, Plus, Send, XCircle, type LucideIcon } from "lucide-react";
+import { Calculator, Check, CheckCircle2, ChevronDown, Inbox, Plus, Send, X, XCircle, type LucideIcon } from "lucide-react";
 
 import type { Client, ClientKind, Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +109,7 @@ export function ClientPicker({
   value,
   onChange,
   onCreate,
+  onClear,
   placeholder,
   disabled,
 }: {
@@ -116,6 +117,8 @@ export function ClientPicker({
   kind: ClientKind;
   value: string | null;
   onChange: (id: string) => void;
+  /** Con esto, la lista ofrece arriba (en rojo) quitar el elegido. */
+  onClear?: () => void;
   /** Sin esto no se ofrece "Crear «X»" (quien no tiene Ventas solo elige). */
   onCreate?: (name: string) => Promise<void>;
   placeholder: string;
@@ -152,6 +155,21 @@ export function ClientPicker({
           <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
           <CommandList>
             <CommandEmpty>{query.trim() ? null : tv("no_results")}</CommandEmpty>
+            {onClear && picked && !query.trim() && (
+              <CommandGroup>
+                <CommandItem
+                  value="__quitar__"
+                  onSelect={() => {
+                    onClear();
+                    setOpen(false);
+                  }}
+                  className="text-destructive data-[selected=true]:bg-destructive/10 data-[selected=true]:text-destructive"
+                >
+                  <X className="size-4 text-destructive" />
+                  {tv("remove_named", { n: picked.name })}
+                </CommandItem>
+              </CommandGroup>
+            )}
             <CommandGroup>
               {options.map((c) => (
                 <CommandItem

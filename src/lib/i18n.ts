@@ -2261,6 +2261,7 @@ export const strings = {
     f_follow_up: { es: "Próximo seguimiento", en: "Next follow-up" },
     follow_short: { es: "Seguir {d}", en: "Follow up {d}" },
     wa_to: { es: "WhatsApp a {name}", en: "WhatsApp {name}" },
+    remove_named: { es: "Quitar «{n}»", en: "Remove «{n}»" },
     wa_text: { es: "Hola {name}, te escribo de Ebony sobre {title}.", en: "Hi {name}, this is Ebony about {title}." },
     open_files: { es: "Archivos (Drive)", en: "Files (Drive)" },
     open_quote: { es: "Cotización {n}", en: "Quote {n}" },

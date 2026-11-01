@@ -177,7 +177,6 @@ export function ProjectFormDialog({
                 onChange={setDesignerId}
                 onCreate={canCreate ? async (n) => setNewClient({ name: n, kind: "arquitecto" }) : undefined}
                 placeholder={tt("proj_pick_designer")}
-                removeLabel={tt("proj_remove")}
               />
             </Field>
             <Field label={tt("proj_f_end_client")}>
@@ -188,7 +187,6 @@ export function ProjectFormDialog({
                 onChange={setClientId}
                 onCreate={canCreate ? async (n) => setNewClient({ name: n, kind: "cliente" }) : undefined}
                 placeholder={tt("proj_pick_client")}
-                removeLabel={tt("proj_remove")}
               />
             </Field>
             <Field label={tt("proj_f_status")}>
@@ -239,27 +237,7 @@ export function ProjectFormDialog({
   );
 }
 
-/** Elegir arquitecto/diseñador o cliente final, con "Quitar" en rojo. */
-function PersonPicker({
-  removeLabel,
-  ...props
-}: React.ComponentProps<typeof ClientPicker> & { onChange: (id: string | null) => void; removeLabel: string }) {
-  return (
-    <div className="flex gap-2">
-      <div className="min-w-0 flex-1">
-        <ClientPicker {...props} />
-      </div>
-      {props.value && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => props.onChange(null)}
-          className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
-        >
-          {removeLabel}
-        </Button>
-      )}
-    </div>
-  );
+/** Elegir arquitecto/diseñador o cliente final; "Quitar" va dentro de la lista, en rojo. */
+function PersonPicker(props: React.ComponentProps<typeof ClientPicker> & { onChange: (id: string | null) => void }) {
+  return <ClientPicker {...props} onClear={() => props.onChange(null)} />;
 }
