@@ -103,3 +103,24 @@ export function clientStats(clientId: string, opps: readonly Opportunity[]): Cli
     lastOn: mine.reduce<string | null>((m, o) => (!m || o.receivedOn > m ? o.receivedOn : m), null),
   };
 }
+
+/**
+ * A quién escribirle por WhatsApp desde la tarjeta: la persona de la firma con
+ * que se lleva (si tiene celular); si no, la firma o diseñador; si no, el
+ * cliente final. null si nadie tiene número.
+ */
+export function opportunityContact(
+  o: Pick<Opportunity, "designerId" | "designerContactId" | "clientId">,
+  clients: ReadonlyMap<string, Client>,
+): { name: string; phone: string } | null {
+  const designer = o.designerId ? clients.get(o.designerId) : undefined;
+  const contact = designer?.contacts.find((c) => c.id === o.designerContactId);
+  if (contact?.phone?.trim()) return { name: contact.name, phone: contact.phone };
+  for (const c of [designer, o.clientId ? clients.get(o.clientId) : undefined]) {
+    const phone = c?.whatsapp?.trim() || c?.phone?.trim();
+    if (c && phone) return { name: c.name, phone };
+  }
+  // La firma sin número propio: su primer contacto con celular.
+  const anyContact = designer?.contacts.find((c) => c.phone?.trim());
+  return anyContact?.phone ? { name: anyContact.name, phone: anyContact.phone } : null;
+}

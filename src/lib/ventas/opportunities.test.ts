@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Client, Opportunity } from "@/types/ventas";
-import { clientStats, opportunityAlert, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
+import { clientStats, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
 
 const opp = (p: Partial<Opportunity>): Opportunity => ({
   id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
@@ -59,5 +59,14 @@ describe("oportunidades", () => {
     ];
     expect(clientStats("a", list)).toMatchObject({ quoted: 1500, approved: 1000, closeRate: 0.5, lastOn: "2026-10-05" });
     expect(clientStats("a", list).opportunities.map((o) => o.id)).toEqual(["2", "3", "1"]);
+  });
+  it("WhatsApp: la persona de la firma, luego la firma, luego el cliente final", () => {
+    const firm: Client = { ...client("f", "Nómada Studio", "arquitecto"), contacts: [{ id: "c1", name: "Ana", role: null, phone: "6000-1111", email: null }, { id: "c2", name: "Luis", role: null, phone: null, email: null }] };
+    const end: Client = { ...client("e", "Lior Pesso", "cliente"), whatsapp: "6222-3333" };
+    const map = new Map([firm, end].map((c) => [c.id, c]));
+    expect(opportunityContact(opp({ designerId: "f", designerContactId: "c1", clientId: "e" }), map)).toEqual({ name: "Ana", phone: "6000-1111" });
+    expect(opportunityContact(opp({ designerId: "f", designerContactId: "c2", clientId: "e" }), map)).toEqual({ name: "Lior Pesso", phone: "6222-3333" });
+    expect(opportunityContact(opp({ designerId: "f" }), map)).toEqual({ name: "Ana", phone: "6000-1111" });
+    expect(opportunityContact(opp({}), map)).toBeNull();
   });
 });

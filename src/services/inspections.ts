@@ -506,7 +506,7 @@ export async function planItems(
     p_person_kind: person?.kind ?? null,
     p_person_id: person?.id ?? null,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message.includes("DIA_PASADO") ? "Ese día ya pasó: elige hoy o un día que viene." : error.message);
   return data ?? 0;
 }
 

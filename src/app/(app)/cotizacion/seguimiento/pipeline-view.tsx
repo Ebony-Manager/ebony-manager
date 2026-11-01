@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { CalendarClock, Columns3, List, CheckCircle2, Inbox, Percent, Plus, Send } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Columns3, List, CheckCircle2, FileText, FolderOpen, Inbox, Percent, Plus, Send } from "lucide-react";
 
 import { STAGES, type Client, type LostReason, type Opportunity, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,9 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
-import { daysSince, opportunityAlert, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
+import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
+import { whatsappUrl } from "@/lib/almacen/inventory";
+import { daysSince, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
 import { cn } from "@/lib/utils";
 import { setOpportunityStageAction } from "../ventas-actions";
 import { CotizacionTabs, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
@@ -25,6 +28,22 @@ import { OpportunityDialog, type SalesProject } from "./opportunity-dialog";
 import { ApproveDialog, LostDialog } from "./stage-dialogs";
 
 type View = "board" | "list";
+
+/** Botón cuadrado de la tarjeta (como en Programación). */
+const squareBtn = "flex size-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [&_svg]:size-3.5";
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+/** Color estable por persona (paleta del tema). */
+const personColor = (name: string) => {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `var(--project-${(h % 8) + 1})`;
+};
 const EMPTY_MOVED: ReadonlyMap<string, Stage> = new Map();
 
 /**
@@ -319,6 +338,10 @@ function OppCard({
   const amount = opportunityAmount(o);
   const alert = opportunityAlert(o, today);
   const closed = o.stage === "aprobada" || o.stage === "perdida";
+  const contact = opportunityContact(o, clients);
+  const waUrl = contact ? whatsappUrl(contact.phone, tv("wa_text", { name: contact.name.split(" ")[0], title })) : null;
+  const wa = contact && waUrl ? { name: contact.name, url: waUrl } : null;
+  const quote = o.quotes[0];
   return (
     <div
       role="button"
@@ -364,7 +387,6 @@ function OppCard({
         {o.stage === "perdida" && o.lostReason && <Badge variant="outline">{tv(`lost_${o.lostReason}`)}</Badge>}
       </div>
       <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-        {o.ownerName && <span>{o.ownerName.split(" ")[0]}</span>}
         {!closed && <span>{tv("days_in_stage", { n: daysSince(o.stageChangedAt, today) })}</span>}
         {closed && o.closedOn && <span>{formatDateCompact(lang, o.closedOn)}</span>}
         {!closed && o.dueOn && o.stage !== "enviada" && (
@@ -373,7 +395,40 @@ function OppCard({
             {tv("due_short", { d: formatDateCompact(lang, o.dueOn) })}
           </span>
         )}
+        {o.stage === "enviada" && o.nextFollowUp && (
+          <span className="flex items-center gap-0.5">
+            <CalendarClock className="size-3" />
+            {tv("follow_short", { d: formatDateCompact(lang, o.nextFollowUp) })}
+          </span>
+        )}
       </p>
+      {/* Abajo, a un toque (como en ClickUp): el responsable, WhatsApp, los archivos y la cotización. */}
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        {o.ownerName && (
+          <span
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-background"
+            style={{ backgroundColor: personColor(o.ownerName) }}
+            title={`${tv("f_owner")}: ${o.ownerName}`}
+          >
+            {initials(o.ownerName)}
+          </span>
+        )}
+        {wa && (
+          <a href={wa.url} target="_blank" rel="noopener noreferrer" draggable={false} className={squareBtn} title={tv("wa_to", { name: wa.name })} aria-label={tv("wa_to", { name: wa.name })}>
+            <WhatsAppIcon brand className="size-3.5" />
+          </a>
+        )}
+        {o.driveFolderUrl && (
+          <a href={o.driveFolderUrl} target="_blank" rel="noopener noreferrer" draggable={false} className={squareBtn} title={tv("open_files")} aria-label={tv("open_files")}>
+            <FolderOpen />
+          </a>
+        )}
+        {quote && (
+          <Link href={`/cotizacion/${quote.id}`} draggable={false} className={squareBtn} title={tv("open_quote", { n: quote.number })} aria-label={tv("open_quote", { n: quote.number })}>
+            <FileText />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

@@ -204,6 +204,8 @@ export function ScheduleView({
   async function place(p: Pick, day: string, before: string | null) {
     setPick(null);
     if (p.itemIds.length === 0) return;
+    // Un día que ya pasó no se puede programar.
+    if (day < today) return void toast.error(ti("sch_past_day"));
     const res = await planItemsAction(
       p.itemIds,
       day,
@@ -301,13 +303,13 @@ export function ScheduleView({
         showProject={project === ALL}
         when={opts.when}
         pick={pick}
-        dropActive={!!dragging && !opts.when}
+        dropActive={!!dragging && !opts.when && day >= today}
         onPick={setPick}
         onDragStart={startDrag}
         onDragEnd={endDrag}
         onDropBefore={() => dropOn(day, anchor(b))}
         onMove={
-          opts.when
+          opts.when || day < today
             ? undefined
             : (dir) => {
                 if ((dir < 0 && i === 0) || (dir > 0 && i === list.length - 1))
@@ -363,11 +365,12 @@ export function ScheduleView({
   const dayColumn = (day: string, compact: boolean) => {
     const list = blocksOf(day);
     const count = list.reduce((n, b) => n + b.schedules.length, 0);
+    const past = day < today;
     return (
       <section
         key={day}
         onDragOver={(e) => {
-          if (!dragging) return;
+          if (!dragging || past) return;
           e.preventDefault();
           setOverDay(day);
         }}
@@ -377,22 +380,23 @@ export function ScheduleView({
         }}
         onDrop={(e) => {
           e.preventDefault();
-          dropOn(day, null);
+          if (!past) dropOn(day, null);
         }}
         className={cn(
           "flex min-w-0 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors",
           day === today && "ring-2 ring-primary/40",
-          (dragging || pick) && "outline-2 outline-dashed outline-primary/30",
+          past && "bg-muted/20",
+          (dragging || pick) && !past && "outline-2 outline-dashed outline-primary/30",
           overDay === day && "bg-primary/10",
         )}
       >
         {!compact && (
           <header className="flex items-center justify-between px-1 pt-0.5 text-sm font-semibold text-foreground">
-            <span className="capitalize">{dayLabel(day)}</span>
+            <span className={cn("capitalize", past && "text-muted-foreground")}>{dayLabel(day)}</span>
             <span className="font-normal text-muted-foreground">{count}</span>
           </header>
         )}
-        {pick && (
+        {pick && !past && (
           <Button
             size="sm"
             className="w-full"
@@ -401,10 +405,13 @@ export function ScheduleView({
             {ti("sch_place_here")}
           </Button>
         )}
+        {(pick || dragging) && past && (
+          <p className="px-1 py-1 text-center text-[11px] text-muted-foreground">{ti("sch_past_short")}</p>
+        )}
         {list.map((b, i) => blockCard(b, list, i))}
         {list.length === 0 && !pick && (
           <p className="px-1 py-6 text-center text-xs text-muted-foreground">
-            {dragging ? ti("sch_drop_here") : ti("sch_day_empty")}
+            {dragging && !past ? ti("sch_drop_here") : ti("sch_day_empty")}
           </p>
         )}
       </section>
@@ -733,6 +740,7 @@ export function ScheduleView({
                 size="sm"
                 variant={day === today ? "default" : "outline"}
                 className="shrink-0 capitalize"
+                disabled={day < today}
                 onClick={() => void place(pick, day, null)}
               >
                 {dayLabel(day)}
