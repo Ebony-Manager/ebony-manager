@@ -3077,6 +3077,12 @@ export type Database = {
           },
         ]
       }
+      inspection_areas: {
+        Row: { id: string; project_id: string; name: string; created_by: string | null; created_at: string }
+        Insert: { id?: string; project_id: string; name: string; created_by?: string | null; created_at?: string }
+        Update: { id?: string; project_id?: string; name?: string; created_by?: string | null; created_at?: string }
+        Relationships: []
+      }
       inspection_schedules: {
         Row: {
           id: string; item_id: string; person_kind: string | null; person_id: string | null; person_name: string | null; scheduled_on: string
@@ -3098,6 +3104,7 @@ export type Database = {
       inspection_items: {
         Row: {
           area: string | null
+          piece: string | null
           comment: string
           created_at: string
           created_by: string | null
@@ -3114,6 +3121,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          piece?: string | null
           comment?: string
           created_at?: string
           created_by?: string | null
@@ -3130,6 +3138,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          piece?: string | null
           comment?: string
           created_at?: string
           created_by?: string | null
@@ -3274,6 +3283,14 @@ export type Database = {
       }
       schedule_inspection_items: {
         Args: { p_item_ids: string[]; p_person_kind: string; p_person_id: string; p_date: string; p_note?: string | null }
+        Returns: number
+      }
+      rename_inspection_area: {
+        Args: { p_id: string; p_name: string }
+        Returns: undefined
+      }
+      merge_inspection_areas: {
+        Args: { p_from: string; p_into: string }
         Returns: number
       }
       plan_inspection_items: {

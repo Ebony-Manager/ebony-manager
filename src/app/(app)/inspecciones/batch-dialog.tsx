@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { addInspectionItemsAction } from "./actions";
 import { DetailFields, EMPTY_META, type DetailMeta } from "./detail-fields";
-import { AreaInput, PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
+import { PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
+import { AreaPicker, PieceInput } from "./area-picker";
 import { useTi } from "./shared";
 
 interface DraftPhoto {
@@ -25,10 +26,12 @@ interface Draft {
   key: string;
   photos: DraftPhoto[];
   comment: string;
+  /** La pieza dentro del área (opcional). */
+  piece: string;
   meta: DetailMeta;
 }
 
-const newDraft = (meta: DetailMeta, photos: DraftPhoto[] = []): Draft => ({ key: crypto.randomUUID(), photos, comment: "", meta });
+const newDraft = (meta: DetailMeta, photos: DraftPhoto[] = []): Draft => ({ key: crypto.randomUUID(), photos, comment: "", piece: "", meta });
 
 /**
  * Agregar detalles de un área de una vez: el área se elige una vez; cada foto
@@ -39,14 +42,20 @@ const newDraft = (meta: DetailMeta, photos: DraftPhoto[] = []): Draft => ({ key:
  */
 export function BatchDialog({
   inspectionId,
+  projectId,
   areas,
+  pieces,
+  onAreaCreated,
   painters,
   onClose,
   onSaved,
 }: {
   /** null = cerrado. */
   inspectionId: string | null;
+  projectId: string;
   areas: string[];
+  pieces: string[];
+  onAreaCreated: (name: string) => void;
   painters: InspectionPainter[];
   onClose: () => void;
   onSaved: () => void;
@@ -112,7 +121,7 @@ export function BatchDialog({
       const prev = ds[index - 1];
       const cur = ds[index];
       const comment = [prev.comment.trim(), cur.comment.trim()].filter(Boolean).join("\n");
-      return [...ds.slice(0, index - 1), { ...prev, photos: [...prev.photos, ...cur.photos], comment }, ...ds.slice(index + 1)];
+      return [...ds.slice(0, index - 1), { ...prev, photos: [...prev.photos, ...cur.photos], comment, piece: prev.piece || cur.piece }, ...ds.slice(index + 1)];
     });
   }
 
@@ -145,7 +154,7 @@ export function BatchDialog({
       for (const d of drafts) {
         const paths = await uploadInspectionPhotos(inspectionId, d.photos.map((p) => p.blob));
         uploaded.push(...paths);
-        entries.push({ input: { area: area.trim() || null, comment: d.comment, ...d.meta }, photoPaths: paths });
+        entries.push({ input: { area: area.trim() || null, piece: d.piece.trim() || null, comment: d.comment, ...d.meta }, photoPaths: paths });
       }
       const res = await addInspectionItemsAction(inspectionId, entries);
       if (!res.ok) throw new Error(res.error);
@@ -176,8 +185,8 @@ export function BatchDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="batch-area">{ti("area_for_all")}</Label>
-          <AreaInput id="batch-area" value={area} onChange={setArea} areas={areas} />
+          <Label>{ti("area_for_all")}</Label>
+          <AreaPicker projectId={projectId} value={area} onChange={setArea} areas={areas} onCreated={onAreaCreated} />
         </div>
 
         {drafts.length === 0 ? (
@@ -235,6 +244,7 @@ export function BatchDialog({
                     <Plus className="size-4" />
                   </button>
                 </div>
+                <PieceInput size="sm" value={d.piece} onChange={(piece) => patch(d.key, { piece })} pieces={pieces} />
                 <Textarea rows={2} value={d.comment} onChange={(e) => patch(d.key, { comment: e.target.value })} placeholder={ti("f_comment_ph")} className="text-sm" />
                 <DetailFields size="sm" value={d.meta} onChange={(meta) => patch(d.key, { meta })} painters={painters} />
               </li>

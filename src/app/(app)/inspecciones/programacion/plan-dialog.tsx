@@ -173,7 +173,8 @@ export function PlanDialog({
                   {
                     id: it.id,
                     inspectionId: "",
-                    area: it.area?.trim() || ti("no_area"),
+                    area: [it.area?.trim() || ti("no_area"), it.piece].filter(Boolean).join(" · "),
+                    piece: it.piece,
                     comment: it.comment,
                     kind: it.kind,
                     painterId: null,

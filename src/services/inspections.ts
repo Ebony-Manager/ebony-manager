@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import { cleanAreaName, sameArea } from "@/lib/inspections/areas";
 import {
   INSPECTION_PHOTOS_BUCKET,
   type Inspection,
@@ -13,6 +14,7 @@ import {
   type InspectionOverview,
   type InspectionProject,
   type InspectionProjectCard,
+  type InspectionArea,
   type InspectionSchedule,
   type ScheduleBoard,
   type ScheduleOutcome,
@@ -129,7 +131,7 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
   const { data, error } = await supabase
     .from("inspections")
     .select(
-      "id, project_id, visited_on, notes, created_by_name, created_at, inspection_items(id, inspection_id, area, comment, kind, painter_id, responsible, third_party, status, resolved_at, resolved_by_name, sort_order, created_at, inspection_photos(id, path, kind, sort_order, created_at))"
+      "id, project_id, visited_on, notes, created_by_name, created_at, inspection_items(id, inspection_id, area, piece, comment, kind, painter_id, responsible, third_party, status, resolved_at, resolved_by_name, sort_order, created_at, inspection_photos(id, path, kind, sort_order, created_at))"
     )
     .eq("project_id", projectId)
     .order("visited_on", { ascending: false })
@@ -166,6 +168,7 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
       id: i.id,
       inspectionId: i.inspection_id,
       area: i.area,
+      piece: i.piece,
       comment: i.comment,
       kind: asKind(i.kind),
       painterId: i.painter_id,
@@ -224,6 +227,8 @@ export async function deleteInspection(id: string): Promise<void> {
 
 export interface InspectionItemInput {
   area: string | null;
+  /** undefined = no se toca. */
+  piece?: string | null;
   comment: string;
   kind: InspectionKind | null;
   painterId: string | null;
@@ -234,7 +239,8 @@ export interface InspectionItemInput {
 /** Las columnas de un detalle (el pintor solo en pintura; el "quién" solo con tercero). */
 function itemColumns(input: InspectionItemInput) {
   return {
-    area: input.area?.trim() || null,
+    area: input.area ? cleanAreaName(input.area) || null : null,
+    ...(input.piece !== undefined ? { piece: input.piece ? cleanAreaName(input.piece) || null : null } : {}),
     comment: input.comment.trim(),
     kind: input.kind,
     painter_id: input.kind === "pintura" ? input.painterId : null,
@@ -260,6 +266,7 @@ export async function addInspectionItems(inspectionId: string, entries: { input:
     .insert(entries.map((e, i) => ({ inspection_id: inspectionId, ...itemColumns(e.input), sort_order: start + i })))
     .select("id, sort_order");
   if (error) throw new Error(error.message);
+  await ensureAreasFor(inspectionId, entries.map((e) => e.input.area));
   const ids = [...(data ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((r) => r.id);
   for (let i = 0; i < entries.length; i++) await addInspectionPhotos(ids[i], entries[i].photoPaths, "antes");
   return ids;
@@ -267,7 +274,72 @@ export async function addInspectionItems(inspectionId: string, entries: { input:
 
 export async function updateInspectionItem(id: string, input: InspectionItemInput): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("inspection_items").update(itemColumns(input)).eq("id", id);
+  const { data, error } = await supabase.from("inspection_items").update(itemColumns(input)).eq("id", id).select("inspection_id").single();
+  if (error) throw new Error(error.message);
+  await ensureAreasFor(data.inspection_id, [input.area]);
+}
+
+// ── Áreas: la lista fija de cada obra ───────────────────────────────────
+
+/** Las áreas de una obra con cuántos detalles las usan (en orden alfabético). */
+export async function getProjectAreas(projectId: string): Promise<InspectionArea[]> {
+  const supabase = await createClient();
+  const [areas, items] = await Promise.all([
+    supabase.from("inspection_areas").select("id, name").eq("project_id", projectId),
+    supabase.from("inspection_items").select("area, inspections!inner(project_id)").eq("inspections.project_id", projectId),
+  ]);
+  if (areas.error) throw new Error(areas.error.message);
+  if (items.error) throw new Error(items.error.message);
+  const count = new Map<string, number>();
+  for (const i of items.data ?? []) {
+    const k = (i.area ?? "").trim().toLowerCase();
+    if (k) count.set(k, (count.get(k) ?? 0) + 1);
+  }
+  return (areas.data ?? [])
+    .map((a) => ({ id: a.id, name: a.name, items: count.get(a.name.trim().toLowerCase()) ?? 0 }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+/** Crea un área en la obra; si ya existe (mismo nombre sin importar mayúsculas), devuelve esa. */
+export async function createArea(projectId: string, name: string): Promise<string> {
+  const clean = cleanAreaName(name);
+  if (!clean) throw new Error("NOMBRE_VACIO");
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("inspection_areas").select("name").eq("project_id", projectId);
+  const same = sameArea(clean, (existing ?? []).map((a) => a.name));
+  if (same) return same;
+  const { error } = await supabase.from("inspection_areas").insert({ project_id: projectId, name: clean });
+  if (error) throw new Error(error.message);
+  return clean;
+}
+
+/** Al guardar detalles, su área queda en la lista de la obra (por si venía de antes). */
+async function ensureAreasFor(inspectionId: string, names: (string | null)[]) {
+  const list = [...new Set(names.map((n) => (n ? cleanAreaName(n) : "")).filter(Boolean))];
+  if (!list.length) return;
+  const supabase = await createClient();
+  const { data: insp } = await supabase.from("inspections").select("project_id").eq("id", inspectionId).single();
+  if (!insp) return;
+  for (const n of list) await createArea(insp.project_id, n);
+}
+
+export async function renameArea(id: string, name: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("rename_inspection_area", { p_id: id, p_name: cleanAreaName(name) });
+  if (error) throw new Error(error.message.includes("AREA_YA_EXISTE") ? "AREA_YA_EXISTE" : error.message);
+}
+
+export async function mergeAreas(from: string, into: string): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("merge_inspection_areas", { p_from: from, p_into: into });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}
+
+/** Borra un área sin detalles. */
+export async function deleteArea(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("inspection_areas").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -347,7 +419,7 @@ const mapSchedule = (r: ScheduleRow): InspectionSchedule => ({
 export async function getScheduleBoard(from: string, to: string, since: string): Promise<ScheduleBoard> {
   const supabase = await createClient();
   const itemSelect =
-    "id, area, comment, kind, responsible, third_party, status, created_at, inspections!inner(project_id, visited_on), inspection_photos(id, path, kind, sort_order, created_at)";
+    "id, area, piece, comment, kind, responsible, third_party, status, created_at, inspections!inner(project_id, visited_on), inspection_photos(id, path, kind, sort_order, created_at)";
   const [people, projects, pending, schedules] = await Promise.all([
     supabase.rpc("inspection_people"),
     getInspectionProjects(),
@@ -399,6 +471,7 @@ export async function getScheduleBoard(from: string, to: string, since: string):
         projectName: project?.name ?? "—",
         location: project?.location ?? null,
         area: i.area,
+        piece: i.piece,
         comment: i.comment,
         kind: asKind(i.kind),
         responsible: i.responsible === "tercero" ? "tercero" : "ebony",

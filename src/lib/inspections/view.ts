@@ -101,6 +101,21 @@ export function countItems(inspections: readonly Inspection[]): { pending: numbe
 }
 
 /** Áreas para sugerir al escribir: las ya usadas en el proyecto primero, luego las de siempre. */
+/** Las piezas ya anotadas en la obra (para sugerirlas), sin repetir. */
+export function pieceSuggestions(inspections: readonly Inspection[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of inspections)
+    for (const i of v.items) {
+      const p = i.piece?.trim();
+      const key = normalizeSearchText(p);
+      if (!p || seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+  return out.sort((a, b) => a.localeCompare(b, "es"));
+}
+
 export function areaSuggestions(inspections: readonly Inspection[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];

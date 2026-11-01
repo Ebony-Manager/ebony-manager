@@ -7,7 +7,6 @@ import { Camera, Loader2, X } from "lucide-react";
 import { INSPECTION_PHOTOS_BUCKET, type InspectionItem, type InspectionPainter } from "@/types/inspections";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
@@ -16,7 +15,7 @@ import { inspectionPhotoPath } from "@/lib/inspections/view";
 import { deleteInspectionPhotoAction, updateInspectionItemAction } from "./actions";
 import { DetailFields, EMPTY_META, type DetailMeta } from "./detail-fields";
 import { useTi } from "./shared";
-import { matchesSearch, normalizeSearchText } from "@/lib/search";
+import { AreaPicker, PieceInput } from "./area-picker";
 
 /** Lado máximo de las fotos: se ve el detalle sin subir los MB del celular. */
 export const PHOTO_MAX_SIDE = 1600;
@@ -50,43 +49,25 @@ export async function discardUploaded(paths: string[]) {
   if (paths.length) await createClient().storage.from(INSPECTION_PHOTOS_BUCKET).remove(paths);
 }
 
-/** Área: campo de texto con sugerencias a un toque (las del proyecto primero). */
-export function AreaInput({ id, value, onChange, areas }: { id: string; value: string; onChange: (v: string) => void; areas: string[] }) {
-  const { ti } = useTi();
-  const typed = normalizeSearchText(value);
-  const suggestions = areas.filter((area) => normalizeSearchText(area) !== typed && (!typed || matchesSearch(area, typed))).slice(0, 8);
-  return (
-    <>
-      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={ti("f_area_ph")} autoComplete="off" />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onChange(s)}
-              className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground active:bg-muted"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
 /** Editar un detalle: fotos, área, comentario, tipo, pintor y responsable. */
 export function ItemDialog({
   item,
+  projectId,
   areas,
+  pieces,
+  onAreaCreated,
   painters,
   onClose,
   onSaved,
 }: {
   /** null = cerrado. */
   item: InspectionItem | null;
+  projectId: string;
+  /** La lista fija de áreas de la obra. */
   areas: string[];
+  /** Piezas ya usadas en la obra (sugerencias). */
+  pieces: string[];
+  onAreaCreated: (name: string) => void;
   painters: InspectionPainter[];
   onClose: () => void;
   onSaved: () => void;
@@ -95,6 +76,7 @@ export function ItemDialog({
   const { ti } = useTi();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [area, setArea] = React.useState("");
+  const [piece, setPiece] = React.useState("");
   const [comment, setComment] = React.useState("");
   const [meta, setMeta] = React.useState<DetailMeta>(EMPTY_META);
   const [photos, setPhotos] = React.useState<NewPhoto[]>([]);
@@ -104,6 +86,7 @@ export function ItemDialog({
 
   const reset = React.useCallback((it: InspectionItem | null) => {
     setArea(it?.area ?? "");
+    setPiece(it?.piece ?? "");
     setComment(it?.comment ?? "");
     setMeta(it ? { kind: it.kind, painterId: it.painterId, responsible: it.responsible, thirdParty: it.thirdParty } : EMPTY_META);
     setPhotos((ps) => {
@@ -154,7 +137,7 @@ export function ItemDialog({
     let uploaded: string[] = [];
     try {
       uploaded = await uploadInspectionPhotos(item.inspectionId, photos.map((p) => p.blob));
-      const res = await updateInspectionItemAction(item.id, { area: area.trim() || null, comment, ...meta }, uploaded);
+      const res = await updateInspectionItemAction(item.id, { area: area.trim() || null, piece: piece.trim() || null, comment, ...meta }, uploaded);
       if (!res.ok) throw new Error(res.error);
       for (const id of removed) await deleteInspectionPhotoAction(id);
       toast.success(ti("saved"));
@@ -212,8 +195,15 @@ export function ItemDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="insp-area">{ti("f_area")}</Label>
-            <AreaInput id="insp-area" value={area} onChange={setArea} areas={areas} />
+            <Label>{ti("f_area")}</Label>
+            <AreaPicker projectId={projectId} value={area} onChange={setArea} areas={areas} onCreated={onAreaCreated} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="insp-piece">
+              {ti("f_piece")} <span className="font-normal text-muted-foreground">({ti("optional")})</span>
+            </Label>
+            <PieceInput id="insp-piece" value={piece} onChange={setPiece} pieces={pieces} />
           </div>
 
           <div className="flex flex-col gap-1.5">

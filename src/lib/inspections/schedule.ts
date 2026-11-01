@@ -217,7 +217,7 @@ export function planText(
       for (const note of notes) lines.push(`  _${note}_`);
       b.schedules.forEach((s, k) => {
         const item = items.get(s.itemId);
-        if (item) lines.push(`${b.numbers[k]}. ${item.comment.trim()}`);
+        if (item) lines.push(`${b.numbers[k]}. ${item.piece ? `${item.piece}: ` : ""}${item.comment.trim()}`);
       });
     }
   }

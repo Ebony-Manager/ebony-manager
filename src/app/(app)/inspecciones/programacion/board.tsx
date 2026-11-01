@@ -323,6 +323,11 @@ export function Tray({
                                 <Thumb item={it} className="size-9" />
                                 <span className="min-w-0 flex-1">
                                   <span className="line-clamp-2 text-xs text-foreground">
+                                    {it.piece && (
+                                      <span className="font-semibold">
+                                        {it.piece}:{" "}
+                                      </span>
+                                    )}
                                     {it.comment || ti("no_comment")}
                                   </span>
                                   <DetailTags
@@ -768,6 +773,9 @@ export function BlockCard({
                 </span>
                 <Thumb item={it} className="size-8" />
                 <span className="line-clamp-3 min-w-0 flex-1 text-[11.5px] leading-snug break-words text-foreground">
+                  {it?.piece && (
+                    <span className="font-semibold">{it.piece}: </span>
+                  )}
                   {it?.comment || ti("no_comment")}
                 </span>
                 {isOpen && (
@@ -867,6 +875,9 @@ export function BlockDetailDialog({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm break-words text-foreground">
+                        {it?.piece && (
+                          <span className="font-semibold">{it.piece}: </span>
+                        )}
                         {it?.comment || ti("no_comment")}
                       </span>
                       {it && (

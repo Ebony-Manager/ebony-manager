@@ -32,6 +32,8 @@ export interface InspectionItem {
   id: string;
   inspectionId: string;
   area: string | null;
+  /** La pieza dentro del área (Mueble TV, Puerta oculta…); opcional. */
+  piece: string | null;
   comment: string;
   kind: InspectionKind | null;
   /** El pintor que lo arregla (el que pintó ese mueble); solo en pintura. */
@@ -97,6 +99,7 @@ export interface ScheduleItem {
   projectName: string;
   location: string | null;
   area: string | null;
+  piece: string | null;
   comment: string;
   kind: InspectionKind | null;
   responsible: InspectionResponsible;
@@ -113,6 +116,13 @@ export interface ScheduleBoard {
   items: ScheduleItem[];
   /** Las abiertas (de cualquier día) y todas las de la semana, más las de los últimos 30 días (cumplimiento). */
   schedules: InspectionSchedule[];
+}
+
+/** Un área de la lista fija de una obra, con cuántos detalles la usan. */
+export interface InspectionArea {
+  id: string;
+  name: string;
+  items: number;
 }
 
 /** Lo que quien inspecciona ve de un proyecto (sin montos). */

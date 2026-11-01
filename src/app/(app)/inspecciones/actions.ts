@@ -99,3 +99,30 @@ export async function unplanItemsAction(itemIds: string[]) {
   await requireModule("inspecciones");
   return run(() => inspections.unplanItems(itemIds));
 }
+
+// ── Áreas de la obra ────────────────────────────────────────────────────
+
+export async function listAreasAction(projectId: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.getProjectAreas(projectId));
+}
+
+export async function createAreaAction(projectId: string, name: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.createArea(projectId, name));
+}
+
+export async function renameAreaAction(id: string, name: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.renameArea(id, name));
+}
+
+export async function mergeAreasAction(from: string, into: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.mergeAreas(from, into));
+}
+
+export async function deleteAreaAction(id: string) {
+  await requireModule("inspecciones");
+  return run(() => inspections.deleteArea(id));
+}

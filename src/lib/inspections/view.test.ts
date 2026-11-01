@@ -6,6 +6,7 @@ import { DEFAULT_FILTERS, areaSuggestions, countItems, groupItems, hasExtraFilte
 const item = (id: string, area: string | null, status: InspectionItem["status"], extra: Partial<InspectionItem> = {}): InspectionItem => ({
   id,
   inspectionId: "",
+  piece: null,
   area,
   comment: id,
   kind: null,

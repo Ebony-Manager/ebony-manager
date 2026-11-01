@@ -40,7 +40,7 @@ describe("programación", () => {
   });
 
   const item = (id: string, area: string | null, comment: string, p: Partial<ScheduleItem> = {}): ScheduleItem => ({
-    id, projectId: "p", projectName: "Nómada – Golden Palace", location: null, area, comment,
+    id, projectId: "p", projectName: "Nómada – Golden Palace", location: null, area, piece: null, comment,
     kind: "pintura", responsible: "ebony", thirdParty: null, status: "pendiente", visitedOn: "2026-10-30",
     createdAt: `2026-10-30T10:00:0${id.length}Z`, photos: [], ...p,
   });

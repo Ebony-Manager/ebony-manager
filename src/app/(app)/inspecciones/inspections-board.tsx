@@ -3,9 +3,9 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { CalendarClock, Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, MapPinned, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
 
-import type { Inspection, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
+import type { Inspection, InspectionArea, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,13 +15,14 @@ import { EmptyState } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { RowMenu } from "@/components/shared/row-menu";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
-import { DEFAULT_FILTERS, areaSuggestions, countItems, groupItems, hasExtraFilters, type GroupBy, type ItemFilters, type ItemGroup } from "@/lib/inspections/view";
+import { DEFAULT_FILTERS, countItems, pieceSuggestions, groupItems, hasExtraFilters, type GroupBy, type ItemFilters, type ItemGroup } from "@/lib/inspections/view";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { addInspectionPhotosAction, deleteInspectionAction, deleteInspectionItemAction, setInspectionItemStatusAction } from "./actions";
+import { addInspectionPhotosAction, deleteInspectionAction, deleteInspectionItemAction, listAreasAction, setInspectionItemStatusAction } from "./actions";
 import { BatchDialog } from "./batch-dialog";
+import { AreasDialog } from "./areas-dialog";
 import { DetailTags, KIND_KEY, useDetailLine } from "./detail-fields";
 import type { InspectionPdfGroup } from "./inspection-pdf";
 import { ItemDialog, PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
@@ -68,7 +69,22 @@ export function InspectionsBoard({
   }, [startNew, router]);
 
   const counts = countItems(inspections);
-  const areas = React.useMemo(() => areaSuggestions(inspections), [inspections]);
+  // La lista fija de áreas de la obra (y las piezas ya usadas, como sugerencia).
+  const [areaList, setAreaList] = React.useState<InspectionArea[]>([]);
+  const [areasOpen, setAreasOpen] = React.useState(false);
+  const loadAreas = React.useCallback(async () => {
+    const res = await listAreasAction(project.id);
+    if (res.ok) setAreaList(res.data);
+  }, [project.id]);
+  // Se recarga cuando cambian los detalles (un área nueva al guardar).
+  /* eslint-disable react-hooks/set-state-in-effect -- carga desde el servidor. */
+  React.useEffect(() => {
+    void loadAreas();
+  }, [loadAreas, inspections]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  const areas = areaList.map((a) => a.name);
+  const pieces = React.useMemo(() => pieceSuggestions(inspections), [inspections]);
+  const onAreaCreated = (name: string) => setAreaList((l) => (l.some((a) => a.name === name) ? l : [...l, { id: name, name, items: 0 }].sort((a, b) => a.name.localeCompare(b.name, "es"))));
   const groups = React.useMemo(() => groupItems(inspections, filters, groupBy), [inspections, filters, groupBy]);
   const shownIds = groups.flatMap((g) => g.items.map((i) => i.id));
   const refresh = () => router.refresh();
@@ -104,7 +120,7 @@ export function InspectionsBoard({
         title: groupTitle(g, true),
         items: g.items
           .filter((i) => !only || only.has(i.id))
-          .map((i) => ({ ...i, meta: detailLine(i) || undefined, visitLabel: groupBy === "visita" ? undefined : ti("pdf_visit", { date: date(i.visitedOn) }) })),
+          .map((i) => ({ ...i, area: [i.area?.trim() || null, i.piece].filter(Boolean).join(" · ") || null, meta: detailLine(i) || undefined, visitLabel: groupBy === "visita" ? undefined : ti("pdf_visit", { date: date(i.visitedOn) }) })),
       }))
       .filter((g) => g.items.length > 0);
     setPdf({ groups: pdfGroups, lines: viewLines(!!only) });
@@ -165,6 +181,7 @@ export function InspectionsBoard({
             <FiltersButton filters={filters} counts={counts} painters={painters} onChange={setFilter} onClear={() => setFilters(DEFAULT_FILTERS)} />
             <IconAction label={ti("select")} icon={CheckSquare} disabled={shownIds.length === 0} onClick={() => setSelected(new Set())} />
             <IconAction label={ti("pdf")} icon={FileDown} disabled={shownIds.length === 0} onClick={() => openPdf()} />
+            <IconAction label={ti("areas_title")} icon={MapPinned} onClick={() => setAreasOpen(true)} />
             <Button size="sm" className="hidden sm:inline-flex" onClick={() => setVisitDialog({ visit: null })}>
               <Plus className="size-4" />
               {ti("new_visit")}
@@ -311,8 +328,18 @@ export function InspectionsBoard({
         onSaved={refresh}
         onCreated={(id) => setBatchFor(id)}
       />
-      <BatchDialog inspectionId={batchFor} areas={areas} painters={painters} onClose={() => setBatchFor(null)} onSaved={refresh} />
-      <ItemDialog item={editing} areas={areas} painters={painters} onClose={() => setEditing(null)} onSaved={refresh} />
+      <BatchDialog inspectionId={batchFor} projectId={project.id} areas={areas} pieces={pieces} onAreaCreated={onAreaCreated} painters={painters} onClose={() => setBatchFor(null)} onSaved={refresh} />
+      <ItemDialog item={editing} projectId={project.id} areas={areas} pieces={pieces} onAreaCreated={onAreaCreated} painters={painters} onClose={() => setEditing(null)} onSaved={refresh} />
+      <AreasDialog
+        open={areasOpen}
+        projectId={project.id}
+        areas={areaList}
+        onClose={() => setAreasOpen(false)}
+        onChanged={() => {
+          void loadAreas();
+          refresh();
+        }}
+      />
       <PdfDialog draft={pdf} onClose={() => setPdf(null)} project={project} />
       <PhotoViewer photos={viewer?.photos ?? []} index={viewer?.index ?? null} onIndex={(i) => setViewer((v) => (v && i !== null ? { ...v, index: i } : null))} />
     </div>
@@ -591,9 +618,10 @@ function ItemCard({
       </div>
 
       <button type="button" onClick={() => onEdit(item)} className="flex flex-1 flex-col gap-0.5 px-2.5 pt-2 pb-1.5 text-left">
-        {(showArea || visitLabel) && (
+        {(showArea || visitLabel || item.piece) && (
           <span className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-tight font-semibold text-foreground">
             {showArea && (item.area || <span className="font-normal text-muted-foreground">{ti("no_area")}</span>)}
+            {item.piece && <span className={showArea ? "text-[12px] font-medium text-muted-foreground" : ""}>{showArea ? `· ${item.piece}` : item.piece}</span>}
             {visitLabel && <span className="text-[11px] font-normal text-muted-foreground">{visitLabel}</span>}
           </span>
         )}
