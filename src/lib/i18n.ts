@@ -2932,6 +2932,8 @@ export const strings = {
     sch_kpi_unassigned: { es: "{n} sin asignar", en: "{n} unassigned" },
     sch_mobile_tray: { es: "Por programar ({n})", en: "To schedule ({n})" },
     sch_open_big: { es: "Ver en grande", en: "View large" },
+    sch_clear_n: { es: "Limpiar programación ({n})", en: "Clear schedule ({n})" },
+    sch_clear_q: { es: "¿Quitar los {n}? Toca otra vez", en: "Remove all {n}? Tap again" },
     sch_state_hecho: { es: "Hecho", en: "Done" },
     sch_state_vencido: { es: "Vencido", en: "Overdue" },
     sch_note_title: { es: "Nota para ese día", en: "Note for that day" },

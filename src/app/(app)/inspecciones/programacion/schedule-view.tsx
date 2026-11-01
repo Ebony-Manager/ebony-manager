@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
+  Eraser,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
@@ -21,6 +22,7 @@ import type {
   ScheduleItem,
 } from "@/types/inspections";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/shared/confirm-button";
 import {
   Select,
   SelectContent,
@@ -138,6 +140,8 @@ export function ScheduleView({
       personOk(s) &&
       itemOk(itemById.get(s.itemId)),
   );
+  // Limpiar: todo lo programado y abierto (de cualquier día) que entra en los filtros; lo hecho queda.
+  const clearable = open.filter((s) => personOk(s) && itemOk(itemById.get(s.itemId)));
   const overdue = open.filter(
     (s) => s.date < today && personOk(s) && itemOk(itemById.get(s.itemId)),
   );
@@ -555,6 +559,15 @@ export function ScheduleView({
             <UserRound className="size-3.5" />
             {ti("sch_assign_n", { n: unassigned.length })}
           </Button>
+        )}
+        {clearable.length > 0 && (
+          <ConfirmButton
+            className={unassigned.length > 0 ? undefined : "ml-auto"}
+            icon={Eraser}
+            label={ti("sch_clear_n", { n: clearable.length })}
+            confirmLabel={ti("sch_clear_q", { n: clearable.length })}
+            onConfirm={() => void remove(clearable.map((s) => s.itemId))}
+          />
         )}
       </ListToolbar>
       {defaultPerson && (
