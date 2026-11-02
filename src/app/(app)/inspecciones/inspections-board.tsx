@@ -704,7 +704,7 @@ function PhotoCarousel({
           <button key={p.id} type="button" onClick={() => onOpen(i)} className="relative h-full w-full min-w-full shrink-0 snap-center overflow-hidden">
             {p.url ? (
               // eslint-disable-next-line @next/next/no-img-element -- URL firmada del bucket privado
-              <img src={p.url} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${dimmed ? "opacity-75" : ""}`} />
+              <img src={p.thumb ?? p.url} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${dimmed ? "opacity-75" : ""}`} />
             ) : (
               <ImageOff className="absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
             )}

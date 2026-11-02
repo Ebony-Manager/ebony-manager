@@ -169,7 +169,7 @@ export function ItemDialog({
             <Label>{ti("f_photos")}</Label>
             <div className="flex flex-wrap gap-2">
               {existing.map((p) => (
-                <Thumb key={p.id} url={p.url} after={p.kind === "despues"} onRemove={() => setRemoved((r) => [...r, p.id])} />
+                <Thumb key={p.id} url={p.thumb ?? p.url} after={p.kind === "despues"} onRemove={() => setRemoved((r) => [...r, p.id])} />
               ))}
               {photos.map((p) => (
                 <Thumb

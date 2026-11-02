@@ -24,8 +24,10 @@ export interface InspectionPhoto {
   id: string;
   path: string;
   kind: InspectionPhotoKind;
-  /** URL firmada (1 h); null si no se pudo firmar. */
+  /** Dirección fija de la foto completa (ver src/lib/photo-url.ts). */
   url: string | null;
+  /** La misma foto en miniatura (para tarjetas y listas). */
+  thumb?: string | null;
 }
 
 export interface InspectionItem {

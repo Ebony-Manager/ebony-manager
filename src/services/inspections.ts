@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { cleanAreaName, sameArea } from "@/lib/inspections/areas";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
 import {
   INSPECTION_PHOTOS_BUCKET,
   type Inspection,
@@ -98,13 +99,8 @@ export async function getInspectionOverview(recentLimit = 10): Promise<Inspectio
     };
   });
 
-  const paths = [...new Set([...cardList, ...recent].map((x) => x.thumbPath).filter((p): p is string => !!p))];
-  const urls = new Map<string, string>();
-  if (paths.length) {
-    const signed = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).createSignedUrls(paths, 3600);
-    for (const d of signed.data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
-  }
-  const url = (p: string | null) => (p ? urls.get(p) ?? null : null);
+  // Dirección fija y en miniatura: el navegador la guarda (ver src/lib/photo-url.ts).
+  const url = (p: string | null) => (p ? photoUrl(INSPECTION_PHOTOS_BUCKET, p, THUMB_WIDTH) : null);
 
   return {
     projects: cardList
@@ -139,12 +135,6 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
-  const paths = rows.flatMap((v) => (v.inspection_items ?? []).flatMap((i) => (i.inspection_photos ?? []).map((p) => p.path)));
-  const urls = new Map<string, string>();
-  if (paths.length > 0) {
-    const signed = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).createSignedUrls(paths, 3600);
-    for (const d of signed.data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
-  }
 
   const byOrder = <T extends { sort_order: number; created_at: string }>(a: T, b: T) =>
     a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at);
@@ -184,7 +174,8 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
         id: p.id,
         path: p.path,
         kind: p.kind === "despues" ? "despues" : "antes",
-        url: urls.get(p.path) ?? null,
+        url: photoUrl(INSPECTION_PHOTOS_BUCKET, p.path),
+        thumb: photoUrl(INSPECTION_PHOTOS_BUCKET, p.path, THUMB_WIDTH),
       })),
     })),
   }));
@@ -452,12 +443,6 @@ export async function getScheduleBoard(from: string, to: string, since: string):
     [...(i.inspection_photos ?? [])]
       .filter((p) => p.kind !== "despues")
       .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
-  const paths = itemRows.flatMap((i) => before(i).map((p) => p.path));
-  const urls = new Map<string, string>();
-  if (paths.length) {
-    const signed = await supabase.storage.from(INSPECTION_PHOTOS_BUCKET).createSignedUrls(paths, 3600);
-    for (const d of signed.data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
-  }
 
   const projectById = new Map(projects.map((p) => [p.id, p]));
   const insp = (i: (typeof itemRows)[number]) => (Array.isArray(i.inspections) ? i.inspections[0] : i.inspections) as { project_id: string; visited_on: string };
@@ -479,7 +464,7 @@ export async function getScheduleBoard(from: string, to: string, since: string):
         status: i.status === "resuelto" ? "resuelto" : "pendiente",
         visitedOn: insp(i).visited_on,
         createdAt: i.created_at,
-        photos: before(i).map((p) => ({ id: p.id, path: p.path, kind: "antes" as const, url: urls.get(p.path) ?? null })),
+        photos: before(i).map((p) => ({ id: p.id, path: p.path, kind: "antes" as const, url: photoUrl(INSPECTION_PHOTOS_BUCKET, p.path), thumb: photoUrl(INSPECTION_PHOTOS_BUCKET, p.path, THUMB_WIDTH) })),
       };
     }),
     schedules: scheduleRows,

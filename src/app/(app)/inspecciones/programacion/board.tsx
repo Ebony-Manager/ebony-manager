@@ -74,7 +74,7 @@ function Thumb({
   item: ScheduleItem | undefined;
   className?: string;
 }) {
-  const url = item?.photos[0]?.url;
+  const url = item?.photos[0]?.thumb ?? item?.photos[0]?.url;
   return url ? (
     // eslint-disable-next-line @next/next/no-img-element -- foto firmada del detalle.
     <img
@@ -869,10 +869,10 @@ export function BlockDetailDialog({
                           }
                           className="overflow-hidden rounded-md"
                         >
-                          {ph.url ? (
+                          {ph.thumb ?? ph.url ? (
                             // eslint-disable-next-line @next/next/no-img-element -- foto firmada del detalle.
                             <img
-                              src={ph.url}
+                              src={ph.thumb ?? ph.url ?? undefined}
                               alt=""
                               loading="lazy"
                               className="aspect-square w-full object-cover"

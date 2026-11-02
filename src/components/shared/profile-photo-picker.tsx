@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 
@@ -77,8 +78,7 @@ export function ProfilePhotoPicker({
       if (error) throw error;
       await savePath(path);
       if (currentPath) await supabase.storage.from(bucket).remove([currentPath]);
-      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-      onPhotoChange(data?.signedUrl ?? null, path);
+      onPhotoChange(photoUrl(bucket, path, THUMB_WIDTH), path);
       toast.success(tt("photo_saved"));
     } catch (err) {
       console.error("No se pudo guardar la foto", err);
