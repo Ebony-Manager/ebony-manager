@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { getEmployeePhotoUrls, getPayrollEmployees } from "@/services/payroll-employees";
-import { getContracts, getContractors, getContractorsDashboardInput, getLaborRates, getProjects } from "@/services/contractors";
+import { getContracts, getContractors, getLaborRates, getProjects } from "@/services/contractors";
 import { getPendingMoneyRequests } from "@/services/money-requests";
 import { PagosClient } from "./pagos-client";
 
@@ -24,7 +24,9 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
   if (!canEmployees && !canContractors) redirect("/personal/asistencia");
   const { tab } = await searchParams;
 
-  const [employees, moneyRequests, contractors, contracts, projects, laborRates, contractorsDashboard] = await Promise.all([
+  // El historial de contratistas (Préstamos y Saldos) no se baja acá: la
+  // pantalla lo pide solo al abrir esas pestañas (ver ./actions.ts).
+  const [employees, moneyRequests, contractors, contracts, projects, laborRates] = await Promise.all([
     canEmployees ? getPayrollEmployees() : none([]),
     canEmployees || canContractors ? getPendingMoneyRequests() : none([]),
     // Para la bandeja de solicitudes de dinero (Préstamos).
@@ -32,7 +34,6 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
     canContractors ? getContracts() : none([]),
     canContractors ? getProjects() : none([]),
     canContractors ? getLaborRates() : none([]),
-    canContractors ? getContractorsDashboardInput() : none(null),
   ]);
   const photoUrls = canEmployees ? await getEmployeePhotoUrls(employees) : {};
 
@@ -49,7 +50,6 @@ export default async function PagosPage({ searchParams }: { searchParams: Promis
       contracts={contracts}
       projects={projects}
       laborRates={laborRates}
-      contractorsDashboard={contractorsDashboard}
     />
   );
 }

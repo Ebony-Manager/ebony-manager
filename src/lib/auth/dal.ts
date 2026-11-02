@@ -18,16 +18,27 @@ export type Profile = Omit<Database["public"]["Tables"]["profiles"]["Row"], "rol
 };
 
 /**
- * The authenticated Supabase user, or null. Uses getUser() (not
- * getSession()) so the token is verified against the Auth server on every
- * call. `cache` dedupes it within a single request.
+ * The authenticated Supabase user, or null. Uses getClaims(): the session
+ * token's signature is verified here (asymmetric ES256 keys, public keys
+ * cached), without asking the Auth server on every render — that used to cost
+ * ~17,000 requests a day of Supabase traffic. Removed users still lose access:
+ * their profile row is gone (see getProfile). `cache` dedupes it within a
+ * single request. Only id, email and metadata are filled in.
  */
 export const getUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ?? null;
+  const { data, error } = await supabase.auth.getClaims();
+  const c = data?.claims;
+  if (error || !c?.sub) return null;
+  return {
+    id: c.sub,
+    email: typeof c.email === "string" ? c.email : undefined,
+    user_metadata: (c.user_metadata as User["user_metadata"]) ?? {},
+    app_metadata: (c.app_metadata as User["app_metadata"]) ?? {},
+    aud: typeof c.aud === "string" ? c.aud : "authenticated",
+    role: typeof c.role === "string" ? c.role : undefined,
+    created_at: "",
+  } as User;
 });
 
 /** Redirects to /login when there is no session. Returns the user otherwise. */

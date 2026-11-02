@@ -41,11 +41,14 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: no code between createServerClient and getUser() — a stray
+  // IMPORTANT: no code between createServerClient and getClaims() — a stray
   // await here is a classic cause of random logouts.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifica la firma del token aquí mismo (llaves asimétricas
+  // ES256, con las llaves públicas en caché) y lo renueva si venció: no le
+  // pregunta a Supabase en cada clic como getUser(), que gastaba tráfico
+  // (~17,000 consultas al día).
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PREFIXES.some(

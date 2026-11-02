@@ -33,6 +33,7 @@ import { ChargesListView } from "./charges-list-view";
 import { ContractsView } from "../../contratistas/contracts-view";
 import { LaborRatesView } from "../../contratistas/labor-rates-view";
 import type { ContractorsDashboardInput } from "../../contratistas/contractors-dashboard-view";
+import { getContractorsDashboardAction } from "./actions";
 
 type PagosTab = "asistencia" | "quincena" | "contratistas" | "prestamos" | "historial" | "contratos";
 /** Préstamos: además de Taller / Administrativo, los de contratistas. */
@@ -67,7 +68,6 @@ export function PagosClient({
   contracts,
   projects,
   laborRates,
-  contractorsDashboard,
 }: {
   initialTab: string | undefined;
   canEmployees: boolean;
@@ -81,7 +81,6 @@ export function PagosClient({
   contracts: ContractorContract[];
   projects: Project[];
   laborRates: LaborRate[];
-  contractorsDashboard: ContractorsDashboardInput | null;
 }) {
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
@@ -126,6 +125,9 @@ export function PagosClient({
   const [ratesOpen, setRatesOpen] = React.useState(false);
   const [contractAddOpen, setContractAddOpen] = React.useState(false);
   const [contractorsView, setContractorsView] = React.useState<"cierre" | "saldos">("cierre");
+  // El historial de contratistas se pide solo al abrir Préstamos o Saldos (y
+  // otra vez tras un cambio), no con cada carga de Pagos: ahorra tráfico.
+  const [contractorsDashboard, setContractorsDashboard] = React.useState<ContractorsDashboardInput | null>(null);
   const [chargeType, setChargeType] = React.useState<ChargeTypeFilter>("all");
   const [addChargeOpen, setAddChargeOpen] = React.useState(false);
   const router = useRouter();
@@ -134,12 +136,23 @@ export function PagosClient({
     () =>
       [
         ...employees.filter((e) => e.status === "ACTIVE").map((e) => ({ kind: "employee" as const, id: e.id, name: e.name })),
-        ...(contractorsDashboard?.contractors ?? [])
-          .filter((c) => c.status === "ACTIVE")
-          .map((c) => ({ kind: "contractor" as const, id: c.id, name: c.name })),
+        ...contractors.filter((c) => c.status === "ACTIVE").map((c) => ({ kind: "contractor" as const, id: c.id, name: c.name })),
       ].sort((a, b) => a.name.localeCompare(b.name, "es")),
-    [employees, contractorsDashboard]
+    [employees, contractors]
   );
+  const needsDashboard = canContractors && (tab === "prestamos" || (tab === "contratistas" && contractorsView === "saldos"));
+  // Se pide al entrar a Préstamos o Saldos y otra vez tras cada cambio (así
+  // los saldos nunca quedan viejos), pero no con cada carga de Pagos.
+  React.useEffect(() => {
+    if (!needsDashboard) return;
+    let alive = true;
+    void getContractorsDashboardAction()
+      .then((d) => alive && setContractorsDashboard(d))
+      .catch((err) => console.error("No se pudo cargar el historial de contratistas", err));
+    return () => {
+      alive = false;
+    };
+  }, [needsDashboard, registroReload]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
   React.useEffect(() => {
@@ -280,7 +293,11 @@ export function PagosClient({
                   {contractorsView === "cierre" ? (
                     <ContractorClosingView />
                   ) : (
-                    contractorsDashboard && <ContractorBalancesView input={contractorsDashboard} />
+                    contractorsDashboard ? (
+                      <ContractorBalancesView input={contractorsDashboard} />
+                    ) : (
+                      <p className="py-8 text-center text-sm text-muted-foreground">{tg("loading")}</p>
+                    )
                   )}
                 </div>
               </TabsContent>

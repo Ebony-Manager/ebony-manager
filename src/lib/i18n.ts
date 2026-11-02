@@ -276,6 +276,7 @@ export const strings = {
   // Personal → Pagos: todo lo que se le paga al personal, en pestañas.
   pagos: {
     title: { es: "Pagos", en: "Payments" },
+    loading: { es: "Cargando…", en: "Loading…" },
     tab_asistencia: { es: "Asistencia", en: "Attendance" },
     tab_quincena: { es: "Quincena", en: "Pay period" },
     tab_contratistas: { es: "Contratistas", en: "Contractors" },
