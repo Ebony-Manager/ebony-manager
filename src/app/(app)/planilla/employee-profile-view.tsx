@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { LogOut, Pencil, Settings, Trash2, UserCheck, UserX } from "lucide-react";
+import { LogOut, Pencil, Settings, Trash2, UserCheck } from "lucide-react";
 
 import type { ComponentProps } from "react";
 
@@ -169,14 +169,17 @@ export function EmployeeProfileView({
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {/* Dar de baja: último día trabajado (y liquidación de prestaciones si las tiene) + inactivo, en un paso. */}
                 <DropdownMenuItem onSelect={() => window.setTimeout(() => setLiqOpen(true), 0)}>
                   <LogOut className="size-3.5" />
-                  {employee.endDate ? tt("liq_edit") : tt("liq_mark")}
+                  {isInactive ? tt("off_edit") : tt("off_title")}
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={togglingStatus} onSelect={() => toggleStatus()}>
-                  {isInactive ? <UserCheck className="size-3.5" /> : <UserX className="size-3.5" />}
-                  {isInactive ? tt("reactivate") : tt("mark_inactive")}
-                </DropdownMenuItem>
+                {isInactive && (
+                  <DropdownMenuItem disabled={togglingStatus} onSelect={() => toggleStatus()}>
+                    <UserCheck className="size-3.5" />
+                    {tt("reactivate")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"

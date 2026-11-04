@@ -8,16 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { updateEmployeeAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
 
 /**
- * Marca (o edita) la liquidación de un empleado: la fecha exacta en que
- * se saldaron las prestaciones (Décimo/Vacación/Prima) + notas de esa
- * liquidación. NUNCA toca `status` — liquidar no siempre significa que
- * la persona dejó de trabajar (portado de Atlas: el activar/desactivar
- * es un botón aparte). `endDate` es solo el ancla de reinicio de los
- * acumulados.
+ * Dar de baja a un empleado (o editar su baja): el último día que trabajó y
+ * notas. Queda inactivo con esa fecha en `endDate`, que es a la vez:
+ *  - el último día trabajado (asistencia y quincena: lo de después no son faltas),
+ *  - la fecha de liquidación de sus prestaciones, si las tiene (Décimo,
+ *    Vacación y Prima de Antigüedad se calculan hasta ahí y vuelven a cero).
+ * Ya no se liquida a alguien que sigue trabajando (decisión de Ebony).
  */
 export function LiquidationDialog({
   employee,
@@ -30,7 +31,9 @@ export function LiquidationDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
-  const isEditing = employee.endDate !== null;
+  // Editar = ya está de baja (inactivo con fecha).
+  const isEditing = employee.status === "INACTIVE" && employee.endDate !== null;
+  const hasBenefits = employee.benefitsEnabled && !employee.benefitsExternalCompany;
 
   const [endDate, setEndDate] = React.useState("");
   const [notes, setNotes] = React.useState("");
@@ -40,7 +43,7 @@ export function LiquidationDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el empleado cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setEndDate(employee.endDate ?? "");
+    setEndDate(employee.status === "INACTIVE" && employee.endDate ? employee.endDate : todayInPanama());
     setNotes(employee.liquidationNotes ?? "");
     setError(null);
   }, [open, employee]);
@@ -57,8 +60,9 @@ export function LiquidationDialog({
       await updateEmployeeAction(employee.id, {
         endDate,
         liquidationNotes: notes.trim() || null,
+        status: "INACTIVE",
       });
-      toast.success(tt(isEditing ? "liq_edit" : "liq_mark"));
+      toast.success(tt(isEditing ? "off_saved" : "off_done"));
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
@@ -71,18 +75,20 @@ export function LiquidationDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditing ? tt("liq_edit") : tt("liq_mark")}
-      description={`${employee.name} — ${tt("liq_desc")}`}
+      title={isEditing ? tt("off_edit") : tt("off_title")}
+      description={employee.name}
       onSubmit={onSubmit}
       submitting={submitting}
-      submitLabel={isEditing ? tt("action_save") : tt("liq_mark")}
+      submitLabel={isEditing ? tt("action_save") : tt("off_confirm")}
       error={error}
     >
-      <p className="text-xs text-muted-foreground">{tt("liq_hint")}</p>
-      <Field label={tt("liq_f_date")}>
-        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+      <Field label={tt("off_f_date")}>
+        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full min-w-0" />
       </Field>
-      <Field label={tt("liq_f_notes")}>
+      <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        {hasBenefits ? tt("off_hint_benefits") : tt("off_hint")}
+      </p>
+      <Field label={tt("off_f_notes")}>
         <Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
     </FormDialog>

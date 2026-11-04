@@ -977,6 +977,21 @@ export const strings = {
     liq_f_date: { es: "Fecha de liquidación", en: "Settlement date" },
     liq_f_notes: { es: "Notas de liquidación", en: "Settlement notes" },
     liq_f_date_required: { es: "La fecha es obligatoria.", en: "Date is required." },
+    off_title: { es: "Dar de baja", en: "Offboard" },
+    off_edit: { es: "Editar baja", en: "Edit offboarding" },
+    off_confirm: { es: "Dar de baja", en: "Offboard" },
+    off_done: { es: "Empleado dado de baja", en: "Employee offboarded" },
+    off_saved: { es: "Baja actualizada", en: "Offboarding updated" },
+    off_f_date: { es: "Último día trabajado", en: "Last day worked" },
+    off_f_notes: { es: "Motivo o notas (opcional)", en: "Reason or notes (optional)" },
+    off_hint: {
+      es: "Queda inactivo. En la asistencia y la quincena, los días después de esta fecha no cuentan como faltas.",
+      en: "They become inactive. In attendance and pay periods, days after this date don't count as absences.",
+    },
+    off_hint_benefits: {
+      es: "Queda inactivo y sus prestaciones (Décimo, Vacación y Prima de Antigüedad) se liquidan a esta fecha. En la asistencia y la quincena, los días después no cuentan como faltas.",
+      en: "They become inactive and their benefits (13th month, vacation and seniority bonus) are settled as of this date. In attendance and pay periods, later days don't count as absences.",
+    },
 
     active_label: { es: "Activo", en: "Active" },
     inactive_label: { es: "Inactivo", en: "Inactive" },
