@@ -76,11 +76,13 @@ export function InspectionsBoard({
     const res = await listAreasAction(project.id);
     if (res.ok) setAreaList(res.data);
   }, [project.id]);
-  // Se recarga cuando cambian los detalles (un área nueva al guardar).
+  // Se recarga cuando cambian las áreas usadas en los detalles (un área nueva
+  // al guardar) — por su contenido, no por cada vez que se repinta la página.
+  const usedAreas = React.useMemo(() => [...new Set(inspections.flatMap((i) => i.items.map((it) => it.area)))].sort().join("|"), [inspections]);
   /* eslint-disable react-hooks/set-state-in-effect -- carga desde el servidor. */
   React.useEffect(() => {
     void loadAreas();
-  }, [loadAreas, inspections]);
+  }, [loadAreas, usedAreas]);
   /* eslint-enable react-hooks/set-state-in-effect */
   const areas = areaList.map((a) => a.name);
   const pieces = React.useMemo(() => pieceSuggestions(inspections), [inspections]);

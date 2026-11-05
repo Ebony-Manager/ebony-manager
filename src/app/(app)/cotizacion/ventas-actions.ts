@@ -63,8 +63,14 @@ export async function deleteOpportunityAction(id: string) {
   return run(() => ventas.deleteOpportunity(id));
 }
 
-export async function getOpportunityNotesAction(id: string) {
-  return run(() => ventas.getOpportunityNotes(id));
+// Solo lectura: sin `run`, que revalida la página (una lectura no debe repintar nada).
+export async function getOpportunityNotesAction(id: string): Promise<VentasResult<Awaited<ReturnType<typeof ventas.getOpportunityNotes>>>> {
+  await requireModule("cotizacion");
+  try {
+    return { ok: true, data: await ventas.getOpportunityNotes(id) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
 }
 
 export async function addOpportunityNoteAction(id: string, body: string) {

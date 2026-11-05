@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
 import * as inspections from "@/services/inspections";
+import type { InspectionArea } from "@/types/inspections";
 import type { InspectionItemStatus, InspectionPhotoKind } from "@/types/inspections";
 import { dispatchPendingPush } from "@/lib/notifications/push";
 
@@ -102,9 +103,15 @@ export async function unplanItemsAction(itemIds: string[]) {
 
 // ── Áreas de la obra ────────────────────────────────────────────────────
 
-export async function listAreasAction(projectId: string) {
+// Solo lectura: NO pasa por `run` (que revalida la página). Revalidar aquí
+// volvía a pintar la obra, que volvía a pedir las áreas… en bucle.
+export async function listAreasAction(projectId: string): Promise<ActionResult<InspectionArea[]>> {
   await requireModule("inspecciones");
-  return run(() => inspections.getProjectAreas(projectId));
+  try {
+    return { ok: true, data: await inspections.getProjectAreas(projectId) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error" };
+  }
 }
 
 export async function createAreaAction(projectId: string, name: string) {

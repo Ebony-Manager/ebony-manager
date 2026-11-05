@@ -188,9 +188,14 @@ export async function returnToolAction(loanId: string, condition: ToolCondition,
   return run(() => almacen.returnTool(loanId, condition, notes, returnedOn));
 }
 
+// Solo lectura: sin `run`, que revalida la página (una lectura no debe repintar nada).
 export async function getPendingReturnsAction(recipient: { kind: "empleado" | "contratista"; id: string }) {
   await requireModule("almacen");
-  return run(() => almacen.getPendingReturns(recipient));
+  try {
+    return { ok: true as const, data: await almacen.getPendingReturns(recipient) };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Error" };
+  }
 }
 
 export async function returnContainersAction(movementIds: string[]) {
