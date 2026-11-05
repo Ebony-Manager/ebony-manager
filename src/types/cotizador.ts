@@ -85,6 +85,7 @@ export interface QuoteDefaults {
   ccfPct: number;
   itbmsPct: number;
   deliveryDays: number;
+  validDays: number;
 }
 
 export type LineMode = "med" | "dir";
@@ -163,8 +164,33 @@ export interface Quote {
   itbmsPct: number;
   notes: string;
   sections: QuoteSection[];
-  /** La oportunidad de Seguimiento a la que pertenece (si viene de ahí). */
-  opportunityId?: string | null;
+  /**
+   * De quién es la cotización ("¿Para qué es?"): una oportunidad de
+   * Seguimiento (trabajo nuevo), un proyecto (algo más en una obra que ya
+   * tenemos) o, sin ninguno de los dos, solo el cliente (reparación, algo
+   * rápido). Las personas salen siempre de Clientes; clientName,
+   * designerName y projectName son la copia para la lista y la búsqueda.
+   */
+  opportunityId: string | null;
+  projectId: string | null;
+  designerId: string | null;
+  designerContactId: string | null;
+  clientId: string | null;
+  /** Días que vale la cotización desde su fecha. */
+  validDays: number;
+  /** Para avisar si otra persona la guardó mientras tanto. */
+  updatedAt: string | null;
+}
+
+export type QuoteOwnerKind = "opportunity" | "project" | "client";
+export function quoteOwnerKind(q: Pick<Quote, "opportunityId" | "projectId">): QuoteOwnerKind {
+  return q.opportunityId ? "opportunity" : q.projectId ? "project" : "client";
+}
+
+/** Lo que el editor necesita para elegir el dueño de la cotización. */
+export interface QuoteOwnerOptions {
+  opportunities: { id: string; title: string; location: string | null; stage: string; designerId: string | null; designerContactId: string | null; clientId: string | null }[];
+  projects: { id: string; name: string; status: string; designerId: string | null; clientId: string | null }[];
 }
 
 /** Fila de la lista de cotizaciones (sin ítems ni renglones). */

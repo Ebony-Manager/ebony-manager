@@ -12,15 +12,31 @@ import type { Quote } from "@/types/cotizador";
 // que se guardó) y las páginas son `force-dynamic`, así que la lista
 // vuelve a leer sola al entrar.
 
-/** Primer guardado de una cotización nueva (hasta ahí solo vivía en el editor). */
-export async function createQuoteAction(quote: Quote): Promise<void> {
+/**
+ * Resultado de guardar: el error va como dato (no lanzado) para que llegue
+ * tal cual a la pantalla también en producción; `conflict` = otra persona
+ * guardó la cotización mientras se editaba.
+ */
+export type SaveResult<T> = { ok: true; data: T } | { ok: false; conflict: boolean; error: string };
+
+async function saving<T>(fn: () => Promise<T>): Promise<SaveResult<T>> {
   await requireModule("cotizacion");
-  await cotizador.createQuote(quote);
+  try {
+    return { ok: true, data: await fn() };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Error";
+    return { ok: false, conflict: error === cotizador.QUOTE_CONFLICT, error };
+  }
 }
 
-export async function saveQuoteAction(quote: Quote): Promise<void> {
-  await requireModule("cotizacion");
-  await cotizador.saveQuote(quote);
+/** Primer guardado de una cotización nueva (hasta ahí solo vivía en el editor): la base le pone el número. */
+export async function createQuoteAction(quote: Quote) {
+  return saving(() => cotizador.createQuote(quote));
+}
+
+/** Devuelve el updated_at nuevo (el editor lo manda en el siguiente guardado). */
+export async function saveQuoteAction(quote: Quote, expected: string | null) {
+  return saving(() => cotizador.saveQuote(quote, expected));
 }
 
 export async function duplicateQuoteAction(id: string): Promise<string> {

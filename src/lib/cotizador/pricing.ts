@@ -127,6 +127,7 @@ export function defaultsFromInputs(inputs: CostInput[]): QuoteDefaults {
     ccfPct: v("def_ccf", 4),
     itbmsPct: v("def_itbms", 7),
     deliveryDays: v("def_delivery_days", 65),
+    validDays: v("def_valid_days", 30),
   };
 }
 
@@ -153,6 +154,13 @@ export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, q
     itbmsPct: d.itbmsPct,
     notes: "",
     sections: [newSection(firstSectionId, d)],
+    opportunityId: null,
+    projectId: null,
+    designerId: null,
+    designerContactId: null,
+    clientId: null,
+    validDays: Math.round(d.validDays),
+    updatedAt: null,
   };
 }
 

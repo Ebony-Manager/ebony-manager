@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import { quoteTotals } from "@/lib/cotizador/pricing";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import type { Database, Json } from "@/types/database";
 import type {
   CatalogCategory,
@@ -11,6 +12,7 @@ import type {
   Finish,
   Quote,
   QuoteLine,
+  QuoteOwnerOptions,
   QuoteSection,
   QuoteStatus,
   QuoteSummary,
@@ -155,6 +157,12 @@ function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
     notes: r.notes,
     sections,
     opportunityId: r.opportunity_id,
+    projectId: r.project_id,
+    designerId: r.designer_id,
+    designerContactId: r.designer_contact_id,
+    clientId: r.client_id,
+    validDays: r.valid_days,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -331,20 +339,26 @@ function lineRow(sectionId: string, l: QuoteLine, i: number, lineIds: Set<string
     pos_y: l.posY === null ? null : num(l.posY),
     // Un anfitrión que ya no existe en la cotización rompería el FK.
     host_line_id: l.hostLineId && lineIds.has(l.hostLineId) ? l.hostLineId : null,
-    // La gola solo se manda cuando el renglón la lleva: así el guardado no
-    // depende de que la migración de gola ya esté aplicada.
-    ...(num(l.golaMl) > 0 ? { gola_ml: num(l.golaMl), gola_price: num(l.golaPrice) } : {}),
+    gola_ml: num(l.golaMl),
+    gola_price: num(l.golaPrice),
   };
 }
 
-function headerPatch(q: Quote): Tables["quotes"]["Update"] {
+/** El encabezado como lo guarda `save_quote` (el número lo pone la base). */
+function headerRow(q: Quote) {
   return {
-    number: q.number,
+    id: q.id,
     client_name: q.clientName,
     designer_name: q.designerName,
     project_name: q.projectName,
+    designer_id: q.designerId,
+    designer_contact_id: q.designerContactId,
+    client_id: q.clientId,
+    opportunity_id: q.opportunityId,
+    project_id: q.projectId,
     quote_date: q.quoteDate,
     delivery_days: Math.max(0, Math.round(num(q.deliveryDays))),
+    valid_days: Math.max(0, Math.round(num(q.validDays))),
     status: q.status,
     lang: q.lang,
     pdf_detail: q.pdfDetail,
@@ -353,39 +367,29 @@ function headerPatch(q: Quote): Tables["quotes"]["Update"] {
     itbms_pct: num(q.itbmsPct),
     notes: q.notes,
     total: Math.round(quoteTotals(q).total * 100) / 100,
-    // Solo si la cotización lo trae (las cargadas siempre): así nunca se borra el enlace por omisión.
-    ...(q.opportunityId !== undefined && { opportunity_id: q.opportunityId }),
   };
 }
 
-/** Guarda la cotización completa: encabezado, ítems y renglones. */
-export async function saveQuote(q: Quote): Promise<void> {
+/** Mensaje con que falla un guardado cuando otra persona guardó antes. */
+export const QUOTE_CONFLICT = "CONFLICTO";
+
+/**
+ * Guarda la cotización completa (encabezado, ítems y renglones) en una sola
+ * llamada que es todo o nada. `expected` es el updated_at que tenía el
+ * editor: si otra persona guardó después, no se pisa nada y falla con
+ * QUOTE_CONFLICT. Devuelve el updated_at nuevo.
+ */
+export async function saveQuote(q: Quote, expected: string | null): Promise<string> {
   const supabase = await createClient();
-  const fail = (error: { message: string } | null) => {
-    if (error) throw new Error(error.message);
-  };
-
-  fail((await supabase.from("quotes").update(headerPatch(q)).eq("id", q.id)).error);
-
-  const sectionIds = q.sections.map((s) => s.id);
-  if (sectionIds.length) {
-    fail((await supabase.from("quote_sections").upsert(q.sections.map((s, i) => sectionRow(q.id, s, i)))).error);
-  }
-
   const lineIds = new Set(q.sections.flatMap((s) => s.lines.map((l) => l.id)));
-  const lines = q.sections.flatMap((s) => s.lines.map((l, i) => lineRow(s.id, l, i, lineIds)));
-  if (lines.length) fail((await supabase.from("quote_lines").upsert(lines, { defaultToNull: false })).error);
-
-  // Borra lo que el usuario quitó. Los renglones de un ítem borrado se
-  // van solos por el `on delete cascade`.
-  if (sectionIds.length) {
-    let staleLines = supabase.from("quote_lines").delete().in("section_id", sectionIds);
-    if (lineIds.size) staleLines = staleLines.not("id", "in", `(${[...lineIds].join(",")})`);
-    fail((await staleLines).error);
-  }
-  let staleSections = supabase.from("quote_sections").delete().eq("quote_id", q.id);
-  if (sectionIds.length) staleSections = staleSections.not("id", "in", `(${sectionIds.join(",")})`);
-  fail((await staleSections).error);
+  const { data, error } = await supabase.rpc("save_quote", {
+    p_quote: headerRow(q) as unknown as Json,
+    p_sections: q.sections.map((s, i) => sectionRow(q.id, s, i)) as unknown as Json,
+    p_lines: q.sections.flatMap((s) => s.lines.map((l, i) => lineRow(s.id, l, i, lineIds))) as unknown as Json,
+    p_expected: expected,
+  });
+  if (error) throw new Error(error.message.includes(QUOTE_CONFLICT) ? QUOTE_CONFLICT : error.message);
+  return data;
 }
 
 /**
@@ -394,23 +398,39 @@ export async function saveQuote(q: Quote): Promise<void> {
  * abrir "Nueva cotización" y salir sin escribir nada no deja un borrador
  * vacío. El id lo trae la cotización (uuid generado al abrirla).
  */
-export async function createQuote(q: Quote): Promise<void> {
+export async function createQuote(q: Quote): Promise<{ number: string; updatedAt: string }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("quotes").insert({ id: q.id, ...headerPatch(q) });
+  const { data, error } = await supabase.from("quotes").insert({ id: q.id }).select("number").single();
   if (error) throw new Error(error.message);
-  await saveQuote(q);
+  const updatedAt = await saveQuote(q, null);
   // Empezar a cotizar una oportunidad de Seguimiento la pasa a "Cotizando".
   if (q.opportunityId) {
     await supabase.from("sales_opportunities").update({ stage: "cotizando" }).eq("id", q.opportunityId).eq("stage", "por_cotizar");
   }
+  return { number: data.number, updatedAt };
 }
 
-/** Copia una cotización como borrador nuevo (para una nueva versión). */
+/**
+ * Nueva versión de una cotización: mismo número con -V2, -V3… (ej. la misma
+ * cocina en melamina y en pintado), mismo dueño, como borrador de hoy.
+ */
 export async function duplicateQuote(id: string): Promise<string> {
   const source = await getQuote(id);
   if (!source) throw new Error("La cotización no existe.");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("quotes").insert({}).select("id").single();
+  const { data: base, error: baseError } = await supabase.from("quotes").select("base_number").eq("id", id).single();
+  if (baseError) throw new Error(baseError.message);
+  const baseNumber = base.base_number;
+  let version = 1;
+  if (baseNumber !== null) {
+    const { data: last } = await supabase.from("quotes").select("version").eq("base_number", baseNumber).order("version", { ascending: false }).limit(1).maybeSingle();
+    version = (last?.version ?? 1) + 1;
+  }
+  const { data, error } = await supabase
+    .from("quotes")
+    .insert(baseNumber !== null ? { base_number: baseNumber, version } : {})
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
 
   const lineIdMap = new Map<string, string>();
@@ -418,9 +438,8 @@ export async function duplicateQuote(id: string): Promise<string> {
   const copy: Quote = {
     ...source,
     id: data.id,
-    number: "",
     status: "BORRADOR",
-    quoteDate: new Date().toISOString().slice(0, 10),
+    quoteDate: todayInPanama(),
     sections: source.sections.map((s) => ({
       ...s,
       id: crypto.randomUUID(),
@@ -431,8 +450,30 @@ export async function duplicateQuote(id: string): Promise<string> {
       })),
     })),
   };
-  await saveQuote(copy);
+  await saveQuote(copy, null);
   return data.id;
+}
+
+/** Oportunidades abiertas y proyectos, para elegir de quién es la cotización. */
+export async function getQuoteOwnerOptions(): Promise<QuoteOwnerOptions> {
+  const supabase = await createClient();
+  const [opps, projects] = await Promise.all([
+    supabase.from("sales_opportunities").select("id, title, location, stage, designer_id, designer_contact_id, client_id").order("received_on", { ascending: false }),
+    supabase.rpc("quote_projects"),
+  ]);
+  if (opps.error) throw new Error(opps.error.message);
+  return {
+    opportunities: (opps.data ?? []).map((o) => ({
+      id: o.id,
+      title: o.title,
+      location: o.location,
+      stage: o.stage,
+      designerId: o.designer_id,
+      designerContactId: o.designer_contact_id,
+      clientId: o.client_id,
+    })),
+    projects: (projects.data ?? []).map((p) => ({ id: p.id, name: p.name, status: p.status, designerId: p.designer_id, clientId: p.client_id })),
+  };
 }
 
 export async function deleteQuote(id: string): Promise<void> {

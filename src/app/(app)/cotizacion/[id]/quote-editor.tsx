@@ -10,7 +10,11 @@ import { formatMoney, newSection, quoteTotals, sectionTotals, syncDraftPrices } 
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
-import { QUOTE_STATUSES, type CatalogItem, type Quote, type QuoteDefaults, type QuoteSection, type QuoteStatus } from "@/types/cotizador";
+import { QUOTE_STATUSES, type CatalogItem, type Quote, type QuoteDefaults, type QuoteOwnerOptions, type QuoteSection, type QuoteStatus } from "@/types/cotizador";
+import type { Client } from "@/types/ventas";
+import { quoteWho, validUntil } from "@/lib/cotizador/owner";
+import { Textarea } from "@/components/ui/textarea";
+import { OwnerPanel } from "./owner-panel";
 import { createQuoteAction, duplicateQuoteAction, saveQuoteAction } from "../actions";
 import { NumField } from "../num-field";
 import { ClientView } from "./client-view";
@@ -38,12 +42,16 @@ export function QuoteEditor({
   catalog,
   defaults,
   canEditCosts,
+  clients,
+  owners,
 }: {
   initialQuote: Quote;
   isNew?: boolean;
   catalog: CatalogItem[];
   defaults: QuoteDefaults;
   canEditCosts: boolean;
+  clients: Client[];
+  owners: QuoteOwnerOptions;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
@@ -64,6 +72,9 @@ export function QuoteEditor({
   const queued = React.useRef(false);
   const persisted = React.useRef(!isNew);
   const creating = React.useRef<Promise<void> | null>(null);
+  /** updated_at de lo último que guardamos: si en la base hay otro, alguien más guardó. */
+  const expected = React.useRef<string | null>(initialQuote.updatedAt);
+  const [conflict, setConflict] = React.useState(false);
 
   // El primer guardado de una cotización nueva la crea y deja la dirección
   // en /cotizacion/<id> (sin recargar); los siguientes la actualizan. Si se
@@ -72,8 +83,23 @@ export function QuoteEditor({
   // dirección: ya es la de otra página.
   async function persist(q: Quote, { updateUrl = true } = {}) {
     if (!persisted.current && creating.current) await creating.current.catch(() => {});
-    if (persisted.current) return saveQuoteAction(q);
-    creating.current = createQuoteAction(q);
+    if (persisted.current) {
+      const res = await saveQuoteAction(q, expected.current);
+      if (!res.ok) {
+        if (res.conflict) setConflict(true);
+        throw new Error(res.conflict ? tt("conflict") : res.error);
+      }
+      expected.current = res.data;
+      return;
+    }
+    creating.current = (async () => {
+      const res = await createQuoteAction(q);
+      if (!res.ok) throw new Error(res.error);
+      expected.current = res.data.updatedAt;
+      // El número lo pone la base (COT-2640…): se muestra sin volver a guardar.
+      latest.current = { ...latest.current, number: res.data.number };
+      setQuote((cur) => ({ ...cur, number: res.data.number }));
+    })();
     try {
       await creating.current;
     } finally {
@@ -106,6 +132,7 @@ export function QuoteEditor({
   }
 
   function change(fn: (q: Quote) => Quote) {
+    if (conflict) return;
     const next = fn(latest.current);
     latest.current = next;
     setQuote(next);
@@ -123,7 +150,14 @@ export function QuoteEditor({
       if (timer.current !== null) {
         window.clearTimeout(timer.current);
         timer.current = null;
-        void persist(latest.current, { updateUrl: false }).catch(() => {});
+        const q = latest.current;
+        const pendingCreate = creating.current;
+        // Solo refs: si se está creando, se espera; luego se crea o se guarda.
+        void (async () => {
+          if (!persisted.current && pendingCreate) await pendingCreate.catch(() => {});
+          if (persisted.current) await saveQuoteAction(q, expected.current);
+          else await createQuoteAction(q);
+        })().catch(() => {});
       }
     };
   }, []);
@@ -167,7 +201,7 @@ export function QuoteEditor({
         setSaveState("saved");
       }
       const id = await duplicateQuoteAction(quote.id);
-      toast.success(tt("duplicated"));
+      toast.success(tt("version_created"));
       router.push(`/cotizacion/${id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -177,6 +211,7 @@ export function QuoteEditor({
   }
 
   const statusLabel = (s: QuoteStatus) => tt(`status_${s}`);
+  const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "short" });
   const smallLabel = "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-ink-700";
   const smallInput = "h-8 w-full min-w-0 border border-input bg-card px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
   const panelTitle = "text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase";
@@ -192,6 +227,17 @@ export function QuoteEditor({
   return (
     <div className={PAGE_CLASS}>
       {/* Encabezado: el cliente es lo que más se ve */}
+      {conflict && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="size-4 shrink-0" />
+            {tt("conflict")}
+          </span>
+          <button type="button" onClick={() => window.location.reload()} className="rounded-md border border-destructive/40 bg-card px-2.5 py-1 text-xs font-medium">
+            {tt("reload")}
+          </button>
+        </div>
+      )}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex flex-wrap items-center gap-1">
@@ -234,48 +280,42 @@ export function QuoteEditor({
               type="button"
               disabled={duplicating || !isPersisted}
               onClick={onDuplicate}
-              title={tt("duplicate_hint")}
+              title={tt("duplicate_version_hint")}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium hover:border-ink-700 disabled:opacity-50"
             >
               <Copy className="size-3.5" />
-              {tt("duplicate")}
+              {tt("duplicate_version")}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col">
-          <input
-            value={quote.clientName}
-            onChange={(e) => setHeader({ clientName: e.currentTarget.value })}
-            placeholder={tt("f_client_ph")}
-            aria-label={tt("f_client")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pb-0.5 text-xl font-semibold text-foreground outline-none placeholder:text-ink-900/25 hover:border-border focus-visible:border-ink-900"
-          />
-          <input
-            value={quote.projectName}
-            onChange={(e) => setHeader({ projectName: e.currentTarget.value })}
-            placeholder={tt("f_project_ph")}
-            aria-label={tt("f_project")}
-            className="w-full min-w-0 border-b border-transparent bg-transparent pt-1 pb-0.5 text-sm text-ink-700 outline-none placeholder:text-ink-900/30 hover:border-border focus-visible:border-ink-900"
-          />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">{quote.number || tt("number_pending")}</p>
+          <h1 className={cn("truncate text-xl font-semibold", quoteWho(quote) ? "text-foreground" : "text-muted-foreground")}>{quoteWho(quote) || tt("own_none")}</h1>
+          {(quote.projectName || (quote.clientName && quote.designerName)) && (
+            <p className="truncate text-sm text-muted-foreground">{[quote.projectName, quote.clientName ? quote.designerName : ""].filter(Boolean).join(" · ")}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-[130px_150px_minmax(0,1fr)_130px_130px]">
-          <label className={smallLabel}>
-            {tt("f_number")}
-            <input className={smallInput} value={quote.number} onChange={(e) => setHeader({ number: e.currentTarget.value })} />
-          </label>
+        <OwnerPanel quote={quote} clients={clients} owners={owners} tt={tt} onChange={(p) => setHeader(p)} />
+
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <label className={smallLabel}>
             {tt("f_date")}
             <input type="date" className={smallInput} value={quote.quoteDate} onChange={(e) => e.currentTarget.value && setHeader({ quoteDate: e.currentTarget.value })} />
           </label>
           <label className={smallLabel}>
-            {tt("f_designer")}
-            <input className={smallInput} value={quote.designerName} placeholder={tt("f_designer_ph")} onChange={(e) => setHeader({ designerName: e.currentTarget.value })} />
-          </label>
-          <label className={smallLabel}>
             {tt("f_delivery")}
             <NumField value={quote.deliveryDays} onChange={(n) => setHeader({ deliveryDays: Math.round(n) })} suffix={tt("unit_days")} inputWidth={40} className="h-8 justify-between" />
+          </label>
+          <label className={smallLabel}>
+            <span className="flex items-baseline justify-between gap-2">
+              {tt("f_valid")}
+              <span className="truncate font-normal text-muted-foreground">
+                {tt("valid_until")} {shortDate(validUntil(quote.quoteDate, quote.validDays))}
+              </span>
+            </span>
+            <NumField value={quote.validDays} onChange={(n) => setHeader({ validDays: Math.max(0, Math.round(n)) })} suffix={tt("unit_cal_days")} inputWidth={40} className="h-8 justify-between" />
           </label>
           <label className={smallLabel}>
             {tt("f_lang")}
@@ -471,6 +511,11 @@ export function QuoteEditor({
                 <dd className={cn(money, "mt-1 border-t border-border pt-2 text-lg font-bold")}>{formatMoney(totals.total)}</dd>
               </dl>
             </div>
+
+            <label className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5">
+              <span className={panelTitle}>{tt("f_notes")}</span>
+              <Textarea value={quote.notes} onChange={(e) => setHeader({ notes: e.currentTarget.value })} placeholder={tt("f_notes_ph")} rows={3} />
+            </label>
           </aside>
         </div>
       )}

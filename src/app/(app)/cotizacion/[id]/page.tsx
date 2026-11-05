@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { defaultsFromInputs, newQuote } from "@/lib/cotizador/pricing";
-import { getCatalog, getCostInputs, getQuote } from "@/services/cotizador";
-import { getOpportunityPrefill } from "@/services/ventas";
+import { getCatalog, getCostInputs, getQuote, getQuoteOwnerOptions } from "@/services/cotizador";
+import { linkOpportunity } from "@/lib/cotizador/owner";
+import { getClients } from "@/services/ventas";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { QuoteEditor } from "./quote-editor";
 
 // Cotizar es para cualquier usuario de la app; el gate de `(app)/layout`
@@ -29,17 +31,11 @@ export default async function QuotePage({
   const [{ id }, { oportunidad }] = await Promise.all([params, searchParams]);
 
   const isNew = id === NEW_QUOTE;
-  const [saved, catalog, inputs, prefill] = await Promise.all([
-    isNew ? null : getQuote(id),
-    getCatalog(),
-    getCostInputs(),
-    isNew && oportunidad ? getOpportunityPrefill(oportunidad) : null,
-  ]);
+  const [saved, catalog, inputs, clients, owners] = await Promise.all([isNew ? null : getQuote(id), getCatalog(), getCostInputs(), getClients(), getQuoteOwnerOptions()]);
   const defaults = defaultsFromInputs(inputs);
-  const blank = isNew ? newQuote(crypto.randomUUID(), crypto.randomUUID(), defaults, new Date().toISOString().slice(0, 10)) : null;
-  const quote = blank && prefill
-    ? { ...blank, clientName: prefill.clientName, designerName: prefill.designerName, projectName: prefill.projectName, opportunityId: prefill.id }
-    : (blank ?? saved);
+  const blank = isNew ? newQuote(crypto.randomUUID(), crypto.randomUUID(), defaults, todayInPanama()) : null;
+  const fromOpp = blank && oportunidad ? owners.opportunities.find((o) => o.id === oportunidad) : undefined;
+  const quote = blank && fromOpp ? { ...blank, ...linkOpportunity(fromOpp, clients) } : (blank ?? saved);
   if (!quote) notFound();
 
   return (
@@ -48,6 +44,8 @@ export default async function QuotePage({
       isNew={isNew}
       catalog={catalog}
       defaults={defaults}
+      clients={clients}
+      owners={owners}
       canEditCosts={hasModule(profile, "costos")}
     />
   );

@@ -7,6 +7,7 @@ import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTot
 import { strings, t } from "@/lib/i18n";
 import type { PdfDetail, Quote } from "@/types/cotizador";
 import { UNIT_LABEL } from "./line-row";
+import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 
 /**
  * Lo que ve el cliente: una línea por ítem con su descripción, como la
@@ -22,11 +23,9 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
   const tt = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
   const totals = quoteTotals(quote);
   const detail = quote.pdfDetail;
-  const dateLabel = new Date(`${quote.quoteDate}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const fmtDate = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const dateLabel = fmtDate(quote.quoteDate);
 
   return (
     <div className="flex flex-col gap-3">
@@ -60,15 +59,17 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         <div className="flex flex-wrap items-end justify-between gap-4 py-5">
           <div className="min-w-0">
             <p className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">{tt("cv_quote")}</p>
-            <h2 className="text-xl font-semibold text-balance">{quote.clientName || tt("f_client_ph")}</h2>
+            <h2 className="text-xl font-semibold text-balance">{quoteWho(quote) || "—"}</h2>
             {quote.projectName && <p className="text-sm text-ink-700">{quote.projectName}</p>}
-            {quote.designerName && <p className="text-xs text-muted-foreground">{quote.designerName}</p>}
+            {quote.clientName && quote.designerName && <p className="text-xs text-muted-foreground">{quote.designerName}</p>}
           </div>
           <dl className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-xs">
             <dt className="text-muted-foreground">{tt("cv_number")}</dt>
             <dd className="text-right font-semibold tabular-nums">{quote.number || "—"}</dd>
             <dt className="text-muted-foreground">{tt("f_date")}</dt>
             <dd className="text-right tabular-nums">{dateLabel}</dd>
+            <dt className="text-muted-foreground">{tt("valid_until")}</dt>
+            <dd className="text-right tabular-nums">{fmtDate(validUntil(quote.quoteDate, quote.validDays))}</dd>
             <dt className="text-muted-foreground">{tt("cv_delivery")}</dt>
             <dd className="text-right tabular-nums">
               {quote.deliveryDays} {tt("cv_business_days")}
@@ -133,6 +134,8 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
           <dt className="mt-1 border-t border-border pt-1.5 font-semibold">{tt("total")}</dt>
           <dd className="mt-1 border-t border-border pt-1.5 text-right text-base font-bold tabular-nums">{formatMoney(totals.total)}</dd>
         </dl>
+
+        {quote.notes.trim() && <p className="mt-6 text-sm leading-relaxed whitespace-pre-line text-ink-700">{quote.notes.trim()}</p>}
 
         <footer className="mt-7 border-t border-border pt-4 text-xs leading-relaxed text-ink-700">
           <p>Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2</p>

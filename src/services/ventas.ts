@@ -262,19 +262,3 @@ export async function getSalesProjects(): Promise<{ id: string; name: string; st
   if (error) return [];
   return (data ?? []).map((p) => ({ id: p.id, name: p.name, status: p.status, designerId: p.designer_id, clientId: p.client_id }));
 }
-
-/** Para abrir el cotizador desde una oportunidad: cliente, arquitecto y proyecto ya llenos. */
-export async function getOpportunityPrefill(id: string): Promise<{ id: string; clientName: string; designerName: string; projectName: string } | null> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("sales_opportunities").select("id, title, location, designer_id, client_id").eq("id", id).maybeSingle();
-  if (!data) return null;
-  const ids = [data.designer_id, data.client_id].filter((v): v is string => !!v);
-  const { data: people } = ids.length ? await supabase.from("clients").select("id, name").in("id", ids) : { data: [] };
-  const name = (cid: string | null) => (cid ? (people ?? []).find((p) => p.id === cid)?.name ?? "" : "");
-  return {
-    id: data.id,
-    clientName: name(data.client_id) || name(data.designer_id),
-    designerName: data.client_id ? name(data.designer_id) : "",
-    projectName: [data.title, data.location].filter(Boolean).join(" · "),
-  };
-}

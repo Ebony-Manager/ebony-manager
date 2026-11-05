@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/cotizador/pricing";
+import { quoteWho } from "@/lib/cotizador/owner";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -79,7 +80,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
     <RowMenu
       label={tt("more_actions")}
       items={[
-        { label: tt("duplicate"), icon: Copy, disabled: busy === id, onSelect: () => void onDuplicate(id) },
+        { label: tt("duplicate_version"), icon: Copy, disabled: busy === id, onSelect: () => void onDuplicate(id) },
         { label: tt("delete"), icon: Trash2, confirmLabel: tt("delete_confirm"), onSelect: () => void onDelete(id) },
       ]}
     />
@@ -140,16 +141,16 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               <div className="flex flex-col gap-1.5 sm:hidden">
                 <div className="flex items-start gap-3">
                   <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
+                    <span className="truncate font-semibold text-foreground">{quoteWho(q) || tt("own_none")}</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {[q.projectName, q.designerName].filter(Boolean).join(" · ") || tt("no_project")}
+                      {[q.projectName, q.clientName ? q.designerName : ""].filter(Boolean).join(" · ") || tt("no_project")}
                     </span>
                   </Link>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
                 </div>
                 <div className="flex min-w-0 items-center gap-2 text-xs text-ink-700">
                   <span className="shrink-0">{date(q.quoteDate)}</span>
-                  {q.number && <span className="min-w-0 truncate tabular-nums">· Nº {q.number}</span>}
+                  {q.number && <span className="min-w-0 truncate tabular-nums">· {q.number}</span>}
                   <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
                   <span className="ml-auto flex shrink-0 items-center">{actions(q.id)}</span>
                 </div>
@@ -157,13 +158,13 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               {/* Computadora: todo en una fila. */}
               <div className="hidden items-center gap-x-4 sm:flex">
                 <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-semibold text-foreground">{q.clientName || tt("f_client_ph")}</span>
+                  <span className="truncate font-semibold text-foreground">{quoteWho(q) || tt("own_none")}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {[q.projectName, q.designerName].filter(Boolean).join(" · ") || tt("no_project")}
+                    {[q.projectName, q.clientName ? q.designerName : ""].filter(Boolean).join(" · ") || tt("no_project")}
                   </span>
                 </Link>
                 <span className="w-24 shrink-0 truncate text-xs text-ink-700 tabular-nums" title={q.number ?? undefined}>
-                  {q.number ? `Nº ${q.number}` : "—"}
+                  {q.number || "—"}
                 </span>
                 <span className="w-24 shrink-0 text-xs text-ink-700">{date(q.quoteDate)}</span>
                 <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>

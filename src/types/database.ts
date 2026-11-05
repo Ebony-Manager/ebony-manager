@@ -1976,6 +1976,12 @@ export type Database = {
           total: number
           updated_at: string
           opportunity_id: string | null
+          base_number: number | null
+          version: number
+          designer_id: string | null
+          designer_contact_id: string | null
+          client_id: string | null
+          valid_days: number
         }
         Insert: {
           client_name?: string
@@ -1998,6 +2004,12 @@ export type Database = {
           total?: number
           updated_at?: string
           opportunity_id?: string | null
+          base_number?: number | null
+          version?: number
+          designer_id?: string | null
+          designer_contact_id?: string | null
+          client_id?: string | null
+          valid_days?: number
         }
         Update: {
           client_name?: string
@@ -2020,6 +2032,12 @@ export type Database = {
           total?: number
           updated_at?: string
           opportunity_id?: string | null
+          base_number?: number | null
+          version?: number
+          designer_id?: string | null
+          designer_contact_id?: string | null
+          client_id?: string | null
+          valid_days?: number
         }
         Relationships: [
           {
@@ -3374,6 +3392,14 @@ export type Database = {
       approve_opportunity: {
         Args: { p_id: string; p_project_name: string | null; p_project_id: string | null }
         Returns: string
+      }
+      save_quote: {
+        Args: { p_quote: Json; p_sections: Json; p_lines: Json; p_expected?: string | null }
+        Returns: string
+      }
+      quote_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string; status: string; designer_id: string | null; client_id: string | null }[]
       }
       sales_weekly_follow_up: {
         Args: { p_token: string }
