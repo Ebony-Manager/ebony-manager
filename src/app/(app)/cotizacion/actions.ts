@@ -2,7 +2,8 @@
 
 import { requireModule } from "@/lib/auth/dal";
 import * as cotizador from "@/services/cotizador";
-import type { Quote } from "@/types/cotizador";
+import type { Quote, QuoteStatus } from "@/types/cotizador";
+import { addProjectSubfolders } from "@/services/drive-opportunity";
 
 // Cotizar pide el módulo `cotizacion`; el catálogo y los insumos solo los
 // cambia quien tiene `costos` (el admin, los dos). La RLS de las tablas
@@ -37,6 +38,18 @@ export async function createQuoteAction(quote: Quote) {
 /** Devuelve el updated_at nuevo (el editor lo manda en el siguiente guardado). */
 export async function saveQuoteAction(quote: Quote, expected: string | null) {
   return saving(() => cotizador.saveQuote(quote, expected));
+}
+
+/**
+ * Cambia el estado con sus reglas. Al aprobar una de oportunidad, su carpeta
+ * de Drive recibe las subcarpetas del proyecto (igual que desde Seguimiento).
+ */
+export async function setQuoteStatusAction(id: string, status: QuoteStatus, input: cotizador.SetQuoteStatusInput = {}, opportunityId: string | null = null) {
+  return saving(async () => {
+    const res = await cotizador.setQuoteStatus(id, status, input);
+    if (status === "APROBADA" && opportunityId) await addProjectSubfolders(opportunityId).catch(() => {});
+    return res;
+  });
 }
 
 export async function duplicateQuoteAction(id: string): Promise<string> {

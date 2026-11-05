@@ -161,6 +161,9 @@ export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, q
     clientId: null,
     validDays: Math.round(d.validDays),
     updatedAt: null,
+    sentOn: null,
+    closedOn: null,
+    followUpOn: null,
   };
 }
 

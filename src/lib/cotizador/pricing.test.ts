@@ -145,7 +145,7 @@ describe("precios y catálogo", () => {
     itbmsPct: 7,
     notes: "",
     sections: [bar],
-    opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null,
+    opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null, sentOn: null, closedOn: null, followUpOn: null,
   };
   const raised = catalog.map((c) => (c.code === "mod-pi" ? { ...c, price: 300 } : c));
 
@@ -229,7 +229,7 @@ describe("gola dentro de puertas y gavetas", () => {
 
   it("en un borrador la gola sigue el precio del catálogo", () => {
     const door = { ...med("pta-pi", 0.9, 0.72, 1), golaMl: 0.9, golaPrice: 15 };
-    const q = { id: "q", number: "", clientName: "", designerName: "", projectName: "", quoteDate: "2026-10-26", deliveryDays: 65, status: "BORRADOR" as const, lang: "es" as const, pdfDetail: "section" as const, discountType: "pct" as const, discountValue: 0, itbmsPct: 7, notes: "", sections: [section("x", [door])], validDays: 30, opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null };
+    const q = { id: "q", number: "", clientName: "", designerName: "", projectName: "", quoteDate: "2026-10-26", deliveryDays: 65, status: "BORRADOR" as const, lang: "es" as const, pdfDetail: "section" as const, discountType: "pct" as const, discountValue: 0, itbmsPct: 7, notes: "", sections: [section("x", [door])], validDays: 30, opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null, sentOn: null, closedOn: null, followUpOn: null };
     expect(syncDraftPrices(q, all).sections[0].lines[0].golaPrice).toBe(16.93);
   });
 });

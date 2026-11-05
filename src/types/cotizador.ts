@@ -180,6 +180,31 @@ export interface Quote {
   validDays: number;
   /** Para avisar si otra persona la guardó mientras tanto. */
   updatedAt: string | null;
+  /** Fechas del estado (las pone set_quote_status). */
+  sentOn: string | null;
+  closedOn: string | null;
+  followUpOn: string | null;
+}
+
+/** Solo un borrador se edita; enviada, aprobada o rechazada queda bloqueada. */
+export const isQuoteLocked = (q: Pick<Quote, "status">) => q.status !== "BORRADOR";
+
+/** Otra cotización de la misma familia (sus versiones o la misma oportunidad). */
+export interface QuoteSibling {
+  id: string;
+  number: string;
+  status: QuoteStatus;
+  total: number;
+}
+
+/** Lo que devuelve un cambio de estado (para mostrarlo sin recargar). */
+export interface QuoteStatusResult {
+  status: QuoteStatus;
+  sentOn: string | null;
+  closedOn: string | null;
+  followUpOn: string | null;
+  projectId: string | null;
+  updatedAt: string;
 }
 
 export type QuoteOwnerKind = "opportunity" | "project" | "client";
@@ -204,4 +229,5 @@ export interface QuoteSummary {
   status: QuoteStatus;
   total: number;
   updatedAt: string;
+  followUpOn: string | null;
 }

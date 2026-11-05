@@ -5,7 +5,8 @@ import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, FileText, Plus, Trash2 } from "lucide-react";
+import { BellRing, Copy, FileText, Plus, Trash2 } from "lucide-react";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,9 @@ import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
 import { RowMenu } from "@/components/shared/row-menu";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { CotizacionTabs } from "./ventas-common";
+import { QUOTE_STATUS_STYLE } from "./status-style";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
-const STATUS_STYLE: Record<QuoteStatus, string> = {
-  BORRADOR: "bg-stone-200 text-ink-700",
-  ENVIADA: "bg-cream-100 text-walnut",
-  APROBADA: "bg-[color-mix(in_srgb,var(--status-ok)_18%,white)] text-[var(--status-ok)]",
-  RECHAZADA: "bg-[color-mix(in_srgb,var(--status-error)_14%,white)] text-[var(--status-error)]",
-};
 
 /** Lista de cotizaciones: buscar, filtrar por estado, abrir, duplicar y borrar. */
 export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: QuoteSummary[]; canEditCosts: boolean }) {
@@ -85,6 +81,15 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
       ]}
     />
   );
+  // Enviada y ya le toca seguimiento (a los 7 días de enviada).
+  const today = todayInPanama();
+  const followUp = (q: QuoteSummary) =>
+    q.followUpOn && q.followUpOn <= today ? (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[color-mix(in_oklab,var(--status-warn)_20%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-foreground">
+        <BellRing className="size-3" />
+        {tt("follow_up_due")}
+      </span>
+    ) : null;
   const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
@@ -151,7 +156,8 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                 <div className="flex min-w-0 items-center gap-2 text-xs text-ink-700">
                   <span className="shrink-0">{date(q.quoteDate)}</span>
                   {q.number && <span className="min-w-0 truncate tabular-nums">· {q.number}</span>}
-                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                  {followUp(q)}
                   <span className="ml-auto flex shrink-0 items-center">{actions(q.id)}</span>
                 </div>
               </div>
@@ -167,7 +173,8 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                   {q.number || "—"}
                 </span>
                 <span className="w-24 shrink-0 text-xs text-ink-700">{date(q.quoteDate)}</span>
-                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                  {followUp(q)}
                 <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
                 <span className="flex shrink-0 items-center">{actions(q.id)}</span>
               </div>

@@ -14,7 +14,9 @@ import type {
   QuoteLine,
   QuoteOwnerOptions,
   QuoteSection,
+  QuoteSibling,
   QuoteStatus,
+  QuoteStatusResult,
   QuoteSummary,
   Recipe,
   Shape,
@@ -163,6 +165,9 @@ function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
     clientId: r.client_id,
     validDays: r.valid_days,
     updatedAt: r.updated_at,
+    sentOn: r.sent_on,
+    closedOn: r.closed_on,
+    followUpOn: r.follow_up_on,
   };
 }
 
@@ -260,6 +265,7 @@ export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
     status: r.status as QuoteStatus,
     total: num(r.total),
     updatedAt: r.updated_at,
+    followUpOn: r.status === "ENVIADA" ? r.follow_up_on : null,
   }));
 }
 
@@ -474,6 +480,50 @@ export async function getQuoteOwnerOptions(): Promise<QuoteOwnerOptions> {
     })),
     projects: (projects.data ?? []).map((p) => ({ id: p.id, name: p.name, status: p.status, designerId: p.designer_id, clientId: p.client_id })),
   };
+}
+
+export interface SetQuoteStatusInput {
+  lostReason?: string | null;
+  lostNote?: string | null;
+  /** Al aprobar una de oportunidad: proyecto nuevo (nombre) o uno que ya existe. */
+  projectName?: string | null;
+  projectId?: string | null;
+}
+
+/** Cambia el estado con sus reglas (ver set_quote_status en la base). */
+export async function setQuoteStatus(id: string, status: QuoteStatus, input: SetQuoteStatusInput = {}): Promise<QuoteStatusResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_quote_status", {
+    p_id: id,
+    p_status: status,
+    p_lost_reason: input.lostReason ?? null,
+    p_lost_note: input.lostNote ?? null,
+    p_project_name: input.projectName ?? null,
+    p_project_id: input.projectId ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const { data, error: readError } = await supabase.from("quotes").select("status, sent_on, closed_on, follow_up_on, project_id, updated_at").eq("id", id).single();
+  if (readError) throw new Error(readError.message);
+  return {
+    status: data.status as QuoteStatus,
+    sentOn: data.sent_on,
+    closedOn: data.closed_on,
+    followUpOn: data.follow_up_on,
+    projectId: data.project_id,
+    updatedAt: data.updated_at,
+  };
+}
+
+/** Las otras versiones del mismo número y las otras cotizaciones de la misma oportunidad. */
+export async function getQuoteSiblings(id: string): Promise<QuoteSibling[]> {
+  const supabase = await createClient();
+  const { data: q } = await supabase.from("quotes").select("base_number, opportunity_id").eq("id", id).maybeSingle();
+  if (!q) return [];
+  const filters = [q.base_number !== null ? `base_number.eq.${q.base_number}` : null, q.opportunity_id ? `opportunity_id.eq.${q.opportunity_id}` : null].filter(Boolean);
+  if (!filters.length) return [];
+  const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version").or(filters.join(",")).neq("id", id).order("base_number").order("version");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ id: r.id, number: r.number, status: r.status as QuoteStatus, total: num(r.total) }));
 }
 
 export async function deleteQuote(id: string): Promise<void> {

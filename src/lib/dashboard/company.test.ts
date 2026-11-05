@@ -15,6 +15,7 @@ const quote = (quoteDate: string, status: QuoteSummary["status"], total: number)
   status,
   total,
   updatedAt: quoteDate,
+  followUpOn: null,
 });
 
 describe("quotesForMonth", () => {
