@@ -37,6 +37,7 @@ export function ToolDialog({
   people,
   projects,
   canEdit,
+  canChangeStatus,
   onClose,
   onReturn,
   onLend,
@@ -46,6 +47,8 @@ export function ToolDialog({
   people: Map<string, InventoryPerson>;
   projects: Map<string, string>;
   canEdit: boolean;
+  /** Cambiar el estado a mano (dañada, reparación, perdida) o dar de baja: Ajustes o Compras. */
+  canChangeStatus: boolean;
   onClose: () => void;
   onReturn: (loan: ToolLoan) => void;
   onLend: (toolId: string) => void;
@@ -248,8 +251,8 @@ export function ToolDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={ta("tool_f_status")} hint={lent ? ta("tool_status_locked") : undefined}>
-                <Select value={lent ? "prestada" : status} onValueChange={(v) => setStatus(v as EditableStatus)} disabled={readOnly || lent}>
+              <Field label={ta("tool_f_status")} hint={lent ? ta("tool_status_locked") : !canChangeStatus && !readOnly ? ta("tool_status_by_role") : undefined}>
+                <Select value={lent ? "prestada" : status} onValueChange={(v) => setStatus(v as EditableStatus)} disabled={readOnly || lent || !canChangeStatus}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -270,7 +273,7 @@ export function ToolDialog({
             <Field label={ta("notes")}>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
             </Field>
-            {current && !readOnly && (
+            {current && !readOnly && canChangeStatus && (
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="size-4 accent-primary" checked={!active} onChange={(e) => setActive(!e.target.checked)} disabled={lent} />
                 {ta("tool_inactive_hint")}

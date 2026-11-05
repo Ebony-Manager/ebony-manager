@@ -32,12 +32,15 @@ export function ToolsView({
   people,
   projects,
   canEdit,
+  canChangeStatus,
 }: {
   tools: Tool[];
   loans: ToolLoan[];
   people: InventoryPerson[];
   projects: Project[];
   canEdit: boolean;
+  /** Cambiar el estado a mano o dar de baja (Ajustes o Compras). */
+  canChangeStatus: boolean;
 }) {
   const { ta, lang } = useTa();
   const dueText = useDueText();
@@ -249,6 +252,7 @@ export function ToolsView({
         people={personById}
         projects={projectName}
         canEdit={canEdit}
+        canChangeStatus={canChangeStatus}
         onClose={() => setEditing(null)}
         onReturn={(loan) => {
           setEditing(null);

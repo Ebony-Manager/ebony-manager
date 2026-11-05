@@ -159,20 +159,22 @@ export async function registerAdjustmentAction(
 
 // ── Herramientas y envases (Etapa 2) ────────────────────────────────────
 // Prestar, devolver y marcar envases: el Almacén. Crear o editar
-// herramientas: Ajustes de inventario o Compras (la RLS decide igual).
+// herramientas: Herramientas, Ajustes de inventario o Compras; cambiar el
+// estado a mano o dar de baja, solo Ajustes o Compras (la base de datos lo
+// hace cumplir igual).
 
 export async function createToolAction(input: almacen.ToolInput) {
-  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  await requireAnyModule("almacen_ajustes", "almacen_compras", "almacen_herramientas");
   return run(() => almacen.createTool(input));
 }
 
 export async function updateToolAction(id: string, input: almacen.ToolInput, currentStatus: ToolStatus) {
-  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  await requireAnyModule("almacen_ajustes", "almacen_compras", "almacen_herramientas");
   return run(() => almacen.updateTool(id, input, currentStatus));
 }
 
 export async function setToolPhotoAction(id: string, path: string | null) {
-  await requireAnyModule("almacen_ajustes", "almacen_compras");
+  await requireAnyModule("almacen_ajustes", "almacen_compras", "almacen_herramientas");
   return run(() => almacen.setToolPhoto(id, path));
 }
 

@@ -2652,6 +2652,11 @@ export const strings = {
       es: "Conteos, daños, pérdidas y correcciones de existencia.",
       en: "Counts, damage, losses and stock corrections.",
     },
+    mod_almacen_herramientas: { es: "Herramientas", en: "Tools" },
+    mod_almacen_herramientas_hint: {
+      es: "Crear y editar herramientas y su foto. Sin costos; el estado (dañada, perdida) y dar de baja quedan para Ajustes o Compras.",
+      en: "Create and edit tools and their photo. No costs; status (damaged, lost) and retiring stay with Adjustments or Purchasing.",
+    },
     mod_inspecciones: { es: "Inspecciones", en: "Inspections" },
     mod_inspecciones_hint: {
       es: "Visitas a obra con fotos y detalles por resolver; PDF para el instalador. Ve nombre, cliente y ubicación de los proyectos, sin montos.",
@@ -3495,6 +3500,7 @@ export const strings = {
     tool_f_category: { es: "Categoría", en: "Category" },
     tool_f_brand: { es: "Marca / modelo", en: "Brand / model" },
     tool_f_status: { es: "Estado", en: "Status" },
+    tool_status_by_role: { es: "El estado lo cambia Ajustes de inventario o Compras.", en: "Status is changed by Adjustments or Purchasing." },
     tool_status_locked: { es: "Está prestada: su estado cambia al devolverla.", en: "It's lent: its status changes when it's returned." },
     tool_inactive_hint: { es: "Ya no se usa (no sale en la lista ni para prestar)", en: "No longer used (hidden from the list and lending)" },
     tool_saved: { es: "Herramienta guardada", en: "Tool saved" },

@@ -27,6 +27,8 @@ describe("normalizeModules", () => {
   it("Compras, Costos y Ajustes viven dentro de Almacén", () => {
     expect(normalizeModules(["almacen_compras", "almacen_costos", "almacen_ajustes"])).toEqual([]);
     expect(normalizeModules(["almacen_ajustes", "almacen"])).toEqual(["almacen", "almacen_ajustes"]);
+    expect(normalizeModules(["almacen_herramientas"])).toEqual([]);
+    expect(normalizeModules(["almacen", "almacen_herramientas"])).toEqual(["almacen", "almacen_herramientas"]);
   });
 });
 

@@ -4,7 +4,9 @@ import { getInventoryPeople, getTools, getWarehouseProjects } from "@/services/a
 import { ToolsView } from "./tools-view";
 
 // Almacén → Herramientas: préstamo y devolución. Presta y recibe quien tiene
-// Almacén; crea o edita herramientas quien tiene Ajustes de inventario o Compras.
+// Almacén; crea o edita herramientas (y su foto) quien tiene Herramientas,
+// Ajustes de inventario o Compras; el estado a mano y dar de baja, solo
+// Ajustes o Compras (quien custodia no oculta una pérdida).
 export const dynamic = "force-dynamic";
 
 export default async function HerramientasPage() {
@@ -16,7 +18,8 @@ export default async function HerramientasPage() {
       loans={loans}
       people={people}
       projects={projects}
-      canEdit={hasModule(profile, "almacen_ajustes") || hasModule(profile, "almacen_compras")}
+      canEdit={hasModule(profile, "almacen_ajustes") || hasModule(profile, "almacen_compras") || hasModule(profile, "almacen_herramientas")}
+      canChangeStatus={hasModule(profile, "almacen_ajustes") || hasModule(profile, "almacen_compras")}
     />
   );
 }

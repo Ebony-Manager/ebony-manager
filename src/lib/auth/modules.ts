@@ -24,6 +24,8 @@ export const APP_MODULES = [
   "almacen_compras",
   "almacen_costos",
   "almacen_ajustes",
+  // Herramientas: crear y editar herramientas y su foto (sin costos ni ajustes de existencias).
+  "almacen_herramientas",
   "directorio",
   // Inspecciones de obra: visitas con fotos y detalles por resolver (sin dinero).
   "inspecciones",
@@ -51,6 +53,7 @@ export const MODULE_PARENT: Partial<Record<AppModule, AppModule>> = {
   almacen_compras: "almacen",
   almacen_costos: "almacen",
   almacen_ajustes: "almacen",
+  almacen_herramientas: "almacen",
   form_autorizaciones: "accesos",
   form_registro: "accesos",
 };
