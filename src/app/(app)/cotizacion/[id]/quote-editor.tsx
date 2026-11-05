@@ -1061,6 +1061,7 @@ export function QuoteEditor({
           runStatus("APROBADA", {
             projectName: c.projectName,
             projectId: c.projectId,
+            also: c.also,
           })
         }
       />

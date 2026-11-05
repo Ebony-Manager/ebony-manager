@@ -193,6 +193,7 @@ export const isQuoteLocked = (q: Pick<Quote, "status">) => q.status !== "BORRADO
 export interface QuoteSibling {
   id: string;
   number: string;
+  opportunityId: string | null;
   status: QuoteStatus;
   total: number;
 }

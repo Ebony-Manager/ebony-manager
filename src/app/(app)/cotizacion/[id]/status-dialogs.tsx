@@ -27,6 +27,7 @@ import { LOST_REASONS, type LostReason } from "@/types/ventas";
 import type { Quote, QuoteOwnerOptions, QuoteSibling } from "@/types/cotizador";
 import { Field } from "../../contratistas/field";
 import { useTv } from "../ventas-common";
+import { QuotePickList } from "../seguimiento/stage-dialogs";
 
 type Tk = keyof typeof strings.cotizador;
 const isOpen = (s: QuoteSibling) =>
@@ -35,6 +36,8 @@ const isOpen = (s: QuoteSibling) =>
 export interface ApproveChoice {
   projectName: string | null;
   projectId: string | null;
+  /** Otras de la misma oportunidad que el cliente también aprobó. */
+  also: string[];
 }
 
 /**
@@ -64,10 +67,12 @@ export function ApproveQuoteDialog({
   const [name, setName] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [also, setAlso] = React.useState<string[]>([]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
+    setAlso([]);
     setMode("new");
     setName(
       quote.projectName.split(" · ")[0] ||
@@ -82,7 +87,8 @@ export function ApproveQuoteDialog({
 
   const fromOpp = !!quote.opportunityId;
   const project = projects.find((p) => p.id === quote.projectId);
-  const closing = fromOpp ? siblings.filter(isOpen) : [];
+  // Las otras abiertas de la misma oportunidad: se marcan las que también se aprobaron.
+  const others = fromOpp ? siblings.filter((s) => isOpen(s) && s.opportunityId === quote.opportunityId) : [];
   const ready = !fromOpp || (mode === "new" ? !!name.trim() : !!projectId);
 
   return (
@@ -135,11 +141,14 @@ export function ApproveQuoteDialog({
                 </Select>
               </Field>
             )}
-            {closing.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {tt("st_approve_siblings")}{" "}
-                {closing.map((s) => s.number).join(", ")}
-              </p>
+            {others.length > 0 && (
+              <QuotePickList
+                quotes={others}
+                picked={also}
+                onToggle={(id) => setAlso((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))}
+                label={tt("st_approve_also")}
+                hint={tv("approve_which_hint")}
+              />
             )}
           </div>
         )}
@@ -156,8 +165,9 @@ export function ApproveQuoteDialog({
                   ? {
                       projectName: mode === "new" ? name.trim() : null,
                       projectId: mode === "existing" ? projectId : null,
+                      also,
                     }
-                  : { projectName: null, projectId: null },
+                  : { projectName: null, projectId: null, also: [] },
               );
               setSaving(false);
             }}

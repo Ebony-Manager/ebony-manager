@@ -11,7 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { opportunityTitle } from "@/lib/ventas/opportunities";
+import { openQuotes, opportunityTitle } from "@/lib/ventas/opportunities";
+import { formatMoney } from "@/lib/cotizador/pricing";
+import { cn } from "@/lib/utils";
 import { Field } from "../../contratistas/field";
 import { projectPath } from "../../proyectos/paths";
 import { approveOpportunityAction } from "../ventas-actions";
@@ -69,6 +71,11 @@ export function LostDialog({
           <Field label={tv("f_lost_note")}>
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={tv("optional")} />
           </Field>
+          {opportunity && openQuotes(opportunity.quotes).length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {tv("lost_quotes_rejected")} {openQuotes(opportunity.quotes).map((q) => q.number).join(", ")}
+            </p>
+          )}
           {opportunity?.driveFolderId && !opportunity.projectId && <p className="text-xs text-destructive">{tv("lost_drive_warning")}</p>}
         </div>
         <DialogFooter>
@@ -87,6 +94,46 @@ export function LostDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Elegir cuáles cotizaciones aprobó el cliente (pueden ser varias: la cocina
+ * y el closet…). Las que queden sin marcar pasan a rechazadas.
+ */
+export function QuotePickList({
+  quotes,
+  picked,
+  onToggle,
+  label,
+  hint,
+}: {
+  quotes: { id: string; number: string; status: string; total: number }[];
+  picked: string[];
+  onToggle: (id: string) => void;
+  label: string;
+  hint: string;
+}) {
+  const { tv } = useTv();
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="mb-1.5 text-sm font-medium">{label}</legend>
+      {quotes.map((q) => {
+        const on = picked.includes(q.id);
+        return (
+          <label
+            key={q.id}
+            className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm", on ? "border-primary bg-primary/5" : "border-border hover:border-ring")}
+          >
+            <input type="checkbox" checked={on} onChange={() => onToggle(q.id)} className="size-4 accent-primary" />
+            <span className="font-medium tabular-nums">{q.number}</span>
+            <span className="text-xs text-muted-foreground">{tv(q.status === "ENVIADA" ? "quote_sent" : "quote_draft")}</span>
+            <span className="ml-auto font-semibold tabular-nums">{formatMoney(q.total)}</span>
+          </label>
+        );
+      })}
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </fieldset>
   );
 }
 
@@ -112,10 +159,15 @@ export function ApproveDialog({
   const [projectId, setProjectId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [picked, setPicked] = React.useState<string[]>([]);
+  const open_ = opportunity ? openQuotes(opportunity.quotes) : [];
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!opportunity) return;
+    // Con una sola cotización abierta, viene marcada.
+    const abiertas = openQuotes(opportunity.quotes);
+    setPicked(abiertas.length === 1 ? [abiertas[0].id] : []);
     setMode(opportunity.projectId ? "existing" : "new");
     setName(opportunityTitle(opportunity, clients));
     setProjectId(opportunity.projectId ?? "");
@@ -129,7 +181,7 @@ export function ApproveDialog({
     if (!opportunity) return;
     setSaving(true);
     setError(null);
-    const res = await approveOpportunityAction(opportunity.id, mode === "new" ? name.trim() : null, mode === "existing" ? projectId : null);
+    const res = await approveOpportunityAction(opportunity.id, mode === "new" ? name.trim() : null, mode === "existing" ? projectId : null, picked);
     setSaving(false);
     if (!res.ok) return setError(res.error);
     const id = res.data;
@@ -186,13 +238,22 @@ export function ApproveDialog({
               </Select>
             </Field>
           )}
+          {open_.length > 0 && (
+            <QuotePickList
+              quotes={open_}
+              picked={picked}
+              onToggle={(id) => setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))}
+              label={tv("approve_which_quotes")}
+              hint={tv("approve_which_hint")}
+            />
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             {tv("cancel")}
           </Button>
-          <Button disabled={saving || (mode === "new" ? !name.trim() : !projectId)} onClick={() => void approve()}>
+          <Button disabled={saving || (mode === "new" ? !name.trim() : !projectId) || (open_.length > 0 && picked.length === 0)} onClick={() => void approve()}>
             {saving ? tv("saving") : tv("approve")}
           </Button>
         </DialogFooter>

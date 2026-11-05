@@ -488,6 +488,8 @@ export interface SetQuoteStatusInput {
   /** Al aprobar una de oportunidad: proyecto nuevo (nombre) o uno que ya existe. */
   projectName?: string | null;
   projectId?: string | null;
+  /** Al aprobar una de oportunidad: otras de la misma oportunidad que el cliente también aprobó. */
+  also?: string[];
 }
 
 /** Cambia el estado con sus reglas (ver set_quote_status en la base). */
@@ -500,6 +502,7 @@ export async function setQuoteStatus(id: string, status: QuoteStatus, input: Set
     p_lost_note: input.lostNote ?? null,
     p_project_name: input.projectName ?? null,
     p_project_id: input.projectId ?? null,
+    p_also: input.also ?? null,
   });
   if (error) throw new Error(error.message);
   const { data, error: readError } = await supabase.from("quotes").select("status, sent_on, closed_on, follow_up_on, project_id, updated_at").eq("id", id).single();
@@ -521,9 +524,9 @@ export async function getQuoteSiblings(id: string): Promise<QuoteSibling[]> {
   if (!q) return [];
   const filters = [q.base_number !== null ? `base_number.eq.${q.base_number}` : null, q.opportunity_id ? `opportunity_id.eq.${q.opportunity_id}` : null].filter(Boolean);
   if (!filters.length) return [];
-  const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version").or(filters.join(",")).neq("id", id).order("base_number").order("version");
+  const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version, opportunity_id").or(filters.join(",")).neq("id", id).order("base_number").order("version");
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => ({ id: r.id, number: r.number, status: r.status as QuoteStatus, total: num(r.total) }));
+  return (data ?? []).map((r) => ({ id: r.id, number: r.number, opportunityId: r.opportunity_id, status: r.status as QuoteStatus, total: num(r.total) }));
 }
 
 export async function deleteQuote(id: string): Promise<void> {

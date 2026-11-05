@@ -3,9 +3,20 @@
 
 import type { Client, Opportunity } from "@/types/ventas";
 
-/** El monto que vale: el de la cotización vigente (la más reciente) o, si no hay, el escrito a mano. */
+/**
+ * El monto que vale: la suma de las cotizaciones aprobadas (el cliente puede
+ * aprobar varias); sin aprobadas, la vigente (la más reciente); sin
+ * cotizaciones, el escrito a mano.
+ */
 export function opportunityAmount(o: Pick<Opportunity, "quotes" | "amount">): number | null {
+  const approved = o.quotes.filter((q) => q.status === "APROBADA");
+  if (approved.length) return approved.reduce((sum, q) => sum + q.total, 0);
   return o.quotes[0]?.total ?? o.amount;
+}
+
+/** Cotizaciones que siguen abiertas (borrador o enviada): las que se aprueban o se rechazan al cerrar. */
+export function openQuotes<T extends { status: string }>(quotes: readonly T[]): T[] {
+  return quotes.filter((q) => q.status === "BORRADOR" || q.status === "ENVIADA");
 }
 
 /** "Estudio Norte (Laura) · Juan Pérez": la firma (con su contacto, si se eligió) y el cliente final. */

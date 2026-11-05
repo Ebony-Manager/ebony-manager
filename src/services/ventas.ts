@@ -219,9 +219,13 @@ export async function setOpportunityStage(id: string, stage: Stage, lostReason: 
 }
 
 /** Aprobar: crea el proyecto (o enlaza uno existente) con el arquitecto y el cliente. */
-export async function approveOpportunity(id: string, projectName: string | null, projectId: string | null): Promise<string> {
+/**
+ * Aprueba: crea o enlaza el proyecto. `quoteIds` = las cotizaciones que el
+ * cliente aprobó (pueden ser varias); las demás abiertas pasan a rechazadas.
+ */
+export async function approveOpportunity(id: string, projectName: string | null, projectId: string | null, quoteIds: string[]): Promise<string> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("approve_opportunity", { p_id: id, p_project_name: projectName, p_project_id: projectId });
+  const { data, error } = await supabase.rpc("approve_opportunity", { p_id: id, p_project_name: projectName, p_project_id: projectId, p_quote_ids: quoteIds });
   fail(error);
   return data as string;
 }

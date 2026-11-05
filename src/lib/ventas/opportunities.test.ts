@@ -19,6 +19,11 @@ describe("oportunidades", () => {
     expect(opportunityAmount(opp({}))).toBeNull();
   });
 
+  it("monto: con aprobadas, la suma de las aprobadas (pueden ser varias)", () => {
+    const q = (id: string, status: string, total: number) => ({ id, number: id, quoteDate: "", status, total, updatedAt: "" });
+    expect(opportunityAmount(opp({ quotes: [q("v2", "RECHAZADA", 900), q("cocina", "APROBADA", 1200), q("closet", "APROBADA", 800)] }))).toBe(2000);
+  });
+
   it("nombre: el proyecto o, si no hay, arquitecto · cliente", () => {
     const m = new Map([["a", client("a", "Ada Hidrogo", "arquitecto")], ["c", client("c", "Juan Pérez", "cliente")]]);
     expect(opportunityTitle(opp({ title: "Peninsula 25B", designerId: "a" }), m)).toBe("Peninsula 25B");

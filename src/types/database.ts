@@ -3399,7 +3399,7 @@ export type Database = {
         Returns: { id: string; name: string }[]
       }
       approve_opportunity: {
-        Args: { p_id: string; p_project_name: string | null; p_project_id: string | null }
+        Args: { p_id: string; p_project_name: string | null; p_project_id: string | null; p_quote_ids?: string[] | null }
         Returns: string
       }
       save_quote: {
@@ -3407,7 +3407,7 @@ export type Database = {
         Returns: string
       }
       set_quote_status: {
-        Args: { p_id: string; p_status: string; p_lost_reason?: string | null; p_lost_note?: string | null; p_project_name?: string | null; p_project_id?: string | null }
+        Args: { p_id: string; p_status: string; p_lost_reason?: string | null; p_lost_note?: string | null; p_project_name?: string | null; p_project_id?: string | null; p_also?: string[] | null }
         Returns: string | null
       }
       quote_projects: {
