@@ -9,6 +9,8 @@ import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { Inspection, InspectionPainter } from "@/types/inspections";
 import type { ProjectSupplyLine } from "@/types/almacen";
+import type { QuoteSummary } from "@/types/cotizador";
+import { QuoteRows } from "../../cotizacion/quote-rows";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -36,7 +38,7 @@ import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "contratos" | "inspecciones" | "suministros" | "archivos";
+type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "archivos";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -59,6 +61,8 @@ export function ProjectHub({
   supplies,
   drive,
   projectPeople,
+  canQuotes = false,
+  quotes = [],
 }: {
   project: Project;
   initialTab?: string;
@@ -75,6 +79,9 @@ export function ProjectHub({
   drive: { enabled: boolean; folderId: string | null };
   /** Nombres del arquitecto/diseñador (con su contacto) y del cliente final. */
   projectPeople: { designer: string | null; client: string | null };
+  /** Con Cotización: las aprobadas que lo crearon y sus adicionales. */
+  canQuotes?: boolean;
+  quotes?: QuoteSummary[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -82,6 +89,7 @@ export function ProjectHub({
 
   const sections: { key: SectionKey; label: string; visible: boolean }[] = [
     { key: "resumen", label: tt("tab_resumen"), visible: true },
+    { key: "cotizaciones", label: tt("tab_cotizaciones"), visible: canQuotes },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: true },
@@ -146,6 +154,7 @@ export function ProjectHub({
       {tab === "resumen" && (
         <Overview project={project} people={projectPeople} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
       )}
+      {tab === "cotizaciones" && canQuotes && <QuoteRows quotes={quotes} newHref={`/cotizacion/nueva?proyecto=${project.id}`} />}
       {tab === "contratos" && canContracts && (
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}

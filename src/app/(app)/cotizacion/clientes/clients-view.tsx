@@ -12,6 +12,7 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { clientStats } from "@/lib/ventas/opportunities";
+import type { QuoteSummary } from "@/types/cotizador";
 import { cn } from "@/lib/utils";
 import { CotizacionTabs, KindBadge, useTv } from "../ventas-common";
 import type { SalesProject } from "../seguimiento/opportunity-dialog";
@@ -24,7 +25,7 @@ type KindFilter = "all" | ClientKind;
  * cuánto se les ha cotizado y aprobado. Tocar uno abre su ficha (datos,
  * oportunidades y proyectos).
  */
-export function ClientsView({ clients, opportunities, projects }: { clients: Client[]; opportunities: Opportunity[]; projects: SalesProject[] }) {
+export function ClientsView({ clients, opportunities, projects, quotes }: { clients: Client[]; opportunities: Opportunity[]; projects: SalesProject[]; quotes: QuoteSummary[] }) {
   const { tv, lang } = useTv();
   const [query, setQuery] = React.useState("");
   const [kind, setKind] = React.useState<KindFilter>("all");
@@ -144,7 +145,7 @@ export function ClientsView({ clients, opportunities, projects }: { clients: Cli
 
       {clients.some((c) => !c.active) && <ShowToggle className="self-end" checked={showInactive} onChange={setShowInactive} label={tv("show_inactive")} />}
 
-      <ClientDialog client={editingNow} clients={clients} opportunities={opportunities} projects={projects} onClose={() => setEditing(null)} />
+      <ClientDialog client={editingNow} clients={clients} opportunities={opportunities} projects={projects} quotes={quotes} onClose={() => setEditing(null)} />
     </div>
   );
 }

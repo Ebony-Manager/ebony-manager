@@ -23,6 +23,8 @@ import { projectPath } from "../../proyectos/paths";
 import { createClientAction, updateClientAction } from "../ventas-actions";
 import { SEGUIMIENTO_PATH, StageBadge, useTv } from "../ventas-common";
 import type { SalesProject } from "../seguimiento/opportunity-dialog";
+import type { QuoteSummary } from "@/types/cotizador";
+import { QuoteRows } from "../quote-rows";
 
 interface Form {
   name: string;
@@ -59,6 +61,7 @@ export function ClientDialog({
   clients,
   opportunities,
   projects,
+  quotes = [],
   onClose,
   onCreated,
 }: {
@@ -66,6 +69,8 @@ export function ClientDialog({
   clients: Client[];
   opportunities: Opportunity[];
   projects: SalesProject[];
+  /** Todas las cotizaciones: se muestran las de este cliente (como firma o como cliente final). */
+  quotes?: QuoteSummary[];
   onClose: () => void;
   onCreated?: (c: Client) => void;
 }) {
@@ -255,6 +260,17 @@ export function ClientDialog({
                   })}
                 </ul>
               )}
+            </section>
+          )}
+
+          {existing && (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold text-foreground">{tv("cli_quotes")}</h3>
+              <QuoteRows
+                showWho
+                quotes={quotes.filter((q) => q.designerId === existing.id || q.clientId === existing.id)}
+                newHref={`/cotizacion/nueva?cliente=${existing.id}`}
+              />
             </section>
           )}
 

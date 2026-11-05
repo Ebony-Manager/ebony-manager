@@ -16,6 +16,10 @@ const quote = (quoteDate: string, status: QuoteSummary["status"], total: number)
   total,
   updatedAt: quoteDate,
   followUpOn: null,
+  opportunityId: null,
+  projectId: null,
+  designerId: null,
+  clientId: null,
 });
 
 describe("quotesForMonth", () => {

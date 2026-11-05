@@ -8,6 +8,7 @@ import { getProjectSupplies } from "@/services/almacen";
 import { createClient } from "@/lib/supabase/server";
 import { driveEnabled } from "@/lib/google/drive";
 import { getClients } from "@/services/ventas";
+import { getProjectQuotes } from "@/services/cotizador";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -28,12 +29,13 @@ export default async function ProjectPage({
   const profile = await requireAnyModule("proyectos", "contratistas");
   const canContracts = hasModule(profile, "contratistas");
   const canInspections = hasModule(profile, "inspecciones");
+  const canQuotes = hasModule(profile, "cotizacion");
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
 
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder, clients] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder, clients, quotes] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -43,6 +45,7 @@ export default async function ProjectPage({
     getProjectSupplies(id),
     createClient().then((s) => s.from("projects").select("drive_folder_id").eq("id", id).maybeSingle()),
     project.designerId || project.clientId ? getClients().catch(() => []) : none([]),
+    canQuotes ? getProjectQuotes(id) : none([]),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
@@ -60,6 +63,8 @@ export default async function ProjectPage({
       painters={painters}
       supplies={supplies}
       drive={{ enabled: driveEnabled(), folderId: folder.data?.drive_folder_id ?? null }}
+      canQuotes={canQuotes}
+      quotes={quotes}
       projectPeople={{ designer: nameOf(project.designerId), client: nameOf(project.clientId) }}
     />
   );

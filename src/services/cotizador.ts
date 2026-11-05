@@ -250,12 +250,8 @@ export async function updateCostInput(key: string, value: number): Promise<void>
 
 // ── Cotizaciones ────────────────────────────────────────────────────────
 
-export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
-  const supabase = await createClient();
-  const rows = await selectAllRows<QuoteRow>((from, to) =>
-    supabase.from("quotes").select("*").order("created_at", { ascending: false }).order("id").range(from, to)
-  );
-  return rows.map((r) => ({
+function mapSummary(r: QuoteRow): QuoteSummary {
+  return {
     id: r.id,
     number: r.number,
     clientName: r.client_name,
@@ -266,7 +262,27 @@ export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
     total: num(r.total),
     updatedAt: r.updated_at,
     followUpOn: r.status === "ENVIADA" ? r.follow_up_on : null,
-  }));
+    opportunityId: r.opportunity_id,
+    projectId: r.project_id,
+    designerId: r.designer_id,
+    clientId: r.client_id,
+  };
+}
+
+export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
+  const supabase = await createClient();
+  const rows = await selectAllRows<QuoteRow>((from, to) =>
+    supabase.from("quotes").select("*").order("created_at", { ascending: false }).order("id").range(from, to)
+  );
+  return rows.map(mapSummary);
+}
+
+/** Las cotizaciones de un proyecto: las aprobadas que lo crearon y sus adicionales. */
+export async function getProjectQuotes(projectId: string): Promise<QuoteSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quotes").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapSummary);
 }
 
 export async function getQuote(id: string): Promise<Quote | null> {

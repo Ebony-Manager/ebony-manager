@@ -231,4 +231,9 @@ export interface QuoteSummary {
   total: number;
   updatedAt: string;
   followUpOn: string | null;
+  /** De quién es (para mostrarla en la ficha del proyecto o del cliente). */
+  opportunityId: string | null;
+  projectId: string | null;
+  designerId: string | null;
+  clientId: string | null;
 }
