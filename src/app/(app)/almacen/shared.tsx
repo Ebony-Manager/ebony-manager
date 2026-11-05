@@ -12,7 +12,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { formatQty, stockStatus, unitLabel, variantName } from "@/lib/almacen/inventory";
-import { inventoryPhotoUrl } from "@/lib/almacen/photos";
+import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoUrl } from "@/lib/almacen/photos";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
 
 export type AlmacenKey = keyof typeof strings.almacen;
 
@@ -58,7 +59,9 @@ export function ItemThumb({
   /** Cargar ya (ej. hoja para imprimir: una foto sin cargar sale en blanco). */
   eager?: boolean;
 }) {
-  const url = inventoryPhotoUrl(path);
+  // Miniatura (listas, tarjetas): achicada y guardada por el navegador (ver
+  // src/lib/photo-url.ts). En grande ("fill"), la foto tal cual (ya viene a 800 px).
+  const url = path ? (size === "fill" ? inventoryPhotoUrl(path) : photoUrl(INVENTORY_PHOTOS_BUCKET, path, THUMB_WIDTH)) : null;
   return (
     <span
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white ${className ?? ""}`}

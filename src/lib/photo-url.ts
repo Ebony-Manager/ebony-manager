@@ -3,7 +3,7 @@
 // vez), así el navegador guarda la foto y no la vuelve a pedir a Supabase.
 // `w` = ancho de la miniatura (la ruta la achica); sin `w`, la foto completa.
 
-export const PHOTO_BUCKETS = ["inspection-photos", "employee-photos", "contractor-photos"] as const;
+export const PHOTO_BUCKETS = ["inspection-photos", "employee-photos", "contractor-photos", "inventory-photos"] as const;
 export type PhotoBucket = (typeof PHOTO_BUCKETS)[number];
 
 /** Ancho de las miniaturas (tarjetas, listas): nítidas en pantallas retina hasta ~120 px. */
