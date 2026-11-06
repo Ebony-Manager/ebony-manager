@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, ChevronDown, Copy, Loader2, Lock, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Copy, Loader2, Lock, Pencil, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 import {
@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RowMenu } from "@/components/shared/row-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { projectPath } from "../../proyectos/paths";
 import { QUOTE_STATUS_STYLE } from "../status-style";
 import {
@@ -123,6 +123,7 @@ export function QuoteEditor({
   /** updated_at de lo último que guardamos: si en la base hay otro, alguien más guardó. */
   const expected = React.useRef<string | null>(initialQuote.updatedAt);
   const [conflict, setConflict] = React.useState(false);
+  const [termsOpen, setTermsOpen] = React.useState(false);
   const [statusDialog, setStatusDialog] = React.useState<
     "approve" | "reject" | null
   >(null);
@@ -436,147 +437,105 @@ export function QuoteEditor({
         </div>
       )}
       <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="flex flex-wrap items-center gap-1">
+        {/* Arriba: volver, si se guardó y un solo menú de acciones. */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1">
             <BackLink href="/cotizacion" label={tt("title")} />
             {quote.opportunityId && (
               <Link
                 href={`/cotizacion/seguimiento?abrir=${quote.opportunityId}`}
+                title={tt("from_follow_up")}
                 className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
                 <Waypoints className="size-3.5" />
-                {tt("from_follow_up")}
+                <span className="hidden sm:inline">{tt("from_follow_up")}</span>
               </Link>
             )}
           </span>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             <span
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
               aria-live="polite"
+              title={
+                saveState === "saved"
+                  ? tt(isPersisted ? "save_saved" : "save_new")
+                  : saveState === "error"
+                    ? tt("save_error")
+                    : tt("save_saving")
+              }
             >
-              {saveState === "saved" && isPersisted && (
-                <Check className="size-3.5 text-[var(--status-ok)]" />
-              )}
-              {(saveState === "saving" || saveState === "pending") && (
-                <Loader2 className="size-3.5 animate-spin" />
-              )}
+              {saveState === "saved" && isPersisted && <Check className="size-3.5 text-[var(--status-ok)]" />}
+              {(saveState === "saving" || saveState === "pending") && <Loader2 className="size-3.5 animate-spin" />}
+              {saveState === "error" && <TriangleAlert className="size-3.5 text-destructive" />}
+              <span className={cn(saveState !== "error" && "hidden sm:inline")}>
+                {saveState === "saved"
+                  ? tt(isPersisted ? "save_saved" : "save_new")
+                  : saveState === "error"
+                    ? tt("save_error")
+                    : tt("save_saving")}
+              </span>
               {saveState === "error" && (
-                <TriangleAlert className="size-3.5 text-destructive" />
-              )}
-              {saveState === "saved"
-                ? tt(isPersisted ? "save_saved" : "save_new")
-                : saveState === "error"
-                  ? tt("save_error")
-                  : tt("save_saving")}
-              {saveState === "error" && (
-                <button
-                  type="button"
-                  onClick={() => void flush()}
-                  className="underline"
-                >
+                <button type="button" onClick={() => void flush()} className="underline">
                   {tt("save_retry")}
                 </button>
               )}
             </span>
-            <span
-              className={cn(
-                "rounded-md px-2 py-1 text-xs font-semibold",
-                QUOTE_STATUS_STYLE[quote.status],
-              )}
-            >
-              {statusLabel(quote.status)}
-            </span>
-            {quote.status === "BORRADOR" && (
-              <>
-                <Button size="sm" onClick={onSend} disabled={!canStatus}>
-                  <Send className="size-3.5" />
-                  {tt("st_send")}
-                </Button>
-                <RowMenu
-                  label={tt("st_more")}
-                  items={[
-                    {
-                      label: tt("st_approve"),
-                      icon: CheckCircle2,
-                      disabled: !canStatus,
-                      onSelect: () => setStatusDialog("approve"),
-                    },
-                    {
-                      label: tt("st_reject"),
-                      icon: XCircle,
-                      disabled: !canStatus,
-                      onSelect: () => setStatusDialog("reject"),
-                    },
-                  ]}
-                />
-              </>
+            {isPersisted && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant={quote.status === "BORRADOR" ? "default" : "outline"} disabled={statusBusy || duplicating || conflict}>
+                    {statusBusy || duplicating ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                    {tt("actions")}
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-52">
+                  {quote.status === "BORRADOR" && (
+                    <DropdownMenuItem onSelect={onSend} disabled={!canStatus}>
+                      <Send className="size-4" />
+                      {tt("st_send")}
+                    </DropdownMenuItem>
+                  )}
+                  {(quote.status === "BORRADOR" || quote.status === "ENVIADA") && (
+                    <>
+                      <DropdownMenuItem onSelect={() => setStatusDialog("approve")} disabled={!canStatus}>
+                        <CheckCircle2 className="size-4 text-[var(--status-ok)]" />
+                        {tt("st_approve_action")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setStatusDialog("reject")} disabled={!canStatus}>
+                        <XCircle className="size-4 text-destructive" />
+                        {tt("st_reject_action")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onSelect={() => void onDuplicate()} title={tt("duplicate_version_hint")}>
+                    <Copy className="size-4" />
+                    {tt("duplicate_version")}
+                  </DropdownMenuItem>
+                  {quote.status === "ENVIADA" && isAdmin && (
+                    <DropdownMenuItem onSelect={() => void runStatus("BORRADOR")} disabled={!canStatus}>
+                      <Undo2 className="size-4" />
+                      {tt("st_reopen")}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            {quote.status === "ENVIADA" && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setStatusDialog("approve")}
-                  disabled={!canStatus}
-                >
-                  <CheckCircle2 className="size-3.5 text-[var(--status-ok)]" />
-                  {tt("st_approve")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setStatusDialog("reject")}
-                  disabled={!canStatus}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <XCircle className="size-3.5" />
-                  {tt("st_reject")}
-                </Button>
-                {isAdmin && (
-                  <RowMenu
-                    label={tt("st_more")}
-                    items={[
-                      {
-                        label: tt("st_reopen"),
-                        icon: Undo2,
-                        disabled: !canStatus,
-                        onSelect: () => void runStatus("BORRADOR"),
-                      },
-                    ]}
-                  />
-                )}
-              </>
-            )}
-            <button
-              type="button"
-              disabled={duplicating || !isPersisted}
-              onClick={onDuplicate}
-              title={tt("duplicate_version_hint")}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium hover:border-ring disabled:opacity-50"
-            >
-              <Copy className="size-3.5" />
-              {tt("duplicate_version")}
-            </button>
           </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">
+          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">
             {quote.number || tt("number_pending")}
+            <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] tracking-normal", QUOTE_STATUS_STYLE[quote.status])}>{statusLabel(quote.status)}</span>
           </p>
-          <h1
-            className={cn(
-              "truncate text-xl font-semibold",
-              quoteWho(quote) ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
+          <h1 className={cn("truncate text-xl font-semibold", quoteWho(quote) ? "text-foreground" : "text-muted-foreground")}>
             {quoteWho(quote) || tt("own_none")}
           </h1>
           {(quote.projectName || (quote.clientName && quote.designerName)) && (
             <p className="truncate text-sm text-muted-foreground">
-              {[quote.projectName, quote.clientName ? quote.designerName : ""]
-                .filter(Boolean)
-                .join(" · ")}
+              {[quote.projectName, quote.clientName ? quote.designerName : ""].filter(Boolean).join(" · ")}
             </p>
           )}
         </div>
@@ -650,11 +609,15 @@ export function QuoteEditor({
             onChange={(p) => setHeader(p)}
           />
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* Condiciones: una línea de resumen; se abre para cambiarlas. */}
+          {termsOpen ? (
+            <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-3.5 sm:grid-cols-4">
             <label className={smallLabel}>
               {tt("f_date")}
               <Input
                 type="date"
+                className="block h-9 appearance-none text-left"
                 value={quote.quoteDate}
                 onChange={(e) =>
                   e.currentTarget.value &&
@@ -706,6 +669,32 @@ export function QuoteEditor({
               </Select>
             </div>
           </div>
+              <button type="button" onClick={() => setTermsOpen(false)} className="self-end text-xs font-medium text-primary hover:underline">
+                {tt("own_done")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setTermsOpen(true)}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left text-sm hover:border-ring"
+            >
+              <span>
+                <span className="text-muted-foreground">{tt("f_date")}</span> {shortDate(quote.quoteDate)}
+              </span>
+              <span>
+                <span className="text-muted-foreground">{tt("f_delivery")}</span> {quote.deliveryDays} {tt("unit_days")}
+              </span>
+              <span>
+                <span className="text-muted-foreground">{tt("valid_until")}</span> {shortDate(validUntil(quote.quoteDate, quote.validDays))}
+              </span>
+              <span>{quote.lang === "en" ? "English" : "Español"}</span>
+              <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
+                <Pencil className="size-3.5" />
+                {tt("edit")}
+              </span>
+            </button>
+          )}
         </fieldset>
       </header>
 

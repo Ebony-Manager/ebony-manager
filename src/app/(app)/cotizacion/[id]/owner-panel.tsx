@@ -41,6 +41,7 @@ import {
   type OwnerPatch,
 } from "@/lib/cotizador/owner";
 import { cn } from "@/lib/utils";
+import type { strings } from "@/lib/i18n";
 import {
   quoteOwnerKind,
   type Quote,
@@ -57,24 +58,7 @@ import {
 import { ClientDialog } from "../clientes/client-dialog";
 import type { Stage } from "@/types/ventas";
 
-type Tt = (
-  k:
-    | "own_title"
-    | "own_opportunity"
-    | "own_project"
-    | "own_client"
-    | "own_opportunity_hint"
-    | "own_project_hint"
-    | "own_client_hint"
-    | "own_pick_opportunity"
-    | "own_pick_project"
-    | "own_not_listed"
-    | "own_firm"
-    | "own_end_client"
-    | "own_reference"
-    | "own_reference_ph"
-    | "own_closed",
-) => string;
+type Tt = (k: keyof typeof strings.cotizador) => string;
 
 /**
  * "¿Para qué es?": la cotización siempre es de una oportunidad de Seguimiento
@@ -171,6 +155,29 @@ export function OwnerPanel({
   const people = (designerId: string | null, clientId: string | null) =>
     [nameOf(designerId), nameOf(clientId)].filter(Boolean).join(" · ");
 
+  // Ya elegido, se pliega en una línea ("Oportunidad · Royal Palace · NDesign")
+  // con "Cambiar"; así la pantalla queda para cotizar.
+  const hasOwner = !!(quote.opportunityId || quote.projectId || quote.designerId || quote.clientId);
+  const [open, setOpen] = React.useState(!hasOwner);
+  if (!open && hasOwner) {
+    const kind = quoteOwnerKind(quote);
+    const Icon = kind === "opportunity" ? Waypoints : kind === "project" ? FolderKanban : User;
+    const label = kind === "opportunity" ? tt("own_opportunity") : kind === "project" ? tt("own_project") : tt("own_client");
+    const who = [nameOf(quote.designerId) + (contactName ? ` (${contactName})` : ""), nameOf(quote.clientId)].filter(Boolean).join(" · ");
+    return (
+      <section className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+          <p className="truncate text-sm text-foreground">{[quote.projectName, who].filter(Boolean).join(" · ") || "—"}</p>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
+          {tt("own_change")}
+        </Button>
+      </section>
+    );
+  }
+
   const hint =
     mode === "opportunity"
       ? tt("own_opportunity_hint")
@@ -181,8 +188,13 @@ export function OwnerPanel({
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+        <h2 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
           {tt("own_title")}
+          {hasOwner && (
+            <button type="button" onClick={() => setOpen(false)} className="rounded-md px-1.5 py-0.5 text-[11px] font-medium tracking-normal text-primary normal-case hover:bg-muted">
+              {tt("own_done")}
+            </button>
+          )}
         </h2>
         <SegmentedFilter
           value={mode}
@@ -215,7 +227,10 @@ export function OwnerPanel({
             }))}
             onPick={(id) => {
               const o = owners.opportunities.find((x) => x.id === id);
-              if (o) onChange(linkOpportunity(o, clients));
+              if (o) {
+                onChange(linkOpportunity(o, clients));
+                setOpen(false);
+              }
             }}
             empty={tv("no_results")}
           />
@@ -239,7 +254,10 @@ export function OwnerPanel({
           }))}
           onPick={(id) => {
             const p = owners.projects.find((x) => x.id === id);
-            if (p) onChange(linkProject(p, clients));
+            if (p) {
+              onChange(linkProject(p, clients));
+              setOpen(false);
+            }
           }}
           empty={tv("no_results")}
         />
