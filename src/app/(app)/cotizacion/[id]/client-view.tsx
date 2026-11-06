@@ -9,6 +9,13 @@ import type { PdfDetail, Quote } from "@/types/cotizador";
 import { UNIT_LABEL } from "./line-row";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { groupedOrder } from "@/lib/cotizador/items";
+import { TERMS, TERMS_INTRO, TERMS_TITLE, richSegments } from "@/lib/cotizador/terms";
+import toast from "react-hot-toast";
+import { Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLang } from "@/context/language-context";
+import { downloadQuotePdf } from "./quote-pdf";
 
 /**
  * Lo que ve el cliente: una línea por ítem con su descripción, como la
@@ -29,21 +36,40 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
   const fmtDate = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "2-digit", year: "numeric" });
   const dateLabel = fmtDate(quote.quoteDate);
+  // Los botones van en el idioma de la interfaz; la cotización, en el suyo.
+  const { lang } = useLang();
+  const ui = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
+  const [building, setBuilding] = React.useState(false);
+  async function download() {
+    setBuilding(true);
+    try {
+      await downloadQuotePdf(quote);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setBuilding(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex items-center gap-2 self-end text-xs text-foreground/80">
-        {tt("cv_detail")}
-        <select
-          value={detail}
-          onChange={(e) => onDetail(e.currentTarget.value as PdfDetail)}
-          className="h-8 rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:border-ring"
-        >
-          <option value="section">{tt("cv_detail_section")}</option>
-          <option value="line">{tt("cv_detail_line")}</option>
-          <option value="total">{tt("cv_detail_total")}</option>
-        </select>
-      </label>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="text-xs text-foreground/80">{ui("cv_detail")}</span>
+        <Select value={detail} onValueChange={(v) => onDetail(v as PdfDetail)}>
+          <SelectTrigger size="sm" className="w-[170px]" aria-label={ui("cv_detail")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="section">{ui("cv_detail_section")}</SelectItem>
+            <SelectItem value="line">{ui("cv_detail_line")}</SelectItem>
+            <SelectItem value="total">{ui("cv_detail_total")}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={() => void download()} disabled={building}>
+          {building ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+          {building ? ui("pdf_building") : ui("pdf_download")}
+        </Button>
+      </div>
 
       <article className="mx-auto w-full max-w-[860px] rounded-lg border border-border bg-card px-5 py-7 sm:px-10 sm:py-10">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
@@ -149,8 +175,51 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
           <p>Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2</p>
           <p>{tt("cv_payment")}</p>
         </footer>
+
+        {/* Condiciones generales (en el PDF van en hojas aparte). */}
+        <details className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">
+          <summary className="cursor-pointer text-sm font-semibold text-foreground">{TERMS_TITLE}</summary>
+          <p className="mt-3 italic">{TERMS_INTRO}</p>
+          {TERMS.map((section) => (
+            <section key={section.title} className="mt-3">
+              <h3 className="font-semibold text-foreground">{section.title}</h3>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {section.items.map((item, i) => (
+                  <li key={i}>
+                    <Rich text={typeof item === "string" ? item : item.text} />
+                    {typeof item !== "string" && (
+                      <ul className="mt-1 list-[circle] space-y-0.5 pl-5">
+                        {item.sub.map((sub) => (
+                          <li key={sub}>
+                            <Rich text={sub} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </details>
       </article>
-      <p className="text-center text-xs text-muted-foreground">{tt("cv_pdf_soon")}</p>
     </div>
+  );
+}
+
+/** Texto con `**negritas**`. */
+function Rich({ text }: { text: string }) {
+  return (
+    <>
+      {richSegments(text).map((seg, i) =>
+        seg.bold ? (
+          <strong key={i} className="font-semibold text-foreground">
+            {seg.text}
+          </strong>
+        ) : (
+          <React.Fragment key={i}>{seg.text}</React.Fragment>
+        ),
+      )}
+    </>
   );
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, ChevronDown, Copy, Loader2, Lock, Pencil, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Copy, Download, Loader2, Lock, Pencil, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 import {
@@ -42,6 +42,7 @@ import type { Client } from "@/types/ventas";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { Textarea } from "@/components/ui/textarea";
 import { OwnerPanel } from "./owner-panel";
+import { downloadQuotePdf } from "./quote-pdf";
 import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
 import { duplicateSection, locationGroups, locationSuggestions, moveSection, shiftSection } from "@/lib/cotizador/items";
 import {
@@ -509,6 +510,15 @@ export function QuoteEditor({
                       <DropdownMenuSeparator />
                     </>
                   )}
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      void downloadQuotePdf(latest.current).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
+                    }
+                  >
+                    <Download className="size-4" />
+                    {tt("pdf_download")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => void onDuplicate()} title={tt("duplicate_version_hint")}>
                     <Copy className="size-4" />
                     {tt("duplicate_version")}
