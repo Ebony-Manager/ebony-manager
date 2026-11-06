@@ -73,7 +73,15 @@ export interface SectionTotals {
   commission: number;
   base: number;
   ccf: number;
+  /** Lo de arriba es por unidad; `unit` es el precio de una y `total` = unit × qty. */
+  unit: number;
+  qty: number;
   total: number;
+}
+
+/** Cantidad del ítem (si no es un número positivo, 1). */
+export function sectionQty(s: Pick<QuoteSection, "qty">): number {
+  return Number.isFinite(s.qty) && s.qty > 0 ? s.qty : 1;
 }
 
 export function sectionTotals(s: QuoteSection): SectionTotals {
@@ -91,7 +99,9 @@ export function sectionTotals(s: QuoteSection): SectionTotals {
   const commission = ((ebonyTotal + subTotal + extras) * s.commissionPct) / 100;
   const base = ebonyTotal + subTotal + extras + commission;
   const ccf = (base * s.ccfPct) / 100;
-  return { ebony, util, ebonyTotal, sub, subTotal, waste, extras, commission, base, ccf, total: base + ccf };
+  const unit = base + ccf;
+  const qty = sectionQty(s);
+  return { ebony, util, ebonyTotal, sub, subTotal, waste, extras, commission, base, ccf, unit, qty, total: unit * qty };
 }
 
 export interface QuoteTotals {
@@ -174,6 +184,7 @@ export function newSection(id: string, d: QuoteDefaults, location = ""): QuoteSe
     name: "",
     kind: "Mueble",
     description: "",
+    qty: 1,
     utilPct: d.utilPct,
     subMarginPct: d.subMarginPct,
     wasteSheets: d.wasteSheets,

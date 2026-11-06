@@ -128,6 +128,8 @@ export interface QuoteSection {
   name: string;
   kind: string;
   description: string;
+  /** Cuántos iguales (el total del ítem se multiplica). */
+  qty: number;
   utilPct: number;
   subMarginPct: number;
   wasteSheets: number;

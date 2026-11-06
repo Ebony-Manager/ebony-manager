@@ -1888,6 +1888,7 @@ export type Database = {
           kind: string
           location: string
           name: string
+          qty: number
           quote_id: string
           sort_order: number
           sub_margin_pct: number
@@ -1911,6 +1912,7 @@ export type Database = {
           kind?: string
           location?: string
           name?: string
+          qty?: number
           quote_id: string
           sort_order?: number
           sub_margin_pct?: number
@@ -1934,6 +1936,7 @@ export type Database = {
           kind?: string
           location?: string
           name?: string
+          qty?: number
           quote_id?: string
           sort_order?: number
           sub_margin_pct?: number

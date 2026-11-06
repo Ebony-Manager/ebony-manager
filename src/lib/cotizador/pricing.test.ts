@@ -233,3 +233,14 @@ describe("gola dentro de puertas y gavetas", () => {
     expect(syncDraftPrices(q, all).sections[0].lines[0].golaPrice).toBe(16.93);
   });
 });
+
+describe("cantidad por ítem", () => {
+  it("el total del ítem es el de una unidad por la cantidad", () => {
+    const s = { ...newSection("s", defaults), lines: [], design3d: 30, extraLabor: 0, freight: 0, wasteSheets: 0, ccfPct: 0 };
+    const one = sectionTotals(s);
+    const three = sectionTotals({ ...s, qty: 3 });
+    expect(three.unit).toBeCloseTo(one.total, 6);
+    expect(three.total).toBeCloseTo(one.total * 3, 6);
+    expect(sectionTotals({ ...s, qty: 0 }).total).toBeCloseTo(one.total, 6);
+  });
+});

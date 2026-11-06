@@ -19,6 +19,9 @@ import {
 import { NumField } from "../num-field";
 import { LineRow } from "./line-row";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { locationKey } from "@/lib/cotizador/items";
 
 type BlockKey = "eb" | "sb" | "ex" | "mg";
 
@@ -70,7 +73,7 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
       rows={2}
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
-      className="w-full resize-none overflow-hidden rounded-md border border-input bg-card px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+      className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm leading-relaxed shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
     />
   );
 }
@@ -82,7 +85,10 @@ export function SectionEditor({
   open,
   onToggle,
   onChange,
+  locations = [],
 }: {
+  /** Ubicaciones ya usadas en la cotización (se ofrecen al escribir). */
+  locations?: string[];
   section: QuoteSection;
   catalog: CatalogItem[];
   canEditCosts: boolean;
@@ -201,31 +207,40 @@ export function SectionEditor({
     </button>
   );
 
-  const fieldLabel = "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-foreground/80";
-  const fieldInput = "h-8 w-full min-w-0 border border-input bg-card px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
+  const fieldLabel = "flex min-w-0 flex-col gap-1.5 text-xs font-medium text-foreground/80";
 
   return (
     <div className="flex flex-col gap-3.5">
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,150px)]">
-        <label className={fieldLabel}>
-          {tt("sec_location")}
-          <input className={fieldInput} value={section.location} placeholder={tt("sec_location_ph")} onChange={(e) => patch({ location: e.currentTarget.value })} />
-        </label>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_110px_minmax(0,150px)]">
+        <div className={fieldLabel}>
+          <label htmlFor={`loc-${section.id}`}>{tt("sec_location")}</label>
+          <LocationInput id={`loc-${section.id}`} value={section.location} options={locations} placeholder={tt("sec_location_ph")} onChange={(v) => patch({ location: v })} />
+        </div>
         <label className={fieldLabel}>
           {tt("sec_name")}
-          <input className={fieldInput} value={section.name} placeholder={tt("sec_name_ph")} onChange={(e) => patch({ name: e.currentTarget.value })} />
+          <Input value={section.name} placeholder={tt("sec_name_ph")} onChange={(e) => patch({ name: e.currentTarget.value })} />
         </label>
-        <label className={cn(fieldLabel, "col-span-2 md:col-span-1")}>
-          {tt("sec_kind")}
-          <select className={fieldInput} value={section.kind} onChange={(e) => patch({ kind: e.currentTarget.value })}>
-            {SECTION_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
+        <label className={fieldLabel}>
+          {tt("sec_qty")}
+          <NumField value={section.qty} onChange={(n) => patch({ qty: n > 0 ? n : 1 })} suffix="u" inputWidth={40} className="h-9 justify-between" aria-label={tt("sec_qty")} />
         </label>
-        <label className={cn(fieldLabel, "col-span-2 md:col-span-3")}>
+        <div className={fieldLabel}>
+          <span>{tt("sec_kind")}</span>
+          <Select value={section.kind} onValueChange={(v) => patch({ kind: v })}>
+            <SelectTrigger className="w-full" aria-label={tt("sec_kind")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(SECTION_KINDS as readonly string[]).includes(section.kind) ? null : <SelectItem value={section.kind}>{section.kind}</SelectItem>}
+              {SECTION_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>
+                  {k}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <label className={cn(fieldLabel, "col-span-2 md:col-span-4")}>
           {tt("sec_description")}
           <AutoTextarea value={section.description} onChange={(v) => patch({ description: v })} placeholder={tt("sec_description_ph")} />
         </label>
@@ -304,6 +319,52 @@ export function SectionEditor({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Ubicación: se escribe libre, pero al escribir se ofrecen las que ya están
+ * en la cotización ("Rec #8"), para no tener la misma escrita de dos formas.
+ */
+function LocationInput({ id, value, options, placeholder, onChange }: { id: string; value: string; options: string[]; placeholder: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = React.useState(false);
+  const key = locationKey(value);
+  const shown = options.filter((o) => locationKey(o) !== key && (!key || locationKey(o).includes(key))).slice(0, 8);
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onChange={(e) => {
+          onChange(e.currentTarget.value);
+          setOpen(true);
+        }}
+      />
+      {open && shown.length > 0 && (
+        <ul className="absolute top-full right-0 left-0 z-20 mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-popover p-1 text-sm text-popover-foreground shadow-md">
+          {shown.map((o) => (
+            <li key={o}>
+              <button
+                type="button"
+                // mousedown: antes de que el campo pierda el foco.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(o);
+                  setOpen(false);
+                }}
+                className="w-full rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+              >
+                {o}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

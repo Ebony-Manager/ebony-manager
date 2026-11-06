@@ -125,6 +125,8 @@ function mapSection(r: SectionRow, lines: QuoteLine[]): QuoteSection {
     name: r.name,
     kind: r.kind,
     description: r.description,
+    // Antes de la migración de cantidad la columna no existe: 1.
+    qty: num(r.qty) || 1,
     utilPct: num(r.util_pct),
     subMarginPct: num(r.sub_margin_pct),
     wasteSheets: num(r.waste_sheets),
@@ -323,6 +325,7 @@ function sectionRow(quoteId: string, s: QuoteSection, i: number): Tables["quote_
     name: s.name,
     kind: s.kind,
     description: s.description,
+    qty: num(s.qty) > 0 ? num(s.qty) : 1,
     util_pct: num(s.utilPct),
     sub_margin_pct: num(s.subMarginPct),
     waste_sheets: num(s.wasteSheets),

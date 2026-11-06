@@ -8,6 +8,7 @@ import { strings, t } from "@/lib/i18n";
 import type { PdfDetail, Quote } from "@/types/cotizador";
 import { UNIT_LABEL } from "./line-row";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
+import { groupedOrder } from "@/lib/cotizador/items";
 
 /**
  * Lo que ve el cliente: una línea por ítem con su descripción, como la
@@ -22,6 +23,8 @@ import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: PdfDetail) => void }) {
   const tt = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
   const totals = quoteTotals(quote);
+  // Con algún ítem de cantidad mayor a 1, se muestran cantidad y precio unitario.
+  const hasQty = quote.sections.some((s) => s.qty > 1);
   const detail = quote.pdfDetail;
   const fmtDate = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -82,15 +85,17 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
             <thead>
               <tr className="border-b border-border text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
                 <th className="py-2 pr-3 text-left font-semibold">{tt("cv_item")}</th>
-                {detail === "line" && <th className="px-3 py-2 text-right font-semibold">{tt("cv_qty")}</th>}
+                {(detail === "line" || hasQty) && <th className="px-3 py-2 text-right font-semibold">{tt("cv_qty")}</th>}
+                {detail === "section" && hasQty && <th className="px-3 py-2 text-right font-semibold">{tt("cv_unit_price")}</th>}
                 {detail !== "total" && <th className="py-2 pl-3 text-right font-semibold">{tt("total")}</th>}
               </tr>
             </thead>
             <tbody>
-              {quote.sections.map((s) => {
+              {groupedOrder(quote.sections).map((s) => {
                 const st = sectionTotals(s);
                 const cost = st.ebony + st.sub;
-                const factor = cost > 0 ? st.total / cost : 0;
+                // Por renglón: lo de una unidad, repartido, por la cantidad del ítem.
+                const factor = cost > 0 ? (st.unit / cost) * st.qty : 0;
                 return (
                   <React.Fragment key={s.id}>
                     <tr className="border-b border-border align-top">
@@ -100,7 +105,10 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                         </p>
                         {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-foreground/80">{s.description}</p>}
                       </td>
-                      {detail === "line" && <td />}
+                      {(detail === "line" || hasQty) && (
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{detail === "line" ? (st.qty > 1 ? `× ${st.qty}` : "") : st.qty}</td>
+                      )}
+                      {detail === "section" && hasQty && <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{formatMoney(st.unit)}</td>}
                       {detail !== "total" && <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatMoney(st.total)}</td>}
                     </tr>
                     {detail === "line" &&
@@ -108,7 +116,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                         <tr key={l.id} className="border-b border-border text-xs text-foreground/80">
                           <td className="py-1.5 pr-3 pl-4">{l.name}</td>
                           <td className="px-3 py-1.5 text-right whitespace-nowrap tabular-nums">
-                            {lineQty(l).toLocaleString("en-US", { maximumFractionDigits: 2 })} {UNIT_LABEL[l.unit]}
+                            {(lineQty(l) * st.qty).toLocaleString("en-US", { maximumFractionDigits: 2 })} {UNIT_LABEL[l.unit]}
                           </td>
                           <td className="py-1.5 pl-3 text-right whitespace-nowrap tabular-nums">{formatMoney(lineAmount(l) * factor)}</td>
                         </tr>

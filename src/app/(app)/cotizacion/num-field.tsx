@@ -51,7 +51,7 @@ export function NumField({
     <span
       className={cn(
         "inline-flex h-7 items-center gap-[3px] whitespace-nowrap",
-        locked ? "" : "border border-input bg-card px-1.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25",
+        locked ? "" : "rounded-md border border-input bg-card px-2 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
         className
       )}
     >

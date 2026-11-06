@@ -11,6 +11,8 @@ import { t, strings } from "@/lib/i18n";
 import type { CatalogItem, Finish, QuoteLine, Unit } from "@/types/cotizador";
 import { NumField } from "../num-field";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ON_WALL = ["rev", "rev2", "rev55", "mod", "esp"];
 const FINISHES: (Finish | null)[] = ["aglomerado", "blanco", "pintado", "chapilla", null];
@@ -57,9 +59,9 @@ export function LineRow({
   const byFinish = FINISHES.map((f) => ({ finish: f, items: options.filter((o) => o.finish === f) })).filter((g) => g.items.length > 0);
   const finishLabel = (f: Finish | null) => (f ? tt(`finish_${f}`) : "");
   const optionEl = (o: CatalogItem) => (
-    <option key={o.id} value={o.id}>
+    <SelectItem key={o.id} value={o.id}>
       {o.name}
-    </option>
+    </SelectItem>
   );
 
   return (
@@ -103,45 +105,49 @@ export function LineRow({
 
       {free ? (
         <div className="flex min-w-0 flex-[1_1_150px] gap-1.5">
-          <input
+          <Input
             value={line.name}
             onChange={(e) => onChange({ name: e.currentTarget.value })}
             placeholder={tt("line_free_ph")}
             aria-label={tt("line_free_ph")}
-            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring"
+            className="h-8 min-w-0 flex-1"
           />
-          <select
-            value={line.unit}
-            aria-label={tt("line_unit")}
-            onChange={(e) => onChange({ unit: e.currentTarget.value as Unit, mode: "dir" })}
-            className="h-7 rounded-md border border-input bg-card px-1 text-[13px] outline-none focus-visible:border-ring"
-          >
-            {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
-              <option key={u} value={u}>
-                {UNIT_LABEL[u]}
-              </option>
-            ))}
-          </select>
+          <Select value={line.unit} onValueChange={(v) => onChange({ unit: v as Unit, mode: "dir" })}>
+            <SelectTrigger size="sm" className="w-[72px]" aria-label={tt("line_unit")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
+                <SelectItem key={u} value={u}>
+                  {UNIT_LABEL[u]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       ) : (
-        <select
-          value={catalogItem ? catalogItem.id : ""}
-          aria-label={tt(`cat_${line.category}`)}
-          onChange={(e) => {
-            const next = options.find((o) => o.id === e.currentTarget.value);
+        <Select
+          value={catalogItem ? catalogItem.id : "__current"}
+          onValueChange={(v) => {
+            const next = options.find((o) => o.id === v);
             if (next) onSwap(next);
           }}
-          className="h-7 min-w-0 flex-[1_1_150px] rounded-md border border-input bg-card px-1.5 text-[13px] outline-none focus-visible:border-ring"
         >
-          {!catalogItem && <option value="">{line.name}</option>}
-          {byFinish.length > 1
-            ? byFinish.map((g) => (
-                <optgroup key={g.finish ?? "none"} label={finishLabel(g.finish)}>
-                  {g.items.map(optionEl)}
-                </optgroup>
-              ))
-            : options.map(optionEl)}
-        </select>
+          <SelectTrigger size="sm" className="min-w-0 flex-[1_1_150px] [&>span]:truncate" aria-label={tt(`cat_${line.category}`)}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {!catalogItem && <SelectItem value="__current">{line.name}</SelectItem>}
+            {byFinish.length > 1
+              ? byFinish.map((g) => (
+                  <SelectGroup key={g.finish ?? "none"}>
+                    <SelectLabel>{finishLabel(g.finish)}</SelectLabel>
+                    {g.items.map(optionEl)}
+                  </SelectGroup>
+                ))
+              : options.map(optionEl)}
+          </SelectContent>
+        </Select>
       )}
 
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1">

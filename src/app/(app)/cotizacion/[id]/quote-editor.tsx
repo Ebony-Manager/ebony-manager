@@ -3,20 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Check,
-  CheckCircle2,
-  Copy,
-  Loader2,
-  Lock,
-  Plus,
-  Send,
-  TriangleAlert,
-  Undo2,
-  Waypoints,
-  X,
-  XCircle,
-} from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Copy, Loader2, Lock, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 import {
@@ -41,6 +28,8 @@ import {
   type QuoteStatusResult,
 } from "@/types/cotizador";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowMenu } from "@/components/shared/row-menu";
 import { projectPath } from "../../proyectos/paths";
 import { QUOTE_STATUS_STYLE } from "../status-style";
@@ -53,6 +42,8 @@ import type { Client } from "@/types/ventas";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { Textarea } from "@/components/ui/textarea";
 import { OwnerPanel } from "./owner-panel";
+import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
+import { duplicateSection, locationGroups, locationSuggestions, moveSection, shiftSection } from "@/lib/cotizador/items";
 import {
   createQuoteAction,
   duplicateQuoteAction,
@@ -112,7 +103,6 @@ export function QuoteEditor({
   const [currentId, setCurrentId] = React.useState<string | null>(
     initialQuote.sections[0]?.id ?? null,
   );
-  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<"edit" | "client">("edit");
   const [open, setOpen] = React.useState<Record<BlockKey, boolean>>({
     eb: true,
@@ -239,6 +229,7 @@ export function QuoteEditor({
     quote.sections.find((s) => s.id === currentId) ?? quote.sections[0] ?? null;
   const totals = quoteTotals(quote);
   const secTotals = section ? sectionTotals(section) : null;
+  const locked = isQuoteLocked(quote);
 
   const setHeader = (p: Partial<Quote>) => change((q) => ({ ...q, ...p }));
   const setSection = (next: QuoteSection) =>
@@ -262,14 +253,49 @@ export function QuoteEditor({
       ],
     }));
     setCurrentId(id);
-    setConfirmDelete(null);
   };
   const removeSection = (id: string) => {
     const idx = quote.sections.findIndex((s) => s.id === id);
     const rest = quote.sections.filter((s) => s.id !== id);
     change((q) => ({ ...q, sections: q.sections.filter((s) => s.id !== id) }));
     if (currentId === id) setCurrentId(rest[Math.max(0, idx - 1)]?.id ?? null);
-    setConfirmDelete(null);
+  };
+
+  // La vista 3D se puede plegar; se recuerda en este navegador.
+  const [viewerOpen, setViewerOpen] = React.useState(true);
+  React.useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferencia guardada en el navegador.
+      if (window.localStorage.getItem("cotizador.viewer") === "0") setViewerOpen(false);
+    } catch {}
+  }, []);
+  const toggleViewer = () => {
+    setViewerOpen((v) => {
+      try {
+        window.localStorage.setItem("cotizador.viewer", v ? "0" : "1");
+      } catch {}
+      return !v;
+    });
+  };
+
+  const navProps: ItemsNavProps = {
+    sections: quote.sections,
+    currentId: section?.id ?? null,
+    onSelect: (id) => setCurrentId(id),
+    locked,
+    onAdd: addSection,
+    onDuplicate: (id) => {
+      let copyId: string | null = null;
+      change((q) => {
+        const r = duplicateSection(q.sections, id, () => crypto.randomUUID());
+        copyId = r.copyId;
+        return { ...q, sections: r.sections };
+      });
+      if (copyId) setCurrentId(copyId);
+    },
+    onRemove: removeSection,
+    onShift: (id, delta) => change((q) => ({ ...q, sections: shiftSection(q.sections, id, delta) })),
+    onMove: (id, beforeId) => change((q) => ({ ...q, sections: moveSection(q.sections, id, beforeId) })),
   };
 
   /** Antes de cambiar el estado, lo que falte por guardar se guarda. */
@@ -363,7 +389,6 @@ export function QuoteEditor({
   }
 
   const statusLabel = (s: QuoteStatus) => tt(`status_${s}`);
-  const locked = isQuoteLocked(quote);
   const canStatus = isPersisted && !statusBusy && !conflict;
   const shortDate = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(
@@ -371,9 +396,7 @@ export function QuoteEditor({
       { day: "numeric", month: "short" },
     );
   const smallLabel =
-    "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-foreground/80";
-  const smallInput =
-    "h-8 w-full min-w-0 border border-input bg-card px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
+    "flex min-w-0 flex-col gap-1.5 text-xs font-medium text-foreground/80";
   const panelTitle =
     "text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
   const money = "text-right tabular-nums";
@@ -627,12 +650,11 @@ export function QuoteEditor({
             onChange={(p) => setHeader(p)}
           />
 
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <label className={smallLabel}>
               {tt("f_date")}
-              <input
+              <Input
                 type="date"
-                className={smallInput}
                 value={quote.quoteDate}
                 onChange={(e) =>
                   e.currentTarget.value &&
@@ -647,7 +669,7 @@ export function QuoteEditor({
                 onChange={(n) => setHeader({ deliveryDays: Math.round(n) })}
                 suffix={tt("unit_days")}
                 inputWidth={40}
-                className="h-8 justify-between"
+                className="h-9 justify-between"
               />
             </label>
             <label className={smallLabel}>
@@ -665,24 +687,24 @@ export function QuoteEditor({
                 }
                 suffix={tt("unit_cal_days")}
                 inputWidth={40}
-                className="h-8 justify-between"
+                className="h-9 justify-between"
               />
             </label>
-            <label className={smallLabel}>
-              {tt("f_lang")}
-              <select
-                className={smallInput}
+            <div className={smallLabel}>
+              <span>{tt("f_lang")}</span>
+              <Select
                 value={quote.lang}
-                onChange={(e) =>
-                  setHeader({
-                    lang: e.currentTarget.value === "en" ? "en" : "es",
-                  })
-                }
+                onValueChange={(v) => setHeader({ lang: v === "en" ? "en" : "es" })}
               >
-                <option value="es">Español</option>
-                <option value="en">English</option>
-              </select>
-            </label>
+                <SelectTrigger className="w-full" aria-label={tt("f_lang")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </fieldset>
       </header>
@@ -714,132 +736,67 @@ export function QuoteEditor({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-4">
-            {/* Ítems de la cotización: ubicación chica arriba, ítem grande */}
-            <div className="flex flex-wrap gap-1.5">
-              {quote.sections.map((s) =>
-                confirmDelete === s.id ? (
-                  <div
-                    key={s.id}
-                    className="flex flex-col justify-center gap-1.5 rounded-lg border border-destructive bg-[color-mix(in_oklab,var(--status-error)_8%,var(--card))] px-2.5 py-2 text-xs"
-                  >
-                    <span>
-                      {tt("sec_delete_confirm")}{" "}
-                      <b>{s.name || tt("sec_unnamed")}</b>?
-                    </span>
-                    <span className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => removeSection(s.id)}
-                        className="rounded-md border border-destructive bg-card px-2 py-0.5 font-medium text-destructive"
-                      >
-                        {tt("delete")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(null)}
-                        className="rounded-md border border-input bg-card px-2 py-0.5 font-medium"
-                      >
-                        {tt("cancel")}
-                      </button>
-                    </span>
-                  </div>
-                ) : (
-                  <div key={s.id} className="group relative flex">
-                    <button
-                      type="button"
-                      aria-pressed={section?.id === s.id}
-                      onClick={() => {
-                        setCurrentId(s.id);
-                        setConfirmDelete(null);
-                      }}
-                      className={cn(
-                        "grid min-w-[128px] rounded-lg border py-2 pr-8 pl-3 text-left",
-                        section?.id === s.id
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card hover:border-ring",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "text-[10px] tracking-[0.1em] uppercase",
-                          section?.id === s.id
-                            ? "text-primary-foreground/70"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {s.location || tt("sec_no_location")}
-                      </span>
-                      <span className="text-base leading-tight font-semibold">
-                        {s.name || tt("sec_unnamed")}
-                      </span>
-                      <span
-                        className={cn(
-                          "mt-0.5 text-[11px] tabular-nums",
-                          section?.id === s.id
-                            ? "text-primary-foreground/80"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {formatMoney(sectionTotals(s).total)}
-                      </span>
-                    </button>
-                    {!locked && (
-                      <button
-                        type="button"
-                        aria-label={`${tt("delete")} ${s.name}`}
-                        title={tt("delete")}
-                        onClick={() => setConfirmDelete(s.id)}
-                        className={cn(
-                          "absolute top-1 right-1 flex size-5 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
-                          section?.id === s.id
-                            ? "text-primary-foreground/70 hover:bg-muted/15 hover:text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-destructive",
-                        )}
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ),
-              )}
-              {!locked && (
-                <button
-                  type="button"
-                  onClick={addSection}
-                  className="inline-flex min-h-[64px] items-center gap-1 rounded-lg border border-dashed border-input px-3 text-xs font-medium text-foreground/80 hover:border-ring"
+        <div className="flex flex-col gap-4">
+          {/* Celular: pestañas que se deslizan; "Ver todos" abre la lista. */}
+          <div className="lg:hidden">
+            <ItemTabs {...navProps} />
+          </div>
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)] 2xl:grid-cols-[270px_minmax(0,1fr)_340px]">
+            {/* Computadora: la lista de ítems por ubicación, fija al hacer scroll. */}
+            <nav aria-label={tt("items_title")} className="hidden min-w-0 flex-col gap-2 rounded-lg border border-border bg-card p-2.5 lg:row-span-2 2xl:row-span-1 lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-2rem)]">
+              <h2 className={cn(panelTitle, "px-1.5 pt-0.5")}>
+                {tt("items_title")} ({quote.sections.length})
+              </h2>
+              <ItemsPanel {...navProps} />
+            </nav>
+
+            <div className="flex min-w-0 flex-col gap-4">
+              {section ? (
+                <fieldset
+                  disabled={locked}
+                  className="m-0 min-w-0 rounded-lg border border-border bg-card p-3.5"
                 >
-                  <Plus className="size-3.5" />
-                  {tt("sec_add")}
-                </button>
+                  <SectionEditor
+                    key={section.id}
+                    section={section}
+                    catalog={catalog}
+                    canEditCosts={canEditCosts}
+                    open={open}
+                    onToggle={(k) => setOpen((o) => ({ ...o, [k]: !o[k] }))}
+                    onChange={setSection}
+                    locations={locationSuggestions(quote.sections)}
+                  />
+                </fieldset>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
+                  {tt("sec_empty")}
+                </div>
               )}
             </div>
 
-            {section ? (
-              <fieldset
-                disabled={locked}
-                className="m-0 min-w-0 rounded-lg border border-border bg-card p-3.5"
-              >
-                <SectionEditor
-                  key={section.id}
-                  section={section}
-                  catalog={catalog}
-                  canEditCosts={canEditCosts}
-                  open={open}
-                  onToggle={(k) => setOpen((o) => ({ ...o, [k]: !o[k] }))}
-                  onChange={setSection}
-                />
-              </fieldset>
-            ) : (
-              <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
-                {tt("sec_empty")}
-              </div>
-            )}
-          </div>
-
-          <aside className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-4">
-            {section && (
+            <aside className="flex min-w-0 flex-col gap-4 lg:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-3 2xl:row-start-1">
+              {/* Vista 3D plegable: cerrada, una barra; abierta, "Ocultar" encima. */}
+              {section &&
+                (viewerOpen ? (
+                  <button type="button" onClick={toggleViewer} aria-expanded className="-mb-2.5 flex items-center gap-1 self-end text-xs text-muted-foreground hover:text-foreground">
+                    {tt("viewer_hide_full")}
+                    <ChevronDown className="size-3.5 rotate-180" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={toggleViewer}
+                    aria-expanded={false}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left hover:border-ring"
+                  >
+                    <span className={panelTitle}>{tt("viewer_toggle")}</span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {tt("viewer_show")}
+                      <ChevronDown className="size-3.5" />
+                    </span>
+                  </button>
+                ))}
+            {section && viewerOpen && (
               <Viewer3D
                 section={section}
                 onMoveLine={(lineId, wall, x, y) =>
@@ -943,6 +900,18 @@ export function QuoteEditor({
                   >
                     +{formatMoney(secTotals.ccf)}
                   </dd>
+                  {secTotals.qty > 1 && (
+                    <>
+                      <dt className="mt-1.5 border-t border-border pt-2 text-foreground/80">
+                        {tt("per_unit")}
+                      </dt>
+                      <dd className={cn(money, "mt-1.5 border-t border-border pt-2")}>
+                        {formatMoney(secTotals.unit)}
+                      </dd>
+                      <dt className="text-foreground/80">{tt("sec_qty")}</dt>
+                      <dd className={money}>× {secTotals.qty}</dd>
+                    </>
+                  )}
                   <dt className="mt-1.5 border-t border-border pt-2">
                     {nameCell(section)}
                   </dt>
@@ -958,25 +927,23 @@ export function QuoteEditor({
               </div>
             )}
 
-            <div className="rounded-lg overflow-hidden border border-border bg-card">
-              <h2
-                className={cn(
-                  panelTitle,
-                  "border-b border-border px-3.5 py-2.5",
-                )}
-              >
-                {tt("total_title")}
-              </h2>
-              <fieldset disabled={locked} className="m-0 min-w-0 border-0 p-0">
-                <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 p-3.5 text-sm">
-                  {quote.sections.map((s) => (
-                    <React.Fragment key={s.id}>
-                      <dt className="min-w-0">{nameCell(s)}</dt>
-                      <dd className={money}>
-                        {formatMoney(sectionTotals(s).total)}
-                      </dd>
-                    </React.Fragment>
-                  ))}
+
+              <div className="overflow-hidden rounded-lg border border-border bg-card">
+                <h2 className={cn(panelTitle, "border-b border-border px-3.5 py-2.5")}>
+                  {tt("total_title")}
+                </h2>
+                <fieldset disabled={locked} className="m-0 min-w-0 border-0 p-0">
+                  <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 p-3.5 text-sm">
+                    {/* Por ubicación (el detalle de cada ítem está en la lista). */}
+                    {locationGroups(quote.sections).map((g) => (
+                      <React.Fragment key={g.key}>
+                        <dt className="min-w-0 truncate text-foreground/80">
+                          {g.label || tt("sec_no_location")}
+                          <span className="ml-1.5 text-xs text-muted-foreground">({g.sections.length})</span>
+                        </dt>
+                        <dd className={money}>{formatMoney(g.total)}</dd>
+                      </React.Fragment>
+                    ))}
                   <dt className="mt-1 border-t border-border pt-2 text-foreground/80">
                     {tt("subtotal")}
                   </dt>
@@ -1033,9 +1000,9 @@ export function QuoteEditor({
                   >
                     {formatMoney(totals.total)}
                   </dd>
-                </dl>
-              </fieldset>
-            </div>
+                  </dl>
+                </fieldset>
+              </div>
 
             <label className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5">
               <span className={panelTitle}>{tt("f_notes")}</span>
@@ -1047,7 +1014,8 @@ export function QuoteEditor({
                 rows={3}
               />
             </label>
-          </aside>
+            </aside>
+          </div>
         </div>
       )}
 
