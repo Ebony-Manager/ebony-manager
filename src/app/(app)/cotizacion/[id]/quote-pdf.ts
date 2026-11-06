@@ -39,6 +39,32 @@ function logoPng(heightPt: number): { data: string; w: number; h: number } | nul
   return { data: canvas.toDataURL("image/png"), w: (vw / vh) * heightPt, h: heightPt };
 }
 
+/** El ícono de banco de la app (Landmark de lucide) en un círculo oscuro, como PNG. */
+function bankIconPng(sizePt: number): string | null {
+  if (typeof document === "undefined") return null;
+  const px = Math.round(sizePt * 4);
+  const canvas = document.createElement("canvas");
+  canvas.width = px;
+  canvas.height = px;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.fillStyle = "#141414";
+  ctx.beginPath();
+  ctx.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2);
+  ctx.fill();
+  const icon = px * 0.5;
+  ctx.translate((px - icon) / 2, (px - icon) / 2);
+  ctx.scale(icon / 24, icon / 24);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const d of ["M10 18v-7", "M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z", "M14 18v-7", "M18 18v-7", "M3 22h18", "M6 18v-7"]) {
+    ctx.stroke(new Path2D(d));
+  }
+  return canvas.toDataURL("image/png");
+}
+
 /** Texto con partes en negrita (`**así**`), en renglones de ancho `width`. Devuelve la y final. */
 function richText(doc: JsPDF, text: string, x: number, y: number, width: number, lineH: number, fit: (y: number, h: number) => number): number {
   const words: { w: string; bold: boolean }[] = [];
@@ -178,7 +204,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   const showUnit = detail === "section" && hasQty;
   // Con imágenes, una columna a la izquierda con la del ítem (ocupa todas sus filas).
   const withImages = quote.sections.some((sec) => itemImages.has(sec.id));
-  const IMG_W = 72;
+  const IMG_W = 64;
   const head = [
     ...(withImages ? [""] : []),
     tq("cv_item"),
@@ -208,12 +234,10 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       ...(detail !== "total" ? [{ content: formatMoney(st.total), styles: { fontStyle: "bold" } }] : []),
     ]);
     if (desc) {
-      // Ancho del ítem + cantidad + precio unitario; la columna del total
-      // queda libre (así no se mete debajo del monto ni se hace una tira).
-      const span = cols - first - (detail !== "total" ? 1 : 0);
+      // Solo en la columna del ítem (hasta antes de "Cantidad").
       body.push([
-        { content: desc, colSpan: span, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 12 } } },
-        ...(detail !== "total" ? [{ content: "", styles: { cellPadding: 0, fontSize: 1 } }] : []),
+        { content: desc, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 8 } } },
+        ...Array.from({ length: cols - first - 1 }, () => ({ content: "", styles: { cellPadding: 0, fontSize: 1 } })),
       ]);
     }
     if (detail === "line") {
@@ -246,7 +270,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
     styles: { font: "helvetica", fontSize: 9, cellPadding: { top: 6, bottom: 6, left: 6, right: 6 }, textColor: INK, valign: "top" },
     headStyles: { fontSize: 7.5, textColor: MUTED, fontStyle: "bold", lineWidth: { bottom: 0.6 }, lineColor: RULE },
     columnStyles: Object.fromEntries(
-      head.map((_, i) => [i, i === 0 && withImages ? { cellWidth: IMG_W } : i === first ? {} : { halign: "right", cellWidth: i === cols - 1 ? 74 : 58 }])
+      head.map((_, i) => [i, i === 0 && withImages ? { cellWidth: IMG_W } : i === first ? {} : { halign: "right", cellWidth: i === cols - 1 ? 68 : head[i] === tq("cv_qty") ? 44 : 58 }])
     ),
     didParseCell: (d) => {
       if (d.section === "head" && d.column.index > first) d.cell.styles.halign = "right";
@@ -281,88 +305,94 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
     return y;
   };
 
-  // ── Totales ──
+  // ── Datos para el pago (izquierda) y totales (derecha), lado a lado ──
   const totals = quoteTotals(quote);
   const rows: [string, string, boolean][] = [[tq("subtotal"), formatMoney(totals.subtotal), false]];
   if (totals.discount > 0) rows.push([tq("discount"), `-${formatMoney(totals.discount)}`, false]);
   rows.push([`ITBMS (${quote.itbmsPct}%)`, formatMoney(totals.tax), false]);
   rows.push([tq("total"), formatMoney(totals.total), true]);
-  ensure(rows.length * 16 + 10);
-  const tx = pageW - margin - 200;
+  const totalsW = 190;
+  const boxW = contentW - totalsW - 22;
+  const innerX = margin + 52;
+  const innerW = boxW - 52 - 14;
+  doc.setFontSize(8.5);
+  const payLines = doc.splitTextToSize(tq("cv_payment"), innerW) as string[];
+  // Alto justo: título, 3 datos, la forma de pago y un margen.
+  const boxH = 89 + 11 * (payLines.length - 1);
+  y += 10;
+  ensure(Math.max(boxH, rows.length * 16 + 10) + 8);
+  const top = y;
+
+  // Recuadro con los datos del banco (los mismos de siempre).
+  doc.setFillColor(...SOFT);
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(margin, top - 12, boxW, boxH, 6, 6, "FD");
+  const icon = bankIconPng(26);
+  if (icon) doc.addImage(icon, "PNG", margin + 14, top - 2, 26, 26);
+  let py = top + 8;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...INK);
+  doc.text(tq("pay_title"), innerX, py);
+  py += 16;
+  doc.setFontSize(9);
+  for (const [label, value] of [
+    [tq("pay_bank"), "Banco General"],
+    [tq("pay_account"), "03-70-01-127629-2"],
+    [tq("pay_holder"), "Ebony Designs SA"],
+  ] as const) {
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...MUTED);
+    doc.text(label, innerX, py);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...INK);
+    doc.text(value, innerX + 92, py);
+    py += 13;
+  }
+  py += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...MUTED);
+  for (const line of payLines) {
+    doc.text(line, innerX, py);
+    py += 11;
+  }
+
+  // Totales.
+  let ty = top;
+  const tx = pageW - margin - totalsW;
   rows.forEach(([k, v, strong], i) => {
     if (strong) {
       doc.setDrawColor(...RULE);
-      doc.line(tx, y - 10, pageW - margin, y - 10);
+      doc.line(tx, ty - 10, pageW - margin, ty - 10);
     }
     doc.setFont("helvetica", strong ? "bold" : "normal");
     doc.setFontSize(strong ? 11.5 : 9.5);
     doc.setTextColor(...(strong ? INK : MUTED));
-    doc.text(k, tx, y);
+    doc.text(k, tx, ty);
     doc.setTextColor(...INK);
-    doc.text(v, pageW - margin, y, { align: "right" });
-    y += strong ? 18 : 15;
-    if (i === rows.length - 2) y += 4;
+    doc.text(v, pageW - margin, ty, { align: "right" });
+    ty += strong ? 18 : 15;
+    if (i === rows.length - 2) ty += 4;
   });
+  y = Math.max(top - 12 + boxH, ty) + 18;
 
-  // ── Notas, cuenta y pago ──
-  doc.setFontSize(9);
+  // ── Notas y nota de condiciones ──
   if (quote.notes.trim()) {
-    y += 8;
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
     doc.setTextColor(...INK);
     for (const line of doc.splitTextToSize(quote.notes.trim(), contentW) as string[]) {
       ensure(12);
       doc.text(line, margin, y);
       y += 12;
     }
+    y += 6;
   }
-  // Datos para el pago: en un recuadro con ícono de banco, para que se note.
-  y += 14;
-  const payLines = doc.splitTextToSize(tq("cv_payment"), contentW - 92) as string[];
-  const boxH = 64 + payLines.length * 11;
-  ensure(boxH + 24);
-  const bx = margin;
-  const by = y;
-  doc.setFillColor(...SOFT);
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(bx, by, contentW, boxH, 6, 6, "FD");
-  // Ícono de banco: techo, columnas y base.
-  const ix = bx + 18;
-  const iy = by + 16;
-  doc.setFillColor(...INK);
-  doc.triangle(ix, iy + 9, ix + 28, iy + 9, ix + 14, iy, "F");
-  for (let c = 0; c < 4; c++) doc.rect(ix + 2.5 + c * 6.6, iy + 11, 3, 14, "F");
-  doc.rect(ix, iy + 26, 28, 3, "F");
-  const tx0 = bx + 64;
-  let ty = by + 20;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...INK);
-  doc.text(tq("pay_title"), tx0, ty);
-  ty += 15;
-  doc.setFontSize(9);
-  const field = (label: string, value: string, x: number) => {
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...MUTED);
-    doc.text(label, x, ty);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...INK);
-    doc.text(value, x, ty + 12);
-  };
-  field(tq("pay_bank"), "Banco General", tx0);
-  field(tq("pay_account"), "03-70-01-127629-2", tx0 + 120);
-  field(tq("pay_holder"), "Ebony Designs SA", tx0 + 270);
-  ty += 28;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(...MUTED);
-  for (const line of payLines) {
-    doc.text(line, tx0, ty);
-    ty += 11;
-  }
-  y = by + boxH + 16;
   doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
   for (const line of doc.splitTextToSize(tq("cv_terms_note"), contentW) as string[]) {
     ensure(11);
     doc.text(line, margin, y);

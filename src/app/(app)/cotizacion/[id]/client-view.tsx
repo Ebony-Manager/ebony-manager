@@ -168,7 +168,27 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
           </table>
         </div>
 
-        <dl className="mt-4 ml-auto grid w-full max-w-[300px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm">
+        {/* Datos para el pago (izquierda) y totales (derecha); en celular, el total primero. */}
+        <div className="mt-5 flex flex-col-reverse gap-5 sm:flex-row sm:items-start">
+        {/* Datos para el pago, en un recuadro para que se noten. */}
+        <section className="flex min-w-0 flex-1 gap-4 rounded-lg border border-border bg-muted/40 p-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+            <Landmark className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-foreground">{tt("pay_title")}</h3>
+            <dl className="mt-2 grid grid-cols-1 text-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-1">
+              <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_bank")}</dt>
+              <dd className="mb-1.5 font-semibold sm:mb-0">Banco General</dd>
+              <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_account")}</dt>
+              <dd className="mb-1.5 font-semibold whitespace-nowrap tabular-nums sm:mb-0">03-70-01-127629-2</dd>
+              <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_holder")}</dt>
+              <dd className="font-semibold">Ebony Designs SA</dd>
+            </dl>
+            <p className="mt-2 text-xs leading-relaxed text-foreground/80">{tt("cv_payment")}</p>
+          </div>
+        </section>
+        <dl className="grid w-full shrink-0 sm:max-w-[280px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm">
           <dt className="text-foreground/80">{tt("subtotal")}</dt>
           <dd className="text-right tabular-nums">{formatMoney(totals.subtotal)}</dd>
           {totals.discount > 0 && (
@@ -182,33 +202,13 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
           <dt className="mt-1 border-t border-border pt-1.5 font-semibold">{tt("total")}</dt>
           <dd className="mt-1 border-t border-border pt-1.5 text-right text-base font-bold tabular-nums">{formatMoney(totals.total)}</dd>
         </dl>
+        </div>
 
-        {quote.notes.trim() && <p className="mt-6 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{quote.notes.trim()}</p>}
+        {quote.notes.trim() && <p className="mt-5 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{quote.notes.trim()}</p>}
 
-        {/* Datos para el pago, en un recuadro para que se noten. */}
-        <section className="mt-7 flex gap-4 rounded-lg border border-border bg-muted/40 p-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-            <Landmark className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-foreground">{tt("pay_title")}</h3>
-            <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-              <div>
-                <dt className="text-xs text-muted-foreground">{tt("pay_bank")}</dt>
-                <dd className="font-semibold">Banco General</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{tt("pay_account")}</dt>
-                <dd className="font-semibold tabular-nums">03-70-01-127629-2</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{tt("pay_holder")}</dt>
-                <dd className="font-semibold">Ebony Designs SA</dd>
-              </div>
-            </dl>
-            <p className="mt-2 text-xs leading-relaxed text-foreground/80">{tt("cv_payment")}</p>
-          </div>
-        </section>
+
+
+
 
         {/* Condiciones generales (en el PDF van en hojas aparte). */}
         <details className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">
