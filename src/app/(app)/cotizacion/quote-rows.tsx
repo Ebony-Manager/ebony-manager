@@ -53,7 +53,7 @@ export function QuoteRows({ quotes, newHref, showWho = false }: { quotes: QuoteS
         <ul className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           {quotes.map((q) => (
             <li key={q.id} className="border-b border-border last:border-0">
-              <Link href={`/cotizacion/${q.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-sm hover:bg-muted/30">
+              <Link prefetch={false} href={`/cotizacion/${q.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-sm hover:bg-muted/30">
                 <span className="font-semibold tabular-nums">{q.number || "—"}</span>
                 <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground max-sm:order-last max-sm:basis-full">

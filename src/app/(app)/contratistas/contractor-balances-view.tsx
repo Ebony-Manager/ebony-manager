@@ -102,7 +102,7 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                           />
                           <ContractorAvatar name={c.contractor.name} />
                           <div className="min-w-0">
-                            <Link
+                            <Link prefetch={false}
                               href={contractorProfilePath(c.contractor.id, "pagos")}
                               onClick={(e) => e.stopPropagation()}
                               className="whitespace-nowrap font-medium text-foreground hover:underline"

@@ -444,7 +444,7 @@ function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
         <ul className="flex flex-col rounded-lg border border-border">
           {o.quotes.map((q, i) => (
             <li key={q.id} className="border-b border-border last:border-0">
-              <Link href={`/cotizacion/${q.id}`} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30">
+              <Link prefetch={false} href={`/cotizacion/${q.id}`} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30">
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
                 <span className="font-medium">{q.number}</span>
                 <span className="text-xs text-muted-foreground">{formatDateCompact(lang, q.quoteDate)}</span>

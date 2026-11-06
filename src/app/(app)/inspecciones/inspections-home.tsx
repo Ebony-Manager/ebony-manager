@@ -113,7 +113,7 @@ function Thumb({ url, size }: { url: string | null; size: "md" | "sm" }) {
 function ProjectCard({ card, project }: { card: InspectionProjectCard; project: InspectionProject | undefined }) {
   const { ti, lang } = useTi();
   return (
-    <Link
+    <Link prefetch={false}
       href={inspectionsPath(card.projectId)}
       className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 hover:bg-muted/30 active:bg-muted/50"
     >
@@ -143,7 +143,7 @@ function RecentRow({ visit, project }: { visit: RecentInspection; project: Inspe
   const { ti, lang } = useTi();
   return (
     <li>
-      <Link href={inspectionsPath(visit.projectId)} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-muted/30 active:bg-muted/50">
+      <Link prefetch={false} href={inspectionsPath(visit.projectId)} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-muted/30 active:bg-muted/50">
         <Thumb url={visit.thumbUrl} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-foreground">

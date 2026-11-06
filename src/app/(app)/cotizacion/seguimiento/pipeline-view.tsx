@@ -424,7 +424,7 @@ function OppCard({
           </a>
         )}
         {quote && (
-          <Link href={`/cotizacion/${quote.id}`} draggable={false} className={squareBtn} title={tv("open_quote", { n: quote.number })} aria-label={tv("open_quote", { n: quote.number })}>
+          <Link prefetch={false} href={`/cotizacion/${quote.id}`} draggable={false} className={squareBtn} title={tv("open_quote", { n: quote.number })} aria-label={tv("open_quote", { n: quote.number })}>
             <FileText />
           </Link>
         )}

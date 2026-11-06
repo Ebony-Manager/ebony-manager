@@ -126,7 +126,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
                       <tr key={row.employee.id} className="border-b border-border last:border-0">
                         <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
                         <td className="py-1.5 pl-2">
-                          <Link href={employeeProfilePath(row.employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
+                          <Link prefetch={false} href={employeeProfilePath(row.employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
                             <EmployeeAvatar name={row.employee.name} employeeId={row.employee.id} sortOrder={row.employee.sortOrder} />
                             <span className="truncate">{row.employee.name}</span>
                           </Link>
@@ -161,7 +161,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
                       <tr key={employee.id} className="border-b border-border last:border-0">
                         <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
                         <td className="py-1.5 pl-2">
-                          <Link href={employeeProfilePath(employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
+                          <Link prefetch={false} href={employeeProfilePath(employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
                             <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
                             <span className="truncate">{employee.name}</span>
                           </Link>
@@ -185,7 +185,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
                       <tr key={employee.id} className="border-b border-border last:border-0">
                         <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
                         <td className="py-1.5 pl-2">
-                          <Link href={employeeProfilePath(employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
+                          <Link prefetch={false} href={employeeProfilePath(employee.id, "dashboard")} className="flex items-center gap-2 hover:underline">
                             <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} />
                             <span className="truncate">{employee.name}</span>
                           </Link>

@@ -145,7 +145,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               {/* Celular: cliente y total arriba; fecha, número, estado y acciones abajo. */}
               <div className="flex flex-col gap-1.5 sm:hidden">
                 <div className="flex items-start gap-3">
-                  <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
+                  <Link prefetch={false} href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-semibold text-foreground">{quoteWho(q) || tt("own_none")}</span>
                     <span className="truncate text-xs text-muted-foreground">
                       {[q.projectName, q.clientName ? q.designerName : ""].filter(Boolean).join(" · ") || tt("no_project")}
@@ -163,7 +163,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
               </div>
               {/* Computadora: todo en una fila. */}
               <div className="hidden items-center gap-x-4 sm:flex">
-                <Link href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
+                <Link prefetch={false} href={`/cotizacion/${q.id}`} className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-semibold text-foreground">{quoteWho(q) || tt("own_none")}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {[q.projectName, q.clientName ? q.designerName : ""].filter(Boolean).join(" · ") || tt("no_project")}

@@ -50,7 +50,7 @@ function RankingCard({
           {rows.map((r, i) => (
             <li key={r.id} className="flex items-center gap-2 text-sm">
               <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</span>
-              <Link href={contractorProfilePath(r.id, "contratistas")} className="w-36 shrink-0 truncate text-foreground hover:underline">
+              <Link prefetch={false} href={contractorProfilePath(r.id, "contratistas")} className="w-36 shrink-0 truncate text-foreground hover:underline">
                 {r.name}
               </Link>
               <div className="h-2 flex-1 bg-muted">

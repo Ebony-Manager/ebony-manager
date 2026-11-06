@@ -244,7 +244,7 @@ function RankList({
           <tr key={x.id} className="border-b border-border last:border-0">
             <td className="w-6 py-1.5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</td>
             <td className="py-1.5 pl-2">
-              <Link href={href(x)} className="flex items-center gap-2 hover:underline">
+              <Link prefetch={false} href={href(x)} className="flex items-center gap-2 hover:underline">
                 <span className="truncate">{x.name}</span>
                 {badge && (
                   <Badge variant="outline" className="shrink-0 text-[10px]">

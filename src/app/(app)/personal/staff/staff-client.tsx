@@ -318,7 +318,7 @@ function TeamList({
       <ul className="divide-y divide-border">
         {members.map((m) => (
           <li key={`${m.kind}-${m.id}`}>
-            <Link
+            <Link prefetch={false}
               href={m.href}
               onClick={
                 selection

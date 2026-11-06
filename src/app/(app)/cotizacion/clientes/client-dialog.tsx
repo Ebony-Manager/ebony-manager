@@ -281,7 +281,7 @@ export function ClientDialog({
                 {myProjects.map((p) => (
                   <li key={p.id}>
                     <Button asChild size="sm" variant="outline">
-                      <Link href={projectPath(p.id)}>{p.name}</Link>
+                      <Link prefetch={false} href={projectPath(p.id)}>{p.name}</Link>
                     </Button>
                   </li>
                 ))}

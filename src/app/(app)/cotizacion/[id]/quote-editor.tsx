@@ -616,6 +616,7 @@ export function QuoteEditor({
                 {siblings.map((sib) => (
                   <Link
                     key={sib.id}
+                    prefetch={false}
                     href={`/cotizacion/${sib.id}`}
                     className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 tabular-nums hover:border-ring"
                   >
