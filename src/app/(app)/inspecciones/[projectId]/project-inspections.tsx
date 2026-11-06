@@ -1,5 +1,8 @@
 "use client";
 
+import { useLang } from "@/context/language-context";
+import { usePageTitle } from "@/components/shared/page-title";
+import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import Link from "next/link";
 import { Folder } from "lucide-react";
 
@@ -27,6 +30,7 @@ export function ProjectInspections({
   /** Viene de "Nueva inspección": abre la visita de hoy (o una nueva) al entrar. */
   startNew?: boolean;
 }) {
+  usePageTitle([project.name, titleT(useLang().lang, titleStrings.nav.inspecciones)]);
   const { ti } = useTi();
   return (
     <div className={PAGE_CLASS}>

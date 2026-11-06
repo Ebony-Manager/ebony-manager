@@ -14,6 +14,24 @@ interface Entry {
 }
 
 export const strings = {
+  // Nombre de la pestaña del navegador (ver src/lib/page-title.ts).
+  titles: {
+    quotes: { es: "Cotizaciones", en: "Quotes" },
+    quote: { es: "Cotización", en: "Quote" },
+    new_quote: { es: "Nueva cotización", en: "New quote" },
+    follow_up: { es: "Seguimiento", en: "Follow-up" },
+    clients: { es: "Clientes", en: "Clients" },
+    costs: { es: "Costos", en: "Costs" },
+    project: { es: "Proyecto", en: "Project" },
+    schedule: { es: "Programación", en: "Scheduling" },
+    adjustments: { es: "Ajustes", en: "Adjustments" },
+    count: { es: "Conteo", en: "Count" },
+    movements: { es: "Movimientos", en: "Movements" },
+    review: { es: "Revisión", en: "Review" },
+    suppliers: { es: "Proveedores", en: "Suppliers" },
+    employee: { es: "Empleado", en: "Employee" },
+    contractor: { es: "Contratista", en: "Contractor" },
+  },
   nav: {
     // Segundo toque de borrar / cancelar / quitar / deshacer (ConfirmButton).
     confirm_delete: { es: "¿Borrar?", en: "Delete?" },

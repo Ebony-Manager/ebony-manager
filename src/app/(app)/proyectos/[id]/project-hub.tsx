@@ -34,6 +34,7 @@ import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
 import { DriveFiles } from "@/components/shared/drive-files";
+import { usePageTitle } from "@/components/shared/page-title";
 import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
@@ -99,6 +100,8 @@ export function ProjectHub({
   const [tab, setTab] = React.useState<SectionKey>(
     visible.find((s) => s.key === initialTab)?.key ?? "resumen"
   );
+  // Nombre de la pestaña: "Royal Palace · Proyecto" (o "· Inspecciones" en esa pestaña).
+  usePageTitle([project.name, tab === "resumen" ? t(lang, strings.titles.project) : sections.find((s) => s.key === tab)?.label]);
 
   const [editing, setEditing] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);

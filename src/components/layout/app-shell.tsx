@@ -8,6 +8,7 @@ import { MobileMoreSheet } from "@/components/layout/mobile-more-sheet";
 import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { InstallBanner } from "@/components/layout/install-banner";
+import { RouteTitle } from "@/components/shared/page-title";
 
 /**
  * Client chrome for the protected area. Desktop: the rail on the left, no
@@ -26,6 +27,7 @@ export function AppShell({ children, pending }: { children: React.ReactNode; pen
   return (
     <div className="flex h-dvh overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">
       <NavigationProgress />
+      <RouteTitle />
       {/* En celular el rail no se usa (isOpen siempre false): lo reemplazan las barras y "Más". */}
       <Sidebar isOpen={false} onClose={() => setOpenAt(null)} pending={pending} />
 

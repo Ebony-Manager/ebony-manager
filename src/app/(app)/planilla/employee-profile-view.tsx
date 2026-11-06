@@ -1,5 +1,7 @@
 "use client";
 
+import { usePageTitle } from "@/components/shared/page-title";
+import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -101,6 +103,7 @@ export function EmployeeProfileView({
   };
   loans: PayrollLoanWithSchedule[];
 }) {
+  usePageTitle([employee.name, titleT(useLang().lang, titleStrings.titles.employee)]);
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
   const router = useRouter();

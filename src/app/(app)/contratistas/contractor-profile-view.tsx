@@ -1,5 +1,7 @@
 "use client";
 
+import { usePageTitle } from "@/components/shared/page-title";
+import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -226,6 +228,7 @@ export function ContractorProfileView({
   /** Pantalla desde la que se llegó (a ella regresa "Volver"); sin esto, a Staff. */
   from?: ContractorFrom;
 }) {
+  usePageTitle([contractor.name, titleT(useLang().lang, titleStrings.titles.contractor)]);
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas | keyof typeof strings.planilla) =>
     t(lang, ((k in strings.planilla ? strings.planilla : strings.contratistas) as Record<string, { es: string; en: string }>)[k]);

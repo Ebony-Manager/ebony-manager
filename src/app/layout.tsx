@@ -30,7 +30,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ebony Manager",
+  title: "Ebony",
   description: "Sistema de gestión para Ebony Custom Woodwork.",
   applicationName: "Ebony Manager",
   // Instalada en el iPhone (Compartir → Agregar a inicio) abre a pantalla

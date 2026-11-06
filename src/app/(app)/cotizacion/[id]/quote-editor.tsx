@@ -42,6 +42,7 @@ import type { Client } from "@/types/ventas";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { Textarea } from "@/components/ui/textarea";
 import { OwnerPanel } from "./owner-panel";
+import { usePageTitle } from "@/components/shared/page-title";
 import { downloadQuotePdf } from "./quote-pdf";
 import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
 import { duplicateSection, locationGroups, locationSuggestions, moveSection, shiftSection } from "@/lib/cotizador/items";
@@ -232,6 +233,14 @@ export function QuoteEditor({
   const totals = quoteTotals(quote);
   const secTotals = section ? sectionTotals(section) : null;
   const locked = isQuoteLocked(quote);
+  // Nombre de la pestaña: "COT-2640 Teo Zebede · Cotización" (● mientras guarda).
+  usePageTitle(
+    [
+      [quote.number, quoteWho(quote)].filter(Boolean).join(" ") || t(lang, strings.titles.new_quote),
+      t(lang, strings.titles.quote),
+    ],
+    isPersisted && saveState !== "saved",
+  );
 
   const setHeader = (p: Partial<Quote>) => change((q) => ({ ...q, ...p }));
   const setSection = (next: QuoteSection) =>
