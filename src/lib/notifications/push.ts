@@ -44,6 +44,13 @@ export async function ensureOverduePurchaseNotices(): Promise<number> {
   return data?.length ?? 0;
 }
 
+/** El error del servicio de push en texto corto: "403 BadJwtToken", "410 Unregistered"… */
+export function pushErrorText(err: unknown): string {
+  const e = err as { statusCode?: number; body?: string; message?: string };
+  const body = (e.body ?? "").toString().slice(0, 120).trim();
+  return [e.statusCode, body || e.message].filter(Boolean).join(" ") || "Error";
+}
+
 export async function sendPush(subscription: PushSubscription, payload: { title: string; body?: string | null; href?: string | null; tag?: string }) {
   configure();
   await webpush.sendNotification(subscription, JSON.stringify(payload));
@@ -90,6 +97,8 @@ export async function dispatchPendingPush(): Promise<number> {
         sent += 1;
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;
+        // Antes se descartaba sin rastro: queda en los logs del servidor.
+        console.error("Push falló", recipient.user_id, subscription.endpoint.slice(0, 40), pushErrorText(err));
         if (status === 404 || status === 410) await db.from("push_subscriptions").delete().eq("id", subscription.id);
       }
     }

@@ -3664,7 +3664,7 @@ export const strings = {
     push_enabled: { es: "Notificaciones activadas", en: "Notifications enabled" },
     push_disabled: { es: "Notificaciones desactivadas", en: "Notifications disabled" },
     push_test: { es: "Enviar prueba", en: "Send test" },
-    push_test_sent: { es: "Prueba enviada a este dispositivo", en: "Test sent to this device" },
+    push_test_sent: { es: "Prueba enviada a tus dispositivos: debe llegarte en unos segundos", en: "Test sent to your devices: it should arrive in a few seconds" },
     emails_title: { es: "Correos automáticos", en: "Automatic emails" },
     title: { es: "Notificaciones", en: "Notifications" },
     subtitle: {
