@@ -12,7 +12,7 @@ import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { groupedOrder } from "@/lib/cotizador/items";
 import { TERMS, TERMS_INTRO, TERMS_TITLE, richSegments } from "@/lib/cotizador/terms";
 import toast from "react-hot-toast";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Landmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
@@ -185,10 +185,30 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
 
         {quote.notes.trim() && <p className="mt-6 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{quote.notes.trim()}</p>}
 
-        <footer className="mt-7 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">
-          <p>Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2</p>
-          <p>{tt("cv_payment")}</p>
-        </footer>
+        {/* Datos para el pago, en un recuadro para que se noten. */}
+        <section className="mt-7 flex gap-4 rounded-lg border border-border bg-muted/40 p-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+            <Landmark className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-foreground">{tt("pay_title")}</h3>
+            <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-xs text-muted-foreground">{tt("pay_bank")}</dt>
+                <dd className="font-semibold">Banco General</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">{tt("pay_account")}</dt>
+                <dd className="font-semibold tabular-nums">03-70-01-127629-2</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">{tt("pay_holder")}</dt>
+                <dd className="font-semibold">Ebony Designs SA</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-xs leading-relaxed text-foreground/80">{tt("cv_payment")}</p>
+          </div>
+        </section>
 
         {/* Condiciones generales (en el PDF van en hojas aparte). */}
         <details className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">

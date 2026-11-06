@@ -18,6 +18,7 @@ import { UNIT_LABEL } from "./line-row";
 const INK: [number, number, number] = [20, 20, 20];
 const MUTED: [number, number, number] = [110, 110, 110];
 const RULE: [number, number, number] = [225, 225, 222];
+const SOFT: [number, number, number] = [246, 245, 243];
 
 /** El logo (vector) como PNG nítido para el PDF. */
 function logoPng(heightPt: number): { data: string; w: number; h: number } | null {
@@ -207,7 +208,11 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       ...(detail !== "total" ? [{ content: formatMoney(st.total), styles: { fontStyle: "bold" } }] : []),
     ]);
     if (desc) {
-      body.push([{ content: desc, colSpan: cols - first, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 6 } } }]);
+      // Solo en la columna del ítem: no se mete debajo de los precios.
+      body.push([
+        { content: desc, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 6 } } },
+        ...Array.from({ length: cols - first - 1 }, () => ({ content: "" })),
+      ]);
     }
     if (detail === "line") {
       const cost = st.ebony + st.sub;
@@ -309,19 +314,54 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       y += 12;
     }
   }
-  y += 12;
-  ensure(40);
+  // Datos para el pago: en un recuadro con ícono de banco, para que se note.
+  y += 14;
+  const payLines = doc.splitTextToSize(tq("cv_payment"), contentW - 92) as string[];
+  const boxH = 64 + payLines.length * 11;
+  ensure(boxH + 24);
+  const bx = margin;
+  const by = y;
+  doc.setFillColor(...SOFT);
   doc.setDrawColor(...RULE);
-  doc.line(margin, y, pageW - margin, y);
-  y += 16;
+  doc.setLineWidth(0.6);
+  doc.roundedRect(bx, by, contentW, boxH, 6, 6, "FD");
+  // Ícono de banco: techo, columnas y base.
+  const ix = bx + 18;
+  const iy = by + 16;
+  doc.setFillColor(...INK);
+  doc.triangle(ix, iy + 9, ix + 28, iy + 9, ix + 14, iy, "F");
+  for (let c = 0; c < 4; c++) doc.rect(ix + 2.5 + c * 6.6, iy + 11, 3, 14, "F");
+  doc.rect(ix, iy + 26, 28, 3, "F");
+  const tx0 = bx + 64;
+  let ty = by + 20;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...INK);
+  doc.text(tq("pay_title"), tx0, ty);
+  ty += 15;
+  doc.setFontSize(9);
+  const field = (label: string, value: string, x: number) => {
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...MUTED);
+    doc.text(label, x, ty);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...INK);
+    doc.text(value, x, ty + 12);
+  };
+  field(tq("pay_bank"), "Banco General", tx0);
+  field(tq("pay_account"), "03-70-01-127629-2", tx0 + 120);
+  field(tq("pay_holder"), "Ebony Designs SA", tx0 + 270);
+  ty += 28;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
-  for (const line of [
-    "Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2",
-    ...(doc.splitTextToSize(tq("cv_payment"), contentW) as string[]),
-    ...(doc.splitTextToSize(tq("cv_terms_note"), contentW) as string[]),
-  ]) {
+  for (const line of payLines) {
+    doc.text(line, tx0, ty);
+    ty += 11;
+  }
+  y = by + boxH + 16;
+  doc.setFontSize(8);
+  for (const line of doc.splitTextToSize(tq("cv_terms_note"), contentW) as string[]) {
     ensure(11);
     doc.text(line, margin, y);
     y += 11;
