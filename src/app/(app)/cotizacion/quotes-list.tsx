@@ -124,8 +124,8 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
 
       {quotes.length === 0 ? (
         <EmptyState className="py-14">
-          <div className="flex size-14 items-center justify-center rounded-full bg-cream-100">
-            <FileText className="size-6 text-walnut" />
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <FileText className="size-6 text-primary" />
           </div>
           <div>
             <p className="font-semibold text-foreground">{tt("empty_title")}</p>
@@ -153,7 +153,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                   </Link>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
                 </div>
-                <div className="flex min-w-0 items-center gap-2 text-xs text-ink-700">
+                <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/80">
                   <span className="shrink-0">{date(q.quoteDate)}</span>
                   {q.number && <span className="min-w-0 truncate tabular-nums">· {q.number}</span>}
                   <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
@@ -169,10 +169,10 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                     {[q.projectName, q.clientName ? q.designerName : ""].filter(Boolean).join(" · ") || tt("no_project")}
                   </span>
                 </Link>
-                <span className="w-24 shrink-0 truncate text-xs text-ink-700 tabular-nums" title={q.number ?? undefined}>
+                <span className="w-24 shrink-0 truncate text-xs text-foreground/80 tabular-nums" title={q.number ?? undefined}>
                   {q.number || "—"}
                 </span>
-                <span className="w-24 shrink-0 text-xs text-ink-700">{date(q.quoteDate)}</span>
+                <span className="w-24 shrink-0 text-xs text-foreground/80">{date(q.quoteDate)}</span>
                 <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
                   {followUp(q)}
                 <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>

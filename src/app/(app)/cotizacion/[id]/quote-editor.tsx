@@ -371,11 +371,11 @@ export function QuoteEditor({
       { day: "numeric", month: "short" },
     );
   const smallLabel =
-    "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-ink-700";
+    "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-foreground/80";
   const smallInput =
     "h-8 w-full min-w-0 border border-input bg-card px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
   const panelTitle =
-    "text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase";
+    "text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
   const money = "text-right tabular-nums";
 
   const nameCell = (s: Pick<QuoteSection, "location" | "name">) => (
@@ -529,7 +529,7 @@ export function QuoteEditor({
               disabled={duplicating || !isPersisted}
               onClick={onDuplicate}
               title={tt("duplicate_version_hint")}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium hover:border-ink-700 disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-xs font-medium hover:border-ring disabled:opacity-50"
             >
               <Copy className="size-3.5" />
               {tt("duplicate_version")}
@@ -722,7 +722,7 @@ export function QuoteEditor({
                 confirmDelete === s.id ? (
                   <div
                     key={s.id}
-                    className="flex flex-col justify-center gap-1.5 rounded-lg border border-destructive bg-[color-mix(in_srgb,var(--status-error)_8%,white)] px-2.5 py-2 text-xs"
+                    className="flex flex-col justify-center gap-1.5 rounded-lg border border-destructive bg-[color-mix(in_oklab,var(--status-error)_8%,var(--card))] px-2.5 py-2 text-xs"
                   >
                     <span>
                       {tt("sec_delete_confirm")}{" "}
@@ -758,14 +758,14 @@ export function QuoteEditor({
                         "grid min-w-[128px] rounded-lg border py-2 pr-8 pl-3 text-left",
                         section?.id === s.id
                           ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card hover:border-ink-700",
+                          : "border-border bg-card hover:border-ring",
                       )}
                     >
                       <span
                         className={cn(
                           "text-[10px] tracking-[0.1em] uppercase",
                           section?.id === s.id
-                            ? "text-stone-400"
+                            ? "text-primary-foreground/70"
                             : "text-muted-foreground",
                         )}
                       >
@@ -778,7 +778,7 @@ export function QuoteEditor({
                         className={cn(
                           "mt-0.5 text-[11px] tabular-nums",
                           section?.id === s.id
-                            ? "text-cream-100/80"
+                            ? "text-primary-foreground/80"
                             : "text-muted-foreground",
                         )}
                       >
@@ -794,7 +794,7 @@ export function QuoteEditor({
                         className={cn(
                           "absolute top-1 right-1 flex size-5 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
                           section?.id === s.id
-                            ? "text-cream-100/70 hover:bg-cream-100/15 hover:text-cream-100"
+                            ? "text-primary-foreground/70 hover:bg-muted/15 hover:text-primary-foreground"
                             : "text-muted-foreground hover:bg-muted hover:text-destructive",
                         )}
                       >
@@ -808,7 +808,7 @@ export function QuoteEditor({
                 <button
                   type="button"
                   onClick={addSection}
-                  className="inline-flex items-center gap-1 rounded-lg border border-dashed border-ink-900/25 px-3 text-xs font-medium text-ink-700 hover:border-ink-700"
+                  className="inline-flex min-h-[64px] items-center gap-1 rounded-lg border border-dashed border-input px-3 text-xs font-medium text-foreground/80 hover:border-ring"
                 >
                   <Plus className="size-3.5" />
                   {tt("sec_add")}
@@ -891,7 +891,7 @@ export function QuoteEditor({
                   {tt("breakdown_title")}
                 </h2>
                 <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3.5 text-sm">
-                  <dt className="text-ink-700">{tt("block_ebony")}</dt>
+                  <dt className="text-foreground/80">{tt("block_ebony")}</dt>
                   <dd className={money}>{formatMoney(secTotals.ebony)}</dd>
                   <dt className="pl-3 text-[11px] text-muted-foreground">
                     {tt("bk_util")} {section.utilPct}%
@@ -901,7 +901,7 @@ export function QuoteEditor({
                   >
                     +{formatMoney(secTotals.util)}
                   </dd>
-                  <dt className="text-ink-700">{tt("block_subs")}</dt>
+                  <dt className="text-foreground/80">{tt("block_subs")}</dt>
                   <dd className={money}>{formatMoney(secTotals.sub)}</dd>
                   {secTotals.sub > 0 && (
                     <>
@@ -918,7 +918,7 @@ export function QuoteEditor({
                       </dd>
                     </>
                   )}
-                  <dt className="text-ink-700">{tt("block_extras")}</dt>
+                  <dt className="text-foreground/80">{tt("block_extras")}</dt>
                   <dd className={money}>{formatMoney(secTotals.extras)}</dd>
                   {secTotals.commission > 0 && (
                     <>
@@ -977,13 +977,13 @@ export function QuoteEditor({
                       </dd>
                     </React.Fragment>
                   ))}
-                  <dt className="mt-1 border-t border-border pt-2 text-ink-700">
+                  <dt className="mt-1 border-t border-border pt-2 text-foreground/80">
                     {tt("subtotal")}
                   </dt>
                   <dd className={cn(money, "mt-1 border-t border-border pt-2")}>
                     {formatMoney(totals.subtotal)}
                   </dd>
-                  <dt className="flex items-center gap-2 text-ink-700">
+                  <dt className="flex items-center gap-2 text-foreground/80">
                     {tt("discount")}
                     <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
                       <NumField
@@ -1003,7 +1003,7 @@ export function QuoteEditor({
                               quote.discountType === "pct" ? "amount" : "pct",
                           })
                         }
-                        className="ml-1 bg-muted px-1.5 text-[11px] leading-[20px] text-ink-700 hover:bg-accent"
+                        className="ml-1 bg-muted px-1.5 text-[11px] leading-[20px] text-foreground/80 hover:bg-accent"
                       >
                         {quote.discountType === "pct" ? "%" : "$"}
                       </button>

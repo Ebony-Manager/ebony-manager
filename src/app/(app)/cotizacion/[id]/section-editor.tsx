@@ -29,13 +29,13 @@ const BLOCK_STYLE: Record<BlockKey, { head: string; body: string; rule: string }
   // bloque principal y con el tema azul el tono crema se perdía. Se mezcla
   // con el color de tarjeta del tema para que funcione en modo oscuro.
   eb: {
-    head: "bg-[color-mix(in_srgb,#e9b949_48%,var(--card))]",
-    body: "bg-[color-mix(in_srgb,#e9b949_18%,var(--card))]",
-    rule: "border-[color-mix(in_srgb,#e9b949_70%,var(--card))]",
+    head: "bg-[color-mix(in_oklab,var(--status-warn)_48%,var(--card))]",
+    body: "bg-[color-mix(in_oklab,var(--status-warn)_18%,var(--card))]",
+    rule: "border-[color-mix(in_oklab,var(--status-warn)_70%,var(--card))]",
   },
-  sb: { head: "bg-[color-mix(in_srgb,var(--status-ok)_16%,white)]", body: "bg-[color-mix(in_srgb,var(--status-ok)_5%,white)]", rule: "border-[color-mix(in_srgb,var(--status-ok)_24%,white)]" },
-  ex: { head: "bg-[color-mix(in_srgb,var(--status-error)_14%,white)]", body: "bg-[color-mix(in_srgb,var(--status-error)_4%,white)]", rule: "border-[color-mix(in_srgb,var(--status-error)_22%,white)]" },
-  mg: { head: "bg-stone-200", body: "bg-[color-mix(in_srgb,var(--stone-200)_32%,white)]", rule: "border-stone-400/60" },
+  sb: { head: "bg-[color-mix(in_oklab,var(--status-ok)_16%,var(--card))]", body: "bg-[color-mix(in_oklab,var(--status-ok)_5%,var(--card))]", rule: "border-[color-mix(in_oklab,var(--status-ok)_24%,var(--card))]" },
+  ex: { head: "bg-[color-mix(in_oklab,var(--status-error)_14%,var(--card))]", body: "bg-[color-mix(in_oklab,var(--status-error)_4%,var(--card))]", rule: "border-[color-mix(in_oklab,var(--status-error)_22%,var(--card))]" },
+  mg: { head: "bg-muted", body: "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]", rule: "border-border" },
 };
 
 /** El ítem con el que nace un renglón al pulsar "+ Revestimiento", etc. */
@@ -153,7 +153,7 @@ export function SectionEditor({
     );
 
   const adder = (label: string, onClick: () => void) => (
-    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ink-700">
+    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ring">
       <Plus className="size-3" />
       {label}
     </button>
@@ -178,7 +178,7 @@ export function SectionEditor({
   // Lista "etiqueta … valor" para los valores fijos: bloqueados hasta "Editar".
   type NumKey = "utilPct" | "subMarginPct" | "wasteSheets" | "wastePct" | "design3d" | "extraLabor" | "freight" | "commissionPct" | "ccfPct";
   const kv = (blockKey: BlockKey, field: NumKey, label: string, unit: "%" | "$" | "u") => (
-    <div key={`${blockKey}-${field}`} className={cn("flex min-h-[30px] items-center justify-between gap-3 border-b text-xs text-ink-700", BLOCK_STYLE[blockKey].rule)}>
+    <div key={`${blockKey}-${field}`} className={cn("flex min-h-[30px] items-center justify-between gap-3 border-b text-xs text-foreground/80", BLOCK_STYLE[blockKey].rule)}>
       <span>{label}</span>
       <NumField
         value={section[field]}
@@ -195,13 +195,13 @@ export function SectionEditor({
     <button
       type="button"
       onClick={() => setUnlocked((u) => ({ ...u, [blockKey]: !u[blockKey] }))}
-      className="text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground"
+      className="text-[11px] text-muted-foreground underline decoration-border hover:text-foreground"
     >
       {unlocked[blockKey] ? tt("done") : tt("edit")}
     </button>
   );
 
-  const fieldLabel = "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-ink-700";
+  const fieldLabel = "flex min-w-0 flex-col gap-1 text-[11px] font-medium text-foreground/80";
   const fieldInput = "h-8 w-full min-w-0 border border-input bg-card px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
 
   return (
@@ -276,8 +276,8 @@ export function SectionEditor({
             {kv("ex", "extraLabor", tt("f_extra_labor"), "$")}
             {kv("ex", "freight", tt("f_freight"), "$")}
             <div className="flex items-start justify-between gap-3 pt-1.5">
-              <details className="text-[11px] text-ink-700">
-                <summary className="cursor-pointer text-muted-foreground underline decoration-ink-900/16">{tt("waste_calc")}</summary>
+              <details className="text-[11px] text-foreground/80">
+                <summary className="cursor-pointer text-muted-foreground underline decoration-border">{tt("waste_calc")}</summary>
                 <p className="mt-1.5 tabular-nums">
                   {section.wasteSheets} × {formatMoney(section.wasteSheetPrice)} × {section.wastePct}% = {formatMoney(totals.waste)}
                 </p>

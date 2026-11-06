@@ -88,7 +88,7 @@ export function Viewer3D({
   return (
     <div className="rounded-lg overflow-hidden border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-        <h2 className="text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase">{tt("viewer_title")}</h2>
+        <h2 className="text-[11px] font-semibold tracking-[0.08em] text-primary uppercase">{tt("viewer_title")}</h2>
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <span>{tt("viewer_paint")}</span>
           {PAINTS.map((p) => (
@@ -100,7 +100,7 @@ export function Viewer3D({
               onClick={() => setPaint(p.hex)}
               className={cn(
                 "size-[18px] rounded-full border-2 border-card ring-1",
-                paint === p.hex ? "ring-2 ring-ink-900" : "ring-ink-900/16"
+                paint === p.hex ? "ring-2 ring-ring" : "ring-border"
               )}
               style={{ background: p.hex }}
             />
@@ -108,7 +108,7 @@ export function Viewer3D({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3.5 py-2 text-xs text-ink-700">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3.5 py-2 text-xs text-foreground/80">
         <div className="inline-flex rounded-lg overflow-hidden border border-input">
           {(["recta", "L"] as const).map((shape) => (
             <button
@@ -128,7 +128,7 @@ export function Viewer3D({
             <NumField value={section.cornerAt ?? 0} onChange={(n) => onShape("L", n)} suffix="m" inputWidth={40} aria-label={tt("viewer_corner_at")} />
           </label>
         )}
-        <button type="button" onClick={onReset} className="ml-auto text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground">
+        <button type="button" onClick={onReset} className="ml-auto text-[11px] text-muted-foreground underline decoration-border hover:text-foreground">
           {tt("viewer_reset")}
         </button>
       </div>
@@ -139,7 +139,7 @@ export function Viewer3D({
         ) : (
           <>
             <canvas ref={canvasRef} aria-label={tt("viewer_title")} className="block h-[340px] w-full cursor-grab touch-pan-y" />
-            <p className="pointer-events-none absolute bottom-2 left-2.5 bg-card/70 px-1.5 py-0.5 text-[11px] text-ink-700">
+            <p className="pointer-events-none absolute bottom-2 left-2.5 bg-card/70 px-1.5 py-0.5 text-[11px] text-foreground/80">
               {empty ? tt("viewer_hint_empty") : scene.approximate ? tt("viewer_hint_approx") : tt("viewer_hint")}
             </p>
           </>

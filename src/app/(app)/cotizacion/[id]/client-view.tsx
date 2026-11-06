@@ -29,7 +29,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex items-center gap-2 self-end text-xs text-ink-700">
+      <label className="flex items-center gap-2 self-end text-xs text-foreground/80">
         {tt("cv_detail")}
         <select
           value={detail}
@@ -46,9 +46,9 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1.5">
             <EbonyLogo variant="wordmark" tone="black" height={34} />
-            <span className="text-[10px] tracking-[0.2em] text-ink-700">custom woodwork</span>
+            <span className="text-[10px] tracking-[0.2em] text-foreground/80">custom woodwork</span>
           </div>
-          <div className="text-right text-xs leading-relaxed text-ink-700">
+          <div className="text-right text-xs leading-relaxed text-foreground/80">
             <p className="font-semibold text-foreground">EBONY DESIGNS, S.A.</p>
             <p>RUC 155678857-2-2019 DV: 0</p>
             <p>6329-6666 · ventas@ebonypanama.com</p>
@@ -60,7 +60,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
           <div className="min-w-0">
             <p className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">{tt("cv_quote")}</p>
             <h2 className="text-xl font-semibold text-balance">{quoteWho(quote) || "—"}</h2>
-            {quote.projectName && <p className="text-sm text-ink-700">{quote.projectName}</p>}
+            {quote.projectName && <p className="text-sm text-foreground/80">{quote.projectName}</p>}
             {quote.clientName && quote.designerName && <p className="text-xs text-muted-foreground">{quote.designerName}</p>}
           </div>
           <dl className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-xs">
@@ -98,14 +98,14 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                         <p className="font-semibold">
                           {s.kind} · {sectionLabel(s) || tt("sec_unnamed")}
                         </p>
-                        {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-ink-700">{s.description}</p>}
+                        {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-foreground/80">{s.description}</p>}
                       </td>
                       {detail === "line" && <td />}
                       {detail !== "total" && <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatMoney(st.total)}</td>}
                     </tr>
                     {detail === "line" &&
                       s.lines.map((l) => (
-                        <tr key={l.id} className="border-b border-border text-xs text-ink-700">
+                        <tr key={l.id} className="border-b border-border text-xs text-foreground/80">
                           <td className="py-1.5 pr-3 pl-4">{l.name}</td>
                           <td className="px-3 py-1.5 text-right whitespace-nowrap tabular-nums">
                             {lineQty(l).toLocaleString("en-US", { maximumFractionDigits: 2 })} {UNIT_LABEL[l.unit]}
@@ -121,23 +121,23 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
         </div>
 
         <dl className="mt-4 ml-auto grid w-full max-w-[300px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-ink-700">{tt("subtotal")}</dt>
+          <dt className="text-foreground/80">{tt("subtotal")}</dt>
           <dd className="text-right tabular-nums">{formatMoney(totals.subtotal)}</dd>
           {totals.discount > 0 && (
             <>
-              <dt className="text-ink-700">{tt("discount")}</dt>
+              <dt className="text-foreground/80">{tt("discount")}</dt>
               <dd className="text-right tabular-nums">−{formatMoney(totals.discount)}</dd>
             </>
           )}
-          <dt className="text-ink-700">ITBMS ({quote.itbmsPct}%)</dt>
+          <dt className="text-foreground/80">ITBMS ({quote.itbmsPct}%)</dt>
           <dd className="text-right tabular-nums">{formatMoney(totals.tax)}</dd>
           <dt className="mt-1 border-t border-border pt-1.5 font-semibold">{tt("total")}</dt>
           <dd className="mt-1 border-t border-border pt-1.5 text-right text-base font-bold tabular-nums">{formatMoney(totals.total)}</dd>
         </dl>
 
-        {quote.notes.trim() && <p className="mt-6 text-sm leading-relaxed whitespace-pre-line text-ink-700">{quote.notes.trim()}</p>}
+        {quote.notes.trim() && <p className="mt-6 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{quote.notes.trim()}</p>}
 
-        <footer className="mt-7 border-t border-border pt-4 text-xs leading-relaxed text-ink-700">
+        <footer className="mt-7 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">
           <p>Ebony Designs SA · Banco General – Corriente 03-70-01-127629-2</p>
           <p>{tt("cv_payment")}</p>
         </footer>

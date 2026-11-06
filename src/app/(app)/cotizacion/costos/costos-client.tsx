@@ -125,14 +125,14 @@ export function CostosClient({
   const parts = currentRecipe ? recipeParts(currentRecipe, ins) : null;
 
   const panel = "overflow-hidden rounded-lg border border-border bg-card";
-  const panelTitle = "border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-walnut uppercase";
+  const panelTitle = "border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
   const formInput = "h-8 min-w-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring";
 
   const inputList = (kind: CostInput["kind"]) =>
     inputs
       .filter((i) => i.kind === kind)
       .map((i) => (
-        <div key={i.key} className="flex min-h-[32px] items-center justify-between gap-3 border-b border-border text-xs text-ink-700 last:border-0">
+        <div key={i.key} className="flex min-h-[32px] items-center justify-between gap-3 border-b border-border text-xs text-foreground/80 last:border-0">
           <span>{inputLabel(i)}</span>
           <NumField
             value={i.value}
@@ -147,7 +147,7 @@ export function CostosClient({
 
   const recipeRow = (label: string, value: string, strong = false) => (
     <div key={label} className={cn("flex justify-between gap-3", strong && "mt-1 border-t border-border pt-2 text-base font-bold")}>
-      <span className={strong ? "" : "text-ink-700"}>{label}</span>
+      <span className={strong ? "" : "text-foreground/80"}>{label}</span>
       <span className="text-right tabular-nums">{value}</span>
     </div>
   );
@@ -169,11 +169,11 @@ export function CostosClient({
 
       {adding && (
         <div className={cn(panel, "flex flex-wrap items-end gap-2.5 p-3.5")}>
-          <label className="flex min-w-0 flex-[2_1_220px] flex-col gap-1 text-[11px] font-medium text-ink-700">
+          <label className="flex min-w-0 flex-[2_1_220px] flex-col gap-1 text-[11px] font-medium text-foreground/80">
             {tt("cost_col_item")}
             <input autoFocus className={formInput} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.currentTarget.value })} />
           </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-700">
+          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
             {tt("cost_col_category")}
             <select className={formInput} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.currentTarget.value as CatalogCategory })}>
               {CATEGORIES.map((c) => (
@@ -183,7 +183,7 @@ export function CostosClient({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-700">
+          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
             {tt("cost_col_finish")}
             <select className={formInput} value={draft.finish} onChange={(e) => setDraft({ ...draft, finish: e.currentTarget.value as Finish | "" })}>
               <option value="">—</option>
@@ -194,7 +194,7 @@ export function CostosClient({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-700">
+          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
             {tt("cost_col_unit")}
             <select className={formInput} value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.currentTarget.value as Unit })}>
               {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
@@ -204,7 +204,7 @@ export function CostosClient({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-700">
+          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
             {tt("cost_col_quote_price")}
             <NumField value={draft.price} onChange={(n) => setDraft({ ...draft, price: n })} prefix="$" inputWidth={64} className="h-8" />
           </label>
@@ -234,7 +234,7 @@ export function CostosClient({
                 return (
                   <React.Fragment key={cat}>
                     <tr>
-                      <td colSpan={6} className="bg-cream-100/60 px-3 py-1.5 text-xs font-semibold text-walnut">
+                      <td colSpan={6} className="bg-muted/60 px-3 py-1.5 text-xs font-semibold text-primary">
                         {tt(`cat_${cat}`)}
                       </td>
                     </tr>
@@ -248,7 +248,7 @@ export function CostosClient({
                           ref={isSel ? selectedRow : undefined}
                           aria-selected={isSel}
                           onClick={() => setSelected(c.id)}
-                          className={cn("cursor-pointer border-b border-border last:border-0", isSel ? "bg-cream-100/70" : "hover:bg-muted/30", !c.active && "opacity-50")}
+                          className={cn("cursor-pointer border-b border-border last:border-0", isSel ? "bg-muted/70" : "hover:bg-muted/30", !c.active && "opacity-50")}
                         >
                           <td className="px-3 py-1.5">{c.name}</td>
                           <td className="px-3 py-1.5 text-muted-foreground">{UNIT_LABEL[c.unit]}</td>
@@ -267,9 +267,9 @@ export function CostosClient({
                             {diff === null ? (
                               <span className="text-xs text-muted-foreground">{tt("cost_no_recipe")}</span>
                             ) : Math.abs(diff) < 0.01 ? (
-                              <span className="rounded-md bg-[color-mix(in_srgb,var(--status-ok)_16%,white)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--status-ok)]">{tt("cost_match")}</span>
+                              <span className="rounded-md bg-[color-mix(in_oklab,var(--status-ok)_16%,var(--card))] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--status-ok)]">{tt("cost_match")}</span>
                             ) : (
-                              <span className="rounded-md bg-[color-mix(in_srgb,var(--status-error)_13%,white)] px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[var(--status-error)] tabular-nums">
+                              <span className="rounded-md bg-[color-mix(in_oklab,var(--status-error)_13%,var(--card))] px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[var(--status-error)] tabular-nums">
                                 {diff > 0 ? "+" : "−"}
                                 {formatMoney(Math.abs(diff))}
                               </span>
@@ -282,7 +282,7 @@ export function CostosClient({
                                 patchItem(c.id, { active: !c.active });
                                 void persist(() => updateCatalogItemAction(c.id, { active: !c.active }));
                               }}
-                              className="text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground"
+                              className="text-[11px] text-muted-foreground underline decoration-border hover:text-foreground"
                             >
                               {c.active ? tt("cost_deactivate") : tt("cost_activate")}
                             </button>
@@ -315,7 +315,7 @@ export function CostosClient({
                   {recipeRow(tt("rc_labor"), formatMoney(currentRecipe.labor))}
                   {currentRecipe.hardwarePct > 0 && recipeRow(`${tt("rc_hardware")} ${(currentRecipe.hardwarePct * 100).toLocaleString("en-US")}%`, formatMoney(parts.hardware))}
                   {currentRecipe.fixed > 0 && recipeRow(currentRecipe.fixedLabel ?? tt("rc_fixed"), formatMoney(currentRecipe.fixed))}
-                  <div className="mt-1 flex justify-between gap-3 border-t border-border pt-2 text-xs text-ink-700">
+                  <div className="mt-1 flex justify-between gap-3 border-t border-border pt-2 text-xs text-foreground/80">
                     <span>
                       {tt("rc_piece_cost")}
                       {currentRecipe.baseM2 !== 1 && ` ÷ ${currentRecipe.baseM2} m²`}
@@ -323,7 +323,7 @@ export function CostosClient({
                     <span className="tabular-nums">{formatMoney(parts.total)}</span>
                   </div>
                   {recipeRow(`${tt("cost_col_calc")} / ${UNIT_LABEL[current.unit]}`, formatMoney(parts.perUnit), true)}
-                  <div className="flex justify-between gap-3 text-xs text-ink-700">
+                  <div className="flex justify-between gap-3 text-xs text-foreground/80">
                     <span>{tt("cost_col_quote_price")}</span>
                     <span className="tabular-nums">{formatMoney(current.price)}</span>
                   </div>

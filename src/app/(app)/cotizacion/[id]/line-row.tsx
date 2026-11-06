@@ -144,7 +144,7 @@ export function LineRow({
         </select>
       )}
 
-      <div className="ml-auto flex flex-nowrap items-center gap-1.5">
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1">
         {med ? (
           <>
             <NumField value={line.width} onChange={(n) => onChange({ width: n })} suffix="m" inputWidth={40} aria-label={line.unit === "m2" ? tt("line_width") : tt("line_length")} title={line.unit === "m2" ? tt("line_width") : tt("line_length")} />
@@ -156,7 +156,7 @@ export function LineRow({
             )}
             <span className="text-[11px] text-muted-foreground">×</span>
             <NumField value={line.pieces} onChange={(n) => onChange({ pieces: n })} suffix="pz" inputWidth={22} aria-label={tt("line_pieces")} title={tt("line_pieces")} />
-            <span className="bg-cream-100 px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap text-walnut tabular-nums">
+            <span className="bg-muted px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap text-primary tabular-nums">
               {lineQty(line).toLocaleString("en-US", { maximumFractionDigits: 2 })} {unit}
             </span>
           </>
@@ -176,12 +176,12 @@ export function LineRow({
               title={tt("line_price_this_quote")}
             />
             {!free && catalogItem && adjusted && (
-              <button type="button" onClick={() => onChange({ unitPrice: catalogItem.price, priceOverridden: false })} className="text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground">
+              <button type="button" onClick={() => onChange({ unitPrice: catalogItem.price, priceOverridden: false })} className="text-[11px] text-muted-foreground underline decoration-border hover:text-foreground">
                 {tt("line_price_reset")}
               </button>
             )}
             {!free && canEditCosts && catalogItem && (
-              <Link href={`/cotizacion/costos?item=${catalogItem.id}`} className="text-[11px] text-muted-foreground underline decoration-ink-900/16 hover:text-foreground">
+              <Link href={`/cotizacion/costos?item=${catalogItem.id}`} className="text-[11px] text-muted-foreground underline decoration-border hover:text-foreground">
                 {tt("line_price_catalog")}
               </Link>
             )}
@@ -190,11 +190,11 @@ export function LineRow({
           <span className="flex items-center gap-0.5">
             <span
               title={adjusted && catalogItem ? `${tt("line_price_adjusted")} ${formatMoney(catalogItem.price)}` : tt("line_price_from_catalog")}
-              className={cn("text-[11px] whitespace-nowrap tabular-nums", adjusted ? "font-semibold text-walnut" : "text-muted-foreground")}
+              className={cn("text-[11px] whitespace-nowrap tabular-nums", adjusted ? "font-semibold text-primary" : "text-muted-foreground")}
             >
               × {formatMoney(line.unitPrice)}
             </span>
-            <button type="button" aria-label={tt("line_price_edit")} title={tt("line_price_edit")} onClick={() => setEditingPrice(true)} className="p-0.5 text-ink-900/20 hover:text-ink-700">
+            <button type="button" aria-label={tt("line_price_edit")} title={tt("line_price_edit")} onClick={() => setEditingPrice(true)} className="p-0.5 text-muted-foreground/50 hover:text-foreground/80">
               <Pencil className="size-3" />
             </button>
           </span>
