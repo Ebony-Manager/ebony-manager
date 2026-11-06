@@ -208,10 +208,12 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       ...(detail !== "total" ? [{ content: formatMoney(st.total), styles: { fontStyle: "bold" } }] : []),
     ]);
     if (desc) {
-      // Solo en la columna del ítem: no se mete debajo de los precios.
+      // Ancho del ítem + cantidad + precio unitario; la columna del total
+      // queda libre (así no se mete debajo del monto ni se hace una tira).
+      const span = cols - first - (detail !== "total" ? 1 : 0);
       body.push([
-        { content: desc, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 6 } } },
-        ...Array.from({ length: cols - first - 1 }, () => ({ content: "" })),
+        { content: desc, colSpan: span, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 12 } } },
+        ...(detail !== "total" ? [{ content: "", styles: { cellPadding: 0, fontSize: 1 } }] : []),
       ]);
     }
     if (detail === "line") {
@@ -244,7 +246,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
     styles: { font: "helvetica", fontSize: 9, cellPadding: { top: 6, bottom: 6, left: 6, right: 6 }, textColor: INK, valign: "top" },
     headStyles: { fontSize: 7.5, textColor: MUTED, fontStyle: "bold", lineWidth: { bottom: 0.6 }, lineColor: RULE },
     columnStyles: Object.fromEntries(
-      head.map((_, i) => [i, i === 0 && withImages ? { cellWidth: IMG_W } : i === first ? {} : { halign: "right", cellWidth: i === cols - 1 ? 80 : 64 }])
+      head.map((_, i) => [i, i === 0 && withImages ? { cellWidth: IMG_W } : i === first ? {} : { halign: "right", cellWidth: i === cols - 1 ? 74 : 58 }])
     ),
     didParseCell: (d) => {
       if (d.section === "head" && d.column.index > first) d.cell.styles.halign = "right";
