@@ -5,7 +5,8 @@ import * as React from "react";
 import { EbonyLogo } from "@/components/brand/ebony-logo";
 import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { strings, t } from "@/lib/i18n";
-import type { PdfDetail, Quote } from "@/types/cotizador";
+import type { PdfDetail, Quote, QuoteImage } from "@/types/cotizador";
+import { photoUrl, THUMB_WIDTH } from "@/lib/photo-url";
 import { UNIT_LABEL } from "./line-row";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { groupedOrder } from "@/lib/cotizador/items";
@@ -27,7 +28,10 @@ import { downloadQuotePdf } from "./quote-pdf";
  * reparten proporcionalmente entre sus renglones: el cliente nunca ve
  * costos ni márgenes, y la suma sigue dando el total del ítem.
  */
-export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: PdfDetail) => void }) {
+export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onDetail: (d: PdfDetail) => void; images?: QuoteImage[] }) {
+  // La primera imagen de cada ítem va a su izquierda.
+  const firstImage = new Map<string, QuoteImage>();
+  for (const im of [...images].sort((a, b) => a.sortOrder - b.sortOrder)) if (!firstImage.has(im.sectionId)) firstImage.set(im.sectionId, im);
   const tt = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
   const totals = quoteTotals(quote);
   // Con algún ítem de cantidad mayor a 1, se muestran cantidad y precio unitario.
@@ -43,7 +47,7 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
   async function download() {
     setBuilding(true);
     try {
-      await downloadQuotePdf(quote);
+      await downloadQuotePdf(quote, images);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -126,10 +130,20 @@ export function ClientView({ quote, onDetail }: { quote: Quote; onDetail: (d: Pd
                   <React.Fragment key={s.id}>
                     <tr className="border-b border-border align-top">
                       <td className="py-2.5 pr-3">
-                        <p className="font-semibold">
-                          {s.kind} · {sectionLabel(s) || tt("sec_unnamed")}
-                        </p>
-                        {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-foreground/80">{s.description}</p>}
+                        <div className="flex items-start gap-3">
+                          {firstImage.has(s.id) && (
+                            <a href={photoUrl("quote-images", firstImage.get(s.id)!.path)} target="_blank" rel="noreferrer" className="shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de /api/foto (achicada y en caché). */}
+                              <img src={photoUrl("quote-images", firstImage.get(s.id)!.path, THUMB_WIDTH)} alt="" className="size-16 rounded-md border border-border object-cover sm:size-20" />
+                            </a>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold">
+                              {s.kind} · {sectionLabel(s) || tt("sec_unnamed")}
+                            </p>
+                            {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-foreground/80">{s.description}</p>}
+                          </div>
+                        </div>
                       </td>
                       {(detail === "line" || hasQty) && (
                         <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{detail === "line" ? (st.qty > 1 ? `× ${st.qty}` : "") : st.qty}</td>

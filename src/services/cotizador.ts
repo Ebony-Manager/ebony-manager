@@ -5,6 +5,7 @@ import { selectAllRows } from "@/lib/supabase/select-all";
 import { quoteTotals } from "@/lib/cotizador/pricing";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import type { Database, Json } from "@/types/database";
+import { MAX_ITEM_IMAGES } from "@/types/cotizador";
 import type {
   CatalogCategory,
   CatalogItem,
@@ -13,6 +14,7 @@ import type {
   Quote,
   QuoteLine,
   QuoteOwnerOptions,
+  QuoteImage,
   QuoteSection,
   QuoteSibling,
   QuoteStatus,
@@ -476,6 +478,15 @@ export async function duplicateQuote(id: string): Promise<string> {
     })),
   };
   await saveQuote(copy, null);
+  // Las imágenes pasan con sus ítems (el mismo archivo, sin volver a subirlo).
+  const sectionMap = new Map(source.sections.map((s, i) => [s.id, copy.sections[i].id]));
+  const images = await getQuoteImages(id);
+  if (images.length) {
+    const { error: imgError } = await supabase
+      .from("quote_section_images")
+      .insert(images.map((im) => ({ section_id: sectionMap.get(im.sectionId) as string, path: im.path, sort_order: im.sortOrder })));
+    if (imgError) throw new Error(imgError.message);
+  }
   return data.id;
 }
 
@@ -546,6 +557,46 @@ export async function getQuoteSiblings(id: string): Promise<QuoteSibling[]> {
   const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version, opportunity_id").or(filters.join(",")).neq("id", id).order("base_number").order("version");
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => ({ id: r.id, number: r.number, opportunityId: r.opportunity_id, status: r.status as QuoteStatus, total: num(r.total) }));
+}
+
+// ── Imágenes de los ítems ───────────────────────────────────────────────
+
+export const QUOTE_IMAGES_BUCKET = "quote-images";
+
+/** Las imágenes de una cotización, por ítem y en su orden. */
+export async function getQuoteImages(quoteId: string): Promise<QuoteImage[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quote_section_images")
+    .select("id, section_id, path, sort_order, quote_sections!inner(quote_id)")
+    .eq("quote_sections.quote_id", quoteId)
+    .order("sort_order");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ id: r.id, sectionId: r.section_id, path: r.path, sortOrder: r.sort_order }));
+}
+
+/** Registra una imagen ya subida al bucket (la sube el navegador). */
+export async function addQuoteImage(sectionId: string, path: string): Promise<QuoteImage> {
+  const supabase = await createClient();
+  const { count } = await supabase.from("quote_section_images").select("id", { count: "exact", head: true }).eq("section_id", sectionId);
+  if ((count ?? 0) >= MAX_ITEM_IMAGES) throw new Error(`Máximo ${MAX_ITEM_IMAGES} imágenes por ítem.`);
+  const { data, error } = await supabase
+    .from("quote_section_images")
+    .insert({ section_id: sectionId, path, sort_order: count ?? 0 })
+    .select("id, section_id, path, sort_order")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: data.id, sectionId: data.section_id, path: data.path, sortOrder: data.sort_order };
+}
+
+/** Quita una imagen; el archivo se borra si ninguna otra cotización (versión) lo usa. */
+export async function deleteQuoteImage(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quote_section_images").delete().eq("id", id).select("path").maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return;
+  const { count } = await supabase.from("quote_section_images").select("id", { count: "exact", head: true }).eq("path", data.path);
+  if (!count) await supabase.storage.from(QUOTE_IMAGES_BUCKET).remove([data.path]);
 }
 
 export async function deleteQuote(id: string): Promise<void> {

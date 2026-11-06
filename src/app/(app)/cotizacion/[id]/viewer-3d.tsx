@@ -30,7 +30,10 @@ export function Viewer3D({
   onHostLine,
   onShape,
   onReset,
+  captureRef,
 }: {
+  /** Aquí queda la función que toma la vista actual como imagen (para "Usar vista 3D"). */
+  captureRef?: React.MutableRefObject<(() => string | null) | null>;
   section: QuoteSection;
   onMoveLine: (lineId: string, wall: Wall, x: number, y: number) => void;
   onHostLine: (lineId: string, hostLineId: string) => void;
@@ -65,6 +68,7 @@ export function Viewer3D({
           onHost: (id, host) => handlers.current.onHostLine(id, host),
         });
         viewerRef.current = viewer;
+        if (captureRef) captureRef.current = () => viewerRef.current?.capture() ?? null;
         setReady(true);
       } catch {
         if (!cancelled) setFailed(true);
@@ -74,8 +78,9 @@ export function Viewer3D({
       cancelled = true;
       viewer?.dispose();
       viewerRef.current = null;
+      if (captureRef) captureRef.current = null;
     };
-  }, []);
+  }, [captureRef]);
 
   const scene = React.useMemo(() => buildScene(section), [section]);
   React.useEffect(() => {

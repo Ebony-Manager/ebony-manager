@@ -210,6 +210,17 @@ export interface QuoteStatusResult {
   updatedAt: string;
 }
 
+/** Imagen de referencia de un ítem (pantallazo de SketchUp, plano, referencia o la vista 3D). */
+export interface QuoteImage {
+  id: string;
+  sectionId: string;
+  path: string;
+  sortOrder: number;
+}
+
+/** Hasta cuántas imágenes por ítem. */
+export const MAX_ITEM_IMAGES = 3;
+
 export type QuoteOwnerKind = "opportunity" | "project" | "client";
 export function quoteOwnerKind(q: Pick<Quote, "opportunityId" | "projectId">): QuoteOwnerKind {
   return q.opportunityId ? "opportunity" : q.projectId ? "project" : "client";

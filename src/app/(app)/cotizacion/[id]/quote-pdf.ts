@@ -6,7 +6,8 @@ import { groupedOrder } from "@/lib/cotizador/items";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { TERMS, TERMS_INTRO, TERMS_TITLE, richSegments } from "@/lib/cotizador/terms";
 import { strings, t } from "@/lib/i18n";
-import type { Quote } from "@/types/cotizador";
+import type { Quote, QuoteImage } from "@/types/cotizador";
+import { photoUrl } from "@/lib/photo-url";
 import { UNIT_LABEL } from "./line-row";
 
 // PDF de la cotización para el cliente: lo mismo que "Vista para el cliente"
@@ -70,8 +71,33 @@ function richText(doc: JsPDF, text: string, x: number, y: number, width: number,
   return y;
 }
 
-export async function buildQuotePdf(quote: Quote): Promise<JsPDF> {
-  const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+/** La primera imagen de cada ítem, lista para el PDF (JPEG ~600 px). */
+async function loadItemImages(images: readonly QuoteImage[]): Promise<Map<string, { data: string; w: number; h: number }>> {
+  const first = new Map<string, QuoteImage>();
+  for (const im of [...images].sort((a, b) => a.sortOrder - b.sortOrder)) if (!first.has(im.sectionId)) first.set(im.sectionId, im);
+  const out = new Map<string, { data: string; w: number; h: number }>();
+  await Promise.all(
+    [...first.values()].map(async (im) => {
+      try {
+        const res = await fetch(photoUrl("quote-images", im.path, 600));
+        if (!res.ok) return;
+        const bitmap = await createImageBitmap(await res.blob());
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
+        out.set(im.sectionId, { data: canvas.toDataURL("image/jpeg", 0.85), w: bitmap.width, h: bitmap.height });
+        bitmap.close();
+      } catch {
+        // Sin la imagen, el ítem sale igual.
+      }
+    })
+  );
+  return out;
+}
+
+export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] = []): Promise<JsPDF> {
+  const [{ jsPDF }, { default: autoTable }, itemImages] = await Promise.all([import("jspdf"), import("jspdf-autotable"), loadItemImages(images)]);
   const tq = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const margin = 44;
@@ -149,22 +175,39 @@ export async function buildQuotePdf(quote: Quote): Promise<JsPDF> {
   const hasQty = quote.sections.some((s) => s.qty > 1);
   const showQty = detail === "line" || hasQty;
   const showUnit = detail === "section" && hasQty;
-  const head = [tq("cv_item"), ...(showQty ? [tq("cv_qty")] : []), ...(showUnit ? [tq("cv_unit_price")] : []), ...(detail !== "total" ? [tq("total")] : [])];
+  // Con imágenes, una columna a la izquierda con la del ítem (ocupa todas sus filas).
+  const withImages = quote.sections.some((sec) => itemImages.has(sec.id));
+  const IMG_W = 72;
+  const head = [
+    ...(withImages ? [""] : []),
+    tq("cv_item"),
+    ...(showQty ? [tq("cv_qty")] : []),
+    ...(showUnit ? [tq("cv_unit_price")] : []),
+    ...(detail !== "total" ? [tq("total")] : []),
+  ];
   const cols = head.length;
-  type Row = { content: string; colSpan?: number; styles?: Record<string, unknown> }[];
+  const first = withImages ? 1 : 0;
+  type Row = { content: string; colSpan?: number; rowSpan?: number; styles?: Record<string, unknown> }[];
   const body: Row[] = [];
+  const rowImage = new Map<number, { data: string; w: number; h: number }>();
+  const itemEnds = new Set<number>();
   const sub = { fontSize: 8, textColor: MUTED, cellPadding: { top: 1.5, bottom: 1.5, left: 6, right: 6 } };
   for (const s of groupedOrder(quote.sections)) {
     const st = sectionTotals(s);
     const title = `${s.kind} · ${sectionLabel(s) || tq("sec_unnamed")}`;
+    const desc = s.description.trim();
+    const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? s.lines.length : 0);
+    const img = itemImages.get(s.id);
+    if (img) rowImage.set(body.length, img);
     body.push([
+      ...(withImages ? [{ content: "", rowSpan: rows, styles: { cellWidth: IMG_W } }] : []),
       { content: title, styles: { fontStyle: "bold" } },
       ...(showQty ? [{ content: detail === "line" ? (st.qty > 1 ? `× ${st.qty}` : "") : String(st.qty) }] : []),
       ...(showUnit ? [{ content: formatMoney(st.unit) }] : []),
       ...(detail !== "total" ? [{ content: formatMoney(st.total), styles: { fontStyle: "bold" } }] : []),
     ]);
-    if (s.description.trim()) {
-      body.push([{ content: s.description.trim(), colSpan: cols, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 6 } } }]);
+    if (desc) {
+      body.push([{ content: desc, colSpan: cols - first, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 6 } } }]);
     }
     if (detail === "line") {
       const cost = st.ebony + st.sub;
@@ -177,6 +220,14 @@ export async function buildQuotePdf(quote: Quote): Promise<JsPDF> {
         ]);
       }
     }
+    // Con imagen, la última fila del ítem completa la altura (así el título
+    // y la descripción quedan juntos, al lado de la imagen).
+    if (img) {
+      const last = body[body.length - 1];
+      const cell = last[last === body[body.length - rows] && withImages ? 1 : 0];
+      cell.styles = { ...cell.styles, minCellHeight: Math.max(0, 70 - 20 * (rows - 1)) };
+    }
+    itemEnds.add(body.length - 1);
   }
   autoTable(doc, {
     startY: y,
@@ -184,22 +235,33 @@ export async function buildQuotePdf(quote: Quote): Promise<JsPDF> {
     head: [head],
     body: body as never,
     theme: "plain",
+    rowPageBreak: "avoid",
     styles: { font: "helvetica", fontSize: 9, cellPadding: { top: 6, bottom: 6, left: 6, right: 6 }, textColor: INK, valign: "top" },
     headStyles: { fontSize: 7.5, textColor: MUTED, fontStyle: "bold", lineWidth: { bottom: 0.6 }, lineColor: RULE },
-    columnStyles: Object.fromEntries(head.map((_, i) => [i, i === 0 ? {} : { halign: "right", cellWidth: i === cols - 1 ? 80 : 64 }])),
+    columnStyles: Object.fromEntries(
+      head.map((_, i) => [i, i === 0 && withImages ? { cellWidth: IMG_W } : i === first ? {} : { halign: "right", cellWidth: i === cols - 1 ? 80 : 64 }])
+    ),
     didParseCell: (d) => {
-      if (d.section === "head" && d.column.index > 0) d.cell.styles.halign = "right";
+      if (d.section === "head" && d.column.index > first) d.cell.styles.halign = "right";
     },
     didDrawCell: (d) => {
-      // Una raya entre ítems (después de la descripción o del último renglón).
-      if (d.section !== "body" || d.column.index !== 0) return;
-      const next = body[d.row.index + 1];
-      const isItemEnd = !next || (next[0].styles?.fontStyle === "bold");
-      if (isItemEnd) {
-        d.doc.setDrawColor(...RULE);
-        d.doc.setLineWidth(0.4);
-        d.doc.line(margin, d.cell.y + d.cell.height, pageW - margin, d.cell.y + d.cell.height);
+      if (d.section !== "body") return;
+      // La imagen del ítem, ajustada a su celda.
+      if (withImages && d.column.index === 0) {
+        const img = rowImage.get(d.row.index);
+        if (img) {
+          const maxW = IMG_W - 10;
+          const maxH = Math.max(40, Math.min(d.cell.height - 10, 90));
+          const k = Math.min(maxW / img.w, maxH / img.h);
+          d.doc.addImage(img.data, "JPEG", d.cell.x + 4, d.cell.y + 6, img.w * k, img.h * k);
+        }
+        return;
       }
+      // Una raya entre ítems (después de la descripción o del último renglón).
+      if (d.column.index !== first || !itemEnds.has(d.row.index)) return;
+      d.doc.setDrawColor(...RULE);
+      d.doc.setLineWidth(0.4);
+      d.doc.line(margin, d.cell.y + d.cell.height, pageW - margin, d.cell.y + d.cell.height);
     },
   });
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 14;
@@ -252,6 +314,7 @@ export async function buildQuotePdf(quote: Quote): Promise<JsPDF> {
   doc.setDrawColor(...RULE);
   doc.line(margin, y, pageW - margin, y);
   y += 16;
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
   for (const line of [
@@ -332,8 +395,8 @@ export function quotePdfName(quote: Quote): string {
 }
 
 /** Arma el PDF y lo descarga (o lo comparte, en celular). */
-export async function downloadQuotePdf(quote: Quote): Promise<void> {
-  const doc = await buildQuotePdf(quote);
+export async function downloadQuotePdf(quote: Quote, images: readonly QuoteImage[] = []): Promise<void> {
+  const doc = await buildQuotePdf(quote, images);
   const name = quotePdfName(quote);
   const blob = doc.output("blob");
   const file = new File([blob], name, { type: "application/pdf" });

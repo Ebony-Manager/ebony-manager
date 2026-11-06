@@ -1874,6 +1874,33 @@ export type Database = {
           },
         ]
       }
+      quote_section_images: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          path: string
+          section_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          path: string
+          section_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          path?: string
+          section_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       quote_sections: {
         Row: {
           ccf_pct: number

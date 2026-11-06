@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import { defaultsFromInputs, newQuote } from "@/lib/cotizador/pricing";
-import { getCatalog, getCostInputs, getQuote, getQuoteOwnerOptions, getQuoteSiblings } from "@/services/cotizador";
+import { getCatalog, getCostInputs, getQuote, getQuoteImages, getQuoteOwnerOptions, getQuoteSiblings } from "@/services/cotizador";
 import { linkClients, linkOpportunity, linkProject } from "@/lib/cotizador/owner";
 import { getClients } from "@/services/ventas";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
@@ -31,13 +31,14 @@ export default async function QuotePage({
   const [{ id }, { oportunidad, proyecto, cliente }] = await Promise.all([params, searchParams]);
 
   const isNew = id === NEW_QUOTE;
-  const [saved, catalog, inputs, clients, owners, siblings] = await Promise.all([
+  const [saved, catalog, inputs, clients, owners, siblings, images] = await Promise.all([
     isNew ? null : getQuote(id),
     getCatalog(),
     getCostInputs(),
     getClients(),
     getQuoteOwnerOptions(),
     isNew ? [] : getQuoteSiblings(id),
+    isNew ? [] : getQuoteImages(id),
   ]);
   const defaults = defaultsFromInputs(inputs);
   const blank = isNew ? newQuote(crypto.randomUUID(), crypto.randomUUID(), defaults, todayInPanama()) : null;
@@ -64,6 +65,7 @@ export default async function QuotePage({
       clients={clients}
       owners={owners}
       siblings={siblings}
+      initialImages={images}
       isAdmin={profile.role === "admin"}
       canEditCosts={hasModule(profile, "costos")}
     />

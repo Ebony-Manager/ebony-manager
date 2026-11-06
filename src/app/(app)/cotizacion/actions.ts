@@ -52,6 +52,14 @@ export async function setQuoteStatusAction(id: string, status: QuoteStatus, inpu
   });
 }
 
+export async function addQuoteImageAction(sectionId: string, path: string) {
+  return saving(() => cotizador.addQuoteImage(sectionId, path));
+}
+
+export async function deleteQuoteImageAction(id: string) {
+  return saving(() => cotizador.deleteQuoteImage(id));
+}
+
 export async function duplicateQuoteAction(id: string): Promise<string> {
   await requireModule("cotizacion");
   return cotizador.duplicateQuote(id);

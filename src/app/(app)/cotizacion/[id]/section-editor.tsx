@@ -86,7 +86,10 @@ export function SectionEditor({
   onToggle,
   onChange,
   locations = [],
+  extra,
 }: {
+  /** Va debajo de la descripción (las imágenes del ítem). */
+  extra?: React.ReactNode;
   /** Ubicaciones ya usadas en la cotización (se ofrecen al escribir). */
   locations?: string[];
   section: QuoteSection;
@@ -245,6 +248,7 @@ export function SectionEditor({
           <AutoTextarea value={section.description} onChange={(v) => patch({ description: v })} placeholder={tt("sec_description_ph")} />
         </label>
       </div>
+      {extra}
 
       <div className="flex flex-col gap-2.5">
         {block(

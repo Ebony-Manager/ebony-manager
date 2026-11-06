@@ -22,6 +22,8 @@ export interface Viewer {
   setScene: (scene: Scene, paintHex: string) => void;
   resize: () => void;
   dispose: () => void;
+  /** La vista tal como se ve ahora, como imagen JPEG (data URL). */
+  capture: () => string;
 }
 
 interface Meta {
@@ -405,6 +407,11 @@ export function createViewer(T: typeof Three, canvas: HTMLCanvasElement, cb: Vie
   return {
     setScene,
     resize,
+    capture: () => {
+      // Sin preserveDrawingBuffer: se dibuja y se lee en el mismo paso.
+      render();
+      return canvas.toDataURL("image/jpeg", 0.9);
+    },
     dispose: () => {
       observer.disconnect();
       canvas.removeEventListener("pointerdown", onDown);

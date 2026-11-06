@@ -26,6 +26,7 @@ import {
   type QuoteSibling,
   type QuoteStatus,
   type QuoteStatusResult,
+  type QuoteImage,
 } from "@/types/cotizador";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ import type { Client } from "@/types/ventas";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { Textarea } from "@/components/ui/textarea";
 import { OwnerPanel } from "./owner-panel";
+import { ItemImages } from "./item-images";
 import { usePageTitle } from "@/components/shared/page-title";
 import { downloadQuotePdf } from "./quote-pdf";
 import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
@@ -82,7 +84,10 @@ export function QuoteEditor({
   owners,
   siblings = [],
   isAdmin = false,
+  initialImages = [],
 }: {
+  /** Imágenes de referencia de los ítems. */
+  initialImages?: QuoteImage[];
   initialQuote: Quote;
   isNew?: boolean;
   catalog: CatalogItem[];
@@ -126,6 +131,9 @@ export function QuoteEditor({
   const expected = React.useRef<string | null>(initialQuote.updatedAt);
   const [conflict, setConflict] = React.useState(false);
   const [termsOpen, setTermsOpen] = React.useState(false);
+  const [images, setImages] = React.useState<QuoteImage[]>(initialImages);
+  /** La función que toma la vista 3D como imagen (la pone el visor). */
+  const captureRef = React.useRef<(() => string | null) | null>(null);
   const [statusDialog, setStatusDialog] = React.useState<
     "approve" | "reject" | null
   >(null);
@@ -308,6 +316,17 @@ export function QuoteEditor({
     onShift: (id, delta) => change((q) => ({ ...q, sections: shiftSection(q.sections, id, delta) })),
     onMove: (id, beforeId) => change((q) => ({ ...q, sections: moveSection(q.sections, id, beforeId) })),
   };
+
+  /** El ítem tiene que existir en la base antes de colgarle una imagen: se guarda ya. */
+  async function ensureSaved() {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+    await flush();
+    while (inFlight.current) await new Promise((r) => window.setTimeout(r, 100));
+    if (!persisted.current) throw new Error(tt("save_error"));
+  }
 
   /** Antes de cambiar el estado, lo que falte por guardar se guarda. */
   async function settle() {
@@ -521,7 +540,7 @@ export function QuoteEditor({
                   )}
                   <DropdownMenuItem
                     onSelect={() =>
-                      void downloadQuotePdf(latest.current).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
+                      void downloadQuotePdf(latest.current, images).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
                     }
                   >
                     <Download className="size-4" />
@@ -739,6 +758,7 @@ export function QuoteEditor({
       {tab === "client" ? (
         <ClientView
           quote={quote}
+          images={images}
           onDetail={(pdfDetail) =>
             change((q) => ({ ...q, pdfDetail }), { whenLocked: true })
           }
@@ -773,6 +793,18 @@ export function QuoteEditor({
                     onToggle={(k) => setOpen((o) => ({ ...o, [k]: !o[k] }))}
                     onChange={setSection}
                     locations={locationSuggestions(quote.sections)}
+                    extra={
+                      <ItemImages
+                        key={section.id}
+                        quoteId={quote.id}
+                        sectionId={section.id}
+                        images={images.filter((i) => i.sectionId === section.id)}
+                        locked={locked}
+                        ensureSaved={ensureSaved}
+                        capture3d={() => (viewerOpen ? (captureRef.current?.() ?? null) : null)}
+                        onChange={(list) => setImages((all) => [...all.filter((i) => i.sectionId !== section.id), ...list])}
+                      />
+                    }
                   />
                 </fieldset>
               ) : (
@@ -806,6 +838,7 @@ export function QuoteEditor({
                 ))}
             {section && viewerOpen && (
               <Viewer3D
+                captureRef={captureRef}
                 section={section}
                 onMoveLine={(lineId, wall, x, y) =>
                   patchSection(section.id, (s) => ({
