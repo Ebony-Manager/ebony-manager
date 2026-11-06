@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar, type PendingCounts } from "@/components/layout/sidebar";
 import { MobileBottomNav, MobileTopBar } from "@/components/layout/mobile-nav";
@@ -9,6 +9,7 @@ import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { InstallBanner } from "@/components/layout/install-banner";
 import { RouteTitle } from "@/components/shared/page-title";
+import { syncPushSubscription } from "@/lib/notifications/push-sync";
 
 /**
  * Client chrome for the protected area. Desktop: the rail on the left, no
@@ -23,6 +24,10 @@ export function AppShell({ children, pending }: { children: React.ReactNode; pen
   // "Más" queda abierto solo en la ruta donde se abrió: al navegar se cierra solo.
   const [openAt, setOpenAt] = useState<string | null>(null);
   const moreOpen = openAt === pathname;
+  // Al abrir la app: si la dirección push de este dispositivo cambió, se actualiza.
+  useEffect(() => {
+    void syncPushSubscription().catch(() => {});
+  }, []);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">

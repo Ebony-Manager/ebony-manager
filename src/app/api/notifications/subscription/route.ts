@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const user = await requireUser();
-  const body = (await request.json()) as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+  // `replaces`: la dirección anterior de este mismo dispositivo (el navegador la
+  // cambió), para no dejar registros viejos que ya no entregan.
+  const body = (await request.json()) as { endpoint?: string; keys?: { p256dh?: string; auth?: string }; replaces?: string | null };
   if (!body.endpoint || !body.keys?.p256dh || !body.keys.auth) return NextResponse.json({ error: "Suscripción inválida" }, { status: 400 });
   const db = await createClient();
   const { error } = await db.from("push_subscriptions").upsert(
@@ -13,6 +15,9 @@ export async function POST(request: Request) {
     { onConflict: "endpoint" },
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (body.replaces && body.replaces !== body.endpoint) {
+    await db.from("push_subscriptions").delete().eq("user_id", user.id).eq("endpoint", body.replaces);
+  }
   return NextResponse.json({ ok: true });
 }
 

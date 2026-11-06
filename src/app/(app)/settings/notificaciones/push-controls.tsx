@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/language-context";
 import { strings, t } from "@/lib/i18n";
 import { VAPID_PUBLIC_KEY } from "@/lib/notifications/config";
+import { rememberPushEndpoint, savePushSubscription } from "@/lib/notifications/push-sync";
 
 type State = "checking" | "unsupported" | "needs-install" | "blocked" | "off" | "on" | "unconfigured";
 
@@ -60,12 +61,7 @@ export function PushControls() {
       const subscription =
         (await registration.pushManager.getSubscription()) ||
         (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: applicationServerKey(publicKey) }));
-      const response = await fetch("/api/notifications/subscription", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(subscription.toJSON()),
-      });
-      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "Error");
+      await savePushSubscription(subscription);
       setState("on");
       toast.success(tn("push_enabled"));
     } catch (err) {
@@ -88,6 +84,7 @@ export function PushControls() {
         });
         await subscription.unsubscribe();
       }
+      rememberPushEndpoint(null);
       setState("off");
       toast.success(tn("push_disabled"));
     } finally {
