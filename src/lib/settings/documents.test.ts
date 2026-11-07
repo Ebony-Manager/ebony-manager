@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_COMPANY, DEFAULT_TERMS, flattenItems, parseCompany, parseTerms, unflattenItems } from "./documents";
+import { DEFAULT_COMPANY, DEFAULT_KINDS, DEFAULT_TERMS, flattenItems, parseCompany, parseKinds, parseTerms, unflattenItems } from "./documents";
 
 describe("ajustes de documentos", () => {
   it("puntos y sub-puntos en una lista (ida y vuelta)", () => {
@@ -19,5 +19,11 @@ describe("ajustes de documentos", () => {
 
   it("las condiciones de siempre se pueden editar sin perder nada", () => {
     for (const s of DEFAULT_TERMS.sections) expect(unflattenItems(flattenItems(s.items))).toEqual(s.items);
+  });
+
+  it("tipos de ítem: sin vacíos ni repetidos; sin lista, los de siempre", () => {
+    expect(parseKinds([" Puertas ", "Closet", "closet", "", 4])).toEqual(["Puertas", "Closet"]);
+    expect(parseKinds(null)).toEqual(DEFAULT_KINDS);
+    expect(parseKinds([])).toEqual(DEFAULT_KINDS);
   });
 });

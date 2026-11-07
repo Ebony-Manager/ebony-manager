@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
-  SECTION_KINDS,
   SUB_CATEGORIES,
   isSubcontract,
   type CatalogCategory,
@@ -87,7 +86,10 @@ export function SectionEditor({
   onChange,
   locations = [],
   extra,
+  kinds,
 }: {
+  /** Los tipos de ítem que se ofrecen (Settings → Cotizaciones). */
+  kinds: readonly string[];
   /** Va debajo de la descripción (las imágenes del ítem). */
   extra?: React.ReactNode;
   /** Ubicaciones ya usadas en la cotización (se ofrecen al escribir). */
@@ -234,8 +236,9 @@ export function SectionEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(SECTION_KINDS as readonly string[]).includes(section.kind) ? null : <SelectItem value={section.kind}>{section.kind}</SelectItem>}
-              {SECTION_KINDS.map((k) => (
+              {/* Un tipo que ya no está en la lista (renombrado o quitado) se conserva en este ítem. */}
+              {kinds.includes(section.kind) ? null : <SelectItem value={section.kind}>{section.kind}</SelectItem>}
+              {kinds.map((k) => (
                 <SelectItem key={k} value={k}>
                   {k}
                 </SelectItem>

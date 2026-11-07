@@ -88,7 +88,10 @@ export function QuoteEditor({
   isAdmin = false,
   initialImages = [],
   docs,
+  kinds,
 }: {
+  /** Los tipos de ítem (Settings → Cotizaciones). */
+  kinds: string[];
   /** Empresa, banco y Condiciones Generales vigentes (Settings → Cotizaciones). */
   docs: DocumentSettings;
   /** Imágenes de referencia de los ítems. */
@@ -275,7 +278,7 @@ export function QuoteEditor({
       ...q,
       sections: [
         ...q.sections,
-        newSection(id, defaults, section?.location ?? ""),
+        { ...newSection(id, defaults, section?.location ?? ""), kind: kinds.includes("Mueble") ? "Mueble" : (kinds[0] ?? "Mueble") },
       ],
     }));
     setCurrentId(id);
@@ -812,6 +815,7 @@ export function QuoteEditor({
                   <SectionEditor
                     key={section.id}
                     section={section}
+                    kinds={kinds}
                     catalog={catalog}
                     canEditCosts={canEditCosts}
                     open={open}

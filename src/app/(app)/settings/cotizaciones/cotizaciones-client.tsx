@@ -11,6 +11,7 @@ import {
   IndentIncrease,
   Landmark,
   Plus,
+  Shapes,
   RotateCcw,
   type LucideIcon,
 } from "lucide-react";
@@ -44,6 +45,7 @@ import {
 } from "@/lib/settings/documents";
 import {
   saveCompanyAction,
+  saveKindsAction,
   savePaymentAction,
   saveTermsAction,
 } from "./actions";
@@ -57,8 +59,10 @@ type TFn = (k: Tk) => string;
  */
 export function CotizacionesSettingsClient({
   settings,
+  kinds,
 }: {
   settings: DocumentSettings;
+  kinds: string[];
 }) {
   const { lang } = useLang();
   const td: TFn = (k) => t(lang, strings.docsettings[k]);
@@ -67,6 +71,7 @@ export function CotizacionesSettingsClient({
       <PageHeader title={td("title")} subtitle={td("subtitle")} />
       <CompanyCard initial={settings.company} td={td} />
       <PaymentCard initial={settings.payment} td={td} />
+      <KindsCard initial={kinds} td={td} />
       <TermsCard initial={settings.terms} td={td} />
     </div>
   );
@@ -580,5 +585,95 @@ function IconBtn({
     >
       <Icon className="size-4" />
     </Button>
+  );
+}
+
+/** Los tipos de ítem del cotizador: agregar, renombrar, ordenar y quitar. */
+function KindsCard({ initial, td }: { initial: string[]; td: TFn }) {
+  const [rows, setRows] = React.useState(() =>
+    initial.map((name) => ({ key: newKey(), name })),
+  );
+  const [saved, setSaved] = React.useState(initial);
+  const [saving, setSaving] = React.useState(false);
+  const clean = rows.map((r) => r.name.trim()).filter(Boolean);
+  const dirty = clean.join("\n") !== saved.join("\n");
+  const dupes =
+    new Set(clean.map((n) => n.toLowerCase())).size !== clean.length;
+
+  async function save() {
+    if (clean.length === 0) return toast.error(td("kinds_empty"));
+    if (dupes) return toast.error(td("kinds_dupe"));
+    setSaving(true);
+    const res = await saveKindsAction(clean);
+    setSaving(false);
+    if (!res.ok) return toast.error(res.error);
+    setSaved(clean);
+    setRows(clean.map((name) => ({ key: newKey(), name })));
+    toast.success(td("saved"));
+  }
+
+  return (
+    <Card
+      icon={Shapes}
+      title={td("kinds_title")}
+      hint={td("kinds_hint")}
+      footer={
+        <Button
+          size="sm"
+          onClick={() => void save()}
+          disabled={saving || !dirty}
+        >
+          {saving ? td("saving") : td("save")}
+        </Button>
+      }
+    >
+      <ol className="flex max-w-md flex-col gap-1.5">
+        {rows.map((r, i) => (
+          <li key={r.key} className="flex items-center gap-1">
+            <Input
+              value={r.name}
+              onChange={(e) =>
+                setRows((rs) =>
+                  rs.map((x) =>
+                    x.key === r.key ? { ...x, name: e.target.value } : x,
+                  ),
+                )
+              }
+              aria-label={td("kinds_title")}
+            />
+            <IconBtn
+              icon={ArrowUp}
+              label={td("move_up")}
+              disabled={i === 0}
+              onClick={() => setRows((rs) => swap(rs, i, -1))}
+            />
+            <IconBtn
+              icon={ArrowDown}
+              label={td("move_down")}
+              disabled={i === rows.length - 1}
+              onClick={() => setRows((rs) => swap(rs, i, 1))}
+            />
+            <ConfirmButton
+              iconOnly
+              label={td("kinds_remove")}
+              confirmLabel={td("confirm_remove")}
+              onConfirm={() =>
+                setRows((rs) => rs.filter((x) => x.key !== r.key))
+              }
+              className="px-1.5"
+            />
+          </li>
+        ))}
+      </ol>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        onClick={() => setRows((rs) => [...rs, { key: newKey(), name: "" }])}
+      >
+        <Plus className="size-3.5" />
+        {td("kinds_add")}
+      </Button>
+    </Card>
   );
 }

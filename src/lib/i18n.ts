@@ -3648,8 +3648,8 @@ export const strings = {
   docsettings: {
     title: { es: "Cotizaciones", en: "Quotes" },
     subtitle: {
-      es: "Lo que ve el cliente en cada cotización y en su PDF: los datos de la empresa, dónde pagar y las Condiciones Generales.",
-      en: "What the client sees on every quote and its PDF: company details, where to pay and the General Conditions.",
+      es: "Lo que ve el cliente en cada cotización y en su PDF (los datos de la empresa, dónde pagar y las Condiciones Generales) y los tipos de ítem.",
+      en: "What the client sees on every quote and its PDF (company details, where to pay and the General Conditions) and the item types.",
     },
     company_title: { es: "Datos de la empresa", en: "Company details" },
     company_hint: { es: "Van arriba a la derecha de la cotización.", en: "Shown at the top right of the quote." },
@@ -3686,6 +3686,15 @@ export const strings = {
       en: "**text** comes out bold. Use the indent arrow to make a point a sub-point of the one above.",
     },
     add_point: { es: "Agregar punto", en: "Add point" },
+    kinds_title: { es: "Tipos de ítem", en: "Item types" },
+    kinds_hint: {
+      es: "La lista del campo «Tipo» de cada ítem (Closet, Cocina…). Es solo una etiqueta: no cambia precios. Si renombras o quitas uno, los ítems que ya lo usan lo conservan.",
+      en: "The list for each item's \"Type\" field (Closet, Kitchen…). It's only a label: it doesn't change prices. If you rename or remove one, items already using it keep it.",
+    },
+    kinds_add: { es: "Agregar tipo", en: "Add type" },
+    kinds_remove: { es: "Quitar tipo", en: "Remove type" },
+    kinds_empty: { es: "Deja al menos un tipo.", en: "Keep at least one type." },
+    kinds_dupe: { es: "Hay tipos repetidos.", en: "There are duplicate types." },
     remove_point: { es: "Quitar punto", en: "Remove point" },
     make_sub: { es: "Hacer sub-punto", en: "Make sub-point" },
     make_point: { es: "Hacer punto", en: "Make point" },

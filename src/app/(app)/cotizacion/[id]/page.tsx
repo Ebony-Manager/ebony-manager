@@ -7,7 +7,7 @@ import { getCatalog, getCostInputs, getQuote, getQuoteImages, getQuoteOwnerOptio
 import { linkClients, linkOpportunity, linkProject } from "@/lib/cotizador/owner";
 import { getClients } from "@/services/ventas";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { getDocumentSettings } from "@/services/settings";
+import { getDocumentSettings, getSectionKinds } from "@/services/settings";
 import { QuoteEditor } from "./quote-editor";
 
 // Cotizar es para cualquier usuario de la app; el gate de `(app)/layout`
@@ -32,7 +32,7 @@ export default async function QuotePage({
   const [{ id }, { oportunidad, proyecto, cliente }] = await Promise.all([params, searchParams]);
 
   const isNew = id === NEW_QUOTE;
-  const [saved, catalog, inputs, clients, owners, siblings, images, docs] = await Promise.all([
+  const [saved, catalog, inputs, clients, owners, siblings, images, docs, kinds] = await Promise.all([
     isNew ? null : getQuote(id),
     getCatalog(),
     getCostInputs(),
@@ -41,6 +41,7 @@ export default async function QuotePage({
     isNew ? [] : getQuoteSiblings(id),
     isNew ? [] : getQuoteImages(id),
     getDocumentSettings(),
+    getSectionKinds(),
   ]);
   const defaults = defaultsFromInputs(inputs);
   const blank = isNew ? newQuote(crypto.randomUUID(), crypto.randomUUID(), defaults, todayInPanama()) : null;
@@ -69,6 +70,7 @@ export default async function QuotePage({
       siblings={siblings}
       initialImages={images}
       docs={docs}
+      kinds={kinds}
       isAdmin={profile.role === "admin"}
       canEditCosts={hasModule(profile, "costos")}
     />

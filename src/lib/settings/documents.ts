@@ -1,4 +1,5 @@
 import { TERMS, TERMS_INTRO, TERMS_TITLE, type TermsSection } from "@/lib/cotizador/terms";
+import { SECTION_KINDS } from "@/types/cotizador";
 
 /**
  * Lo que sale en los documentos para el cliente (cotización y su PDF) y se
@@ -39,7 +40,24 @@ export interface DocumentSettings {
   payment: PaymentInfo;
 }
 
-export const SETTING_KEYS = { terms: "quote_terms", company: "company", payment: "payment" } as const;
+export const SETTING_KEYS = { terms: "quote_terms", company: "company", payment: "payment", kinds: "section_kinds" } as const;
+
+/** Los "Tipo" de un ítem de la cotización (Closet, Cocina…): solo una etiqueta, no cambia el cálculo. */
+export const DEFAULT_KINDS: string[] = [...SECTION_KINDS];
+
+export function parseKinds(v: unknown): string[] {
+  if (!Array.isArray(v)) return DEFAULT_KINDS;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const k of v) {
+    const name = typeof k === "string" ? k.trim() : "";
+    if (name && !seen.has(name.toLowerCase())) {
+      seen.add(name.toLowerCase());
+      out.push(name);
+    }
+  }
+  return out.length ? out : DEFAULT_KINDS;
+}
 
 export const DEFAULT_TERMS: QuoteTerms = { title: TERMS_TITLE, intro: TERMS_INTRO, sections: TERMS };
 

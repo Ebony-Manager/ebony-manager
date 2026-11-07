@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/dal";
-import { getDocumentSettings } from "@/services/settings";
+import { getDocumentSettings, getSectionKinds } from "@/services/settings";
 import { CotizacionesSettingsClient } from "./cotizaciones-client";
 
 // Settings → Cotizaciones: datos de la empresa, datos para el pago y
@@ -9,6 +9,6 @@ export const dynamic = "force-dynamic";
 
 export default async function CotizacionesSettingsPage() {
   await requireAdmin();
-  const settings = await getDocumentSettings();
-  return <CotizacionesSettingsClient settings={settings} />;
+  const [settings, kinds] = await Promise.all([getDocumentSettings(), getSectionKinds()]);
+  return <CotizacionesSettingsClient settings={settings} kinds={kinds} />;
 }

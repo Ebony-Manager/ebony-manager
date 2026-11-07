@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth/dal";
-import { parseCompany, parsePayment, parseTerms, type CompanyInfo, type PaymentInfo, type QuoteTerms } from "@/lib/settings/documents";
+import { parseCompany, parseKinds, parsePayment, parseTerms, type CompanyInfo, type PaymentInfo, type QuoteTerms } from "@/lib/settings/documents";
 import { saveDocumentSetting } from "@/services/settings";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -32,6 +32,12 @@ export async function savePaymentAction(input: PaymentInfo): Promise<Result> {
   const payment = trimAll(parsePayment(input));
   if (!payment.bank || !payment.accountNumber || !payment.holder) return { ok: false, error: "Faltan los datos del banco." };
   return run(() => saveDocumentSetting("payment", payment));
+}
+
+export async function saveKindsAction(input: string[]): Promise<Result> {
+  const kinds = parseKinds(input);
+  if (!input.some((k) => k.trim())) return { ok: false, error: "Deja al menos un tipo." };
+  return run(() => saveDocumentSetting("kinds", kinds));
 }
 
 export async function saveTermsAction(input: QuoteTerms): Promise<Result> {

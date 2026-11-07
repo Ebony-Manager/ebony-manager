@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import {
   parseCompany,
+  parseKinds,
   parsePayment,
   parseTerms,
   SETTING_KEYS,
@@ -30,7 +31,15 @@ export async function getDocumentSettings(): Promise<DocumentSettings> {
   };
 }
 
-type Saveable = { terms: QuoteTerms; company: CompanyInfo; payment: PaymentInfo };
+/** Los tipos de ítem del cotizador (Settings → Cotizaciones). */
+export async function getSectionKinds(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("app_settings").select("value").eq("key", SETTING_KEYS.kinds).maybeSingle();
+  if (error) throw new Error(error.message);
+  return parseKinds(data?.value);
+}
+
+type Saveable = { terms: QuoteTerms; company: CompanyInfo; payment: PaymentInfo; kinds: string[] };
 
 export async function saveDocumentSetting<K extends keyof Saveable>(kind: K, value: Saveable[K]): Promise<void> {
   const supabase = await createClient();
