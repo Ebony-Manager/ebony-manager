@@ -13,6 +13,7 @@ import {
   type PaymentInfo,
   type QuoteTerms,
 } from "@/lib/settings/documents";
+import type { AlegraConfig } from "@/lib/alegra/invoice";
 
 /**
  * Ajustes de los documentos para el cliente (`app_settings`): todos los
@@ -39,7 +40,7 @@ export async function getSectionKinds(): Promise<string[]> {
   return parseKinds(data?.value);
 }
 
-type Saveable = { terms: QuoteTerms; company: CompanyInfo; payment: PaymentInfo; kinds: string[] };
+type Saveable = { terms: QuoteTerms; company: CompanyInfo; payment: PaymentInfo; kinds: string[]; alegra: AlegraConfig };
 
 export async function saveDocumentSetting<K extends keyof Saveable>(kind: K, value: Saveable[K]): Promise<void> {
   const supabase = await createClient();

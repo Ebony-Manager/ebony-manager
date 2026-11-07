@@ -4,6 +4,8 @@ import { requireModule } from "@/lib/auth/dal";
 import * as cotizador from "@/services/cotizador";
 import type { Quote, QuoteStatus } from "@/types/cotizador";
 import { addProjectSubfolders } from "@/services/drive-opportunity";
+import { invoiceInAlegraAfterApproval } from "@/services/alegra-after";
+import { getQuoteAlegra, invoiceQuoteInAlegra } from "@/services/alegra";
 
 // Cotizar pide el módulo `cotizacion`; el catálogo y los insumos solo los
 // cambia quien tiene `costos` (el admin, los dos). La RLS de las tablas
@@ -48,8 +50,19 @@ export async function setQuoteStatusAction(id: string, status: QuoteStatus, inpu
   return saving(async () => {
     const res = await cotizador.setQuoteStatus(id, status, input);
     if (status === "APROBADA" && opportunityId) await addProjectSubfolders(opportunityId).catch(() => {});
+    if (status === "APROBADA") invoiceInAlegraAfterApproval([id, ...(input.also ?? [])]);
     return res;
   });
+}
+
+/** Cómo va la factura de Alegra de una cotización (solo lectura: no revalida nada). */
+export async function getQuoteAlegraAction(id: string) {
+  return saving(() => getQuoteAlegra(id));
+}
+
+/** Crea (o reintenta) en Alegra el borrador de la factura de una cotización aprobada. */
+export async function invoiceInAlegraAction(id: string) {
+  return saving(() => invoiceQuoteInAlegra(id));
 }
 
 export async function addQuoteImageAction(sectionId: string, path: string) {

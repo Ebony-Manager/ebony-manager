@@ -40,7 +40,7 @@ export interface DocumentSettings {
   payment: PaymentInfo;
 }
 
-export const SETTING_KEYS = { terms: "quote_terms", company: "company", payment: "payment", kinds: "section_kinds" } as const;
+export const SETTING_KEYS = { terms: "quote_terms", company: "company", payment: "payment", kinds: "section_kinds", alegra: "alegra" } as const;
 
 /** Los "Tipo" de un ítem de la cotización (Closet, Cocina…): solo una etiqueta, no cambia el cálculo. */
 export const DEFAULT_KINDS: string[] = [...SECTION_KINDS];

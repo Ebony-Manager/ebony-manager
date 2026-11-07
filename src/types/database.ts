@@ -26,6 +26,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      quote_alegra: {
+        Row: {
+          quote_id: string
+          status: string
+          invoice_id: string | null
+          invoice_number: string | null
+          error: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          quote_id: string
+          status: string
+          invoice_id?: string | null
+          invoice_number?: string | null
+          error?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          quote_id?: string
+          status?: string
+          invoice_id?: string | null
+          invoice_number?: string | null
+          error?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       integration_runs: {
         Row: {
           key: string
@@ -2462,8 +2492,10 @@ export type Database = {
           phone: string | null
           updated_at: string
           whatsapp: string | null
+          alegra_contact_id: string | null
         }
         Insert: {
+          alegra_contact_id?: string | null
           active?: boolean
           company?: string | null
           created_at?: string
@@ -2478,6 +2510,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          alegra_contact_id?: string | null
           active?: boolean
           company?: string | null
           created_at?: string

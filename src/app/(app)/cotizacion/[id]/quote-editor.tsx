@@ -20,6 +20,7 @@ import {
   isQuoteLocked,
   type CatalogItem,
   type Quote,
+  type QuoteAlegra,
   type QuoteDefaults,
   type QuoteOwnerOptions,
   type QuoteSection,
@@ -57,6 +58,7 @@ import {
 } from "../actions";
 import { NumField } from "../num-field";
 import { ClientView } from "./client-view";
+import { AlegraChip } from "./alegra-chip";
 import type { DocumentSettings } from "@/lib/settings/documents";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
@@ -89,9 +91,14 @@ export function QuoteEditor({
   initialImages = [],
   docs,
   kinds,
+  alegra = null,
+  alegraEnabled = false,
 }: {
   /** Los tipos de ítem (Settings → Cotizaciones). */
   kinds: string[];
+  /** La factura de Alegra (si es aprobada) y si la conexión está lista. */
+  alegra?: QuoteAlegra | null;
+  alegraEnabled?: boolean;
   /** Empresa, banco y Condiciones Generales vigentes (Settings → Cotizaciones). */
   docs: DocumentSettings;
   /** Imágenes de referencia de los ítems. */
@@ -365,6 +372,9 @@ export function QuoteEditor({
       await new Promise((r) => window.setTimeout(r, 100));
   }
 
+  // Se aprobó aquí mismo: la factura de Alegra se está creando en segundo plano.
+  const [justApproved, setJustApproved] = React.useState(false);
+
   function applyStatus(res: QuoteStatusResult) {
     const patch = {
       status: res.status,
@@ -376,6 +386,7 @@ export function QuoteEditor({
     latest.current = { ...latest.current, ...patch };
     setQuote((cur) => ({ ...cur, ...patch }));
     expected.current = res.updatedAt;
+    if (res.status === "APROBADA") setJustApproved(true);
   }
 
   async function runStatus(
@@ -593,6 +604,7 @@ export function QuoteEditor({
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">
             {quote.number || tt("number_pending")}
             <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] tracking-normal", QUOTE_STATUS_STYLE[quote.status])}>{statusLabel(quote.status)}</span>
+            {quote.status === "APROBADA" && alegraEnabled && <AlegraChip quoteId={quote.id} initial={alegra} justApproved={justApproved} />}
           </p>
           <h1 className={cn("truncate text-xl font-semibold", quoteWho(quote) ? "text-foreground" : "text-muted-foreground")}>
             {quoteWho(quote) || tt("own_none")}

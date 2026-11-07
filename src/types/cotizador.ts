@@ -253,3 +253,13 @@ export interface QuoteSummary {
   designerId: string | null;
   clientId: string | null;
 }
+
+/** La factura de Alegra de una cotización aprobada (ver quote_alegra). */
+export interface QuoteAlegra {
+  status: "creando" | "creada" | "error";
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  /** El motivo del error, o un aviso si el total no cuadró. */
+  error: string | null;
+  updatedAt: string;
+}

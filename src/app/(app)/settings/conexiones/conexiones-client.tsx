@@ -12,12 +12,28 @@ import {
   GoogleLogo,
   JotformLogo,
   VercelLogo,
+  AlegraLogo,
 } from "@/components/brand/service-logos";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AlegraConfig } from "@/lib/alegra/invoice";
+import type { AlegraOption } from "@/lib/alegra/api";
 import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { useLang } from "@/context/language-context";
 import { strings, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { testDriveAction, testJotformAction } from "./actions";
+import {
+  getAlegraOptionsAction,
+  saveAlegraConfigAction,
+  testAlegraAction,
+  testDriveAction,
+  testJotformAction,
+} from "./actions";
 
 export interface RunRow {
   key: string;
@@ -32,7 +48,15 @@ export interface ConnectionsData {
   /** Último envío recibido por formulario: registro, dinero, ponchadas. */
   jotform: Record<string, string | null>;
   holidaysPending: number;
-  env: { jotform: boolean; drive: boolean; feriados: boolean; cron: boolean };
+  env: {
+    jotform: boolean;
+    drive: boolean;
+    feriados: boolean;
+    cron: boolean;
+    alegra: boolean;
+  };
+  /** Producto/servicio e impuesto de Alegra elegidos (null = falta elegir). */
+  alegraConfig: AlegraConfig | null;
   /** La tabla del registro todavía no existe (migración pendiente). */
   missingTable: boolean;
 }
@@ -283,6 +307,43 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
         </Card>
 
         <Card
+          logo={<AlegraLogo />}
+          title="Alegra"
+          desc={tc("alegra_desc")}
+          envVars={["ALEGRA_EMAIL", "ALEGRA_TOKEN"]}
+          configured={data.env.alegra}
+          health={
+            !data.env.alegra || !data.alegraConfig
+              ? "missing"
+              : failing(r["alegra"]) || failing(r["alegra:api"])
+                ? "error"
+                : r["alegra"]?.last_ok_at
+                  ? "ok"
+                  : "unknown"
+          }
+          tc={tc}
+          test={testAlegraAction}
+        >
+          <Fact
+            label={tc("alegra_last")}
+            value={
+              r["alegra"]?.last_ok_at
+                ? `${ago(r["alegra"].last_ok_at)}${r["alegra"].last_detail ? ` · ${r["alegra"].last_detail}` : ""}`
+                : tc("never")
+            }
+          />
+          {failing(r["alegra"]) && <ErrorLine run={r["alegra"]!} when={when} />}
+          {failing(r["alegra:api"]) && (
+            <ErrorLine run={r["alegra:api"]!} when={when} />
+          )}
+          <AlegraSetup
+            config={data.alegraConfig}
+            enabled={data.env.alegra}
+            tc={tc}
+          />
+        </Card>
+
+        <Card
           logo={<GoogleLogo className="size-5" />}
           title={tc("login_title")}
           desc={tc("login_desc")}
@@ -420,5 +481,136 @@ function ErrorLine({
     <p className="rounded-md bg-[color-mix(in_oklab,var(--status-error)_10%,var(--card))] px-2.5 py-1.5 text-xs break-words text-[var(--status-error)]">
       {when(run.last_error_at!)} · {run.last_error}
     </p>
+  );
+}
+
+/** Qué producto/servicio e impuesto de Alegra llevan las líneas de la factura. */
+function AlegraSetup({
+  config,
+  enabled,
+  tc,
+}: {
+  config: AlegraConfig | null;
+  enabled: boolean;
+  tc: (k: Tk) => string;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [options, setOptions] = React.useState<{
+    items: AlegraOption[];
+    taxes: AlegraOption[];
+  } | null>(null);
+  const [itemId, setItemId] = React.useState(config?.itemId ?? "");
+  const [taxId, setTaxId] = React.useState(config?.taxId ?? "none");
+  const [saved, setSaved] = React.useState(config);
+
+  async function open() {
+    setLoading(true);
+    const res = await getAlegraOptionsAction();
+    setLoading(false);
+    if (!res.ok) return toast.error(res.error, { duration: 10000 });
+    setOptions({ items: res.items, taxes: res.taxes });
+    setEditing(true);
+  }
+  async function save() {
+    const item = options?.items.find((i) => i.id === itemId);
+    const tax = options?.taxes.find((t) => t.id === taxId);
+    if (!item) return toast.error(tc("alegra_pick_item"));
+    const next: AlegraConfig = {
+      itemId: item.id,
+      itemName: item.name,
+      taxId: tax?.id ?? null,
+      taxName: tax?.name,
+      taxPct: tax?.percentage ?? null,
+    };
+    setLoading(true);
+    const res = await saveAlegraConfigAction(next);
+    setLoading(false);
+    if (!res.ok) return toast.error(res.error);
+    setSaved(next);
+    setEditing(false);
+    toast.success(tc("alegra_saved"));
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex flex-col gap-1.5 border-t border-border pt-2">
+        <Fact
+          label={tc("alegra_item")}
+          value={saved?.itemName ?? tc("alegra_not_chosen")}
+        />
+        <Fact
+          label={tc("alegra_tax")}
+          value={
+            saved
+              ? saved.taxName
+                ? `${saved.taxName}${saved.taxPct !== null ? ` (${saved.taxPct}%)` : ""}`
+                : tc("alegra_no_tax")
+              : tc("alegra_not_chosen")
+          }
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          className="self-start"
+          disabled={!enabled || loading}
+          onClick={() => void open()}
+        >
+          {loading && <Loader2 className="size-3.5 animate-spin" />}
+          {saved ? tc("alegra_change") : tc("alegra_choose")}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-2">
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {tc("alegra_item")}
+        <Select value={itemId} onValueChange={setItemId}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={tc("alegra_pick_item")} />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.items.map((i) => (
+              <SelectItem key={i.id} value={i.id}>
+                {i.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {tc("alegra_tax")}
+        <Select value={taxId} onValueChange={setTaxId}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{tc("alegra_no_tax")}</SelectItem>
+            {options?.taxes.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.name}
+                {t.percentage !== null && t.percentage !== undefined
+                  ? ` (${t.percentage}%)`
+                  : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </label>
+      <p className="text-xs text-muted-foreground">{tc("alegra_setup_hint")}</p>
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+          {tc("cancel")}
+        </Button>
+        <Button
+          size="sm"
+          disabled={loading || !itemId}
+          onClick={() => void save()}
+        >
+          {tc("save")}
+        </Button>
+      </div>
+    </div>
   );
 }

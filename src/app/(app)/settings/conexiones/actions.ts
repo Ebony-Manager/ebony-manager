@@ -4,6 +4,10 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { driveDiagnosis } from "@/lib/google/drive";
 import { errText, recordRun } from "@/lib/integrations/record";
 import { createClient } from "@/lib/supabase/server";
+import { alegraConfigured, companyName, listItems, listTaxes, type AlegraOption } from "@/lib/alegra/api";
+import type { AlegraConfig } from "@/lib/alegra/invoice";
+import { saveDocumentSetting } from "@/services/settings";
+import { revalidatePath } from "next/cache";
 
 type TestResult = { ok: boolean; message: string };
 
@@ -34,4 +38,47 @@ export async function testDriveAction(): Promise<TestResult> {
   if (!d.conectado) return { ok: false, message: "Drive no está conectado: faltan GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_DRIVE_ROOT_FOLDER_ID en Vercel." };
   if (d.error) return { ok: false, message: String(d.error) };
   return { ok: true, message: `Funciona. Carpeta raíz: ${String(d.raiz).replace(/^OK: /, "")}` };
+}
+
+/** Prueba de solo lectura: ¿Alegra acepta el correo y el token? */
+export async function testAlegraAction(): Promise<TestResult> {
+  await requireAdmin();
+  if (!alegraConfigured()) return { ok: false, message: "Faltan ALEGRA_EMAIL y ALEGRA_TOKEN en Vercel." };
+  let result: TestResult;
+  try {
+    result = { ok: true, message: `Funciona. Cuenta de Alegra: ${await companyName()}.` };
+  } catch (err) {
+    result = { ok: false, message: errText(err) };
+  }
+  await recordRun(await createClient(), null, "alegra:api", result.ok, result.message);
+  return result;
+}
+
+/** Los productos/servicios y los impuestos de Alegra, para elegir (solo lectura). */
+export async function getAlegraOptionsAction(): Promise<{ ok: true; items: AlegraOption[]; taxes: AlegraOption[] } | { ok: false; error: string }> {
+  await requireAdmin();
+  try {
+    const [items, taxes] = await Promise.all([listItems(), listTaxes()]);
+    return { ok: true, items, taxes };
+  } catch (err) {
+    return { ok: false, error: errText(err) };
+  }
+}
+
+export async function saveAlegraConfigAction(config: AlegraConfig): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+  if (!config.itemId) return { ok: false, error: "Elige el producto o servicio." };
+  try {
+    await saveDocumentSetting("alegra", {
+      itemId: String(config.itemId),
+      itemName: config.itemName,
+      taxId: config.taxId ? String(config.taxId) : null,
+      taxName: config.taxName,
+      taxPct: typeof config.taxPct === "number" ? config.taxPct : null,
+    });
+  } catch (err) {
+    return { ok: false, error: errText(err) };
+  }
+  revalidatePath("/settings/conexiones");
+  return { ok: true };
 }
