@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPanamaHolidays } from "@/lib/holidays/feriados-io";
 import type { Holiday, HolidayStatus } from "@/types/holidays";
+import { errText, recordRun } from "@/lib/integrations/record";
 
 type Row = {
   date: string;
@@ -77,9 +78,15 @@ export async function deleteManualHoliday(date: string): Promise<void> {
 
 /** Sincroniza un año con feriados.io (como admin, con su sesión). Devuelve cuántos quedan por confirmar. */
 export async function syncHolidaysAsAdmin(year: number): Promise<number> {
-  const items = await fetchPanamaHolidays(year);
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("sync_holidays", { p_token: null, p_year: year, p_items: items as unknown as never });
-  if (error) throw new Error(error.message);
-  return data ?? 0;
+  try {
+    const items = await fetchPanamaHolidays(year);
+    const { data, error } = await supabase.rpc("sync_holidays", { p_token: null, p_year: year, p_items: items as unknown as never });
+    if (error) throw new Error(error.message);
+    await recordRun(supabase, null, "feriados", true, `${year}: ${items.length} días, ${data ?? 0} por confirmar (a mano)`);
+    return data ?? 0;
+  } catch (err) {
+    await recordRun(supabase, null, "feriados", false, errText(err));
+    throw err;
+  }
 }

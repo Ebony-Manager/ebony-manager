@@ -26,6 +26,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      integration_runs: {
+        Row: {
+          key: string
+          last_ok_at: string | null
+          last_detail: string | null
+          last_error_at: string | null
+          last_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          last_ok_at?: string | null
+          last_detail?: string | null
+          last_error_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          last_ok_at?: string | null
+          last_detail?: string | null
+          last_error_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       holidays: {
         Row: {
           date: string
@@ -3516,6 +3543,14 @@ export type Database = {
       sales_weekly_follow_up: {
         Args: { p_token: string }
         Returns: number
+      }
+      record_integration_run: {
+        Args: { p_token: string | null; p_key: string; p_ok: boolean; p_detail?: string | null }
+        Returns: undefined
+      }
+      jotform_last_activity: {
+        Args: Record<PropertyKey, never>
+        Returns: { form: string; last_at: string | null }[]
       }
       sync_holidays: {
         Args: { p_token: string | null; p_year: number; p_items: Json }

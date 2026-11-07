@@ -79,6 +79,7 @@ export const strings = {
     notificaciones: { es: "Notificaciones", en: "Notifications" },
     cotizaciones_settings: { es: "Cotizaciones", en: "Quotes" },
     feriados: { es: "Feriados", en: "Holidays" },
+    conexiones: { es: "Conexiones", en: "Connections" },
     my_notifications: { es: "Mis notificaciones", en: "My notifications" },
     // Panel "Almacén": inventario, salidas, compras (cualquiera pide) y proveedores.
     almacen: { es: "Almacén", en: "Warehouse" },
@@ -3715,6 +3716,74 @@ export const strings = {
     save: { es: "Guardar", en: "Save" },
     saving: { es: "Guardando…", en: "Saving…" },
     saved: { es: "Guardado", en: "Saved" },
+  },
+
+  conexiones: {
+    title: { es: "Conexiones", en: "Connections" },
+    subtitle: {
+      es: "Los servicios externos y tareas automáticas de los que depende la app: si están configurados y cómo les fue la última vez. Las claves nunca se muestran.",
+      en: "The outside services and automatic jobs the app depends on: whether they're set up and how they did last time. Keys are never shown.",
+    },
+    missing_table: {
+      es: "Falta correr la migración del registro de conexiones: mientras tanto no hay historial de resultados.",
+      en: "The connections log migration hasn't been run yet: until then there's no history of results.",
+    },
+    h_ok: { es: "Funciona", en: "Working" },
+    h_error: { es: "Con problemas", en: "Failing" },
+    h_missing: { es: "Sin configurar", en: "Not set up" },
+    h_unknown: { es: "Sin datos aún", en: "No data yet" },
+    h_info: { es: "Informativo", en: "Info" },
+    never: { es: "nunca", en: "never" },
+    failed: { es: "falló", en: "failed" },
+    test: { es: "Probar", en: "Test" },
+    in_vercel: { es: "en Vercel", en: "in Vercel" },
+    missing_in_vercel: { es: "falta en Vercel", en: "missing in Vercel" },
+    last_run: { es: "Última vez que corrió", en: "Last run" },
+    last_ok: { es: "Última vez que funcionó", en: "Last worked" },
+    last_sync: { es: "Última sincronización", en: "Last sync" },
+    cron_title: { es: "Tarea automática diaria", en: "Daily automatic job" },
+    cron_desc: {
+      es: "La corre Vercel cada mañana a las 7:00 (hora de Panamá). Cada parte anota su resultado; si una falla, las demás siguen.",
+      en: "Vercel runs it every morning at 7:00 (Panama time). Each part logs its result; if one fails, the rest keep going.",
+    },
+    cron_late: { es: "No corre desde hace más de un día: revisa los Cron Jobs en Vercel.", en: "It hasn't run in over a day: check Cron Jobs in Vercel." },
+    step_resumen: { es: "Correo del resumen del almacén", en: "Warehouse summary email" },
+    step_compras: { es: "Avisos de pedidos atrasados", en: "Overdue order alerts" },
+    step_herramientas: { es: "Avisos de herramientas vencidas", en: "Overdue tool alerts" },
+    step_ventas: { es: "Seguimiento de cotizaciones (lunes)", en: "Quote follow-up (Mondays)" },
+    step_feriados: { es: "Feriados de feriados.io", en: "Holidays from feriados.io" },
+    step_push: { es: "Envío de notificaciones pendientes", en: "Sending pending notifications" },
+    jotform_desc: {
+      es: "Llegan por el webhook: el Registro de empleado (Personal → Nuevos registros), la Solicitud de dinero (Pagos → Préstamos) y el Punch In/Out (Asistencia en proyectos). La clave se usa para leer los envíos, copiar documentos subidos y el catálogo y fotos del almacén.",
+      en: "Arriving through the webhook: Employee registration (Staff → New registrations), Money request (Payments → Loans) and Punch In/Out (project attendance). The key is used to read submissions, copy uploaded documents and the warehouse catalog and photos.",
+    },
+    jf_registro: { es: "Último registro de empleado", en: "Last employee registration" },
+    jf_dinero: { es: "Última solicitud de dinero", en: "Last money request" },
+    jf_ponchadas: { es: "Última ponchada en proyecto", en: "Last project punch" },
+    jotform_note: {
+      es: "«Probar» solo valida la clave con una consulta de lectura. El webhook se configura en cada formulario de Jotform.",
+      en: "\"Test\" only checks the key with a read-only request. The webhook is set up on each Jotform form.",
+    },
+    drive_desc: {
+      es: "Las carpetas de cada oportunidad y proyecto (se crean al aprobar una cotización) y los archivos que se ven dentro de la app.",
+      en: "Each opportunity's and project's folders (created when a quote is approved) and the files shown inside the app.",
+    },
+    feriados_desc: {
+      es: "Los feriados de Panamá para la asistencia. La tarea diaria los revisa; lo nuevo o cambiado queda por confirmar.",
+      en: "Panama's holidays for attendance. The daily job checks them; anything new or changed is left pending.",
+    },
+    pending: { es: "feriados por confirmar", en: "holidays pending" },
+    go_feriados: { es: "Ir a Feriados", en: "Go to Holidays" },
+    feriados_plan: {
+      es: "Plan gratis (según sus términos, solo para pruebas). Para uso real: plan Developer, $5/mes.",
+      en: "Free plan (per its terms, for testing only). For real use: Developer plan, $5/month.",
+    },
+    login_title: { es: "Inicio de sesión con Google", en: "Google sign-in" },
+    login_desc: {
+      es: "Cómo entra todo el mundo a la app. Se configura en Supabase (Authentication → Providers → Google) y en Google Cloud.",
+      en: "How everyone signs in to the app. Set up in Supabase (Authentication → Providers → Google) and in Google Cloud.",
+    },
+    login_note: { es: "Solo informativo: si estás viendo esta pantalla, funciona.", en: "Info only: if you're seeing this page, it works." },
   },
 
   feriados: {

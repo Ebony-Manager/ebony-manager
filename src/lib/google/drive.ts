@@ -120,16 +120,41 @@ async function accessToken(): Promise<string> {
   return cachedToken.value;
 }
 
+/**
+ * Anota en Settings → Conexiones cómo va Drive: los errores de conexión
+ * (llave, permisos, Google caído) siempre; lo que funciona, a lo sumo cada
+ * 15 minutos por servidor. Un 404 (archivo que ya no existe) no es de la conexión.
+ */
+let lastOkRecorded = 0;
+async function noteDrive(ok: boolean, detail: string) {
+  if (ok && Date.now() - lastOkRecorded < 15 * 60_000) return;
+  if (ok) lastOkRecorded = Date.now();
+  try {
+    const [{ createClient }, { recordRun }] = await Promise.all([import("@/lib/supabase/server"), import("@/lib/integrations/record")]);
+    await recordRun(await createClient(), null, "drive", ok, detail);
+  } catch {
+    // Sin sesión (ej. fuera de una petición): no se anota.
+  }
+}
+
 async function driveFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const token = await accessToken();
+  let token: string;
+  try {
+    token = await accessToken();
+  } catch (err) {
+    await noteDrive(false, err instanceof Error ? err.message : "error");
+    throw err;
+  }
   const res = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` }, cache: "no-store" });
   if (!res.ok) {
     let detail = `${res.status}`;
     try {
       detail = ((await res.json()) as { error?: { message?: string } }).error?.message ?? detail;
     } catch {}
+    if (res.status === 401 || res.status === 403 || res.status >= 500) await noteDrive(false, `Drive ${res.status}: ${detail}`);
     throw new Error(`Drive: ${detail}`);
   }
+  await noteDrive(true, "respondió bien");
   return res;
 }
 

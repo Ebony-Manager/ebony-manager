@@ -7,6 +7,7 @@ import type { Database } from "@/types/database";
 import { dispatchPendingPush, ensureOverduePurchaseNotices } from "@/lib/notifications/push";
 import { fetchPanamaHolidays, yearsToSync } from "@/lib/holidays/feriados-io";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
+import { errText, recordRun } from "@/lib/integrations/record";
 
 /**
  * Resumen diario del Almacén por correo (Resend).
@@ -45,6 +46,7 @@ export async function GET(request: Request) {
   const { data, error } = await anon.rpc("inventory_daily_summary", { p_token: secret! });
   if (error) {
     const hint = error.message.includes("TOKEN_INVALIDO") ? " Falta activarlo: abre esta dirección con ?activar=1 (admin)." : "";
+    if (isCron) await recordRun(anon, secret!, "cron", false, `No se pudo leer el resumen: ${error.message}`);
     return new Response(`No se pudo leer el resumen: ${error.message}.${hint}`, { status: 500 });
   }
   const summary = data as unknown as DailySummary;
@@ -53,22 +55,41 @@ export async function GET(request: Request) {
   // El mismo cron diario crea los avisos de pedidos atrasados y despacha
   // cualquier push pendiente, aunque el correo del resumen esté apagado.
   if (isCron) {
-    await ensureOverduePurchaseNotices().catch(() => undefined);
+    // Cada parte anota su resultado (Settings → Conexiones); una que falla no frena a las demás.
+    const step = async (key: string, run: () => Promise<string | void>) => {
+      try {
+        const detail = await run();
+        await recordRun(anon, secret!, `cron:${key}`, true, detail || null);
+      } catch (err) {
+        console.error(`cron ${key}`, errText(err));
+        await recordRun(anon, secret!, `cron:${key}`, false, errText(err));
+      }
+    };
+    const rpcOk = async (r: PromiseLike<{ error: { message: string } | null }>) => {
+      const { error } = await r;
+      if (error) throw new Error(error.message);
+    };
+    await recordRun(anon, secret!, "cron", true, "corrió");
+    await step("compras_atrasadas", async () => `${await ensureOverduePurchaseNotices()} avisos nuevos`);
     // Un aviso por herramienta vencida (no se repite); el token es el mismo del resumen.
-    await anon.rpc("inventory_tool_overdue_notices", { p_token: secret! }).then(() => undefined, () => undefined);
+    await step("herramientas_vencidas", () => rpcOk(anon.rpc("inventory_tool_overdue_notices", { p_token: secret! })));
     // Los lunes: el seguimiento semanal de cotizaciones a quienes tienen Cotización (la función decide si es lunes).
-    await anon.rpc("sales_weekly_follow_up", { p_token: secret! }).then(() => undefined, () => undefined);
+    await step("seguimiento_ventas", () => rpcOk(anon.rpc("sales_weekly_follow_up", { p_token: secret! })));
     // Feriados de feriados.io (lo nuevo o cambiado queda por confirmar y avisa al admin).
     // Si la API falla, no se toca nada: la lista guardada sigue mandando.
-    for (const year of yearsToSync(todayInPanama())) {
-      await fetchPanamaHolidays(year)
-        .then((items) => anon.rpc("sync_holidays", { p_token: secret!, p_year: year, p_items: items as unknown as never }))
-        .then(
-          (r) => r.error && console.error("sync_holidays", r.error.message),
-          (err) => console.error("feriados.io", err instanceof Error ? err.message : err)
-        );
+    if (process.env.FERIADOS_API_KEY?.trim()) {
+      await step("feriados", async () => {
+        const out: string[] = [];
+        for (const year of yearsToSync(todayInPanama())) {
+          const items = await fetchPanamaHolidays(year);
+          const { data, error } = await anon.rpc("sync_holidays", { p_token: secret!, p_year: year, p_items: items as unknown as never });
+          if (error) throw new Error(error.message);
+          out.push(`${year}: ${items.length} días, ${data ?? 0} por confirmar`);
+        }
+        return out.join(" · ");
+      });
     }
-    await dispatchPendingPush().catch(() => undefined);
+    await step("push", async () => `${await dispatchPendingPush()} enviados`);
   }
 
   if (!isCron && url.searchParams.get("ver") === "1") {
@@ -91,6 +112,11 @@ export async function GET(request: Request) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from, to: summary.recipients, subject: email.subject, html: email.html, text: email.text }),
   });
-  if (!res.ok) return new Response(`Resend respondió ${res.status}: ${await res.text()}`, { status: 502 });
+  if (!res.ok) {
+    const msg = `Resend respondió ${res.status}: ${await res.text()}`;
+    if (isCron) await recordRun(anon, secret!, "cron:resumen_almacen", false, msg);
+    return new Response(msg, { status: 502 });
+  }
+  if (isCron) await recordRun(anon, secret!, "cron:resumen_almacen", true, `enviado a ${summary.recipients.length}`);
   return Response.json({ ok: true, enviado: true, destinatarios: summary.recipients, asunto: email.subject });
 }

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { recordRun } from "@/lib/integrations/record";
 import { createClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/types/database";
@@ -184,6 +185,8 @@ async function handle(request: NextRequest, body: Record<string, string>) {
   answers ??= workflowAnswers;
   if (!answers) {
     console.error("JotForm webhook: sin datos del envío (falta JOTFORM_API_KEY o los parámetros); campos:", Object.keys(body).join(", "));
+    const anon = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+    await recordRun(anon, token, "jotform:webhook", false, "Llegó un envío sin datos (¿falta JOTFORM_API_KEY?)");
     return Response.json({ ok: false, error: "no submission data" }, { status: 400 });
   }
   // Una solicitud sin monto no es real (la prueba puede mandar los campos
@@ -221,11 +224,16 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     : formId === MONEY_FORM_ID
       ? await supabase.rpc("ingest_money_request", { p_token: token, p_data: { ...common, ...moneyData(answers) } })
       : await supabase.rpc("ingest_staff_intake", { p_token: token, p_data: { ...common, ...intakeData(answers) } });
+  const formLabel = punch ? "ponchada" : formId === MONEY_FORM_ID ? "solicitud de dinero" : "registro de empleado";
   if (error) {
     const unauthorized = error.code === "42501" || error.message.includes("TOKEN_INVALIDO");
-    if (!unauthorized) console.error("JotForm webhook: no se pudo guardar", error);
+    if (!unauthorized) {
+      console.error("JotForm webhook: no se pudo guardar", error);
+      await recordRun(supabase, token, "jotform:webhook", false, `${formLabel}: ${error.message}`);
+    }
     return Response.json({ ok: false, error: unauthorized ? "invalid token" : "save failed" }, { status: unauthorized ? 401 : 500 });
   }
+  await recordRun(supabase, token, "jotform:webhook", true, formLabel);
   if (formId === EMPLOYEE_FORM_ID) await dispatchPendingPush().catch(() => undefined);
   return Response.json({ ok: true });
 }
