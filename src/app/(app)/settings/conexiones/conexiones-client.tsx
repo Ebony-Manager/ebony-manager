@@ -3,17 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import {
-  CalendarDays,
-  Clock,
-  FolderOpen,
-  KeyRound,
-  Loader2,
-  PlugZap,
-  type LucideIcon,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  FeriadosLogo,
+  GoogleDriveLogo,
+  GoogleLogo,
+  JotformLogo,
+  VercelLogo,
+} from "@/components/brand/service-logos";
 import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { useLang } from "@/context/language-context";
 import { strings, t } from "@/lib/i18n";
@@ -129,7 +128,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
 
       <div className="grid max-w-5xl grid-cols-1 gap-4 lg:grid-cols-2">
         <Card
-          icon={Clock}
+          logo={<VercelLogo className="size-5" />}
           title={tc("cron_title")}
           desc={tc("cron_desc")}
           envVars={["CRON_SECRET"]}
@@ -187,7 +186,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
         </Card>
 
         <Card
-          icon={PlugZap}
+          logo={<JotformLogo />}
           title="Jotform"
           desc={tc("jotform_desc")}
           envVars={["JOTFORM_API_KEY"]}
@@ -212,7 +211,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
         </Card>
 
         <Card
-          icon={FolderOpen}
+          logo={<GoogleDriveLogo />}
           title="Google Drive"
           desc={tc("drive_desc")}
           envVars={[
@@ -237,7 +236,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
         </Card>
 
         <Card
-          icon={CalendarDays}
+          logo={<FeriadosLogo />}
           title="feriados.io"
           desc={tc("feriados_desc")}
           envVars={["FERIADOS_API_KEY"]}
@@ -284,7 +283,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
         </Card>
 
         <Card
-          icon={KeyRound}
+          logo={<GoogleLogo className="size-5" />}
           title={tc("login_title")}
           desc={tc("login_desc")}
           envVars={[]}
@@ -306,7 +305,7 @@ const latest = (r: RunRow) =>
   );
 
 function Card({
-  icon: Icon,
+  logo,
   title,
   desc,
   envVars,
@@ -316,7 +315,7 @@ function Card({
   test,
   children,
 }: {
-  icon: LucideIcon;
+  logo: React.ReactNode;
   title: string;
   desc: string;
   envVars: string[];
@@ -343,7 +342,9 @@ function Card({
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-5 shrink-0 text-walnut" />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
+          {logo}
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">{title}</h2>
