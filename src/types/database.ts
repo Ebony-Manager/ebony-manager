@@ -26,6 +26,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          key: string
+          value: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          key?: string
+          value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       app_notification_reads: {
         Row: {
           notification_id: string
@@ -2015,6 +2036,7 @@ export type Database = {
           sent_on: string | null
           closed_on: string | null
           follow_up_on: string | null
+          terms: Json | null
         }
         Insert: {
           client_name?: string
@@ -2046,6 +2068,7 @@ export type Database = {
           sent_on?: string | null
           closed_on?: string | null
           follow_up_on?: string | null
+          terms?: Json | null
         }
         Update: {
           client_name?: string
@@ -2077,6 +2100,7 @@ export type Database = {
           sent_on?: string | null
           closed_on?: string | null
           follow_up_on?: string | null
+          terms?: Json | null
         }
         Relationships: [
           {

@@ -159,6 +159,7 @@ export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, q
     status: "BORRADOR",
     lang: "es",
     pdfDetail: "section",
+    terms: null,
     discountType: "pct",
     discountValue: 0,
     itbmsPct: d.itbmsPct,

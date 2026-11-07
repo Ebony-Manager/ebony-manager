@@ -4,7 +4,8 @@ import { WORDMARK_PATH, WORDMARK_VIEWBOX } from "@/components/brand/ebony-logo";
 import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { groupedOrder } from "@/lib/cotizador/items";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
-import { TERMS, TERMS_INTRO, TERMS_TITLE, richSegments } from "@/lib/cotizador/terms";
+import { richSegments } from "@/lib/cotizador/terms";
+import { DEFAULT_DOCUMENTS, type DocumentSettings } from "@/lib/settings/documents";
 import { strings, t } from "@/lib/i18n";
 import type { Quote, QuoteImage } from "@/types/cotizador";
 import { photoUrl } from "@/lib/photo-url";
@@ -123,7 +124,8 @@ async function loadItemImages(images: readonly QuoteImage[]): Promise<Map<string
   return out;
 }
 
-export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] = []): Promise<JsPDF> {
+export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] = [], docs: DocumentSettings = DEFAULT_DOCUMENTS): Promise<JsPDF> {
+  const { company, payment, terms } = docs;
   const [{ jsPDF }, { default: autoTable }, itemImages] = await Promise.all([import("jspdf"), import("jspdf-autotable"), loadItemImages(images)]);
   const tq = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
@@ -145,10 +147,10 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...INK);
-  doc.text("EBONY DESIGNS, S.A.", pageW - margin, 46, { align: "right" });
+  doc.text(company.legalName, pageW - margin, 46, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...MUTED);
-  ["RUC 155678857-2-2019 DV: 0", "6329-6666 · ventas@ebonypanama.com", "Ave 1A Sur - San Francisco"].forEach((l, i) =>
+  [company.ruc, [company.phone, company.email].filter(Boolean).join(" · "), company.address].filter(Boolean).forEach((l, i) =>
     doc.text(l, pageW - margin, 58 + i * 11, { align: "right" })
   );
   doc.setDrawColor(...RULE);
@@ -316,7 +318,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   const innerX = margin + 52;
   const innerW = boxW - 52 - 14;
   doc.setFontSize(8.5);
-  const payLines = doc.splitTextToSize(tq("cv_payment"), innerW) as string[];
+  const payLines = doc.splitTextToSize(quote.lang === "en" ? payment.termsEn : payment.termsEs, innerW) as string[];
   // Alto justo: título, 3 datos, la forma de pago y un margen.
   const boxH = 89 + 11 * (payLines.length - 1);
   y += 10;
@@ -338,9 +340,9 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   py += 16;
   doc.setFontSize(9);
   for (const [label, value] of [
-    [tq("pay_bank"), "Banco General"],
-    [tq("pay_account"), "03-70-01-127629-2"],
-    [tq("pay_holder"), "Ebony Designs SA"],
+    [tq("pay_bank"), payment.bank],
+    [tq(payment.accountType === "ahorros" ? "pay_account_ahorros" : "pay_account"), payment.accountNumber],
+    [tq("pay_holder"), payment.holder],
   ] as const) {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...MUTED);
@@ -406,11 +408,11 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(...INK);
-  doc.text(TERMS_TITLE, margin, y);
+  doc.text(terms.title, margin, y);
   y += 18;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
-  for (const line of doc.splitTextToSize(TERMS_INTRO, contentW) as string[]) {
+  for (const line of doc.splitTextToSize(terms.intro, contentW) as string[]) {
     doc.text(line, margin, y);
     y += 10;
   }
@@ -424,7 +426,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       return 56;
     });
   };
-  for (const section of TERMS) {
+  for (const section of terms.sections) {
     y += 5;
     ensure(28);
     doc.setFont("helvetica", "bold");
@@ -467,8 +469,8 @@ export function quotePdfName(quote: Quote): string {
 }
 
 /** Arma el PDF y lo descarga (o lo comparte, en celular). */
-export async function downloadQuotePdf(quote: Quote, images: readonly QuoteImage[] = []): Promise<void> {
-  const doc = await buildQuotePdf(quote, images);
+export async function downloadQuotePdf(quote: Quote, images: readonly QuoteImage[] = [], docs: DocumentSettings = DEFAULT_DOCUMENTS): Promise<void> {
+  const doc = await buildQuotePdf(quote, images, docs);
   const name = quotePdfName(quote);
   const blob = doc.output("blob");
   const file = new File([blob], name, { type: "application/pdf" });

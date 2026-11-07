@@ -1,3 +1,4 @@
+import type { QuoteTerms } from "@/lib/settings/documents";
 /**
  * Tipos de dominio del Cotizador (camelCase) — separados de
  * `src/types/database.ts` igual que en Planilla y Contratistas: el
@@ -161,6 +162,8 @@ export interface Quote {
   status: QuoteStatus;
   lang: "es" | "en";
   pdfDetail: PdfDetail;
+  /** Las Condiciones Generales que recibió el cliente (copia al enviarla); null en borrador = las vigentes. */
+  terms: QuoteTerms | null;
   discountType: DiscountType;
   discountValue: number;
   itbmsPct: number;

@@ -1,4 +1,5 @@
 import "server-only";
+import { parseTerms } from "@/lib/settings/documents";
 
 import { createClient } from "@/lib/supabase/server";
 import { selectAllRows } from "@/lib/supabase/select-all";
@@ -157,6 +158,7 @@ function mapQuote(r: QuoteRow, sections: QuoteSection[]): Quote {
     status: r.status as QuoteStatus,
     lang: r.lang === "en" ? "en" : "es",
     pdfDetail: r.pdf_detail === "line" || r.pdf_detail === "total" ? r.pdf_detail : "section",
+    terms: r.terms ? parseTerms(r.terms) : null,
     discountType: r.discount_type === "amount" ? "amount" : "pct",
     discountValue: num(r.discount_value),
     itbmsPct: num(r.itbms_pct),

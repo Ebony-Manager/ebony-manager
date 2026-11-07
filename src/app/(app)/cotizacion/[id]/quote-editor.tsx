@@ -57,6 +57,7 @@ import {
 } from "../actions";
 import { NumField } from "../num-field";
 import { ClientView } from "./client-view";
+import type { DocumentSettings } from "@/lib/settings/documents";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
@@ -86,7 +87,10 @@ export function QuoteEditor({
   siblings = [],
   isAdmin = false,
   initialImages = [],
+  docs,
 }: {
+  /** Empresa, banco y Condiciones Generales vigentes (Settings → Cotizaciones). */
+  docs: DocumentSettings;
   /** Imágenes de referencia de los ítems. */
   initialImages?: QuoteImage[];
   initialQuote: Quote;
@@ -108,6 +112,8 @@ export function QuoteEditor({
   const [quote, setQuote] = React.useState(() =>
     syncDraftPrices(initialQuote, catalog),
   );
+  // Ya enviada: las condiciones con que se envió; en borrador, las vigentes.
+  const quoteDocs = (q: Quote): DocumentSettings => ({ ...docs, terms: q.terms ?? docs.terms });
   const [currentId, setCurrentId] = React.useState<string | null>(
     initialQuote.sections[0]?.id ?? null,
   );
@@ -557,7 +563,7 @@ export function QuoteEditor({
                   )}
                   <DropdownMenuItem
                     onSelect={() =>
-                      void downloadQuotePdf(latest.current, images).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
+                      void downloadQuotePdf(latest.current, images, quoteDocs(latest.current)).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
                     }
                   >
                     <Download className="size-4" />
@@ -776,6 +782,7 @@ export function QuoteEditor({
       {tab === "client" ? (
         <ClientView
           quote={quote}
+          docs={quoteDocs(quote)}
           images={images}
           onDetail={(pdfDetail) =>
             change((q) => ({ ...q, pdfDetail }), { whenLocked: true })

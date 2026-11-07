@@ -10,7 +10,8 @@ import { photoUrl, THUMB_WIDTH } from "@/lib/photo-url";
 import { UNIT_LABEL } from "./line-row";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { groupedOrder } from "@/lib/cotizador/items";
-import { TERMS, TERMS_INTRO, TERMS_TITLE, richSegments } from "@/lib/cotizador/terms";
+import type { DocumentSettings } from "@/lib/settings/documents";
+import { TermsBody } from "@/components/shared/terms-view";
 import toast from "react-hot-toast";
 import { Download, Landmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,19 @@ import { downloadQuotePdf } from "./quote-pdf";
  * reparten proporcionalmente entre sus renglones: el cliente nunca ve
  * costos ni márgenes, y la suma sigue dando el total del ítem.
  */
-export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onDetail: (d: PdfDetail) => void; images?: QuoteImage[] }) {
+export function ClientView({
+  quote,
+  docs,
+  onDetail,
+  images = [],
+}: {
+  quote: Quote;
+  /** Empresa, banco y Condiciones Generales (las de la cotización si ya se envió). */
+  docs: DocumentSettings;
+  onDetail: (d: PdfDetail) => void;
+  images?: QuoteImage[];
+}) {
+  const { company, payment, terms } = docs;
   // La primera imagen de cada ítem va a su izquierda.
   const firstImage = new Map<string, QuoteImage>();
   for (const im of [...images].sort((a, b) => a.sortOrder - b.sortOrder)) if (!firstImage.has(im.sectionId)) firstImage.set(im.sectionId, im);
@@ -47,7 +60,7 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
   async function download() {
     setBuilding(true);
     try {
-      await downloadQuotePdf(quote, images);
+      await downloadQuotePdf(quote, images, docs);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -82,10 +95,10 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
             <span className="text-[10px] tracking-[0.2em] text-foreground/80">custom woodwork</span>
           </div>
           <div className="text-right text-xs leading-relaxed text-foreground/80">
-            <p className="font-semibold text-foreground">EBONY DESIGNS, S.A.</p>
-            <p>RUC 155678857-2-2019 DV: 0</p>
-            <p>6329-6666 · ventas@ebonypanama.com</p>
-            <p>Ave 1A Sur - San Francisco</p>
+            <p className="font-semibold text-foreground">{company.legalName}</p>
+            {company.ruc && <p>{company.ruc}</p>}
+            {(company.phone || company.email) && <p>{[company.phone, company.email].filter(Boolean).join(" · ")}</p>}
+            {company.address && <p>{company.address}</p>}
           </div>
         </header>
 
@@ -179,13 +192,13 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
             <h3 className="text-sm font-semibold text-foreground">{tt("pay_title")}</h3>
             <dl className="mt-2 grid grid-cols-1 text-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-1">
               <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_bank")}</dt>
-              <dd className="mb-1.5 font-semibold sm:mb-0">Banco General</dd>
-              <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_account")}</dt>
-              <dd className="mb-1.5 font-semibold whitespace-nowrap tabular-nums sm:mb-0">03-70-01-127629-2</dd>
+              <dd className="mb-1.5 font-semibold sm:mb-0">{payment.bank}</dd>
+              <dt className="text-xs text-muted-foreground sm:text-sm">{tt(payment.accountType === "ahorros" ? "pay_account_ahorros" : "pay_account")}</dt>
+              <dd className="mb-1.5 font-semibold whitespace-nowrap tabular-nums sm:mb-0">{payment.accountNumber}</dd>
               <dt className="text-xs text-muted-foreground sm:text-sm">{tt("pay_holder")}</dt>
-              <dd className="font-semibold">Ebony Designs SA</dd>
+              <dd className="font-semibold">{payment.holder}</dd>
             </dl>
-            <p className="mt-2 text-xs leading-relaxed text-foreground/80">{tt("cv_payment")}</p>
+            <p className="mt-2 text-xs leading-relaxed text-foreground/80">{quote.lang === "en" ? payment.termsEn : payment.termsEs}</p>
           </div>
         </section>
         <dl className="grid w-full shrink-0 sm:max-w-[280px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm">
@@ -206,54 +219,12 @@ export function ClientView({ quote, onDetail, images = [] }: { quote: Quote; onD
 
         {quote.notes.trim() && <p className="mt-5 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{quote.notes.trim()}</p>}
 
-
-
-
-
         {/* Condiciones generales (en el PDF van en hojas aparte). */}
         <details className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-foreground/80">
-          <summary className="cursor-pointer text-sm font-semibold text-foreground">{TERMS_TITLE}</summary>
-          <p className="mt-3 italic">{TERMS_INTRO}</p>
-          {TERMS.map((section) => (
-            <section key={section.title} className="mt-3">
-              <h3 className="font-semibold text-foreground">{section.title}</h3>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                {section.items.map((item, i) => (
-                  <li key={i}>
-                    <Rich text={typeof item === "string" ? item : item.text} />
-                    {typeof item !== "string" && (
-                      <ul className="mt-1 list-[circle] space-y-0.5 pl-5">
-                        {item.sub.map((sub) => (
-                          <li key={sub}>
-                            <Rich text={sub} />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <summary className="cursor-pointer text-sm font-semibold text-foreground">{terms.title}</summary>
+          <TermsBody terms={terms} />
         </details>
       </article>
     </div>
-  );
-}
-
-/** Texto con `**negritas**`. */
-function Rich({ text }: { text: string }) {
-  return (
-    <>
-      {richSegments(text).map((seg, i) =>
-        seg.bold ? (
-          <strong key={i} className="font-semibold text-foreground">
-            {seg.text}
-          </strong>
-        ) : (
-          <React.Fragment key={i}>{seg.text}</React.Fragment>
-        ),
-      )}
-    </>
   );
 }

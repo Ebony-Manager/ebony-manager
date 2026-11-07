@@ -1,7 +1,8 @@
 /**
  * Condiciones generales de Ebony (documento "Terminos_y_Condiciones_Ebony",
  * nov 2026). Van al final de cada cotización: en la vista para el cliente y
- * en el PDF. `**texto**` = negrita. Si cambian, se cambian aquí.
+ * en el PDF. `**texto**` = negrita. Son las de partida: se editan en
+ * Settings → Cotizaciones (`app_settings.quote_terms`).
  */
 
 export interface TermsSection {
