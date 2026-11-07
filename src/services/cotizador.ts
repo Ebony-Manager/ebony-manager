@@ -589,6 +589,20 @@ export async function addQuoteImage(sectionId: string, path: string): Promise<Qu
   return { id: data.id, sectionId: data.section_id, path: data.path, sortOrder: data.sort_order };
 }
 
+/** "Duplicar ítem": la copia lleva las mismas imágenes (el mismo archivo, sin volver a subirlo). */
+export async function copySectionImages(fromSectionId: string, toSectionId: string): Promise<QuoteImage[]> {
+  const supabase = await createClient();
+  const { data: source, error } = await supabase.from("quote_section_images").select("path, sort_order").eq("section_id", fromSectionId).order("sort_order");
+  if (error) throw new Error(error.message);
+  if (!source?.length) return [];
+  const { data, error: insertError } = await supabase
+    .from("quote_section_images")
+    .insert(source.slice(0, MAX_ITEM_IMAGES).map((im) => ({ section_id: toSectionId, path: im.path, sort_order: im.sort_order })))
+    .select("id, section_id, path, sort_order");
+  if (insertError) throw new Error(insertError.message);
+  return (data ?? []).map((r) => ({ id: r.id, sectionId: r.section_id, path: r.path, sortOrder: r.sort_order }));
+}
+
 /** Quita una imagen; el archivo se borra si ninguna otra cotización (versión) lo usa. */
 export async function deleteQuoteImage(id: string): Promise<void> {
   const supabase = await createClient();

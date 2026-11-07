@@ -49,6 +49,7 @@ import { downloadQuotePdf } from "./quote-pdf";
 import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
 import { duplicateSection, locationGroups, locationSuggestions, moveSection, shiftSection } from "@/lib/cotizador/items";
 import {
+  copySectionImagesAction,
   createQuoteAction,
   duplicateQuoteAction,
   saveQuoteAction,
@@ -310,7 +311,23 @@ export function QuoteEditor({
         copyId = r.copyId;
         return { ...q, sections: r.sections };
       });
-      if (copyId) setCurrentId(copyId);
+      if (copyId) {
+        setCurrentId(copyId);
+        // La copia lleva las imágenes del original (cuando el ítem nuevo ya está guardado).
+        const newId: string = copyId;
+        if (images.some((i) => i.sectionId === id)) {
+          void (async () => {
+            try {
+              await ensureSaved();
+              const res = await copySectionImagesAction(id, newId);
+              if (!res.ok) throw new Error(res.error);
+              setImages((all) => [...all, ...res.data]);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Error");
+            }
+          })();
+        }
+      }
     },
     onRemove: removeSection,
     onShift: (id, delta) => change((q) => ({ ...q, sections: shiftSection(q.sections, id, delta) })),

@@ -56,6 +56,10 @@ export async function addQuoteImageAction(sectionId: string, path: string) {
   return saving(() => cotizador.addQuoteImage(sectionId, path));
 }
 
+export async function copySectionImagesAction(fromSectionId: string, toSectionId: string) {
+  return saving(() => cotizador.copySectionImages(fromSectionId, toSectionId));
+}
+
 export async function deleteQuoteImageAction(id: string) {
   return saving(() => cotizador.deleteQuoteImage(id));
 }
