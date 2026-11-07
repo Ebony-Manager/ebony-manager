@@ -29,19 +29,30 @@ export async function ensureOverduePurchaseNotices(): Promise<number> {
   const supplierIds = [...new Set(orders.map((order) => order.supplier_id))];
   const { data: suppliers } = await db.from("suppliers").select("id,name").in("id", supplierIds);
   const supplierName = new Map((suppliers ?? []).map((supplier) => [supplier.id, supplier.name]));
-  const { data, error: insertError } = await db.from("app_notifications").upsert(
-    orders.map((order) => ({
+  // Uno por pedido: el índice de dedupe_key es parcial (where not null) y
+  // PostgREST no lo acepta como onConflict, así que se saltan los que ya existen.
+  const keys = orders.map((order) => `purchasing_overdue:${order.id}`);
+  const { data: existing, error: existingError } = await db.from("app_notifications").select("dedupe_key").in("dedupe_key", keys);
+  if (existingError) throw new Error(existingError.message);
+  const done = new Set((existing ?? []).map((n) => n.dedupe_key));
+  const rows = orders
+    .filter((order) => !done.has(`purchasing_overdue:${order.id}`))
+    .map((order) => ({
       kind: "purchasing_overdue",
       type_key: "purchasing_overdue",
       title: "Pedido atrasado",
       body: `${supplierName.get(order.supplier_id) ?? "Proveedor"} · Pedido del ${order.ordered_on}`,
       href: "/almacen/compras",
       dedupe_key: `purchasing_overdue:${order.id}`,
-    })),
-    { onConflict: "dedupe_key", ignoreDuplicates: true },
-  ).select("id");
-  if (insertError) throw new Error(insertError.message);
-  return data?.length ?? 0;
+    }));
+  let created = 0;
+  for (const row of rows) {
+    const { error: insertError } = await db.from("app_notifications").insert(row);
+    // 23505: otra corrida lo creó al mismo tiempo; no es un error.
+    if (insertError && insertError.code !== "23505") throw new Error(insertError.message);
+    if (!insertError) created++;
+  }
+  return created;
 }
 
 /** El error del servicio de push en texto corto: "403 BadJwtToken", "410 Unregistered"… */
