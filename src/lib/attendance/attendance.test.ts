@@ -358,3 +358,27 @@ describe("notEmployedDays (ingreso / salida a mitad de quincena)", () => {
     expect(notEmployedDays("2026-10-16", "2026-10-31", "2026-11-03")).toBe(15); // todavía no entra
   });
 });
+
+describe("feriados", () => {
+  const p = (date: string, hm: string): RawPunch => {
+    const [h, m] = hm.split(":").map(Number);
+    return { name: "Ana", date, minutes: h * 60 + m, source: "reloj", kind: "unknown" };
+  };
+  it("un feriado confirmado sin marcaciones no es falta", () => {
+    const r = analyzePeriod("2026-11-09", "2026-11-11", [p("2026-11-09", "07:30"), p("2026-11-09", "17:00"), p("2026-11-11", "07:30"), p("2026-11-11", "17:00")], undefined, {}, {
+      holidays: { "2026-11-10": "Primer Grito de Independencia" },
+    });
+    expect(r.absentWeekdays).toBe(0);
+    expect(r.days[1]).toMatchObject({ holiday: "Primer Grito de Independencia", flags: [] });
+    // Sin la lista de feriados, el mismo día es falta (como hoy).
+    expect(analyzePeriod("2026-11-10", "2026-11-10", [p("2026-11-09", "07:30")]).absentWeekdays).toBe(1);
+  });
+
+  it("quien marca en feriado queda para revisar, sin tardanza ni bloqueo", () => {
+    const d = analyzeDay("2026-11-10", [p("2026-11-10", "09:10"), p("2026-11-10", "13:00")], undefined, { holiday: "Grito" });
+    expect(d).toMatchObject({ arrival: 550, departure: 780, lateMinutes: 0, earlyLeaveMinutes: 0, flags: ["holiday_punch"] });
+    const r = analyzePeriod("2026-11-10", "2026-11-10", [p("2026-11-10", "09:10")], undefined, {}, { holidays: { "2026-11-10": "Grito" } });
+    expect(r.blockingDays).toBe(0);
+    expect(r.review).toEqual([{ date: "2026-11-10", flags: ["holiday_punch"] }]);
+  });
+});

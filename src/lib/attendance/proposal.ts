@@ -97,6 +97,8 @@ export function buildProposal(input: {
   resolutions?: readonly (DayResolution & { employeeId: string; date: string })[];
   /** Hoy (`YYYY-MM-DD`): lo que viene no se analiza y hoy está en curso. */
   today?: string;
+  /** Feriados confirmados (fecha → nombre): sin marcaciones no son falta. */
+  holidays?: Readonly<Record<string, string>>;
 }): { proposals: EmployeeProposal[]; unmatched: string[] } {
   const { from, to, employees } = input;
   const inRange = input.punches.filter((p) => p.date >= from && p.date <= to);
@@ -155,7 +157,7 @@ export function buildProposal(input: {
       punches,
       input.schedule,
       { startDate: e.startDate, endDate: e.status === "INACTIVE" ? e.endDate : null },
-      { resolutions: resolutionsBy.get(e.id), today: input.today }
+      { resolutions: resolutionsBy.get(e.id), today: input.today, holidays: input.holidays }
     );
     const lateHours = minutesToHours(a.lateMinutes + a.earlyLeaveMinutes);
     proposals.push({

@@ -16,6 +16,9 @@
  *  - El día de hoy (el de pago, que se procesa en la tarde) está en curso: se asume
  *    que trabaja hasta la hora de salida, así que no le falta la salida todavía. Pero
  *    si no hay ninguna ponchada de entrada, no vino: es falta.
+ *  - Feriado (confirmado en Settings → Feriados): sin marcaciones no es falta. Si marca,
+ *    se anotan sus horas (sin tardanza ni salida temprana) y queda "Trabajó en feriado"
+ *    para que el admin decida el pago; la app no calcula el recargo.
  *  - Reloj y Jotform se juntan: la mayoría entra al taller y sale desde el proyecto.
  *  - Todos con las mismas reglas: nada se paga de más por lo que diga la ponchada.
  *
@@ -57,7 +60,7 @@ export function analyzeDay(
   date: string,
   punches: RawPunch[],
   schedule: Schedule = DEFAULT_SCHEDULE,
-  opts: { resolution?: DayResolution; inProgress?: boolean } = {}
+  opts: { resolution?: DayResolution; inProgress?: boolean; holiday?: string } = {}
 ): DayResult {
   const weekday = weekdayOf(date);
   const isSaturday = weekday === 6;
@@ -80,6 +83,16 @@ export function analyzeDay(
 
   if (weekday === 0) {
     if (times.length > 0) flags.push("sunday_punch");
+    return result;
+  }
+
+  if (opts.holiday) {
+    result.holiday = opts.holiday;
+    const r = opts.resolution;
+    result.arrival = r && r.arrival !== null ? r.arrival : (times[0] ?? null);
+    result.departure = r && r.departure !== null ? r.departure : times.length > 1 ? times[times.length - 1] : null;
+    if (r) result.resolution = r;
+    if (result.arrival !== null || result.departure !== null) flags.push("holiday_punch");
     return result;
   }
 
@@ -145,6 +158,8 @@ export function analyzePeriod(
     resolutions?: ReadonlyMap<string, DayResolution>;
     /** Hoy (`YYYY-MM-DD`): los días que vienen no se analizan y hoy está en curso. */
     today?: string;
+    /** Feriados confirmados: fecha → nombre. */
+    holidays?: Readonly<Record<string, string>>;
   } = {}
 ): EmployeeAttendance {
   const byDate = new Map<string, RawPunch[]>();
@@ -157,7 +172,7 @@ export function analyzePeriod(
     .filter((d) => !(employment.startDate && d < employment.startDate) && !(employment.endDate && d > employment.endDate))
     .filter((d) => !opts.today || d <= opts.today)
     .map((d) =>
-      analyzeDay(d, byDate.get(d) ?? [], schedule, { resolution: opts.resolutions?.get(d), inProgress: d === opts.today })
+      analyzeDay(d, byDate.get(d) ?? [], schedule, { resolution: opts.resolutions?.get(d), inProgress: d === opts.today, holiday: opts.holidays?.[d] })
     );
   const review = days.filter((d) => d.flags.some((f) => f !== "early_leave" && f !== "sunday_punch")).map((d) => ({ date: d.date, flags: d.flags }));
   return {

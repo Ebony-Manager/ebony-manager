@@ -1,5 +1,6 @@
 "use server";
 
+import { getConfirmedHolidays } from "@/services/holidays";
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
@@ -68,13 +69,14 @@ export async function clearPeriodHoursAction(year: number, month: number, half: 
 // juego); subir el reloj, vincular nombres y pasar a la Quincena piden las dos.
 export async function getAttendanceAction(from: string, to: string) {
   await requireModule("asistencia");
-  const [punches, links, status, resolutions] = await Promise.all([
+  const [punches, links, status, resolutions, holidays] = await Promise.all([
     attendance.getPunches(from, to),
     attendance.getNameLinks(),
     attendance.getAttendanceStatus(),
     attendance.getResolutions(from, to),
+    getConfirmedHolidays(from, to),
   ]);
-  return { punches, links, status, resolutions };
+  return { punches, links, status, resolutions, holidays };
 }
 
 /** Deshace un vínculo nombre → empleado (vuelve a salir como "sin vincular"). */

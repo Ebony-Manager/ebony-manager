@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { buildSummaryEmail, type DailySummary } from "@/lib/almacen/daily-summary";
 import type { Database } from "@/types/database";
 import { dispatchPendingPush, ensureOverduePurchaseNotices } from "@/lib/notifications/push";
+import { fetchPanamaHolidays, yearsToSync } from "@/lib/holidays/feriados-io";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 
 /**
  * Resumen diario del Almacén por correo (Resend).
@@ -56,6 +58,16 @@ export async function GET(request: Request) {
     await anon.rpc("inventory_tool_overdue_notices", { p_token: secret! }).then(() => undefined, () => undefined);
     // Los lunes: el seguimiento semanal de cotizaciones a quienes tienen Cotización (la función decide si es lunes).
     await anon.rpc("sales_weekly_follow_up", { p_token: secret! }).then(() => undefined, () => undefined);
+    // Feriados de feriados.io (lo nuevo o cambiado queda por confirmar y avisa al admin).
+    // Si la API falla, no se toca nada: la lista guardada sigue mandando.
+    for (const year of yearsToSync(todayInPanama())) {
+      await fetchPanamaHolidays(year)
+        .then((items) => anon.rpc("sync_holidays", { p_token: secret!, p_year: year, p_items: items as unknown as never }))
+        .then(
+          (r) => r.error && console.error("sync_holidays", r.error.message),
+          (err) => console.error("feriados.io", err instanceof Error ? err.message : err)
+        );
+    }
     await dispatchPendingPush().catch(() => undefined);
   }
 

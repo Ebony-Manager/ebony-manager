@@ -44,7 +44,9 @@ export type DayFlag =
   /** Salió antes de la hora normal. */
   | "early_leave"
   /** Marcó en domingo. */
-  | "sunday_punch";
+  | "sunday_punch"
+  /** Marcó en un feriado (confirmado): el admin revisa cómo se paga. */
+  | "holiday_punch";
 
 /** Lo que falta saber de un día: hasta que alguien lo revise, la persona no pasa a la Quincena. */
 export const BLOCKING_FLAGS: readonly DayFlag[] = ["missing_in", "missing_out", "unclear"];
@@ -73,6 +75,8 @@ export interface DayResult {
   sources: ("reloj" | "jotform")[];
   /** El día se revisó a mano (ver `DayResolution`). */
   resolution?: DayResolution;
+  /** Feriado (confirmado en Settings → Feriados): su nombre. */
+  holiday?: string;
 }
 
 export interface EmployeeAttendance {

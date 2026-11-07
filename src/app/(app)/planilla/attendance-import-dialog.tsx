@@ -36,6 +36,7 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
   unclear: "att_flag_unclear",
   early_leave: "att_flag_early",
   sunday_punch: "att_flag_sunday",
+  holiday_punch: "att_flag_holiday",
 };
 
 interface Edit {
@@ -60,8 +61,11 @@ export function AttendanceImportDialog({
   punches,
   links,
   resolutions,
+  holidays,
   onApplied,
 }: {
+  /** Feriados confirmados (fecha → nombre). */
+  holidays: Record<string, string>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   period: Period;
@@ -115,8 +119,8 @@ export function AttendanceImportDialog({
   const rowById = React.useMemo(() => new Map(rows.map((r) => [r.employee.id, r])), [rows]);
 
   const { proposals, unmatched } = React.useMemo(
-    () => buildProposal({ from: range.from, to: range.to, punches, employees, overtime, links, resolutions, today: todayInPanama() }),
-    [range, punches, employees, overtime, links, resolutions]
+    () => buildProposal({ from: range.from, to: range.to, punches, employees, overtime, links, resolutions, holidays, today: todayInPanama() }),
+    [range, punches, employees, overtime, links, resolutions, holidays]
   );
 
   // Cada vez que cambia la propuesta se re-siembran los campos editables y se marcan todos.

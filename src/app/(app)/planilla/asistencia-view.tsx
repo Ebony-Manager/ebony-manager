@@ -40,6 +40,8 @@ interface Loaded {
   links: Record<string, string | null>;
   status: AttendanceStatus;
   resolutions: StoredResolution[];
+  /** Feriados confirmados de la quincena (fecha → nombre). */
+  holidays: Record<string, string>;
 }
 
 const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
@@ -57,6 +59,7 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
   unclear: "att_flag_unclear",
   early_leave: "att_flag_early",
   sunday_punch: "att_flag_sunday",
+  holiday_punch: "att_flag_holiday",
 };
 const WEEKDAYS = { es: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"], en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] };
 
@@ -136,7 +139,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
   const { proposals, unmatched } = React.useMemo(
     () =>
       ready
-        ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links, resolutions: loaded.resolutions, today: todayInPanama() })
+        ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links, resolutions: loaded.resolutions, holidays: loaded.holidays, today: todayInPanama() })
         : { proposals: [], unmatched: [] },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- range sale de `period`, que ya define `ready`.
     [ready, loaded, employees, links]
@@ -464,6 +467,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
           punches={loaded.punches}
           links={links}
           resolutions={loaded.resolutions}
+          holidays={loaded.holidays}
           onApplied={() => {
             load();
             onApplied();
@@ -525,6 +529,11 @@ function DayTable({
               <td className="whitespace-nowrap px-2 py-1 text-foreground">
                 <span className="inline-block w-8 text-muted-foreground">{WEEKDAYS[lang][d.weekday]}</span>
                 {formatDateCompact(lang, d.date)}
+                {d.holiday && (
+                  <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground" title={d.holiday}>
+                    {tp("att_holiday")}
+                  </span>
+                )}
               </td>
               <td className="px-2 py-1 text-right tabular-nums">{d.arrival !== null ? hm(d.arrival) : "–"}</td>
               <td className="px-2 py-1 text-right tabular-nums">{d.departure !== null ? hm(d.departure) : "–"}</td>

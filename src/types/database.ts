@@ -26,6 +26,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      holidays: {
+        Row: {
+          date: string
+          name: string
+          source: string
+          status: string
+          mandatory_rest: boolean | null
+          irrenunciable: boolean | null
+          original_date: string | null
+          missing_from_source: boolean
+          created_at: string
+          updated_at: string
+          decided_by: string | null
+          decided_at: string | null
+        }
+        Insert: {
+          date: string
+          name: string
+          source?: string
+          status?: string
+          mandatory_rest?: boolean | null
+          irrenunciable?: boolean | null
+          original_date?: string | null
+          missing_from_source?: boolean
+          created_at?: string
+          updated_at?: string
+          decided_by?: string | null
+          decided_at?: string | null
+        }
+        Update: {
+          date?: string
+          name?: string
+          source?: string
+          status?: string
+          mandatory_rest?: boolean | null
+          irrenunciable?: boolean | null
+          original_date?: string | null
+          missing_from_source?: boolean
+          created_at?: string
+          updated_at?: string
+          decided_by?: string | null
+          decided_at?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -3470,6 +3515,10 @@ export type Database = {
       }
       sales_weekly_follow_up: {
         Args: { p_token: string }
+        Returns: number
+      }
+      sync_holidays: {
+        Args: { p_token: string | null; p_year: number; p_items: Json }
         Returns: number
       }
       set_project_drive_folder: {

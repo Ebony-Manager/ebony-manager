@@ -17,6 +17,7 @@ import {
   BookUser,
   Bell,
   FileText,
+  CalendarDays,
   ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
@@ -134,6 +135,7 @@ export const SETTINGS_PANEL: NavPanel = {
     { href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
     { href: "/settings/notificaciones", icon: Bell, label: strings.nav.notificaciones, adminOnly: true },
     { href: "/settings/cotizaciones", icon: FileText, label: strings.nav.cotizaciones_settings, adminOnly: true },
+    { href: "/settings/feriados", icon: CalendarDays, label: strings.nav.feriados, adminOnly: true },
   ],
 };
 
