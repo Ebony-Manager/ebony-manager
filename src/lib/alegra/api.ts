@@ -2,26 +2,46 @@ import "server-only";
 
 /**
  * Cliente mínimo de la API de Alegra (https://developer.alegra.com).
- * Autenticación Basic con el correo y el token de un usuario de Alegra
- * (Configuración → API – Integraciones con otros sistemas), guardados en
- * Vercel como ALEGRA_EMAIL y ALEGRA_TOKEN. Límite: 150 consultas por minuto.
- * Los IDs llegan como texto (Alegra está pasando a UUID): siempre string.
+ * Dos formas de entrar, ambas desde Configuración → API en Alegra:
+ *  - Las "Credenciales de acceso": ALEGRA_EMAIL + ALEGRA_TOKEN (Basic, la
+ *    que documenta la API de facturas).
+ *  - Un "JWT Token" (el nuevo que recomienda Alegra): ALEGRA_JWT, o puesto
+ *    en ALEGRA_TOKEN (se reconoce solo; empieza con "eyJ"). Va como Bearer.
+ * Si hay JWT, se usa ese. Límite: 150 consultas por minuto. Los IDs llegan
+ * como texto (Alegra está pasando a UUID): siempre string.
  */
 
 const BASE = "https://api.alegra.com/api/v1";
 
+const looksLikeJwt = (t: string) => /^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(t);
+
+function jwt(): string | null {
+  const explicit = process.env.ALEGRA_JWT?.trim();
+  if (explicit) return explicit;
+  const token = process.env.ALEGRA_TOKEN?.trim();
+  return token && looksLikeJwt(token) ? token : null;
+}
+
 export function alegraConfigured(): boolean {
   return (
-    !!process.env.ALEGRA_EMAIL?.trim() && !!process.env.ALEGRA_TOKEN?.trim()
+    !!jwt() ||
+    (!!process.env.ALEGRA_EMAIL?.trim() && !!process.env.ALEGRA_TOKEN?.trim())
   );
 }
 
+/** Cómo se está entrando (para mostrarlo en Settings → Conexiones). */
+export function alegraAuthMode(): "jwt" | "basic" | null {
+  return jwt() ? "jwt" : alegraConfigured() ? "basic" : null;
+}
+
 function authHeader(): string {
+  const bearer = jwt();
+  if (bearer) return `Bearer ${bearer}`;
   const email = process.env.ALEGRA_EMAIL?.trim();
   const token = process.env.ALEGRA_TOKEN?.trim();
   if (!email || !token)
     throw new Error(
-      "Alegra no está conectado: faltan ALEGRA_EMAIL y ALEGRA_TOKEN en Vercel.",
+      "Alegra no está conectado: faltan ALEGRA_EMAIL y ALEGRA_TOKEN (o ALEGRA_JWT) en Vercel.",
     );
   return `Basic ${Buffer.from(`${email}:${token}`).toString("base64")}`;
 }
@@ -165,7 +185,9 @@ export async function createInvoice(
  * uno). Alegra responde 401 si el correo/token no sirven y 402 si el plan no
  * incluye ese recurso por API.
  */
-export async function checkAccess(): Promise<{ name: string; ok: boolean; error?: string }[]> {
+export async function checkAccess(): Promise<
+  { name: string; ok: boolean; error?: string }[]
+> {
   const checks: [string, string][] = [
     ["facturas", "/invoices"],
     ["productos y servicios", "/items"],
@@ -178,7 +200,11 @@ export async function checkAccess(): Promise<{ name: string; ok: boolean; error?
       await alegraFetch(path, { query: { limit: 1 } });
       out.push({ name, ok: true });
     } catch (err) {
-      out.push({ name, ok: false, error: err instanceof Error ? err.message : String(err) });
+      out.push({
+        name,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
   return out;
