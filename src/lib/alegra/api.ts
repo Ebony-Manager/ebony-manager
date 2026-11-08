@@ -160,8 +160,26 @@ export async function createInvoice(
   };
 }
 
-/** Prueba de solo lectura: ¿la cuenta responde con estas credenciales? */
-export async function companyName(): Promise<string> {
-  const c = await alegraFetch<{ name?: string }>("/company");
-  return c.name ?? "la empresa";
+/**
+ * Prueba de solo lectura de lo que la app usa (una consulta mínima a cada
+ * uno). Alegra responde 401 si el correo/token no sirven y 402 si el plan no
+ * incluye ese recurso por API.
+ */
+export async function checkAccess(): Promise<{ name: string; ok: boolean; error?: string }[]> {
+  const checks: [string, string][] = [
+    ["facturas", "/invoices"],
+    ["productos y servicios", "/items"],
+    ["impuestos", "/taxes"],
+    ["contactos", "/contacts"],
+  ];
+  const out: { name: string; ok: boolean; error?: string }[] = [];
+  for (const [name, path] of checks) {
+    try {
+      await alegraFetch(path, { query: { limit: 1 } });
+      out.push({ name, ok: true });
+    } catch (err) {
+      out.push({ name, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return out;
 }
