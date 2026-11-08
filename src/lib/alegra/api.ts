@@ -193,6 +193,8 @@ export async function checkAccess(): Promise<
     ["productos y servicios", "/items"],
     ["impuestos", "/taxes"],
     ["contactos", "/contacts"],
+    ["cotizaciones", "/estimates"],
+    ["numeraciones", "/number-templates"],
   ];
   const out: { name: string; ok: boolean; error?: string }[] = [];
   for (const [name, path] of checks) {

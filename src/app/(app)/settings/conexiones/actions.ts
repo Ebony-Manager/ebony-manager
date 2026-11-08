@@ -91,7 +91,7 @@ export async function testAlegraAction(): Promise<TestResult> {
     if (bad.length === 0)
       result = {
         ok: true,
-        message: `Funciona (${how}): la app puede leer facturas, productos y servicios, impuestos y contactos.`,
+        message: `Funciona (${how}): la app puede leer facturas, productos y servicios, impuestos, contactos, cotizaciones y numeraciones.`,
       };
     else if (bad.every((c) => c.error?.startsWith("Alegra 401")))
       result = {
