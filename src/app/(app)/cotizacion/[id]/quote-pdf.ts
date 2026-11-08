@@ -5,7 +5,7 @@ import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTot
 import { groupedOrder } from "@/lib/cotizador/items";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { richSegments } from "@/lib/cotizador/terms";
-import { DEFAULT_DOCUMENTS, type DocumentSettings } from "@/lib/settings/documents";
+import { DEFAULT_DOCUMENTS, type DocumentSettings, type LogoFile } from "@/lib/settings/documents";
 import { strings, t } from "@/lib/i18n";
 import type { Quote, QuoteImage } from "@/types/cotizador";
 import { photoUrl } from "@/lib/photo-url";
@@ -38,6 +38,32 @@ function logoPng(heightPt: number): { data: string; w: number; h: number } | nul
   ctx.fillStyle = "#141414";
   ctx.fill(new Path2D(WORDMARK_PATH));
   return { data: canvas.toDataURL("image/png"), w: (vw / vh) * heightPt, h: heightPt };
+}
+
+/**
+ * El logo subido en Settings (PNG o SVG), redibujado en un canvas como PNG
+ * nítido (4×) y del tamaño que cabe en la caja, sin deformarlo. null si no
+ * se pudo cargar (sale el de siempre).
+ */
+async function uploadedLogoPng(logo: LogoFile, boxW: number, boxH: number): Promise<{ data: string; w: number; h: number } | null> {
+  if (typeof document === "undefined") return null;
+  const fit = Math.min(boxW / logo.width, boxH / logo.height);
+  const w = logo.width * fit;
+  const h = logo.height * fit;
+  try {
+    const img = new Image();
+    img.src = photoUrl("branding", logo.path);
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(w * 4);
+    canvas.height = Math.round(h * 4);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return { data: canvas.toDataURL("image/png"), w, h };
+  } catch {
+    return null;
+  }
 }
 
 /** El ícono de banco de la app (Landmark de lucide) en un círculo oscuro, como PNG. */
@@ -134,16 +160,21 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   const pageH = doc.internal.pageSize.getHeight();
   const contentW = pageW - margin * 2;
   const bottom = pageH - 48;
-  const logo = logoPng(26);
+  // El logo subido en Settings (ya trae lo de "custom woodwork"); si no hay, el de siempre.
+  const custom = company.logo ? await uploadedLogoPng(company.logo, 190, 48) : null;
+  const logo = custom ?? logoPng(26);
   const fmtDate = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   // ── Encabezado de Ebony ──
-  if (logo) doc.addImage(logo.data, "PNG", margin, 40, logo.w, logo.h);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...MUTED);
-  doc.text("custom woodwork", margin, 80, { charSpace: 1.5 });
+  if (custom) doc.addImage(custom.data, "PNG", margin, 38, custom.w, custom.h);
+  else if (logo) {
+    doc.addImage(logo.data, "PNG", margin, 40, logo.w, logo.h);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...MUTED);
+    doc.text("custom woodwork", margin, 80, { charSpace: 1.5 });
+  }
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...INK);

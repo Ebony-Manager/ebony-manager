@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EbonyLogo } from "@/components/brand/ebony-logo";
+import { createClient } from "@/lib/supabase/client";
+import { photoUrl } from "@/lib/photo-url";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -39,6 +42,7 @@ import {
   type PointRow,
   type AccountType,
   type CompanyInfo,
+  type LogoFile,
   type DocumentSettings,
   type PaymentInfo,
   type QuoteTerms,
@@ -46,6 +50,7 @@ import {
 import {
   saveCompanyAction,
   saveKindsAction,
+  saveLogoAction,
   savePaymentAction,
   saveTermsAction,
 } from "./actions";
@@ -169,6 +174,7 @@ function CompanyCard({ initial, td }: { initial: CompanyInfo; td: TFn }) {
         </Button>
       }
     >
+      <LogoPicker initial={initial.logo} td={td} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={td("f_legal_name")}>
           <Input value={value.legalName} onChange={set("legalName")} />
@@ -675,5 +681,111 @@ function KindsCard({ initial, td }: { initial: string[]; td: TFn }) {
         {td("kinds_add")}
       </Button>
     </Card>
+  );
+}
+
+/** Medidas en píxeles de una imagen (un SVG sin tamaño propio cuenta como 600 × 200). */
+function imageSize(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth || 600, height: img.naturalHeight || 200 });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen."));
+    };
+    img.src = url;
+  });
+}
+
+const LOGO_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg" };
+
+/**
+ * El logo de la cotización para el cliente y su PDF. Se sube tal cual (PNG
+ * con fondo transparente o SVG; lo que diga debajo del logo es parte de la
+ * imagen). Sin logo subido sale el de siempre.
+ */
+function LogoPicker({ initial, td }: { initial: LogoFile | null; td: TFn }) {
+  const [logo, setLogo] = React.useState(initial);
+  const [busy, setBusy] = React.useState(false);
+  const input = React.useRef<HTMLInputElement>(null);
+
+  async function upload(file: File) {
+    const ext = LOGO_TYPES[file.type];
+    if (!ext) return toast.error(td("logo_type"));
+    if (file.size > 5 * 1024 * 1024) return toast.error(td("logo_big"));
+    setBusy(true);
+    try {
+      const { width, height } = await imageSize(file);
+      const path = `logo-${Date.now()}.${ext}`;
+      const supabase = createClient();
+      const { error } = await supabase.storage.from("branding").upload(path, file, { contentType: file.type });
+      if (error) throw new Error(error.message);
+      const next = { path, width, height };
+      const res = await saveLogoAction(next);
+      if (!res.ok) {
+        await supabase.storage.from("branding").remove([path]);
+        throw new Error(res.error);
+      }
+      setLogo(next);
+      if (width < 800 && ext !== "svg") toast(td("logo_small"), { duration: 8000 });
+      else toast.success(td("logo_saved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    const res = await saveLogoAction(null);
+    setBusy(false);
+    if (!res.ok) return toast.error(res.error);
+    setLogo(null);
+    toast.success(td("logo_removed"));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground">{td("logo_label")}</span>
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Sobre blanco, como en el documento. */}
+        <div className="flex h-20 w-56 items-center justify-center rounded-md border border-border bg-white px-4">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element -- el logo tal cual (SVG o PNG con transparencia), sin pasar por next/image.
+            <img src={photoUrl("branding", logo.path)} alt="" className="max-h-14 max-w-full object-contain" />
+          ) : (
+            <div className="flex flex-col gap-1 text-black">
+              <EbonyLogo variant="wordmark" tone="black" height={28} />
+              <span className="text-[9px] tracking-[0.2em] text-neutral-600">custom woodwork</span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <input
+            ref={input}
+            type="file"
+            accept="image/png,image/svg+xml,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void upload(f);
+            }}
+          />
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
+            {busy ? td("saving") : logo ? td("logo_replace") : td("logo_upload")}
+          </Button>
+          {logo && (
+            <ConfirmButton label={td("logo_remove")} confirmLabel={td("confirm_remove")} disabled={busy} onConfirm={() => void remove()} />
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">{logo ? td("logo_hint_custom") : td("logo_hint_default")}</p>
+    </div>
   );
 }

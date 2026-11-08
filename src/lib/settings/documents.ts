@@ -20,6 +20,17 @@ export interface CompanyInfo {
   phone: string;
   email: string;
   address: string;
+  /**
+   * El logo para los documentos (bucket `branding`), con su tamaño en
+   * píxeles para respetar la proporción. null = el de siempre (el del código).
+   */
+  logo: LogoFile | null;
+}
+
+export interface LogoFile {
+  path: string;
+  width: number;
+  height: number;
 }
 
 export type AccountType = "corriente" | "ahorros";
@@ -67,6 +78,7 @@ export const DEFAULT_COMPANY: CompanyInfo = {
   phone: "6329-6666",
   email: "ventas@ebonypanama.com",
   address: "Ave 1A Sur - San Francisco",
+  logo: null,
 };
 
 export const DEFAULT_PAYMENT: PaymentInfo = {
@@ -114,7 +126,16 @@ export function parseCompany(v: unknown): CompanyInfo {
     phone: str(o.phone, DEFAULT_COMPANY.phone),
     email: str(o.email, DEFAULT_COMPANY.email),
     address: str(o.address, DEFAULT_COMPANY.address),
+    logo: parseLogo(o.logo),
   };
+}
+
+function parseLogo(v: unknown): LogoFile | null {
+  const l = v as Partial<LogoFile> | null | undefined;
+  if (!l || typeof l.path !== "string" || !l.path || l.path.includes("..")) return null;
+  const w = Number(l.width);
+  const h = Number(l.height);
+  return { path: l.path, width: w > 0 ? w : 1, height: h > 0 ? h : 1 };
 }
 
 export function parsePayment(v: unknown): PaymentInfo {

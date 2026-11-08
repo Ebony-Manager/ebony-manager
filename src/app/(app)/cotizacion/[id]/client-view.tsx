@@ -91,8 +91,15 @@ export function ClientView({
       <article className="mx-auto w-full max-w-[860px] rounded-lg border border-border bg-card px-5 py-7 sm:px-10 sm:py-10">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1.5">
-            <EbonyLogo variant="wordmark" tone="black" height={34} />
-            <span className="text-[10px] tracking-[0.2em] text-foreground/80">custom woodwork</span>
+            {company.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- el logo subido en Settings, tal cual (SVG o PNG transparente).
+              <img src={photoUrl("branding", company.logo.path)} alt={company.legalName} className="h-14 w-auto max-w-[240px] object-contain object-left" />
+            ) : (
+              <>
+                <EbonyLogo variant="wordmark" tone="black" height={34} />
+                <span className="text-[10px] tracking-[0.2em] text-foreground/80">custom woodwork</span>
+              </>
+            )}
           </div>
           <div className="text-right text-xs leading-relaxed text-foreground/80">
             <p className="font-semibold text-foreground">{company.legalName}</p>

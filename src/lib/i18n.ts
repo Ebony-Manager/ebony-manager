@@ -3697,6 +3697,26 @@ export const strings = {
     },
     add_point: { es: "Agregar punto", en: "Add point" },
     kinds_title: { es: "Tipos de ítem", en: "Item types" },
+    logo_label: { es: "Logo de la cotización", en: "Quote logo" },
+    logo_upload: { es: "Subir logo", en: "Upload logo" },
+    logo_replace: { es: "Cambiar logo", en: "Change logo" },
+    logo_remove: { es: "Volver al de siempre", en: "Use the original" },
+    logo_saved: { es: "Logo guardado", en: "Logo saved" },
+    logo_removed: { es: "Se usa el logo de siempre", en: "Using the original logo" },
+    logo_type: { es: "Sube un PNG, SVG, JPG o WebP.", en: "Upload a PNG, SVG, JPG or WebP." },
+    logo_big: { es: "El archivo pasa de 5 MB.", en: "The file is over 5 MB." },
+    logo_small: {
+      es: "Logo guardado, pero es pequeño: en el PDF puede verse borroso. Mejor un PNG de al menos 1000 px de ancho o un SVG.",
+      en: "Logo saved, but it's small: it may look blurry in the PDF. Better a PNG at least 1000 px wide or an SVG.",
+    },
+    logo_hint_default: {
+      es: "Hoy sale el logo de Ebony que trae la app. Sube el tuyo (PNG con fondo transparente o SVG, exportado desde el .ai) para usarlo en la cotización y su PDF.",
+      en: "The app's built-in Ebony logo is shown today. Upload yours (transparent PNG or SVG, exported from the .ai) to use it on the quote and its PDF.",
+    },
+    logo_hint_custom: {
+      es: "Sale en la cotización para el cliente y en su PDF, tal cual (incluido lo que diga debajo).",
+      en: "Shown on the client quote and its PDF as is (including any text under it).",
+    },
     kinds_hint: {
       es: "La lista del campo «Tipo» de cada ítem (Closet, Cocina…). Es solo una etiqueta: no cambia precios. Si renombras o quitas uno, los ítems que ya lo usan lo conservan.",
       en: "The list for each item's \"Type\" field (Closet, Kitchen…). It's only a label: it doesn't change prices. If you rename or remove one, items already using it keep it.",
