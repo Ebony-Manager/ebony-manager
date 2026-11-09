@@ -48,12 +48,13 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
         </div>
         <div className="flex flex-col gap-1.5 text-muted-foreground">
           <p>
-            Podrá <strong className="text-foreground">consultar</strong> Ebony Manager en tu nombre, con tus mismos permisos ({data.user.email}):
+            Podrá usar Ebony Manager en tu nombre, con tus mismos permisos ({data.user.email}):
           </p>
           <ul className="list-disc space-y-0.5 pl-5">
-            <li>Contratistas: saldos, estados de cuenta, contratos, abonos, préstamos y tarifas.</li>
+            <li>Contratistas: consultar saldos, estados de cuenta, contratos, abonos, préstamos y tarifas.</li>
+            <li>Crear contratos y registrar abonos, siempre mostrándote antes una vista previa para que confirmes.</li>
           </ul>
-          <p>Solo consulta: no puede registrar, cambiar ni borrar nada. Cada consulta queda anotada.</p>
+          <p>No puede borrar nada. Cada consulta y cada cambio quedan anotados.</p>
         </div>
         <form action={decideAuthorization} className="flex gap-2">
           <input type="hidden" name="authorization_id" value={data.authorization_id} />

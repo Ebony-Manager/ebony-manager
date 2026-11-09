@@ -3825,8 +3825,8 @@ export const strings = {
     save: { es: "Guardar", en: "Save" },
     mcp_title: { es: "Conexión para IA (MCP)", en: "AI connection (MCP)" },
     mcp_desc: {
-      es: "Para consultar Ebony Manager desde Claude u otra herramienta de IA, con tu cuenta y tus permisos. Por ahora: Contratistas, solo consulta.",
-      en: "To query Ebony Manager from Claude or another AI tool, with your account and permissions. For now: Contractors, read-only.",
+      es: "Para usar Ebony Manager desde Claude u otra herramienta de IA, con tu cuenta y tus permisos. Por ahora: Contratistas (consultar, crear contratos y registrar abonos, siempre con vista previa).",
+      en: "To use Ebony Manager from Claude or another AI tool, with your account and permissions. For now: Contractors (query, create contracts and record payments, always with a preview).",
     },
     mcp_last: { es: "Última consulta", en: "Last query" },
     mcp_how: {

@@ -76,5 +76,16 @@ Al inactivar o liquidar a un contratista se puede **cerrar su saldo**: se repart
 - Para "¿por qué tiene ese saldo?": separa lo ganado (trabajo/extra/bono), lo entregado (pagos/adelantos) y los descuentos (cuotas, material, daños), y cuadra.
 - Para un contrato: valor, abonado, falta por pagar, retenido (si es pintor) y qué se puede pagar hoy.
 - Si algo no cuadra o no tienes el dato, dilo. No inventes movimientos.
-- Esta conexión es **solo de consulta**: para registrar pagos, contratos o ajustes, la persona lo hace en la app (Pagos → Contratistas o la ficha del contratista).
+- Por esta conexión se puede **crear un contrato** (crear_contrato) y **registrar un abono** (registrar_abono), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (préstamos, ajustes, cierres de quincena, editar o borrar) se hace en la app.
+
+## Crear un contrato desde una foto o un plano
+
+1. Identifica al contratista y el proyecto (pregunta si no está claro) y busca sus tarifas con tarifas_mano_de_obra (las del tipo del contratista: ebanista o pintor).
+2. Saca de la imagen cada pieza con sus medidas y conviértelas a la unidad de la tarifa: **m²** = ancho × alto en metros; **ML** = metros lineales; **unidad** = cantidad de piezas. En ebanistas, el armado y la instalación son tarifas distintas (fase).
+3. Si una medida no se lee, es ambigua o no hay una tarifa que corresponda, **pregunta**; no la inventes.
+4. Pide la vista previa, muéstrasela a la persona (piezas, cantidades, precios y total) y confirma solo si dice que sí.
+
+## Registrar un abono
+
+Indica cuánto va a cada contrato (no puede pasar de lo que se puede pagar hoy, por la retención de pintores). La vista previa dice cuánto se descuenta de lo que está a cuenta y cuánto se entrega en efectivo: explícaselo a la persona antes de confirmar.
 `;
