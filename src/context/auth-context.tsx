@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { isDifferentAccount } from "@/lib/auth/session-events";
 import { hasModule, type AppModule, type AppRole } from "@/lib/auth/modules";
 
 // Shape the app UI (UserMenu, Login) consumes. Derived from the Supabase
@@ -99,9 +100,14 @@ export function AuthProvider({
         return;
       }
       if (session?.user) {
-        setUser(toEbonyUser(session.user, seedRef.current));
-        // Role/modules are authoritative from the server — refresh so the (app)
-        // layout re-reads the profile and re-seeds it through props.
+        // Supabase lanza SIGNED_IN cada vez que una pestaña se carga o vuelve a
+        // estar visible, y lo reenvía a todas las pestañas: con la misma cuenta
+        // no hay nada que actualizar (recargar aquí hacía parpadear y recargar
+        // completas todas las pestañas abiertas). Solo si entró otra cuenta,
+        // se pide el perfil al servidor (rol/módulos mandan desde allá).
+        const changed = isDifferentAccount(seedRef.current?.email, session.user.email);
+        if (!changed) return;
+        setUser(toEbonyUser(session.user, null));
         if (event === "SIGNED_IN") router.refresh();
       }
     });
