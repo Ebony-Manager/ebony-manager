@@ -24,7 +24,14 @@ describe("app entry", () => {
     getProfile.mockResolvedValue(profile);
     await expect(RootPage()).rejects.toThrow("redirect:/dashboard");
     expect(requireProfile).toHaveBeenCalledOnce();
-    await expect(LoginPage()).rejects.toThrow("redirect:/dashboard");
+    await expect(LoginPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("redirect:/dashboard");
+  });
+
+  it("login with ?next= returns there (e.g. authorizing an AI tool), only internal paths", async () => {
+    const profile = { role: "admin", modules: [] };
+    getProfile.mockResolvedValue(profile);
+    await expect(LoginPage({ searchParams: Promise.resolve({ next: "/oauth/consent?authorization_id=x" }) })).rejects.toThrow("redirect:/oauth/consent?authorization_id=x");
+    await expect(LoginPage({ searchParams: Promise.resolve({ next: "//evil.com" }) })).rejects.toThrow("redirect:/dashboard");
   });
   it("still requires authentication before opening Dashboard", async () => {
     requireProfile.mockImplementation(() => redirect("/login"));

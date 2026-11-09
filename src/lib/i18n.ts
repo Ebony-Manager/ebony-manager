@@ -3823,6 +3823,18 @@ export const strings = {
     },
     cancel: { es: "Cancelar", en: "Cancel" },
     save: { es: "Guardar", en: "Save" },
+    mcp_title: { es: "Conexión para IA (MCP)", en: "AI connection (MCP)" },
+    mcp_desc: {
+      es: "Para consultar Ebony Manager desde Claude u otra herramienta de IA, con tu cuenta y tus permisos. Por ahora: Contratistas, solo consulta.",
+      en: "To query Ebony Manager from Claude or another AI tool, with your account and permissions. For now: Contractors, read-only.",
+    },
+    mcp_last: { es: "Última consulta", en: "Last query" },
+    mcp_how: {
+      es: "En Claude: Configuración → Conectores → Agregar conector personalizado → pega esta dirección → inicia sesión con Google y autoriza.",
+      en: "In Claude: Settings → Connectors → Add custom connector → paste this address → sign in with Google and authorize.",
+    },
+    copy: { es: "Copiar", en: "Copy" },
+    copied: { es: "Copiado", en: "Copied" },
     login_title: { es: "Inicio de sesión con Google", en: "Google sign-in" },
     login_desc: {
       es: "Cómo entra todo el mundo a la app. Se configura en Supabase (Authentication → Providers → Google) y en Google Cloud.",

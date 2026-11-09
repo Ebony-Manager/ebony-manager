@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createTokenClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
+import { currentAccessToken } from "./request-token";
 
 /**
  * Supabase client for Server Components / Route Handlers / Server Actions.
@@ -13,6 +15,14 @@ import type { Database } from "@/types/database";
  * cookies) rather than a Route Handler / Server Action.
  */
 export async function createClient() {
+  // Dentro del MCP (ver request-token.ts): con el token de la IA, sin cookies.
+  const token = currentAccessToken();
+  if (token) {
+    return createTokenClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    }) as unknown as ReturnType<typeof createServerClient<Database>>;
+  }
   const cookieStore = await cookies();
 
   return createServerClient<Database>(

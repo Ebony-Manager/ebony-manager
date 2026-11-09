@@ -6,7 +6,10 @@ import type { Database } from "@/types/database";
 // /api/jotform: el webhook de JotForm, sin sesión (se autentica con su token).
 // /api/almacen/resumen-diario: el cron de Vercel, sin sesión (se autentica con
 // CRON_SECRET; sin él la ruta pide admin).
-const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check", "/api/jotform", "/api/almacen/resumen-diario"];
+// /api/mcp y /.well-known: el MCP para herramientas de IA (se autentica con su
+// token OAuth, sin cookies). /oauth: la pantalla de autorización (si no hay
+// sesión, ella misma manda a /login y vuelve).
+const PUBLIC_PREFIXES = ["/login", "/auth", "/style-check", "/api/jotform", "/api/almacen/resumen-diario", "/api/mcp", "/.well-known", "/oauth"];
 
 /**
  * Runs on every request (see proxy.ts). Two jobs:

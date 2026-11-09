@@ -9,9 +9,12 @@ import { LoginForm } from "./login-form";
  * A session without a profile (removed from Usuarios) gets the form, so it
  * can switch to another account. proxy.ts lets /login through.
  */
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  // `?next=`: volver ahí después de entrar (ej. autorizar una herramienta de IA). Solo rutas internas.
+  const { next } = await searchParams;
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   const profile = await getProfile();
-  if (profile) redirect(homePathFor());
+  if (profile) redirect(safeNext ?? homePathFor());
 
-  return <LoginForm />;
+  return <LoginForm next={safeNext} />;
 }

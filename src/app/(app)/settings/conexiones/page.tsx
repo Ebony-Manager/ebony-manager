@@ -1,6 +1,14 @@
 import { requireAdmin } from "@/lib/auth/dal";
 import { driveEnabled } from "@/lib/google/drive";
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+
+async function siteOrigin() {
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (env) return env.replace(/\/$/, "");
+  const h = await headers();
+  return `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+}
 import { alegraConfigured } from "@/lib/alegra/api";
 import { getAlegraConfig } from "@/services/alegra";
 import { ConexionesClient, type ConnectionsData } from "./conexiones-client";
@@ -32,6 +40,7 @@ export default async function ConexionesPage() {
       alegra: alegraConfigured(),
     },
     alegraConfig,
+    mcpUrl: `${await siteOrigin()}/api/mcp`,
     missingTable: !!runs.error,
   };
   return <ConexionesClient data={data} />;

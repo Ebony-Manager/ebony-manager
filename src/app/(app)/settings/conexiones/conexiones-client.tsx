@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EbonyMark } from "@/components/brand/ebony-logo";
 import {
   FeriadosLogo,
   GoogleDriveLogo,
@@ -57,6 +58,8 @@ export interface ConnectionsData {
   };
   /** Producto/servicio e impuesto de Alegra elegidos (null = falta elegir). */
   alegraConfig: AlegraConfig | null;
+  /** Dirección del MCP de la app (para conectar Claude u otra IA). */
+  mcpUrl: string;
   /** La tabla del registro todavía no existe (migración pendiente). */
   missingTable: boolean;
 }
@@ -341,6 +344,32 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
             enabled={data.env.alegra}
             tc={tc}
           />
+        </Card>
+
+        <Card
+          logo={<EbonyMark size={22} />}
+          title={tc("mcp_title")}
+          desc={tc("mcp_desc")}
+          envVars={[]}
+          configured
+          health={failing(r["mcp"]) ? "error" : r["mcp"]?.last_ok_at ? "ok" : "unknown"}
+          tc={tc}
+        >
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1 text-xs">{data.mcpUrl}</code>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void navigator.clipboard.writeText(data.mcpUrl).then(() => toast.success(tc("copied")));
+              }}
+            >
+              {tc("copy")}
+            </Button>
+          </div>
+          <Fact label={tc("mcp_last")} value={r["mcp"]?.last_ok_at ? `${ago(r["mcp"].last_ok_at)}${r["mcp"].last_detail ? ` · ${r["mcp"].last_detail}` : ""}` : tc("never")} />
+          {failing(r["mcp"]) && <ErrorLine run={r["mcp"]!} when={when} />}
+          <p className="text-xs text-muted-foreground">{tc("mcp_how")}</p>
         </Card>
 
         <Card

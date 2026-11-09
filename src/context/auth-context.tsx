@@ -31,7 +31,8 @@ interface AuthContextValue {
   /** Si el usuario puede abrir un módulo (el admin, todos). Solo para mostrar/ocultar: el gate real es del servidor. */
   can: (module: AppModule) => boolean;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  /** `next`: a dónde volver después (ruta interna, ej. la pantalla de autorización de una herramienta de IA). */
+  signInWithGoogle: (next?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -108,12 +109,13 @@ export function AuthProvider({
     return () => subscription.unsubscribe();
   }, [supabase, router]);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (next?: string) => {
     setLoading(true);
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
         queryParams: { prompt: "select_account" },
       },
     });
