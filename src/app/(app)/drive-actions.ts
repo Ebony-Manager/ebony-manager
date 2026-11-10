@@ -17,6 +17,8 @@ import {
   trashItem,
   type DriveItem,
 } from "@/lib/google/drive";
+import { placeProjectFolder, stageFolder } from "@/lib/google/drive-stages";
+import { stageForProject } from "@/lib/google/stage-rules";
 
 // Archivos de Drive (oportunidades de Ventas y proyectos). Ver lib/google/drive.ts.
 
@@ -101,7 +103,8 @@ export async function ensureOpportunityFolderAction(id: string): Promise<DriveRe
       // "MM Interiores - The Colonial 23C": la firma (o el cliente) y el proyecto.
       const who = nameOf(opp.designer_id) ?? nameOf(opp.client_id);
       const what = opp.title?.trim() || opp.location?.trim() || null;
-      folderId = await createFolder([who, what].filter(Boolean).join(" - ") || "Oportunidad", root());
+      root();
+      folderId = await createFolder([who, what].filter(Boolean).join(" - ") || "Oportunidad", await stageFolder("OPORTUNIDADES"));
     }
     if (folderId !== opp.drive_folder_id) {
       const { error: saveError } = await supabase
@@ -121,11 +124,15 @@ export async function ensureProjectFolderAction(id: string): Promise<DriveResult
   await requireAnyModule(...VIEWERS);
   return run(async () => {
     const supabase = await createClient();
-    const { data: project, error } = await supabase.from("projects").select("id, name, drive_folder_id").eq("id", id).single();
+    const { data: project, error } = await supabase.from("projects").select("id, name, status, drive_folder_id").eq("id", id).single();
     if (error) throw new Error(error.message);
     let folderId = project.drive_folder_id;
-    if (!folderId) {
-      const created = await createFolder(project.name, root());
+    if (folderId) {
+      // Si quedó en otra etapa (ej. Drive falló al cambiar el estado), se acomoda ahora.
+      await placeProjectFolder(folderId, project.status);
+    } else {
+      root();
+      const created = await createFolder(project.name, await stageFolder(stageForProject(project.status)));
       const { data: saved, error: saveError } = await supabase.rpc("set_project_drive_folder", { p_id: id, p_folder_id: created });
       if (saveError) throw new Error(saveError.message);
       folderId = (saved as string | null) ?? created;

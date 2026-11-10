@@ -260,6 +260,37 @@ export async function startUpload(parentId: string, name: string, mimeType: stri
   return location;
 }
 
+/** Carpetas (no borradas) con ese nombre exacto en las unidades que ve la cuenta, con su carpeta madre. */
+export async function findFoldersByName(name: string): Promise<{ id: string; parents: string[] }[]> {
+  const params = new URLSearchParams({
+    q: `name = '${name.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}' and mimeType = '${FOLDER_MIME}' and trashed = false`,
+    fields: "files(id,parents)",
+    pageSize: "20",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
+    corpora: "allDrives",
+  });
+  const json = (await (await driveFetch(`${API}/files?${params}`)).json()) as { files: { id: string; parents?: string[] }[] };
+  return json.files.map((f) => ({ id: f.id, parents: f.parents ?? [] }));
+}
+
+/** Las carpetas madre de un archivo o carpeta. */
+export async function getParents(id: string): Promise<string[]> {
+  const res = await driveFetch(`${API}/files/${encodeURIComponent(id)}?fields=parents&${ALL_DRIVES}`);
+  return ((await res.json()) as { parents?: string[] }).parents ?? [];
+}
+
+/** Mueve un archivo o carpeta (su id y su enlace no cambian). */
+export async function moveItem(id: string, from: string[], to: string): Promise<void> {
+  const params = new URLSearchParams({ addParents: to, fields: "id", supportsAllDrives: "true" });
+  if (from.length) params.set("removeParents", from.join(","));
+  await driveFetch(`${API}/files/${encodeURIComponent(id)}?${params}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+}
+
 export const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${id}`;
 
 /** Donde cae lo que manda el cliente (planos, diseño): se crea con la oportunidad. */

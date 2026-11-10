@@ -2,18 +2,25 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { PROJECT_SUBFOLDERS, driveEnabled, ensureSubfolders, trashItem } from "@/lib/google/drive";
+import { placeProjectFolder } from "@/lib/google/drive-stages";
 
 // Lo que hace Drive cuando Ventas aprueba o pierde una oportunidad. Lo llaman
 // las acciones de Ventas (que ya piden el permiso); no es una acción suelta.
 
 
-/** Al aprobar: la carpeta de la oportunidad recibe las subcarpetas del proyecto. Si falla, no frena la aprobación. */
+/** Al aprobar: la carpeta de la oportunidad recibe las subcarpetas del proyecto y pasa a ACTIVOS. Si falla, no frena la aprobación. */
 export async function addProjectSubfolders(opportunityId: string): Promise<void> {
   if (!driveEnabled()) return;
   try {
     const supabase = await createClient();
-    const { data } = await supabase.from("sales_opportunities").select("drive_folder_id").eq("id", opportunityId).maybeSingle();
-    if (data?.drive_folder_id) await ensureSubfolders(data.drive_folder_id, PROJECT_SUBFOLDERS);
+    const { data } = await supabase.from("sales_opportunities").select("drive_folder_id, project_id").eq("id", opportunityId).maybeSingle();
+    if (!data?.drive_folder_id) return;
+    await ensureSubfolders(data.drive_folder_id, PROJECT_SUBFOLDERS);
+    // Ya es proyecto: de OPORTUNIDADES a ACTIVOS (o TERMINADOS si se aprobó sobre uno terminado).
+    const { data: project } = data.project_id
+      ? await supabase.from("projects").select("status").eq("id", data.project_id).maybeSingle()
+      : { data: null };
+    await placeProjectFolder(data.drive_folder_id, project?.status);
   } catch (err) {
     console.error("Drive: no se pudieron crear las subcarpetas del proyecto", err);
   }

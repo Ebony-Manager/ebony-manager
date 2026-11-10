@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as contractors from "@/services/contractors";
+import { syncProjectFolder } from "@/lib/google/drive-stages";
 
 // Contratistas es para quien tiene el módulo `contratistas` (el admin
 // siempre): cada action verifica `requireModule("contratistas")` al entrar
@@ -61,6 +62,8 @@ export async function createProjectAction(input: contractors.CreateProjectInput)
 export async function updateProjectAction(id: string, input: contractors.UpdateProjectInput) {
   await requireAnyModule("proyectos", "contratistas");
   const project = await contractors.updateProject(id, input);
+  // Terminado ↔ activo: su carpeta de Drive pasa a TERMINADOS o vuelve a ACTIVOS.
+  if (input.status !== undefined) await syncProjectFolder(id);
   revalidateContractors();
   return project;
 }
