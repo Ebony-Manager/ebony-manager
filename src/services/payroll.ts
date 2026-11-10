@@ -56,6 +56,10 @@ import {
   type SalaryChange,
 } from "@/lib/planilla/salary-history";
 import { getPayrollEmployee, getPayrollEmployees } from "@/services/payroll-employees";
+import * as attendance from "@/services/attendance";
+import { getConfirmedHolidays } from "@/services/holidays";
+import { buildProposal, periodDateRange, type ProposalEmployee } from "@/lib/attendance/proposal";
+import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { getAllSalaryChanges, getSalaryChanges, toSalaryChanges } from "@/services/payroll-salary";
 
 /** ¿Hay historial de sueldo vigente para esta quincena? Sí si la
@@ -516,7 +520,12 @@ export async function getAnnualSummary(year: number): Promise<PayrollEmployeeAnn
 }
 
 /** Lo descontado por asistencia en cada quincena del año, por empleado
- *  (para el Resumen de asistencia: quién falta más, quién llega tarde). */
+ *  (para el Resumen de asistencia: quién falta más, quién llega tarde).
+ *
+ *  Una quincena ya empezada que todavía no se pasó a la planilla (todas sus
+ *  filas sin horas ni días descontados) se cuenta con lo que dicen las
+ *  ponchadas, igual que Pagos → Asistencia: así el Resumen no sale vacío
+ *  mientras la quincena está en curso. */
 export async function getAttendanceSummary(year: number): Promise<{ employees: AttendanceEmployee[]; rows: AttendancePeriodRow[] }> {
   const supabase = await createClient();
   const [emps, entries] = await Promise.all([
@@ -527,16 +536,62 @@ export async function getAttendanceSummary(year: number): Promise<{ employees: A
       .eq("period_year", year),
   ]);
   if (entries.error) throw new Error(entries.error.message);
+  const rows: AttendancePeriodRow[] = (entries.data ?? []).map((r) => ({
+    employeeId: r.employee_id,
+    month: r.period_month,
+    half: r.period_half as 1 | 2,
+    hours: Number(r.horas_descontadas ?? 0),
+    days: Number(r.dias_descontados ?? 0),
+    cents: (r.horas_descontadas_cents ?? 0) + (r.dias_descontados_cents ?? 0),
+  }));
+
+  // Quincenas empezadas y sin aplicar: con las ponchadas.
+  const today = todayInPanama();
+  const applied = new Set(rows.filter((r) => r.hours > 0 || r.days > 0).map((r) => `${r.month}-${r.half}`));
+  const pending: { month: number; half: 1 | 2 }[] = [];
+  for (let month = 1; month <= 12; month++)
+    for (const half of [1, 2] as const) {
+      const { from } = periodDateRange(year, month, half);
+      if (from <= today && !applied.has(`${month}-${half}`)) pending.push({ month, half });
+    }
+  // Solo las más recientes (las que pueden estar en curso): las viejas sin descuentos son quincenas limpias.
+  const live = pending.slice(-2);
+  if (live.length > 0) {
+    const proposalEmployees: ProposalEmployee[] = emps.map((e) => ({
+      id: e.id,
+      name: e.name,
+      status: e.status,
+      categoria: e.categoria,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      monthlySalaryCents: 0,
+    }));
+    const links = new Map(Object.entries(await attendance.getNameLinks()));
+    for (const { month, half } of live) {
+      const range = periodDateRange(year, month, half);
+      const [punches, resolutions, holidays] = await Promise.all([
+        attendance.getPunches(range.from, range.to),
+        attendance.getResolutions(range.from, range.to),
+        getConfirmedHolidays(range.from, range.to),
+      ]);
+      if (punches.length === 0) continue;
+      const { proposals } = buildProposal({ from: range.from, to: range.to, punches, employees: proposalEmployees, links, resolutions, holidays, today });
+      const liveRows = proposals.map((p) => ({
+        employeeId: p.employeeId,
+        month,
+        half,
+        hours: p.suggested.horasDescontadas,
+        days: p.absentWeekdays + p.absentSaturdays,
+        cents: 0,
+      }));
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].month === month && rows[i].half === half) rows.splice(i, 1);
+      rows.push(...liveRows);
+    }
+  }
+
   return {
     employees: emps.map((e) => ({ id: e.id, name: e.name, categoria: e.categoria, active: e.status === "ACTIVE", sortOrder: e.sortOrder })),
-    rows: (entries.data ?? []).map((r) => ({
-      employeeId: r.employee_id,
-      month: r.period_month,
-      half: r.period_half as 1 | 2,
-      hours: Number(r.horas_descontadas ?? 0),
-      days: Number(r.dias_descontados ?? 0),
-      cents: (r.horas_descontadas_cents ?? 0) + (r.dias_descontados_cents ?? 0),
-    })),
+    rows,
   };
 }
 
