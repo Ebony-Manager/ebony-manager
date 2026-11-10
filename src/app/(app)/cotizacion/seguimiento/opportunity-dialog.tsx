@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderKanban, FolderOpen, MapPin, Paperclip, Users, Waypoints } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ import {
 import { ClientPicker, StageBadge, StageLabel, useTv } from "../ventas-common";
 import { ClientDialog } from "../clientes/client-dialog";
 import { cn } from "@/lib/utils";
+import { FormSection, WithIcon } from "@/components/shared/form-section";
 import { DriveFiles, PendingFiles, uploadFilesToDrive } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
 
@@ -207,8 +208,9 @@ export function OpportunityDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-5">
+          <FormSection icon={Users} title={tv("sec_who")} note={!form.designerId && !form.clientId ? tv("f_someone_hint") : undefined}>
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label={tv("f_designer")}>
               <ClientPicker
                 clients={allClients}
@@ -235,7 +237,7 @@ export function OpportunityDialog({
                 </Select>
               )}
             </Field>
-            <Field label={tv("f_client")} hint={!form.designerId && !form.clientId ? tv("f_someone_hint") : undefined}>
+            <Field label={tv("f_client")}>
               <ClientPicker
                 clients={allClients}
                 kind="cliente"
@@ -246,15 +248,24 @@ export function OpportunityDialog({
                 placeholder={tv("pick_client")}
               />
             </Field>
-            <Field label={tv("f_project")}>
+          </div>
+          </FormSection>
+
+          <FormSection icon={FolderKanban} title={tv("sec_project")}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={tv("f_project_name")}>
               <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={tv("f_project_ph")} />
             </Field>
-            <Field label={tv("f_location")}>
-              <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder={tv("optional")} />
+            <Field label={tv("f_location")} optional={tv("optional_lc")}>
+              <WithIcon icon={MapPin}>
+                <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+              </WithIcon>
             </Field>
           </div>
+          </FormSection>
 
-          <div className={cn("grid gap-4", fromQuote ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+          <FormSection icon={Waypoints} title={tv("sec_tracking")} quiet>
+          <div className={cn("grid grid-cols-2 gap-3", fromQuote && "sm:grid-cols-3")}>
             <Field label={tv("f_stage")}>
               <Select value={form.stage} onValueChange={(v) => set("stage", v as Stage)} disabled={form.stage === "aprobada"}>
                 <SelectTrigger className="w-full">
@@ -315,7 +326,7 @@ export function OpportunityDialog({
             </div>
           )}
 
-          <div className={cn("grid gap-4", showFollowUp ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+          <div className={cn("grid grid-cols-2 gap-3", showFollowUp && "sm:grid-cols-3")}>
             <Field label={tv("f_received")}>
               <Input type="date" value={form.receivedOn} onChange={(e) => set("receivedOn", e.target.value)} />
             </Field>
@@ -328,6 +339,8 @@ export function OpportunityDialog({
               </Field>
             )}
           </div>
+
+          </FormSection>
 
           {!driveEnabled && (
           <Field label={tv("f_drive")}>
@@ -344,15 +357,12 @@ export function OpportunityDialog({
           </Field>
           )}
 
-          <Field label={tv("f_notes")}>
-            <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("optional")} />
-          </Field>
+          <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("notes_ph")} aria-label={tv("f_notes")} />
 
           {!existing && driveEnabled && (
-            <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-foreground">{t(lang, strings.drive.title)}</h3>
+            <FormSection icon={Paperclip} title={t(lang, strings.drive.title)} note={tv("optional_lc")}>
               <PendingFiles files={pending} onChange={setPending} disabled={saving} />
-            </section>
+            </FormSection>
           )}
 
           {existing && (
