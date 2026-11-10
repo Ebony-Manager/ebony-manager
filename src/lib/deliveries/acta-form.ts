@@ -117,6 +117,15 @@ const clean = (s: string) =>
 /** Cualquier respuesta a texto: nombre completo, dirección, listas, tablas. */
 export function answerText(v: unknown): string {
   if (v === null || v === undefined) return "";
+  // Lista configurable de JotForm: llega como texto JSON `[{"Item(s)":"Cocina"},…]` → una línea por fila.
+  if (typeof v === "string" && /^\s*\[\s*\{/.test(v)) {
+    try {
+      const rows = JSON.parse(v) as unknown;
+      if (Array.isArray(rows)) return rows.map(answerText).filter(Boolean).join("\n");
+    } catch {
+      // no era JSON: va como texto
+    }
+  }
   if (typeof v === "string" || typeof v === "number") return clean(String(v));
   if (Array.isArray(v)) return v.map(answerText).filter(Boolean).join("\n");
   if (typeof v === "object") {

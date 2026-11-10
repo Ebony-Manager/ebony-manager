@@ -41,6 +41,11 @@ describe("Acta de entrega · JotForm", () => {
     expect(fromRaw).toMatchObject({ projectName: "PH Vitri 44A", items: "Closet\nCocina" });
   });
 
+  it("la lista de ítems (JSON de JotForm) queda una por línea", () => {
+    const acta = normalizeActa(actaAnswersFromRaw({ q3_nombreProyecto: "X", q8_itemsEntregados: '[{"Item(s)":"Cocina"},{"Item(s)":"Closet"}]' }));
+    expect(acta.items).toBe("Cocina\nCloset");
+  });
+
   it("fechas en los formatos de JotForm", () => {
     expect(answerDate("11-10-2026")).toBe("2026-11-10");
     expect(answerDate("2026-11-10 08:00")).toBe("2026-11-10");
