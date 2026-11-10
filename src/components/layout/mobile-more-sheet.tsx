@@ -13,7 +13,8 @@ import { PendingBadge } from "@/components/shared/pending-badge";
 import type { LucideIcon } from "lucide-react";
 import { orderNavigation, RAIL_ITEMS, ALMACEN_PANEL, PERSONAL_PANEL, SETTINGS_PANEL, canSeeNavItem, isNavItemActive, panelHome, type NavItem } from "./nav-items";
 import type { PendingCounts } from "./sidebar";
-import { shareLink, visibleQuickLinks } from "./quick-links";
+import { shareLink, visibleQuickLinks, type QuickLink } from "./quick-links";
+import { ProjectFormPicker } from "./project-form-picker";
 
 const THEMES: { value: ThemePref; icon: typeof Sun; label: keyof typeof strings.nav }[] = [
   { value: "light", icon: Sun, label: "theme_light" },
@@ -56,6 +57,8 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const access = { role, modules };
   // Cerrar sesión pide un segundo toque (está al alcance del dedo al abrir el menú).
   const [armSignOut, setArmSignOut] = React.useState(false);
+  const [picking, setPicking] = React.useState<QuickLink | null>(null);
+  const closePicker = React.useCallback(() => setPicking(null), []);
   React.useEffect(() => {
     if (!armSignOut) return;
     const id = window.setTimeout(() => setArmSignOut(false), 4000);
@@ -95,9 +98,11 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
   const forms = visibleQuickLinks(access);
 
   return (
-    // Cerrado queda invisible (después de la animación): el Safari del iPhone
-    // toma el color de lo que está fijo arriba para pintar la barra de estado,
-    // y un velo transparente pero presente la dejaba gris.
+    <>
+    <ProjectFormPicker kind={picking?.kind ?? null} title={picking ? t(lang, picking.label) : ""} onClose={closePicker} />
+    {/* Cerrado queda invisible (después de la animación): el Safari del iPhone
+        toma el color de lo que está fijo arriba para pintar la barra de estado,
+        y un velo transparente pero presente la dejaba gris. */}
     <div
       className={`fixed inset-0 z-40 transition-[visibility] duration-200 md:hidden ${open ? "visible" : "pointer-events-none invisible"}`}
       aria-hidden={!open}
@@ -180,6 +185,20 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
                       {f.action === "share" && <Share2 size={15} className="shrink-0 text-muted-foreground" />}
                     </>
                   );
+                  if (f.action === "project")
+                    return (
+                      <button
+                        key={f.key}
+                        type="button"
+                        className={cls}
+                        onClick={() => {
+                          close();
+                          setPicking(f);
+                        }}
+                      >
+                        {body}
+                      </button>
+                    );
                   return f.action === "share" ? (
                     <button
                       key={f.key}
@@ -275,5 +294,6 @@ export function MobileMoreSheet({ open, onClose, pending }: { open: boolean; onC
         </div>
       </div>
     </div>
+    </>
   );
 }

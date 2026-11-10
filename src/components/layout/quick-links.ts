@@ -1,6 +1,7 @@
 import { PaintBucket, Package, UserPlus, type LucideIcon } from "lucide-react";
 import { strings } from "@/lib/i18n";
 import { hasExplicitModule, type AccessSubject, type AppModule } from "@/lib/auth/modules";
+import type { DeliveryKind } from "@/lib/deliveries/acta-form";
 
 /**
  * Accesos rápidos a formularios de JotForm: botones en «Más» (celular) y en
@@ -8,7 +9,8 @@ import { hasExplicitModule, type AccessSubject, type AppModule } from "@/lib/aut
  * permiso (grupo «Accesos rápidos» en Settings → Usuarios; a elección, ni el
  * admin los tiene si no se los marcan). `open` abre el
  * formulario; `share` manda el enlace (menú de compartir del teléfono, o
- * copiarlo si no hay).
+ * copiarlo si no hay); `project` pide escoger el proyecto y abre el
+ * formulario con su nombre puesto (las autorizaciones caen en ese proyecto).
  */
 export interface QuickLink {
   key: string;
@@ -16,13 +18,15 @@ export interface QuickLink {
   icon: LucideIcon;
   label: (typeof strings.nav)[keyof typeof strings.nav];
   module: AppModule;
-  action: "open" | "share";
+  action: "open" | "share" | "project";
+  /** Con `project`: qué formulario es (pintura / embalaje). */
+  kind?: DeliveryKind;
 }
 
 export const QUICK_LINKS: QuickLink[] = [
   // Jefa de taller: autorizaciones (formularios firmados en JotForm).
-  { key: "auth-pintura", href: "https://form.jotform.com/251893102532149", icon: PaintBucket, label: strings.nav.form_pintura, module: "form_autorizaciones", action: "open" },
-  { key: "auth-embalaje", href: "https://form.jotform.com/252224493029859", icon: Package, label: strings.nav.form_embalaje, module: "form_autorizaciones", action: "open" },
+  { key: "auth-pintura", href: "https://form.jotform.com/251893102532149", icon: PaintBucket, label: strings.nav.form_pintura, module: "form_autorizaciones", action: "project", kind: "pintura" },
+  { key: "auth-embalaje", href: "https://form.jotform.com/252224493029859", icon: Package, label: strings.nav.form_embalaje, module: "form_autorizaciones", action: "project", kind: "embalaje" },
   // «Registro Empleado»: llega a Personal → Nuevos registros (webhook).
   { key: "registro", href: "https://form.jotform.com/232606019835052", icon: UserPlus, label: strings.nav.form_registro, module: "form_registro", action: "share" },
 ];

@@ -57,6 +57,14 @@ export const strings = {
     asistencia: { es: "Asistencia", en: "Attendance" },
     forms: { es: "Formularios", en: "Forms" },
     form_pintura: { es: "Autorización a Pintura", en: "Painting authorization" },
+    form_pick_project: { es: "¿De qué proyecto?", en: "Which project?" },
+    form_pick_project_hint: {
+      es: "El formulario abre con el proyecto puesto y, al enviarlo, la autorización queda en ese proyecto.",
+      en: "The form opens with the project filled in, and once sent the authorization is saved to that project.",
+    },
+    form_pick_search: { es: "Buscar proyecto…", en: "Search project…" },
+    form_pick_none: { es: "No hay proyectos activos con ese nombre.", en: "No active projects match." },
+    form_pick_loading: { es: "Cargando proyectos…", en: "Loading projects…" },
     form_embalaje: { es: "Autorización a Embalaje", en: "Packing authorization" },
     form_registro: { es: "Registro de empleado", en: "Employee registration" },
     form_registro_share_text: {

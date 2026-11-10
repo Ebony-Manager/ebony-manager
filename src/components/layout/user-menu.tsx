@@ -8,7 +8,8 @@ import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/language-context";
 import { useTheme, type ThemePref } from "@/context/theme-context";
 import { t, strings } from "@/lib/i18n";
-import { shareLink, visibleQuickLinks } from "./quick-links";
+import { shareLink, visibleQuickLinks, type QuickLink } from "./quick-links";
+import { ProjectFormPicker } from "./project-form-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,12 +39,16 @@ export function UserMenu() {
   const { theme, setTheme } = useTheme();
   // Cerrar sesión: el primer toque pregunta (el menú sigue abierto), el segundo sale.
   const [armSignOut, setArmSignOut] = React.useState(false);
+  const [picking, setPicking] = React.useState<QuickLink | null>(null);
+  const closePicker = React.useCallback(() => setPicking(null), []);
   if (!user) return null;
 
   const initial = user.name?.[0]?.toUpperCase();
   const roleLabel = role ? t(lang, role === "admin" ? strings.usuarios.role_admin : strings.usuarios.role_user) : null;
 
   return (
+    <>
+    <ProjectFormPicker kind={picking?.kind ?? null} title={picking ? t(lang, picking.label) : ""} onClose={closePicker} />
     <DropdownMenu onOpenChange={(o) => !o && setArmSignOut(false)}>
       <DropdownMenuTrigger asChild>
         <button
@@ -82,6 +87,13 @@ export function UserMenu() {
             <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(lang, strings.nav.forms)}</DropdownMenuLabel>
             {visibleQuickLinks({ role, modules }).map((f) => {
               const Icon = f.icon;
+              if (f.action === "project")
+                return (
+                  <DropdownMenuItem key={f.key} onSelect={() => setPicking(f)}>
+                    <Icon className="size-3.5" />
+                    {t(lang, f.label)}
+                  </DropdownMenuItem>
+                );
               return f.action === "share" ? (
                 <DropdownMenuItem
                   key={f.key}
@@ -146,5 +158,6 @@ export function UserMenu() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 }

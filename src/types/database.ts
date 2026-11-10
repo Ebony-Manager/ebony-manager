@@ -3759,6 +3759,10 @@ export type Database = {
         Args: { p_contract: string }
         Returns: number
       }
+      active_projects_for_forms: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string }[]
+      }
       ingest_project_delivery: {
         Args: { p_token: string; p_data: Json }
         Returns: Json
