@@ -14,9 +14,12 @@ export function FormSection({
   title,
   note,
   quiet = false,
+  action,
   className,
   children,
 }: {
+  /** Botón a la derecha del título (ej. "Agregar contacto"). */
+  action?: React.ReactNode;
   icon: LucideIcon;
   title: string;
   /** Aclaración corta al lado del título (ej. "al menos uno"). */
@@ -31,6 +34,7 @@ export function FormSection({
         <Icon className={cn("size-4", quiet ? "text-muted-foreground" : "text-primary")} />
         {title}
         {note && <span className="text-xs font-normal text-muted-foreground">· {note}</span>}
+        {action && <span className="ml-auto">{action}</span>}
       </h3>
       {children}
     </section>
@@ -38,9 +42,9 @@ export function FormSection({
 }
 
 /** Un campo de texto con su ícono adentro (ubicación, teléfono, correo…): se reconoce sin leer el título. */
-export function WithIcon({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactElement<{ className?: string }> }) {
+export function WithIcon({ icon: Icon, className, children }: { icon: LucideIcon; className?: string; children: React.ReactElement<{ className?: string }> }) {
   return (
-    <div className="relative">
+    <div className={cn("relative", className)}>
       <Icon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       {React.cloneElement(children, { className: cn(children.props.className, "pl-9") })}
     </div>

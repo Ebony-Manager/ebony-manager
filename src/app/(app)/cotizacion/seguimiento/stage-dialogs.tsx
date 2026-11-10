@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { Folder } from "lucide-react";
+import { WithIcon } from "@/components/shared/form-section";
 
 import { LOST_REASONS, type Client, type LostReason, type Opportunity } from "@/types/ventas";
 import { Button } from "@/components/ui/button";
@@ -68,8 +70,8 @@ export function LostDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label={tv("f_lost_note")}>
-            <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={tv("optional")} />
+          <Field label={tv("f_lost_note")} optional={tv("optional_lc")}>
+            <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
           {opportunity && openQuotes(opportunity.quotes).length > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -220,7 +222,9 @@ export function ApproveDialog({
           )}
           {mode === "new" ? (
             <Field label={tv("f_project")}>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tv("f_project_ph")} />
+              <WithIcon icon={Folder}>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tv("f_project_ph")} />
+              </WithIcon>
             </Field>
           ) : (
             <Field label={tv("f_project")}>

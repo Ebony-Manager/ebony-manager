@@ -3,7 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { UserPlus, X } from "lucide-react";
+import { Building2, FileText, Folder, Mail, Phone, User, UserPlus, Users, Waypoints, X } from "lucide-react";
+
+import { FormSection, WithIcon } from "@/components/shared/form-section";
 
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
@@ -18,7 +20,6 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { whatsappUrl } from "@/lib/almacen/inventory";
 import { clientStats, opportunityAmount, opportunityTitle } from "@/lib/ventas/opportunities";
-import { Field } from "../../contratistas/field";
 import { projectPath } from "../../proyectos/paths";
 import { createClientAction, updateClientAction } from "../ventas-actions";
 import { SEGUIMIENTO_PATH, StageBadge, useTv } from "../ventas-common";
@@ -135,31 +136,36 @@ export function ClientDialog({
             </div>
           )}
 
-          <Field label={tv("f_kind")}>
-            <SegmentedFilter
-              fill
-              value={form.kind}
-              onChange={(v) => set("kind", v)}
-              options={CLIENT_KINDS.map((k) => ({ value: k, label: tv(`kind_${k}`) }))}
-            />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Arquitecto/diseñador: el nombre ES la firma (las personas van en Contactos). */}
-            <Field
-              label={isFirm ? tv("f_firm") : tv("f_name")}
-              hint={isFirm ? tv("f_firm_hint") : undefined}
-              className={isFirm && !form.company ? "sm:col-span-2" : undefined}
-            >
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus={!existing} placeholder={isFirm ? tv("f_firm_ph") : undefined} />
-            </Field>
-            {(!isFirm || form.company) && (
-              <Field label={tv("f_company")}>
-                <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("optional")} />
-              </Field>
-            )}
-            <Field label={tv("f_phone")}>
+          <SegmentedFilter
+            fill
+            value={form.kind}
+            onChange={(v) => set("kind", v)}
+            options={CLIENT_KINDS.map((k) => ({ value: k, label: tv(`kind_${k}`), icon: k === "arquitecto" ? Building2 : User }))}
+          />
+          <FormSection icon={isFirm ? Building2 : User} title={isFirm ? tv("f_firm") : tv("f_name")} note={isFirm ? tv("f_firm_hint_short") : undefined}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Arquitecto/diseñador: el nombre ES la firma (las personas van en Contactos). */}
+              <Input
+                className={isFirm && !form.company ? "sm:col-span-2" : undefined}
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                autoFocus={!existing}
+                placeholder={isFirm ? tv("f_firm_ph") : tv("f_name_ph")}
+                aria-label={isFirm ? tv("f_firm") : tv("f_name")}
+              />
+              {(!isFirm || form.company) && (
+                <WithIcon icon={Building2}>
+                  <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("f_company_ph")} aria-label={tv("f_company")} />
+                </WithIcon>
+              )}
+            </div>
+          </FormSection>
+          <FormSection icon={Phone} title={tv("sec_contact")}>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex gap-2">
-                <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
+                <WithIcon icon={Phone} className="flex-1">
+                  <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />
+                </WithIcon>
                 {wa && (
                   <Button asChild variant="outline" size="icon" className="shrink-0" title={tv("whatsapp_open")} aria-label={tv("whatsapp_open")}>
                     <a href={wa.replace(/\?text=$/, "")} target="_blank" rel="noreferrer">
@@ -168,18 +174,16 @@ export function ClientDialog({
                   </Button>
                 )}
               </div>
-            </Field>
-            <Field label={tv("f_email")}>
-              <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={tv("optional")} />
-            </Field>
-          </div>
+              <WithIcon icon={Mail}>
+                <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={tv("f_email_ph")} aria-label={tv("f_email")} />
+              </WithIcon>
+            </div>
+          </FormSection>
           {form.kind === "arquitecto" && (
-            <section className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{tv("contacts_title")}</h3>
-                  <p className="text-xs text-muted-foreground">{tv("contacts_hint")}</p>
-                </div>
+            <FormSection
+              icon={Users}
+              title={tv("contacts_title")}
+              action={
                 <Button
                   type="button"
                   size="sm"
@@ -189,7 +193,9 @@ export function ClientDialog({
                   <UserPlus className="size-3.5" />
                   {tv("contact_add")}
                 </Button>
-              </div>
+              }
+            >
+              {form.contacts.length === 0 && <p className="-mt-1 text-xs text-muted-foreground">{tv("contacts_hint")}</p>}
               {form.contacts.length > 0 && (
                 <ul className="flex flex-col gap-2">
                   {form.contacts.map((c, i) => {
@@ -228,17 +234,18 @@ export function ClientDialog({
                   })}
                 </ul>
               )}
-            </section>
+            </FormSection>
           )}
 
-          <Field label={tv("f_notes")}>
-            <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("optional")} />
-          </Field>
+          <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("notes_ph")} aria-label={tv("f_notes")} />
           {existing && <ShowToggle checked={form.active} onChange={(v) => set("active", v)} label={tv("f_active")} />}
 
           {stats && (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-foreground">{tv("cli_opps_list")}</h3>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Waypoints className="size-4 text-muted-foreground" />
+                {tv("cli_opps_list")}
+              </h3>
               {stats.opportunities.length === 0 ? (
                 <p className="text-xs text-muted-foreground">{tv("cli_none")}</p>
               ) : (
@@ -265,7 +272,10 @@ export function ClientDialog({
 
           {existing && (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-foreground">{tv("cli_quotes")}</h3>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <FileText className="size-4 text-muted-foreground" />
+                {tv("cli_quotes")}
+              </h3>
               <QuoteRows
                 showWho
                 quotes={quotes.filter((q) => q.designerId === existing.id || q.clientId === existing.id)}
@@ -276,7 +286,10 @@ export function ClientDialog({
 
           {myProjects.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-foreground">{tv("cli_projects")}</h3>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Folder className="size-4 text-muted-foreground" />
+                {tv("cli_projects")}
+              </h3>
               <ul className="flex flex-wrap gap-2">
                 {myProjects.map((p) => (
                   <li key={p.id}>
