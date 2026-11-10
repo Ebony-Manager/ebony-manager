@@ -1018,8 +1018,20 @@ export function QuoteEditor({
                       ? `−${formatMoney(totals.discount)}`
                       : "—"}
                   </dd>
-                  <dt className="text-[11px] text-muted-foreground">
-                    ITBMS {quote.itbmsPct}%
+                  {/* ITBMS editable por cotización (ej. 0% para un cliente exento). */}
+                  <dt className="flex items-center gap-2 text-foreground/80">
+                    ITBMS
+                    <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-1.5 pl-1.5 focus-within:border-ring">
+                      <NumField
+                        value={quote.itbmsPct}
+                        onChange={(n) => setHeader({ itbmsPct: Math.min(100, Math.max(0, n)) })}
+                        locked={false}
+                        suffix="%"
+                        inputWidth={36}
+                        className="h-auto border-0 px-0 focus-within:ring-0"
+                        aria-label="ITBMS"
+                      />
+                    </span>
                   </dt>
                   <dd
                     className={cn(money, "text-[11px] text-muted-foreground")}
