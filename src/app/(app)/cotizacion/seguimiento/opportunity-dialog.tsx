@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderKanban, FolderOpen, MapPin, Paperclip, Users, Waypoints } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, Folder, FolderOpen, MapPin, Paperclip, Users, Waypoints } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -251,7 +251,7 @@ export function OpportunityDialog({
           </div>
           </FormSection>
 
-          <FormSection icon={FolderKanban} title={tv("sec_project")}>
+          <FormSection icon={Folder} title={tv("sec_project")}>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={tv("f_project_name")}>
               <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={tv("f_project_ph")} />

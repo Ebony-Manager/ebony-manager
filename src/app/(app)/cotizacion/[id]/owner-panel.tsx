@@ -6,7 +6,7 @@ import {
   Briefcase,
   Check,
   ChevronDown,
-  FolderKanban,
+  Folder,
   User,
   Waypoints,
 } from "lucide-react";
@@ -161,7 +161,7 @@ export function OwnerPanel({
   const [open, setOpen] = React.useState(!hasOwner);
   if (!open && hasOwner) {
     const kind = quoteOwnerKind(quote);
-    const Icon = kind === "opportunity" ? Waypoints : kind === "project" ? FolderKanban : User;
+    const Icon = kind === "opportunity" ? Waypoints : kind === "project" ? Folder : User;
     const label = kind === "opportunity" ? tt("own_opportunity") : kind === "project" ? tt("own_project") : tt("own_client");
     const who = [nameOf(quote.designerId) + (contactName ? ` (${contactName})` : ""), nameOf(quote.clientId)].filter(Boolean).join(" · ");
     // Un chip más del encabezado; al tocarlo se abre para cambiarlo.
@@ -206,7 +206,7 @@ export function OwnerPanel({
               label: tt("own_opportunity"),
               icon: Waypoints,
             },
-            { value: "project", label: tt("own_project"), icon: FolderKanban },
+            { value: "project", label: tt("own_project"), icon: Folder },
             { value: "client", label: tt("own_client"), icon: User },
           ]}
         />
