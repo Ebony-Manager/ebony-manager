@@ -435,12 +435,19 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   // ── Condiciones generales (hojas aparte) ──
   doc.addPage();
   y = 46;
-  if (logo) doc.addImage(logo.data, "PNG", pageW - margin - logo.w * 0.8, 36, logo.w * 0.8, logo.h * 0.8);
+  // El logo arriba a la derecha, chico; el texto empieza debajo de él (no encima).
+  let logoBottom = 0;
+  if (logo) {
+    const scale = Math.min(0.8, 30 / logo.h);
+    const top = 28;
+    doc.addImage(logo.data, "PNG", pageW - margin - logo.w * scale, top, logo.w * scale, logo.h * scale);
+    logoBottom = top + logo.h * scale;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(...INK);
   doc.text(terms.title, margin, y);
-  y += 18;
+  y = Math.max(y + 18, logoBottom + 14);
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   for (const line of doc.splitTextToSize(terms.intro, contentW) as string[]) {
