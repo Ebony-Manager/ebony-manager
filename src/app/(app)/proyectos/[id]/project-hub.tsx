@@ -34,6 +34,7 @@ import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
 import { ProjectDeliveries } from "./project-deliveries";
+import { ProjectPresentation } from "./project-presentation";
 import type { ProjectDelivery } from "@/types/deliveries";
 import { DriveFiles } from "@/components/shared/drive-files";
 import { usePageTitle } from "@/components/shared/page-title";
@@ -41,7 +42,7 @@ import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "pintura" | "embalaje" | "entregas" | "archivos";
+type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -102,6 +103,7 @@ export function ProjectHub({
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: true },
     { key: "pintura", label: tt("tab_pintura"), visible: true },
+    { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled },
     { key: "embalaje", label: tt("tab_embalaje"), visible: true },
     { key: "entregas", label: tt("tab_entregas"), visible: true },
     { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
@@ -173,6 +175,7 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
+      {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (
         <ProjectDeliveries
           key={tab}

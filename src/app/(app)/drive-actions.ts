@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   CLIENT_INFO_FOLDER,
   PROJECT_SUBFOLDERS,
+  SHOP_PRESENTATION_FOLDER,
   createFolder,
   driveRoot,
   ensureSubfolders,
@@ -140,5 +141,19 @@ export async function ensureProjectFolderAction(id: string): Promise<DriveResult
     const sub = await ensureSubfolders(folderId, PROJECT_SUBFOLDERS);
     revalidatePath(`/proyectos/${id}`);
     return { folderId, uploadTo: sub.get(CLIENT_INFO_FOLDER)! };
+  });
+}
+
+/**
+ * La carpeta PRESENTACION EN TALLER del proyecto (fotos y videos del mueble
+ * presentado completo en taller). Crea la del proyecto si no tenía.
+ */
+export async function ensureShopPresentationFolderAction(projectId: string): Promise<DriveResult<FolderReady>> {
+  const res = await ensureProjectFolderAction(projectId);
+  if (!res.ok) return res;
+  return run(async () => {
+    const sub = await ensureSubfolders(res.data.folderId, [SHOP_PRESENTATION_FOLDER]);
+    const id = sub.get(SHOP_PRESENTATION_FOLDER)!;
+    return { folderId: id, uploadTo: id };
   });
 }

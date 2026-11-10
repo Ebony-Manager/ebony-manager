@@ -312,6 +312,8 @@ export const folderUrl = (id: string) => `https://drive.google.com/drive/folders
 
 /** Donde cae lo que manda el cliente (planos, diseño): se crea con la oportunidad. */
 export const CLIENT_INFO_FOLDER = "INFORMACION DE CLIENTE";
+/** Fotos y videos del mueble presentado completo en taller, antes de instalar (evidencia). */
+export const SHOP_PRESENTATION_FOLDER = "PRESENTACION EN TALLER";
 /** Las subcarpetas de un proyecto (como se organizan hoy en Ebony); se crean al aprobar. */
 export const PROJECT_SUBFOLDERS = ["COTIZACION", "DESPIECE", CLIENT_INFO_FOLDER, "LAYOUT", "MEDIDAS", "PRESENTACION", "SKETCHUP"] as const;
 

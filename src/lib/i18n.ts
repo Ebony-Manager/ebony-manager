@@ -2593,6 +2593,12 @@ export const strings = {
     tab_archivos: { es: "Archivos", en: "Files" },
     tab_entregas: { es: "Entregas", en: "Deliveries" },
     tab_pintura: { es: "Pintura", en: "Painting" },
+    tab_presentacion: { es: "Presentación", en: "Shop review" },
+    presentation_hint: {
+      es: "Fotos y videos del mueble presentado completo en taller, tal como se va a instalar. Quedan en Drive, en la carpeta del proyecto → PRESENTACION EN TALLER.",
+      en: "Photos and videos of the piece fully assembled at the shop, as it will be installed. Saved in Drive, in the project folder → PRESENTACION EN TALLER.",
+    },
+    presentation_loading: { es: "Abriendo la carpeta…", en: "Opening the folder…" },
     tab_embalaje: { es: "Embalaje", en: "Packing" },
     auth_new_pintura: { es: "Nueva autorización a pintura", en: "New painting authorization" },
     auth_new_embalaje: { es: "Nueva autorización a embalaje", en: "New packing authorization" },
