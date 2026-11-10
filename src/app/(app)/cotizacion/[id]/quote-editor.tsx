@@ -3,7 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, ChevronDown, Copy, Download, Loader2, Lock, Pencil, Send, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
+import { CalendarCheck, CalendarDays, Check, CheckCircle2, ChevronDown, Copy, Download, Languages, Loader2, Lock, Send, Timer, TriangleAlert, Undo2, Waypoints, XCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import toast from "react-hot-toast";
 
 import {
@@ -31,7 +34,6 @@ import {
 } from "@/types/cotizador";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { projectPath } from "../../proyectos/paths";
 import { QUOTE_STATUS_STYLE } from "../status-style";
@@ -147,7 +149,6 @@ export function QuoteEditor({
   /** updated_at de lo último que guardamos: si en la base hay otro, alguien más guardó. */
   const expected = React.useRef<string | null>(initialQuote.updatedAt);
   const [conflict, setConflict] = React.useState(false);
-  const [termsOpen, setTermsOpen] = React.useState(false);
   const [images, setImages] = React.useState<QuoteImage[]>(initialImages);
   /** La función que toma la vista 3D como imagen (la pone el visor). */
   const captureRef = React.useRef<(() => string | null) | null>(null);
@@ -462,8 +463,6 @@ export function QuoteEditor({
       lang === "en" ? "en-US" : "es-PA",
       { day: "numeric", month: "short" },
     );
-  const smallLabel =
-    "flex min-w-0 flex-col gap-1.5 text-xs font-medium text-foreground/80";
   const panelTitle =
     "text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
   const money = "text-right tabular-nums";
@@ -676,8 +675,9 @@ export function QuoteEditor({
 
         <fieldset
           disabled={locked}
-          className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0"
+          className="m-0 flex min-w-0 flex-wrap items-center gap-2 border-0 p-0"
         >
+          {/* Para quién es: un chip (se abre para cambiarlo). */}
           <OwnerPanel
             quote={quote}
             clients={clients}
@@ -686,92 +686,46 @@ export function QuoteEditor({
             onChange={(p) => setHeader(p)}
           />
 
-          {/* Condiciones: una línea de resumen; se abre para cambiarlas. */}
-          {termsOpen ? (
-            <div className="flex flex-col gap-1.5">
-          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-3.5 sm:grid-cols-4">
-            <label className={smallLabel}>
-              {tt("f_date")}
-              <Input
-                type="date"
-                className="block h-9 appearance-none text-left"
-                value={quote.quoteDate}
-                onChange={(e) =>
-                  e.currentTarget.value &&
-                  setHeader({ quoteDate: e.currentTarget.value })
-                }
-              />
-            </label>
-            <label className={smallLabel}>
-              {tt("f_delivery")}
-              <NumField
-                value={quote.deliveryDays}
-                onChange={(n) => setHeader({ deliveryDays: Math.round(n) })}
-                suffix={tt("unit_days")}
-                inputWidth={40}
-                className="h-9 justify-between"
-              />
-            </label>
-            <label className={smallLabel}>
-              <span className="flex items-baseline justify-between gap-2">
-                {tt("f_valid")}
-                <span className="truncate font-normal text-muted-foreground">
-                  {tt("valid_until")}{" "}
-                  {shortDate(validUntil(quote.quoteDate, quote.validDays))}
-                </span>
-              </span>
-              <NumField
-                value={quote.validDays}
-                onChange={(n) =>
-                  setHeader({ validDays: Math.max(0, Math.round(n)) })
-                }
-                suffix={tt("unit_cal_days")}
-                inputWidth={40}
-                className="h-9 justify-between"
-              />
-            </label>
-            <div className={smallLabel}>
-              <span>{tt("f_lang")}</span>
-              <Select
-                value={quote.lang}
-                onValueChange={(v) => setHeader({ lang: v === "en" ? "en" : "es" })}
-              >
-                <SelectTrigger className="w-full" aria-label={tt("f_lang")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-              <button type="button" onClick={() => setTermsOpen(false)} className="self-end text-xs font-medium text-primary hover:underline">
-                {tt("own_done")}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setTermsOpen(true)}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left text-sm hover:border-ring"
-            >
-              <span>
-                <span className="text-muted-foreground">{tt("f_date")}</span> {shortDate(quote.quoteDate)}
-              </span>
-              <span>
-                <span className="text-muted-foreground">{tt("f_delivery")}</span> {quote.deliveryDays} {tt("unit_days")}
-              </span>
-              <span>
-                <span className="text-muted-foreground">{tt("valid_until")}</span> {shortDate(validUntil(quote.quoteDate, quote.validDays))}
-              </span>
-              <span>{quote.lang === "en" ? "English" : "Español"}</span>
-              <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
-                <Pencil className="size-3.5" />
-                {tt("edit")}
-              </span>
-            </button>
-          )}
+          {/* Fecha, entrega, validez e idioma: cada uno se cambia por separado. */}
+          <HeaderChip icon={CalendarDays} label={tt("f_date")} value={shortDate(quote.quoteDate)}>
+            <Input
+              type="date"
+              className="block h-9 appearance-none text-left"
+              value={quote.quoteDate}
+              onChange={(e) => e.currentTarget.value && setHeader({ quoteDate: e.currentTarget.value })}
+              aria-label={tt("f_date")}
+            />
+          </HeaderChip>
+          <HeaderChip icon={Timer} label={tt("f_delivery")} value={`${quote.deliveryDays} ${tt("unit_days")}`}>
+            <NumField
+              value={quote.deliveryDays}
+              onChange={(n) => setHeader({ deliveryDays: Math.max(0, Math.round(n)) })}
+              suffix={tt("unit_days")}
+              inputWidth={48}
+              className="h-9 justify-between"
+              aria-label={tt("f_delivery")}
+            />
+          </HeaderChip>
+          <HeaderChip icon={CalendarCheck} label={tt("valid_until")} value={`${tt("valid_until")} ${shortDate(validUntil(quote.quoteDate, quote.validDays))}`}>
+            <NumField
+              value={quote.validDays}
+              onChange={(n) => setHeader({ validDays: Math.max(0, Math.round(n)) })}
+              suffix={tt("unit_cal_days")}
+              inputWidth={48}
+              className="h-9 justify-between"
+              aria-label={tt("f_valid")}
+            />
+          </HeaderChip>
+          <HeaderChip icon={Languages} label={tt("f_lang")} value={quote.lang === "en" ? "English" : "Español"}>
+            <SegmentedFilter
+              value={quote.lang}
+              onChange={(v) => setHeader({ lang: v === "en" ? "en" : "es" })}
+              options={[
+                { value: "es", label: "Español" },
+                { value: "en", label: "English" },
+              ]}
+            />
+          </HeaderChip>
         </fieldset>
       </header>
 
@@ -843,6 +797,7 @@ export function QuoteEditor({
                         locked={locked}
                         ensureSaved={ensureSaved}
                         capture3d={() => (viewerOpen ? (captureRef.current?.() ?? null) : null)}
+                        allow3d={section.priceMode !== "direct"}
                         onChange={(list) => setImages((all) => [...all.filter((i) => i.sectionId !== section.id), ...list])}
                       />
                     }
@@ -857,7 +812,7 @@ export function QuoteEditor({
 
             <aside className="flex min-w-0 flex-col gap-4 lg:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-3 2xl:row-start-1">
               {/* Vista 3D plegable: cerrada, una barra; abierta, "Ocultar" encima. */}
-              {section &&
+              {section && section.priceMode !== "direct" &&
                 (viewerOpen ? (
                   <button type="button" onClick={toggleViewer} aria-expanded className="-mb-2.5 flex items-center gap-1 self-end text-xs text-muted-foreground hover:text-foreground">
                     {tt("viewer_hide_full")}
@@ -877,7 +832,7 @@ export function QuoteEditor({
                     </span>
                   </button>
                 ))}
-            {section && viewerOpen && (
+            {section && section.priceMode !== "direct" && viewerOpen && (
               <Viewer3D
                 captureRef={captureRef}
                 section={section}
@@ -919,7 +874,7 @@ export function QuoteEditor({
               />
             )}
 
-            {section && secTotals && (
+            {section && secTotals && section.priceMode !== "direct" && (
               <div className="rounded-lg overflow-hidden border border-border bg-card">
                 <h2
                   className={cn(
@@ -1125,5 +1080,31 @@ export function QuoteEditor({
         }
       />
     </div>
+  );
+}
+
+/**
+ * Un dato del encabezado (fecha, entrega, validez, idioma) como chip: se ve
+ * el valor y, al tocarlo, se abre un recuadro chico solo con ese campo.
+ */
+function HeaderChip({ icon: Icon, label, value, children }: { icon: LucideIcon; label: string; value: string; children: React.ReactNode }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title={label}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm text-foreground hover:border-ring disabled:cursor-default disabled:hover:border-border"
+        >
+          <Icon className="size-3.5 text-muted-foreground" />
+          <span className="sr-only">{label}: </span>
+          {value}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex w-auto min-w-52 flex-col gap-2 p-3">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        {children}
+      </PopoverContent>
+    </Popover>
   );
 }

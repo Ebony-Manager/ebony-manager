@@ -84,7 +84,18 @@ export function sectionQty(s: Pick<QuoteSection, "qty">): number {
   return Number.isFinite(s.qty) && s.qty > 0 ? s.qty : 1;
 }
 
+/** Los renglones que cuentan (un ítem de precio directo no tiene). */
+export function pricedLines(s: Pick<QuoteSection, "priceMode" | "lines">): QuoteSection["lines"] {
+  return s.priceMode === "direct" ? [] : s.lines;
+}
+
 export function sectionTotals(s: QuoteSection): SectionTotals {
+  if (s.priceMode === "direct") {
+    // Precio directo: el precio escrito, tal cual, sin utilidad ni nada encima.
+    const unit = Number.isFinite(s.directPrice) && s.directPrice > 0 ? s.directPrice : 0;
+    const qty = sectionQty(s);
+    return { ebony: 0, util: 0, ebonyTotal: 0, sub: 0, subTotal: 0, waste: 0, extras: 0, commission: 0, base: unit, ccf: 0, unit, qty, total: unit * qty };
+  }
   let ebony = 0;
   let sub = 0;
   for (const l of s.lines) {
@@ -181,6 +192,8 @@ export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, q
 export function newSection(id: string, d: QuoteDefaults, location = ""): QuoteSection {
   return {
     id,
+    priceMode: "recipe",
+    directPrice: 0,
     location,
     name: "",
     kind: "Mueble",

@@ -5,6 +5,8 @@ import { duplicateSection, groupedOrder, locationGroups, locationSuggestions, mo
 
 const sec = (id: string, location: string, extra: Partial<QuoteSection> = {}): QuoteSection => ({
   id,
+  priceMode: "recipe",
+  directPrice: 0,
   location,
   name: id,
   kind: "Mueble",

@@ -12,6 +12,7 @@ import {
   newQuote,
   newSection,
   quoteTotals,
+  pricedLines,
   sectionTotals,
   swapLineItem,
   syncDraftPrices,
@@ -72,6 +73,14 @@ const bar = section("Bar", [
 ]);
 
 describe("sectionTotals", () => {
+  it("precio directo: el precio escrito × cantidad, sin utilidad ni renglones", () => {
+    const direct = { ...panelado, priceMode: "direct" as const, directPrice: 450, qty: 2 };
+    const st = sectionTotals(direct);
+    expect(st).toMatchObject({ unit: 450, qty: 2, total: 900, util: 0, ebony: 0, sub: 0 });
+    expect(pricedLines(direct)).toEqual([]);
+    expect(pricedLines(panelado).length).toBe(panelado.lines.length);
+  });
+
   it("reproduce los tres ítems de la cotización 2617", () => {
     expect(sectionTotals(panelado).total).toBeCloseTo(6397.3234, 3);
     expect(sectionTotals(listones).total).toBeCloseTo(1635.05264, 3);

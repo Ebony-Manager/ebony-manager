@@ -124,6 +124,8 @@ function mapLine(r: LineRow): QuoteLine {
 function mapSection(r: SectionRow, lines: QuoteLine[]): QuoteSection {
   return {
     id: r.id,
+    priceMode: r.price_mode === "direct" ? "direct" : "recipe",
+    directPrice: num(r.direct_price),
     location: r.location,
     name: r.name,
     kind: r.kind,
@@ -342,6 +344,8 @@ function sectionRow(quoteId: string, s: QuoteSection, i: number): Tables["quote_
     ccf_pct: num(s.ccfPct),
     wall_shape: s.wallShape === "L" ? "L" : "recta",
     corner_at: s.cornerAt === null ? null : num(s.cornerAt),
+    price_mode: s.priceMode === "direct" ? "direct" : "recipe",
+    direct_price: Math.max(0, num(s.directPrice)),
   };
 }
 

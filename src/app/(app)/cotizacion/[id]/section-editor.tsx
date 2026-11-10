@@ -21,6 +21,9 @@ import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { locationKey } from "@/lib/cotizador/items";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { round2 } from "@/lib/cotizador/pricing";
+import type { ItemPriceMode } from "@/types/cotizador";
 
 type BlockKey = "eb" | "sb" | "ex" | "mg";
 
@@ -213,9 +216,22 @@ export function SectionEditor({
   );
 
   const fieldLabel = "flex min-w-0 flex-col gap-1.5 text-xs font-medium text-foreground/80";
+  const direct = section.priceMode === "direct";
+  // Al pasar a precio directo, arranca con el precio que tenía calculado (por unidad).
+  const setMode = (mode: ItemPriceMode) =>
+    patch(mode === "direct" && !(section.directPrice > 0) ? { priceMode: mode, directPrice: round2(totals.unit) } : { priceMode: mode });
 
   return (
     <div className="flex flex-col gap-3.5">
+      <SegmentedFilter<ItemPriceMode>
+        className="self-start"
+        value={section.priceMode}
+        onChange={setMode}
+        options={[
+          { value: "recipe", label: tt("mode_recipe") },
+          { value: "direct", label: tt("mode_direct") },
+        ]}
+      />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_110px_minmax(0,150px)]">
         <div className={fieldLabel}>
           <label htmlFor={`loc-${section.id}`}>{tt("sec_location")}</label>
@@ -253,6 +269,31 @@ export function SectionEditor({
       </div>
       {extra}
 
+      {direct ? (
+        <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <label className={fieldLabel}>
+              {tt("direct_price")}
+              <NumField
+                value={section.directPrice}
+                onChange={(n) => patch({ directPrice: n > 0 ? n : 0 })}
+                prefix="$"
+                inputWidth={96}
+                className="h-9 justify-between"
+                aria-label={tt("direct_price")}
+              />
+            </label>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">
+                {tt("direct_total")}
+                {totals.qty > 1 ? ` (${formatMoney(totals.unit)} × ${totals.qty})` : ""}
+              </p>
+              <p className="text-lg font-semibold tabular-nums text-foreground">{formatMoney(totals.total)}</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{tt("direct_note")}</p>
+        </div>
+      ) : (
       <div className="flex flex-col gap-2.5">
         {block(
           "eb",
@@ -326,6 +367,7 @@ export function SectionEditor({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

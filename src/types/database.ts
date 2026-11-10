@@ -2096,6 +2096,8 @@ export type Database = {
           location: string
           name: string
           qty: number
+          price_mode: string
+          direct_price: number
           quote_id: string
           sort_order: number
           sub_margin_pct: number
@@ -2120,6 +2122,8 @@ export type Database = {
           location?: string
           name?: string
           qty?: number
+          price_mode?: string
+          direct_price?: number
           quote_id: string
           sort_order?: number
           sub_margin_pct?: number
@@ -2144,6 +2148,8 @@ export type Database = {
           location?: string
           name?: string
           qty?: number
+          price_mode?: string
+          direct_price?: number
           quote_id?: string
           sort_order?: number
           sub_margin_pct?: number

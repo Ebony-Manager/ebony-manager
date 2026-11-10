@@ -1,7 +1,7 @@
 import type { jsPDF as JsPDF } from "jspdf";
 
 import { WORDMARK_PATH, WORDMARK_VIEWBOX } from "@/components/brand/ebony-logo";
-import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
+import { formatMoney, lineAmount, lineQty, pricedLines, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { groupedOrder } from "@/lib/cotizador/items";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { richSegments } from "@/lib/cotizador/terms";
@@ -256,7 +256,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
     const st = sectionTotals(s);
     const title = `${s.kind} · ${sectionLabel(s) || tq("sec_unnamed")}`;
     const desc = s.description.trim();
-    const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? s.lines.length : 0);
+    const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? pricedLines(s).length : 0);
     const img = itemImages.get(s.id);
     if (img) rowImage.set(body.length, img);
     body.push([
@@ -276,7 +276,7 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
     if (detail === "line") {
       const cost = st.ebony + st.sub;
       const factor = cost > 0 ? (st.unit / cost) * st.qty : 0;
-      for (const l of s.lines) {
+      for (const l of pricedLines(s)) {
         body.push([
           { content: `   ${l.name}`, styles: { ...sub } },
           { content: `${(lineQty(l) * st.qty).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${UNIT_LABEL[l.unit]}`, styles: { ...sub } },

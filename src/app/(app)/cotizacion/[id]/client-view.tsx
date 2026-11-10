@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { formatMoney, lineAmount, lineQty, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
+import { formatMoney, lineAmount, lineQty, pricedLines, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { strings, t } from "@/lib/i18n";
 import type { PdfDetail, Quote, QuoteImage } from "@/types/cotizador";
 import { photoUrl, THUMB_WIDTH } from "@/lib/photo-url";
@@ -172,7 +172,7 @@ export function ClientView({
                       {detail !== "total" && <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatMoney(st.total)}</td>}
                     </tr>
                     {detail === "line" &&
-                      s.lines.map((l) => (
+                      pricedLines(s).map((l) => (
                         <tr key={l.id} className="border-b border-border text-xs text-foreground/80">
                           <td className="py-1.5 pr-3 pl-4">{l.name}</td>
                           <td className="px-3 py-1.5 text-right whitespace-nowrap tabular-nums">

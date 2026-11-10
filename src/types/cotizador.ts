@@ -123,8 +123,14 @@ export interface QuoteLine {
 export type WallShape = "recta" | "L";
 export const SECTION_KINDS = ["Revestimiento", "Mueble", "Closet", "Cocina", "Cama", "Otro"] as const;
 
+/** Ítem con receta (renglones, utilidad…) o de precio directo (se escribe el precio de venta). */
+export type ItemPriceMode = "recipe" | "direct";
+
 export interface QuoteSection {
   id: string;
+  priceMode: ItemPriceMode;
+  /** Precio directo: el precio de venta de una unidad, tal cual (total = precio × cantidad). */
+  directPrice: number;
   location: string;
   name: string;
   kind: string;

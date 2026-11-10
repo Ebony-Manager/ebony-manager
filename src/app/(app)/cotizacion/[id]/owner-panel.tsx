@@ -164,17 +164,18 @@ export function OwnerPanel({
     const Icon = kind === "opportunity" ? Waypoints : kind === "project" ? FolderKanban : User;
     const label = kind === "opportunity" ? tt("own_opportunity") : kind === "project" ? tt("own_project") : tt("own_client");
     const who = [nameOf(quote.designerId) + (contactName ? ` (${contactName})` : ""), nameOf(quote.clientId)].filter(Boolean).join(" · ");
+    // Un chip más del encabezado; al tocarlo se abre para cambiarlo.
     return (
-      <section className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-          <p className="truncate text-sm text-foreground">{[quote.projectName, who].filter(Boolean).join(" · ") || "—"}</p>
-        </div>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
-          {tt("own_change")}
-        </Button>
-      </section>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title={tt("own_change")}
+        className="inline-flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm hover:border-ring disabled:cursor-default disabled:hover:border-border"
+      >
+        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="shrink-0 text-muted-foreground">{label}:</span>
+        <span className="truncate text-foreground">{[quote.projectName, who].filter(Boolean).join(" · ") || "—"}</span>
+      </button>
     );
   }
 
@@ -186,7 +187,7 @@ export function OwnerPanel({
         : tt("own_client_hint");
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
+    <section className="flex basis-full flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
           {tt("own_title")}

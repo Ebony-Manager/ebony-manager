@@ -46,6 +46,7 @@ export function ItemImages({
   locked,
   ensureSaved,
   capture3d,
+  allow3d = true,
   onChange,
 }: {
   quoteId: string;
@@ -56,6 +57,8 @@ export function ItemImages({
   ensureSaved: () => Promise<void>;
   /** Toma la vista 3D actual (null si no está a la vista). */
   capture3d: () => string | null;
+  /** Un ítem de precio directo no tiene dibujo 3D. */
+  allow3d?: boolean;
   onChange: (images: QuoteImage[]) => void;
 }) {
   const { lang } = useLang();
@@ -134,10 +137,12 @@ export function ItemImages({
               {busy ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
               {tt("img_add")}
             </Button>
-            <Button type="button" variant="outline" size="sm" className="h-20 w-20 flex-col gap-1 text-[11px] font-medium whitespace-normal" disabled={busy} onClick={() => void onCapture()}>
-              <Box className="size-4" />
-              {tt("img_use_3d")}
-            </Button>
+            {allow3d && (
+              <Button type="button" variant="outline" size="sm" className="h-20 w-20 flex-col gap-1 text-[11px] font-medium whitespace-normal" disabled={busy} onClick={() => void onCapture()}>
+                <Box className="size-4" />
+                {tt("img_use_3d")}
+              </Button>
+            )}
             <input
               ref={fileRef}
               type="file"
