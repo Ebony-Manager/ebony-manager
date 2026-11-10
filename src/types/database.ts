@@ -59,6 +59,11 @@ export type Database = {
       project_deliveries: {
         Row: {
           id: string
+          kind: string
+          approved_by: string | null
+          received_by: string | null
+          notes: string | null
+          details: Json | null
           project_id: string | null
           project_name: string
           submission_id: string
@@ -77,6 +82,11 @@ export type Database = {
         }
         Insert: {
           id?: string
+          kind?: string
+          approved_by?: string | null
+          received_by?: string | null
+          notes?: string | null
+          details?: Json | null
           project_id?: string | null
           project_name: string
           submission_id: string
@@ -95,6 +105,11 @@ export type Database = {
         }
         Update: {
           id?: string
+          kind?: string
+          approved_by?: string | null
+          received_by?: string | null
+          notes?: string | null
+          details?: Json | null
           project_id?: string | null
           project_name?: string
           submission_id?: string

@@ -15,6 +15,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateProjectAction } from "../../contratistas/actions";
 import { assignDeliveryAction, getActaUrlAction } from "../delivery-actions";
+import type { DeliveryKind } from "@/lib/deliveries/acta-form";
 
 const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${id}`;
 
@@ -25,10 +26,13 @@ const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${id}`
  */
 export function ProjectDeliveries({
   project,
+  kind = "entrega",
   deliveries,
   unassigned,
 }: {
   project: Project;
+  /** Acta de entrega, o autorización a pintura / embalaje (mismo flujo). */
+  kind?: DeliveryKind;
   deliveries: ProjectDelivery[];
   unassigned: ProjectDelivery[];
 }) {
@@ -42,7 +46,7 @@ export function ProjectDeliveries({
     // La ventana se abre ya (si se abre después de esperar, el navegador la bloquea).
     const win = window.open("about:blank", "_blank");
     setOpening(true);
-    const res = await getActaUrlAction(project.id);
+    const res = await getActaUrlAction(project.id, kind);
     setOpening(false);
     if (!res.ok) {
       win?.close();
@@ -74,17 +78,21 @@ export function ProjectDeliveries({
     router.refresh();
   };
 
+  const isActa = kind === "entrega";
+  const newLabel = isActa ? tt("acta_new") : tt(kind === "pintura" ? "auth_new_pintura" : "auth_new_embalaje");
+  const emptyLabel = isActa ? tt("acta_empty") : tt(kind === "pintura" ? "auth_empty_pintura" : "auth_empty_embalaje");
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="max-w-xl text-xs text-muted-foreground">{tt("acta_hint")}</p>
+        <p className="max-w-xl text-xs text-muted-foreground">{isActa ? tt("acta_hint") : tt("auth_hint")}</p>
         <Button size="sm" onClick={openForm} disabled={opening}>
           <Plus className="size-3.5" />
-          {opening ? tt("acta_opening") : tt("acta_new")}
+          {opening ? tt("acta_opening") : newLabel}
         </Button>
       </div>
 
-      {project.status === "ACTIVE" && deliveries.length > 0 && (
+      {isActa && project.status === "ACTIVE" && deliveries.length > 0 && (
         <Card className="border-primary/30 bg-primary/5 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
@@ -100,7 +108,7 @@ export function ProjectDeliveries({
       )}
 
       {deliveries.length === 0 ? (
-        <EmptyState>{tt("acta_empty")}</EmptyState>
+        <EmptyState>{emptyLabel}</EmptyState>
       ) : (
         <ul className="flex flex-col gap-3">
           {deliveries.map((d) => (
@@ -115,7 +123,7 @@ export function ProjectDeliveries({
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              {tt("acta_unassigned_title")} ({unassigned.length})
+              {isActa ? tt("acta_unassigned_title") : tt("auth_unassigned_title")} ({unassigned.length})
             </h2>
             <p className="text-xs text-muted-foreground">{tt("acta_unassigned_body")}</p>
           </div>
@@ -150,10 +158,16 @@ function DeliveryCard({ delivery: d }: { delivery: ProjectDelivery }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">{formatDateCompact(lang, d.deliveredOn)}</p>
-          <p className="text-xs text-muted-foreground">
-            {tt("acta_received_by")}: {d.clientName || tt("none")}
-            {d.clientIdDoc ? ` · ${tt("acta_id_doc")} ${d.clientIdDoc}` : ""}
-          </p>
+          {d.kind === "entrega" ? (
+            <p className="text-xs text-muted-foreground">
+              {tt("acta_received_by")}: {d.clientName || tt("none")}
+              {d.clientIdDoc ? ` · ${tt("acta_id_doc")} ${d.clientIdDoc}` : ""}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {[d.approvedBy && `${tt("auth_approved_by")}: ${d.approvedBy}`, d.receivedBy && `${tt("auth_received_by")}: ${d.receivedBy}`].filter(Boolean).join(" · ") || tt("none")}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {d.pdfFileId && (
@@ -177,8 +191,24 @@ function DeliveryCard({ delivery: d }: { delivery: ProjectDelivery }) {
       </div>
       {d.items && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">{tt("acta_items")}</p>
+          <p className="text-xs font-medium text-muted-foreground">{d.kind === "entrega" ? tt("acta_items") : tt("auth_items")}</p>
           <p className="whitespace-pre-line text-sm text-foreground">{d.items}</p>
+        </div>
+      )}
+      {Object.keys(d.details).length > 0 && (
+        <dl className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+          {Object.entries(d.details).map(([k, v]) => (
+            <div key={k} className="flex gap-1">
+              <dt className="text-muted-foreground">{k}:</dt>
+              <dd className="text-foreground">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {d.notes && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">{tt("auth_notes")}</p>
+          <p className="whitespace-pre-line text-sm text-foreground">{d.notes}</p>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

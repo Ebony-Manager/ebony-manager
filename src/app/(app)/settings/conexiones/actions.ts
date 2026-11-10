@@ -1,5 +1,7 @@
 "use server";
 
+import { syncProjectOptions } from "@/lib/deliveries/acta-server";
+
 import { requireAdmin } from "@/lib/auth/dal";
 import { driveDiagnosis } from "@/lib/google/drive";
 import { errText, recordRun } from "@/lib/integrations/record";
@@ -54,6 +56,13 @@ export async function testJotformAction(): Promise<TestResult> {
     result.ok,
     result.message,
   );
+  // Con la clave buena, pone al día la lista de proyectos de los formularios (acta, pintura, embalaje).
+  if (result.ok) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("projects").select("name").eq("status", "ACTIVE");
+    const n = await syncProjectOptions((data ?? []).map((p) => p.name)).catch(() => 0);
+    if (n > 0) result = { ...result, message: `${result.message} Lista de proyectos actualizada en ${n} formulario${n === 1 ? "" : "s"}.` };
+  }
   return result;
 }
 

@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireAnyModule } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
-import { ACTA_FORM_URL, actaPrefillUrl } from "@/lib/deliveries/acta-form";
-import { getActaQuestions } from "@/lib/deliveries/acta-server";
+import { DELIVERY_FORMS, actaPrefillUrl, formUrl, type DeliveryKind } from "@/lib/deliveries/acta-form";
+import { getFormQuestions } from "@/lib/deliveries/acta-server";
 import { assignDelivery } from "@/services/deliveries";
 import { projectPath } from "./paths";
 
@@ -16,7 +16,7 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
  * (si el proyecto lo tiene) el cliente final ya puestos. Si JotForm no
  * responde, el formulario sin datos: se puede llenar igual.
  */
-export async function getActaUrlAction(projectId: string): Promise<Result<{ url: string; prefilled: boolean }>> {
+export async function getActaUrlAction(projectId: string, kind: DeliveryKind = "entrega"): Promise<Result<{ url: string; prefilled: boolean }>> {
   await requireAnyModule("proyectos", "contratistas");
   const supabase = await createClient();
   const { data: project, error } = await supabase.from("projects").select("name, location, client_name, client_id").eq("id", projectId).single();
@@ -24,18 +24,21 @@ export async function getActaUrlAction(projectId: string): Promise<Result<{ url:
   const { data: client } = project.client_id
     ? await supabase.from("clients").select("name, email").eq("id", project.client_id).maybeSingle()
     : { data: null };
+  const base = formUrl(kind);
   try {
-    const questions = await getActaQuestions();
-    if (!questions.length) return { ok: true, data: { url: ACTA_FORM_URL, prefilled: false } };
-    const url = actaPrefillUrl(questions, {
-      project: project.name,
-      address: project.location,
-      clientName: client?.name ?? null,
-      email: client?.email ?? null,
-    });
+    const questions = await getFormQuestions(DELIVERY_FORMS[kind].formId);
+    if (!questions.length) return { ok: true, data: { url: base, prefilled: false } };
+    // Las autorizaciones solo piden el proyecto; el acta, también la dirección y el cliente.
+    const url = actaPrefillUrl(
+      questions,
+      kind === "entrega"
+        ? { project: project.name, address: project.location, clientName: client?.name ?? null, email: client?.email ?? null }
+        : { project: project.name },
+      base
+    );
     return { ok: true, data: { url, prefilled: true } };
   } catch {
-    return { ok: true, data: { url: ACTA_FORM_URL, prefilled: false } };
+    return { ok: true, data: { url: base, prefilled: false } };
   }
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { actaAnswersFromApi, actaAnswersFromRaw, actaPrefillUrl, answerDate, normalizeActa } from "./acta-form";
+import { actaAnswersFromApi, actaAnswersFromRaw, actaPrefillUrl, answerDate, kindForForm, normalizeActa } from "./acta-form";
 
 const questions = [
   { name: "nombreProyecto", text: "Nombre Proyecto", type: "control_textbox" },
@@ -44,6 +44,32 @@ describe("Acta de entrega · JotForm", () => {
   it("la lista de ítems (JSON de JotForm) queda una por línea", () => {
     const acta = normalizeActa(actaAnswersFromRaw({ q3_nombreProyecto: "X", q8_itemsEntregados: '[{"Item(s)":"Cocina"},{"Item(s)":"Closet"}]' }));
     expect(acta.items).toBe("Cocina\nCloset");
+  });
+
+  it("autorización a pintura: aprobó, recibió, mobiliario, observaciones y datos sueltos", () => {
+    const a = normalizeActa(
+      actaAnswersFromRaw({
+        q3_nombreProyecto: "PH Vitri 44A",
+        q4_aprobadoPor: "Supervisor Uno",
+        q5_recibidoPor: "Pintor Dos",
+        q6_mobiliario: "Closet principal",
+        q7_observacionesTecnicas: "Lijar bordes",
+        q8_acabado: "Mate",
+        q9_codigoColor: "SW 7006",
+        q10_qtyPiezas: "12",
+        q11_fotosMobiliario: ["https://x/1.jpg"],
+      })
+    );
+    expect(a).toMatchObject({ approvedBy: "Supervisor Uno", receivedBy: "Pintor Dos", items: "Closet principal", notes: "Lijar bordes" });
+    expect(a.details).toEqual({ Acabado: "Mate", "Código de color": "SW 7006", Piezas: "12" });
+    expect(a.photos).toHaveLength(1);
+  });
+
+  it("cada formulario se reconoce por su id", () => {
+    expect(kindForForm("251893102532149")).toBe("pintura");
+    expect(kindForForm("252224493029859")).toBe("embalaje");
+    expect(kindForForm("230237298346864")).toBe("entrega");
+    expect(kindForForm("1")).toBeNull();
   });
 
   it("fechas en los formatos de JotForm", () => {

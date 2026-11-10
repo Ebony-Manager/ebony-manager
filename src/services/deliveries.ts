@@ -6,11 +6,16 @@ import type { ProjectDelivery } from "@/types/deliveries";
 
 type Row = Database["public"]["Tables"]["project_deliveries"]["Row"];
 const COLS =
-  "id, project_id, project_name, submission_id, delivered_on, client_name, client_email, client_id_doc, address, items, photo_count, drive_folder_id, pdf_file_id, files_error, created_at";
+  "id, kind, approved_by, received_by, notes, details, project_id, project_name, submission_id, delivered_on, client_name, client_email, client_id_doc, address, items, photo_count, drive_folder_id, pdf_file_id, files_error, created_at";
 
 function map(r: Omit<Row, "raw">): ProjectDelivery {
   return {
     id: r.id,
+    kind: r.kind === "pintura" || r.kind === "embalaje" ? r.kind : "entrega",
+    approvedBy: r.approved_by,
+    receivedBy: r.received_by,
+    notes: r.notes,
+    details: r.details && typeof r.details === "object" && !Array.isArray(r.details) ? (r.details as Record<string, string>) : {},
     projectId: r.project_id,
     projectName: r.project_name,
     deliveredOn: r.delivered_on,

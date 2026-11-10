@@ -9,6 +9,23 @@
 export const ACTA_FORM_ID = "230237298346864";
 export const ACTA_FORM_URL = `https://form.jotform.com/${ACTA_FORM_ID}`;
 
+/**
+ * Los formularios que caen en un proyecto: acta de entrega (la firma el
+ * cliente) y las autorizaciones de taller a pintura y a embalaje. Mismo
+ * flujo: registro en el proyecto (por el nombre) y PDF + fotos en Drive.
+ */
+export type DeliveryKind = "entrega" | "pintura" | "embalaje";
+export const DELIVERY_KINDS: DeliveryKind[] = ["entrega", "pintura", "embalaje"];
+export const DELIVERY_FORMS: Record<DeliveryKind, { formId: string; folder: string; title: string }> = {
+  entrega: { formId: ACTA_FORM_ID, folder: "ACTAS DE ENTREGA", title: "Acta de entrega" },
+  pintura: { formId: "251893102532149", folder: "AUTORIZACIONES PINTURA", title: "Autorización a pintura" },
+  embalaje: { formId: "252224493029859", folder: "AUTORIZACIONES EMBALAJE", title: "Autorización a embalaje" },
+};
+export const formUrl = (kind: DeliveryKind) => `https://form.jotform.com/${DELIVERY_FORMS[kind].formId}`;
+export function kindForForm(formId: string): DeliveryKind | null {
+  return DELIVERY_KINDS.find((k) => DELIVERY_FORMS[k].formId === formId) ?? null;
+}
+
 /** "Nombre Proyecto", "nombreProyecto", "Dirección" → "nombreproyecto", "direccion". */
 export const fieldKey = (s: string) =>
   s
@@ -23,16 +40,33 @@ const FIELDS = {
   clientName: ["nombrecliente", "cliente"],
   email: ["email", "correo", "correoelectronico"],
   idDoc: ["cedulaopasaporte", "cedula", "pasaporte"],
-  items: ["itemsentregados", "items"],
-  photos: ["fotografiasentrega", "fotografias", "fotos"],
+  items: ["itemsentregados", "items", "mobiliario"],
+  photos: ["fotografiasentrega", "fotografias", "fotosmobiliario", "fotos"],
   date: ["date", "fecha"],
+  approvedBy: ["aprobadopor"],
+  receivedBy: ["recibidopor"],
+  notes: ["observacionestecnicas", "observaciones"],
 } as const;
+
+/** Datos sueltos de las autorizaciones que se muestran tal cual (etiqueta → claves). */
+const DETAILS: { label: string; keys: string[] }[] = [
+  { label: "Tipo de mobiliario", keys: ["tipomobiliario"] },
+  { label: "Acabado", keys: ["acabado"] },
+  { label: "Código de color", keys: ["codigocolor"] },
+  { label: "Piezas", keys: ["qtypiezas"] },
+  { label: "Entrega final", keys: ["fechaentregafinal"] },
+];
 type FieldName = keyof typeof FIELDS;
 
 export interface ActaQuestion {
   name: string;
   text: string;
   type: string;
+}
+
+/** La pregunta del nombre del proyecto (para llenar su lista de opciones). */
+export function projectQuestion(questions: ActaQuestion[]): ActaQuestion | null {
+  return findQuestion(questions, "project");
 }
 
 /** La pregunta del formulario para un campo (por etiqueta o nombre). */
@@ -63,7 +97,8 @@ function prefillParams(q: ActaQuestion, value: string): [string, string][] {
 /** El enlace al formulario con lo que la app ya sabe del proyecto. */
 export function actaPrefillUrl(
   questions: ActaQuestion[],
-  values: { project: string; address?: string | null; clientName?: string | null; email?: string | null }
+  values: { project: string; address?: string | null; clientName?: string | null; email?: string | null },
+  base: string = ACTA_FORM_URL
 ): string {
   const params = new URLSearchParams();
   const put = (field: FieldName, value: string | null | undefined) => {
@@ -75,7 +110,7 @@ export function actaPrefillUrl(
   put("clientName", values.clientName);
   put("email", values.email);
   const qs = params.toString();
-  return qs ? `${ACTA_FORM_URL}?${qs}` : ACTA_FORM_URL;
+  return qs ? `${base}?${qs}` : base;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +191,11 @@ export function answerFiles(v: unknown): string[] {
 }
 
 export interface ActaSubmission {
+  approvedBy: string | null;
+  receivedBy: string | null;
+  notes: string | null;
+  /** Etiqueta → valor (acabado, color, piezas…). */
+  details: Record<string, string>;
   projectName: string;
   address: string | null;
   clientName: string | null;
@@ -173,7 +213,17 @@ function get(answers: ActaAnswers, field: FieldName): unknown {
 
 export function normalizeActa(answers: ActaAnswers): ActaSubmission {
   const text = (f: FieldName) => answerText(get(answers, f)) || null;
+  const details: Record<string, string> = {};
+  for (const d of DETAILS) {
+    const key = d.keys.find((k) => answers.has(k));
+    const value = key ? (d.label === "Entrega final" ? (answerDate(answers.get(key)) ?? answerText(answers.get(key))) : answerText(answers.get(key))) : "";
+    if (value) details[d.label] = value;
+  }
   return {
+    approvedBy: text("approvedBy"),
+    receivedBy: text("receivedBy"),
+    notes: text("notes"),
+    details,
     projectName: answerText(get(answers, "project")),
     address: text("address"),
     clientName: text("clientName"),

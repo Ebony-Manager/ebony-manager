@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/dal";
 import * as ventas from "@/services/ventas";
 import { addProjectSubfolders, trashOpportunityFolder } from "@/services/drive-opportunity";
+import { syncProjectFormsAfter } from "@/services/project-forms";
 import { invoiceInAlegraAfterApproval } from "@/services/alegra-after";
 import type { LostReason, Stage } from "@/types/ventas";
 
@@ -56,6 +57,7 @@ export async function approveOpportunityAction(id: string, projectName: string |
     const project = await ventas.approveOpportunity(id, projectName, projectId, quoteIds);
     // Aprobada: su carpeta recibe las subcarpetas del proyecto (medidas, sketchup…).
     await addProjectSubfolders(id);
+    await syncProjectFormsAfter();
     invoiceInAlegraAfterApproval(quoteIds);
     return project;
   });

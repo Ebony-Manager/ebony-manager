@@ -13,7 +13,7 @@ import {
 import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from "@/lib/personal/jotform-money";
 import { PUNCH_FORM_ID, normalizePunch, punchKey } from "@/lib/attendance/jotform-punch";
 import { dispatchPendingPush } from "@/lib/notifications/push";
-import { ACTA_FORM_ID, actaAnswersFromRaw, normalizeActa } from "@/lib/deliveries/acta-form";
+import { DELIVERY_FORMS, actaAnswersFromRaw, kindForForm, normalizeActa, type DeliveryKind } from "@/lib/deliveries/acta-form";
 import { getActaAnswers, saveActaFiles } from "@/lib/deliveries/acta-server";
 
 /**
@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const JOTFORM_API = process.env.JOTFORM_API_URL ?? "https://api.jotform.com";
-const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID, PUNCH_FORM_ID, ACTA_FORM_ID]);
+const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID, PUNCH_FORM_ID, ...Object.values(DELIVERY_FORMS).map((f) => f.formId)]);
 
 /** Respuestas de un envío, desde la API de JotForm. null si no hay API key o falla. */
 async function answersFromJotformApi(submissionId: string, formId: string): Promise<AnswersByName | null> {
@@ -180,7 +180,8 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     return Response.json({ ok: false, error: "bad submissionID" }, { status: 400 });
   }
 
-  if (formId === ACTA_FORM_ID) return handleActa(token, submissionId, body);
+  const deliveryKind = kindForForm(formId);
+  if (deliveryKind) return handleActa(token, submissionId, body, deliveryKind);
 
   let answers = /^\d+$/.test(submissionId) ? await answersFromJotformApi(submissionId, formId) : null;
   if (!answers && body.rawRequest) {
@@ -247,8 +248,9 @@ async function handle(request: NextRequest, body: Record<string, string>) {
 }
 
 /** Acta de entrega: se registra en su proyecto y el PDF y las fotos se copian a Drive. */
-async function handleActa(token: string, submissionId: string, body: Record<string, string>) {
-  let answers = /^\d+$/.test(submissionId) ? await getActaAnswers(submissionId) : null;
+async function handleActa(token: string, submissionId: string, body: Record<string, string>, kind: DeliveryKind) {
+  const { formId, title } = DELIVERY_FORMS[kind];
+  let answers = /^\d+$/.test(submissionId) ? await getActaAnswers(submissionId, formId) : null;
   if (!answers && body.rawRequest) {
     try {
       answers = actaAnswersFromRaw(JSON.parse(body.rawRequest) as Record<string, unknown>);
@@ -267,6 +269,11 @@ async function handleActa(token: string, submissionId: string, body: Record<stri
     p_token: token,
     p_data: {
       submission_id: submissionId,
+      kind,
+      approved_by: acta.approvedBy ?? "",
+      received_by: acta.receivedBy ?? "",
+      notes: acta.notes ?? "",
+      details: acta.details as Json,
       project_name: acta.projectName,
       delivered_on: acta.date ?? "",
       client_name: acta.clientName ?? "",
@@ -280,7 +287,7 @@ async function handleActa(token: string, submissionId: string, body: Record<stri
   });
   if (error) {
     const unauthorized = error.code === "42501" || error.message.includes("TOKEN_INVALIDO");
-    if (!unauthorized) await recordRun(supabase, token, "jotform:webhook", false, `acta de entrega: ${error.message}`);
+    if (!unauthorized) await recordRun(supabase, token, "jotform:webhook", false, `${title}: ${error.message}`);
     return Response.json({ ok: false, error: unauthorized ? "invalid token" : "save failed" }, { status: unauthorized ? 401 : 500 });
   }
   const saved = data as { id: string; done: boolean; project_id: string | null; project_name: string | null; project_status: string | null; project_folder_id: string | null };
@@ -290,7 +297,8 @@ async function handleActa(token: string, submissionId: string, body: Record<stri
   const files = await saveActaFiles(
     submissionId,
     acta,
-    saved.project_id ? { name: saved.project_name, status: saved.project_status, folderId: saved.project_folder_id } : null
+    saved.project_id ? { name: saved.project_name, status: saved.project_status, folderId: saved.project_folder_id } : null,
+    kind
   );
   await supabase.rpc("finish_project_delivery", {
     p_token: token,
@@ -302,7 +310,7 @@ async function handleActa(token: string, submissionId: string, body: Record<stri
       files_error: files.error ?? "",
     },
   });
-  const detail = `acta de entrega${saved.project_id ? "" : " (sin proyecto)"}${files.error ? ` — ${files.error}` : ""}`;
+  const detail = `${title.toLowerCase()}${saved.project_id ? "" : " (sin proyecto)"}${files.error ? ` — ${files.error}` : ""}`;
   await recordRun(supabase, token, "jotform:webhook", !files.error, detail);
   return Response.json({ ok: true });
 }

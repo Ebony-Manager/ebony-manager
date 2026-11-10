@@ -41,7 +41,7 @@ import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "entregas" | "archivos";
+type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "pintura" | "embalaje" | "entregas" | "archivos";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -101,6 +101,8 @@ export function ProjectHub({
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: true },
+    { key: "pintura", label: tt("tab_pintura"), visible: true },
+    { key: "embalaje", label: tt("tab_embalaje"), visible: true },
     { key: "entregas", label: tt("tab_entregas"), visible: true },
     { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
   ];
@@ -171,7 +173,15 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
-      {tab === "entregas" && <ProjectDeliveries project={project} deliveries={deliveries} unassigned={unassignedDeliveries} />}
+      {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (
+        <ProjectDeliveries
+          key={tab}
+          project={project}
+          kind={tab === "entregas" ? "entrega" : tab}
+          deliveries={deliveries.filter((d) => d.kind === (tab === "entregas" ? "entrega" : tab))}
+          unassigned={unassignedDeliveries.filter((d) => d.kind === (tab === "entregas" ? "entrega" : tab))}
+        />
+      )}
       {tab === "archivos" && (
         <DriveFiles
           enabled={drive.enabled}
