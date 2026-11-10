@@ -60,6 +60,7 @@ const FLAG_KEY: Record<DayFlag, keyof typeof strings.planilla> = {
   early_leave: "att_flag_early",
   sunday_punch: "att_flag_sunday",
   holiday_punch: "att_flag_holiday",
+  no_clock_data: "att_flag_no_clock",
 };
 const WEEKDAYS = { es: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"], en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] };
 
@@ -139,7 +140,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
   const { proposals, unmatched } = React.useMemo(
     () =>
       ready
-        ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links, resolutions: loaded.resolutions, holidays: loaded.holidays, today: todayInPanama() })
+        ? buildProposal({ from: range.from, to: range.to, punches: loaded.punches, employees, links, resolutions: loaded.resolutions, holidays: loaded.holidays, clockUntil: loaded.status.lastReloj?.date ?? null, today: todayInPanama() })
         : { proposals: [], unmatched: [] },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- range sale de `period`, que ya define `ready`.
     [ready, loaded, employees, links]
@@ -468,6 +469,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
           links={links}
           resolutions={loaded.resolutions}
           holidays={loaded.holidays}
+          clockUntil={loaded.status.lastReloj?.date ?? null}
           onApplied={() => {
             load();
             onApplied();

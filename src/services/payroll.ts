@@ -566,7 +566,9 @@ export async function getAttendanceSummary(year: number): Promise<{ employees: A
       endDate: e.endDate,
       monthlySalaryCents: 0,
     }));
-    const links = new Map(Object.entries(await attendance.getNameLinks()));
+    const [linkRows, status] = await Promise.all([attendance.getNameLinks(), attendance.getAttendanceStatus()]);
+    const links = new Map(Object.entries(linkRows));
+    const clockUntil = status.lastReloj?.date ?? null;
     for (const { month, half } of live) {
       const range = periodDateRange(year, month, half);
       const [punches, resolutions, holidays] = await Promise.all([
@@ -575,7 +577,7 @@ export async function getAttendanceSummary(year: number): Promise<{ employees: A
         getConfirmedHolidays(range.from, range.to),
       ]);
       if (punches.length === 0) continue;
-      const { proposals } = buildProposal({ from: range.from, to: range.to, punches, employees: proposalEmployees, links, resolutions, holidays, today });
+      const { proposals } = buildProposal({ from: range.from, to: range.to, punches, employees: proposalEmployees, links, resolutions, holidays, clockUntil, today });
       const liveRows = proposals.map((p) => ({
         employeeId: p.employeeId,
         month,

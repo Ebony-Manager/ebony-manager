@@ -19,6 +19,9 @@
  *  - Feriado (confirmado en Settings → Feriados): sin marcaciones no es falta. Si marca,
  *    se anotan sus horas (sin tardanza ni salida temprana) y queda "Trabajó en feriado"
  *    para que el admin decida el pago; la app no calcula el recargo.
+ *  - Sin ninguna marcación en un día POSTERIOR a la última fecha del archivo del reloj
+ *    cargado: todavía no se sabe si vino (falta subir el reloj), así que no es falta
+ *    ("sin datos del reloj"). Si ese día marcó por Jotform, se calcula normal.
  *  - Reloj y Jotform se juntan: la mayoría entra al taller y sale desde el proyecto.
  *  - Todos con las mismas reglas: nada se paga de más por lo que diga la ponchada.
  *
@@ -60,7 +63,7 @@ export function analyzeDay(
   date: string,
   punches: RawPunch[],
   schedule: Schedule = DEFAULT_SCHEDULE,
-  opts: { resolution?: DayResolution; inProgress?: boolean; holiday?: string } = {}
+  opts: { resolution?: DayResolution; inProgress?: boolean; holiday?: string; noClockData?: boolean } = {}
 ): DayResult {
   const weekday = weekdayOf(date);
   const isSaturday = weekday === 6;
@@ -96,6 +99,11 @@ export function analyzeDay(
     return result;
   }
 
+  if (times.length === 0 && opts.noClockData && !opts.resolution) {
+    // El reloj de ese día todavía no se subió: no se sabe si vino.
+    flags.push("no_clock_data");
+    return result;
+  }
   if (times.length === 0) {
     // También hoy: a la hora de procesar, sin ninguna ponchada es que no vino.
     flags.push("absent");
@@ -160,6 +168,8 @@ export function analyzePeriod(
     today?: string;
     /** Feriados confirmados: fecha → nombre. */
     holidays?: Readonly<Record<string, string>>;
+    /** Última fecha del archivo del reloj cargado: después, un día sin marcaciones es "sin datos", no falta. */
+    clockUntil?: string | null;
   } = {}
 ): EmployeeAttendance {
   const byDate = new Map<string, RawPunch[]>();
@@ -172,9 +182,14 @@ export function analyzePeriod(
     .filter((d) => !(employment.startDate && d < employment.startDate) && !(employment.endDate && d > employment.endDate))
     .filter((d) => !opts.today || d <= opts.today)
     .map((d) =>
-      analyzeDay(d, byDate.get(d) ?? [], schedule, { resolution: opts.resolutions?.get(d), inProgress: d === opts.today, holiday: opts.holidays?.[d] })
+      analyzeDay(d, byDate.get(d) ?? [], schedule, {
+        resolution: opts.resolutions?.get(d),
+        inProgress: d === opts.today,
+        holiday: opts.holidays?.[d],
+        noClockData: !!opts.clockUntil && d > opts.clockUntil,
+      })
     );
-  const review = days.filter((d) => d.flags.some((f) => f !== "early_leave" && f !== "sunday_punch")).map((d) => ({ date: d.date, flags: d.flags }));
+  const review = days.filter((d) => d.flags.some((f) => f !== "early_leave" && f !== "sunday_punch" && f !== "no_clock_data")).map((d) => ({ date: d.date, flags: d.flags }));
   return {
     days,
     lateMinutes: days.reduce((s, d) => s + d.lateMinutes, 0),

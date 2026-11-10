@@ -46,7 +46,9 @@ export type DayFlag =
   /** Marcó en domingo. */
   | "sunday_punch"
   /** Marcó en un feriado (confirmado): el admin revisa cómo se paga. */
-  | "holiday_punch";
+  | "holiday_punch"
+  /** Sin marcaciones, pero el archivo del reloj todavía no llega a ese día: no es falta (todavía no se sabe). */
+  | "no_clock_data";
 
 /** Lo que falta saber de un día: hasta que alguien lo revise, la persona no pasa a la Quincena. */
 export const BLOCKING_FLAGS: readonly DayFlag[] = ["missing_in", "missing_out", "unclear"];

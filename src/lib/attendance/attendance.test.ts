@@ -382,3 +382,27 @@ describe("feriados", () => {
     expect(r.review).toEqual([{ date: "2026-11-10", flags: ["holiday_punch"] }]);
   });
 });
+
+describe("reloj todavía sin cargar", () => {
+  const p = (date: string, hm: string, source: "reloj" | "jotform" = "jotform"): RawPunch => {
+    const [h, m] = hm.split(":").map(Number);
+    return { name: "Ana", date, minutes: h * 60 + m, source, kind: "unknown" };
+  };
+  it("después de la última fecha del reloj, un día sin marcar no es falta; con Jotform se calcula", () => {
+    // Reloj cargado hasta el viernes 30-oct; el lunes 2-nov marcó por Jotform, el martes 3 no marcó.
+    const r = analyzePeriod("2026-10-30", "2026-11-03", [p("2026-11-02", "07:50"), p("2026-11-02", "17:00")], undefined, {}, { clockUntil: "2026-10-30" });
+    const byDate = Object.fromEntries(r.days.map((d) => [d.date, d]));
+    expect(byDate["2026-10-30"].flags).toEqual(["absent"]); // hasta el reloj: falta
+    expect(byDate["2026-11-02"].lateMinutes).toBe(20); // con Jotform: normal
+    expect(byDate["2026-11-03"].flags).toEqual(["no_clock_data"]); // sin datos aún
+    expect(r.absentWeekdays).toBe(1);
+    expect(r.review.map((x) => x.date)).toEqual(["2026-10-30"]);
+  });
+  it("un día revisado a mano manda aunque no haya reloj", () => {
+    const r = analyzePeriod("2026-11-03", "2026-11-03", [], undefined, {}, {
+      clockUntil: "2026-10-30",
+      resolutions: new Map([["2026-11-03", { arrival: null, departure: null, note: "no vino" }]]),
+    });
+    expect(r.absentWeekdays).toBe(1);
+  });
+});

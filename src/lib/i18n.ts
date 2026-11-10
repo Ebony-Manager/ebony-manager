@@ -1223,6 +1223,7 @@ export const strings = {
     att_flag_early: { es: "salió antes de la hora", en: "left early" },
     att_flag_sunday: { es: "marcó en domingo", en: "punched on Sunday" },
     att_flag_holiday: { es: "trabajó en feriado", en: "worked on a holiday" },
+    att_flag_no_clock: { es: "sin datos del reloj todavía", en: "no clock data yet" },
     att_holiday: { es: "Feriado", en: "Holiday" },
     benefits_title: { es: "Prestaciones", en: "Benefits" },
     benefits_desc: {
