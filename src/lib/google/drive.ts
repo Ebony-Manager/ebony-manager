@@ -291,6 +291,23 @@ export async function moveItem(id: string, from: string[], to: string): Promise<
   });
 }
 
+/** Sube un archivo pequeño (PDF, foto) desde el servidor. Devuelve su id. */
+export async function uploadBytes(name: string, mimeType: string, data: ArrayBuffer, parentId: string): Promise<string> {
+  const boundary = `ebony${Date.now().toString(36)}`;
+  const meta = JSON.stringify({ name, parents: [parentId], mimeType });
+  const body = new Blob([
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+    data,
+    `\r\n--${boundary}--`,
+  ]);
+  const res = await driveFetch(`${UPLOAD_API}/files?uploadType=multipart&fields=id&${ALL_DRIVES}`, {
+    method: "POST",
+    headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  return ((await res.json()) as { id: string }).id;
+}
+
 export const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${id}`;
 
 /** Donde cae lo que manda el cliente (planos, diseño): se crea con la oportunidad. */

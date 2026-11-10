@@ -33,13 +33,15 @@ import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
+import { ProjectDeliveries } from "./project-deliveries";
+import type { ProjectDelivery } from "@/types/deliveries";
 import { DriveFiles } from "@/components/shared/drive-files";
 import { usePageTitle } from "@/components/shared/page-title";
 import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "archivos";
+type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "entregas" | "archivos";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -64,6 +66,8 @@ export function ProjectHub({
   projectPeople,
   canQuotes = false,
   quotes = [],
+  deliveries = [],
+  unassignedDeliveries = [],
 }: {
   project: Project;
   initialTab?: string;
@@ -83,6 +87,9 @@ export function ProjectHub({
   /** Con Cotización: las aprobadas que lo crearon y sus adicionales. */
   canQuotes?: boolean;
   quotes?: QuoteSummary[];
+  /** Actas de entrega del proyecto, y las que llegaron sin proyecto. */
+  deliveries?: ProjectDelivery[];
+  unassignedDeliveries?: ProjectDelivery[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -94,6 +101,7 @@ export function ProjectHub({
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: true },
+    { key: "entregas", label: tt("tab_entregas"), visible: true },
     { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
   ];
   const visible = sections.filter((s) => s.visible);
@@ -163,6 +171,7 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
+      {tab === "entregas" && <ProjectDeliveries project={project} deliveries={deliveries} unassigned={unassignedDeliveries} />}
       {tab === "archivos" && (
         <DriveFiles
           enabled={drive.enabled}

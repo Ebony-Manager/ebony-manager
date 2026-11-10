@@ -56,6 +56,63 @@ export type Database = {
         }
         Relationships: []
       }
+      project_deliveries: {
+        Row: {
+          id: string
+          project_id: string | null
+          project_name: string
+          submission_id: string
+          delivered_on: string
+          client_name: string | null
+          client_email: string | null
+          client_id_doc: string | null
+          address: string | null
+          items: string | null
+          photo_count: number
+          drive_folder_id: string | null
+          pdf_file_id: string | null
+          files_error: string | null
+          raw: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id?: string | null
+          project_name: string
+          submission_id: string
+          delivered_on: string
+          client_name?: string | null
+          client_email?: string | null
+          client_id_doc?: string | null
+          address?: string | null
+          items?: string | null
+          photo_count?: number
+          drive_folder_id?: string | null
+          pdf_file_id?: string | null
+          files_error?: string | null
+          raw?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string | null
+          project_name?: string
+          submission_id?: string
+          delivered_on?: string
+          client_name?: string | null
+          client_email?: string | null
+          client_id_doc?: string | null
+          address?: string | null
+          items?: string | null
+          photo_count?: number
+          drive_folder_id?: string | null
+          pdf_file_id?: string | null
+          files_error?: string | null
+          raw?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       integration_runs: {
         Row: {
           key: string
@@ -3680,6 +3737,14 @@ export type Database = {
       contractor_contract_value_cents: {
         Args: { p_contract: string }
         Returns: number
+      }
+      ingest_project_delivery: {
+        Args: { p_token: string; p_data: Json }
+        Returns: Json
+      }
+      finish_project_delivery: {
+        Args: { p_token: string; p_id: string; p_data: Json }
+        Returns: undefined
       }
       ingest_attendance_punch: {
         Args: { p_token: string; p_data: Json }

@@ -13,6 +13,8 @@ import {
 import { MONEY_FORM_ID, answersFromWorkflowParams, normalizeMoneyRequest } from "@/lib/personal/jotform-money";
 import { PUNCH_FORM_ID, normalizePunch, punchKey } from "@/lib/attendance/jotform-punch";
 import { dispatchPendingPush } from "@/lib/notifications/push";
+import { ACTA_FORM_ID, actaAnswersFromRaw, normalizeActa } from "@/lib/deliveries/acta-form";
+import { getActaAnswers, saveActaFiles } from "@/lib/deliveries/acta-server";
 
 /**
  * Webhook de JotForm (una sola dirección, `?token=...`) para tres formularios:
@@ -24,6 +26,8 @@ import { dispatchPendingPush } from "@/lib/notifications/push";
  *   workflow de JotForm: lo que llega ya está aprobado.
  * - "Punch In/Out" → ponchadas de la gente en proyectos, en Pagos →
  *   Asistencia (`public.attendance_punches`).
+ * - "Acta de Entrega" → la pestaña Entregas del proyecto
+ *   (`public.project_deliveries`), con el PDF y las fotos copiados a Drive.
  *
  * Acepta POST (webhook del formulario: multipart con `rawRequest`) y GET o
  * POST con parámetros sueltos (paso "Webhook" del workflow, que manda solo
@@ -38,9 +42,11 @@ import { dispatchPendingPush } from "@/lib/notifications/push";
  */
 
 export const dynamic = "force-dynamic";
+// El acta copia el PDF y las fotos a Drive: puede tardar más que un envío normal.
+export const maxDuration = 60;
 
 const JOTFORM_API = process.env.JOTFORM_API_URL ?? "https://api.jotform.com";
-const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID, PUNCH_FORM_ID]);
+const FORMS = new Set([EMPLOYEE_FORM_ID, MONEY_FORM_ID, PUNCH_FORM_ID, ACTA_FORM_ID]);
 
 /** Respuestas de un envío, desde la API de JotForm. null si no hay API key o falla. */
 async function answersFromJotformApi(submissionId: string, formId: string): Promise<AnswersByName | null> {
@@ -174,6 +180,8 @@ async function handle(request: NextRequest, body: Record<string, string>) {
     return Response.json({ ok: false, error: "bad submissionID" }, { status: 400 });
   }
 
+  if (formId === ACTA_FORM_ID) return handleActa(token, submissionId, body);
+
   let answers = /^\d+$/.test(submissionId) ? await answersFromJotformApi(submissionId, formId) : null;
   if (!answers && body.rawRequest) {
     try {
@@ -235,5 +243,66 @@ async function handle(request: NextRequest, body: Record<string, string>) {
   }
   await recordRun(supabase, token, "jotform:webhook", true, formLabel);
   if (formId === EMPLOYEE_FORM_ID) await dispatchPendingPush().catch(() => undefined);
+  return Response.json({ ok: true });
+}
+
+/** Acta de entrega: se registra en su proyecto y el PDF y las fotos se copian a Drive. */
+async function handleActa(token: string, submissionId: string, body: Record<string, string>) {
+  let answers = /^\d+$/.test(submissionId) ? await getActaAnswers(submissionId) : null;
+  if (!answers && body.rawRequest) {
+    try {
+      answers = actaAnswersFromRaw(JSON.parse(body.rawRequest) as Record<string, unknown>);
+    } catch {
+      return Response.json({ ok: false, error: "bad rawRequest" }, { status: 400 });
+    }
+  }
+  const acta = answers ? normalizeActa(answers) : null;
+  // El TEST de JotForm o un envío vacío: no se guarda.
+  if (!acta?.projectName) return Response.json({ ok: true, ignored: "no project" });
+
+  const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data, error } = await supabase.rpc("ingest_project_delivery", {
+    p_token: token,
+    p_data: {
+      submission_id: submissionId,
+      project_name: acta.projectName,
+      delivered_on: acta.date ?? "",
+      client_name: acta.clientName ?? "",
+      client_email: acta.email ?? "",
+      client_id_doc: acta.idDoc ?? "",
+      address: acta.address ?? "",
+      items: acta.items ?? "",
+      photo_count: acta.photos.length,
+      raw: Object.fromEntries(answers ?? []) as Json,
+    },
+  });
+  if (error) {
+    const unauthorized = error.code === "42501" || error.message.includes("TOKEN_INVALIDO");
+    if (!unauthorized) await recordRun(supabase, token, "jotform:webhook", false, `acta de entrega: ${error.message}`);
+    return Response.json({ ok: false, error: unauthorized ? "invalid token" : "save failed" }, { status: unauthorized ? 401 : 500 });
+  }
+  const saved = data as { id: string; done: boolean; project_id: string | null; project_name: string | null; project_status: string | null; project_folder_id: string | null };
+  // Ya estaba con su PDF (JotForm avisó dos veces): no se copia de nuevo.
+  if (saved.done) return Response.json({ ok: true, duplicate: true });
+
+  const files = await saveActaFiles(
+    submissionId,
+    acta,
+    saved.project_id ? { name: saved.project_name, status: saved.project_status, folderId: saved.project_folder_id } : null
+  );
+  await supabase.rpc("finish_project_delivery", {
+    p_token: token,
+    p_id: saved.id,
+    p_data: {
+      drive_folder_id: files.driveFolderId ?? "",
+      pdf_file_id: files.pdfFileId ?? "",
+      project_folder_id: files.projectFolderId ?? "",
+      files_error: files.error ?? "",
+    },
+  });
+  const detail = `acta de entrega${saved.project_id ? "" : " (sin proyecto)"}${files.error ? ` — ${files.error}` : ""}`;
+  await recordRun(supabase, token, "jotform:webhook", !files.error, detail);
   return Response.json({ ok: true });
 }
