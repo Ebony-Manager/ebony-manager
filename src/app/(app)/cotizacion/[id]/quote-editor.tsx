@@ -64,7 +64,7 @@ import { AlegraChip } from "./alegra-chip";
 import type { DocumentSettings } from "@/lib/settings/documents";
 import { SectionEditor, type BlockKey } from "./section-editor";
 import { Viewer3D } from "./viewer-3d";
-import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
+import { BackLink, PAGE_CLASS, SubTabs, EmptyState } from "@/components/shared/page-header";
 
 type SaveState = "saved" | "pending" | "saving" | "error";
 const SAVE_DELAY_MS = 700;
@@ -804,9 +804,9 @@ export function QuoteEditor({
                   />
                 </fieldset>
               ) : (
-                <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
+                <EmptyState size="page">
                   {tt("sec_empty")}
-                </div>
+                </EmptyState>
               )}
             </div>
 

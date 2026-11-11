@@ -45,6 +45,7 @@ import {
 } from "../inspection-pdf";
 import { useTi } from "../shared";
 import { useDayLabel } from "./schedule-view";
+import { EmptyState } from "@/components/shared/page-header";
 
 const ALL = "all";
 
@@ -272,9 +273,9 @@ export function PlanDialog({
           <DialogDescription>{rangeLabel}</DialogDescription>
         </DialogHeader>
         {week.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+          <EmptyState>
             {ti("sch_day_empty")}
-          </p>
+          </EmptyState>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">

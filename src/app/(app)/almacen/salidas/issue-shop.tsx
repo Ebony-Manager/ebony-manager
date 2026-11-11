@@ -21,6 +21,7 @@ import { registerIssueAction, returnContainersAction } from "../actions";
 import { PendingReturnsList, usePendingReturns } from "./pending-returns";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
+import { EmptyState } from "@/components/shared/page-header";
 
 type Project = { id: string; name: string; active: boolean };
 interface CartLine {
@@ -389,7 +390,7 @@ function CartPanel({
       </div>
 
       {cart.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">{ta("cart_empty")}</p>
+        <EmptyState>{ta("cart_empty")}</EmptyState>
       ) : (
         <ul className="flex flex-col gap-2">
           {cart.map((l) => {

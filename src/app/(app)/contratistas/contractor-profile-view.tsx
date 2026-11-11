@@ -121,7 +121,7 @@ import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ConfirmButton } from "@/components/shared/confirm-button";
-import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
+import { BackLink, PAGE_CLASS, EmptyState } from "@/components/shared/page-header";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
 /** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
@@ -757,9 +757,9 @@ export function ContractorProfileView({
         </div>
 
         {contracts.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
+          <EmptyState>
             {tt("ct_empty_contractor")}
-          </p>
+          </EmptyState>
         ) : (
           <>
             {activeContracts.length > 0 ? (
@@ -996,13 +996,13 @@ export function ContractorProfileView({
         )}
 
         {allRows.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <EmptyState size="page">
             {tt("ledger_empty")}
-          </p>
+          </EmptyState>
         ) : filteredRows.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <EmptyState size="page">
             {periodRows.length === 0 ? tt("period_empty") : tt("no_results")}
-          </p>
+          </EmptyState>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[950px] border-collapse text-sm">

@@ -13,7 +13,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateLaborRateAction } from "./actions";
 import { LaborRateFormDialog } from "./labor-rate-form-dialog";
-import { ShowToggle } from "@/components/shared/page-header";
+import { ShowToggle, EmptyState } from "@/components/shared/page-header";
 
 type TypeFilter = "all" | ContractorType;
 
@@ -86,9 +86,9 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+        <EmptyState size="page">
           {tt("rates_empty")}
-        </div>
+        </EmptyState>
       ) : (
         <>
           {/* Celular: una tarjeta por tarifa. */}

@@ -185,6 +185,7 @@ export function ItemDialog({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={reading || saving}
+                // ui-allow: foto (botón de agregar foto, no un vacío)
                 className="flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-primary/50 bg-primary/5 px-1 text-center text-[11px] leading-tight font-medium text-primary active:bg-primary/10 sm:size-24"
               >
                 {reading ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}

@@ -30,6 +30,7 @@ import {
   renameAreaAction,
 } from "./actions";
 import { useTi } from "./shared";
+import { EmptyState } from "@/components/shared/page-header";
 
 /**
  * Áreas de la obra: la lista fija de donde se eligen. Renombrar o juntar
@@ -120,9 +121,9 @@ export function AreasDialog({
         </form>
 
         {areas.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+          <EmptyState>
             {ti("areas_empty")}
-          </p>
+          </EmptyState>
         ) : (
           <ul className="flex flex-col rounded-lg border border-border">
             {areas.map((a) => {

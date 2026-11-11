@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Field } from "@/components/shared/field";
 import toast from "react-hot-toast";
 import {
   ArrowDown,
@@ -109,23 +110,6 @@ function Card({
         {footer}
       </div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      {children}
-    </label>
   );
 }
 

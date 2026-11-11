@@ -35,7 +35,7 @@ import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { AddChargeDialog } from "@/app/(app)/planilla/add-charge-dialog";
-import { Stepper } from "@/components/shared/page-header";
+import { Stepper, EmptyState } from "@/components/shared/page-header";
 import {
   closeContractorPayPeriodAction,
   getContractorClosingAction,
@@ -255,11 +255,11 @@ export function ContractorClosingView({
       </div>
 
       {!data ? (
-        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">{tt("loading")}</p>
+        <EmptyState size="page">{tt("loading")}</EmptyState>
       ) : rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+        <EmptyState size="page">
           {paid ? tt("cl_paid_empty") : tt("cl_empty")}
-        </p>
+        </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full border-collapse text-sm sm:min-w-[720px]">

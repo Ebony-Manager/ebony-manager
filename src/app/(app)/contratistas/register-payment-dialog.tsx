@@ -29,6 +29,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { registerContractorPaymentAction } from "./actions";
 import { Field } from "./field";
+import { EmptyState } from "@/components/shared/page-header";
 
 const LOOSE = "__loose__";
 
@@ -138,9 +139,9 @@ export function RegisterPaymentDialog({
           </Field>
 
           {nothingToPay ? (
-            <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+            <EmptyState>
               {tt("pay_nothing")}
-            </p>
+            </EmptyState>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[480px] border-collapse text-sm">

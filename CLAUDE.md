@@ -1,5 +1,10 @@
 # CLAUDE.md — Ebony Custom Woodwork App
 
+> **Antes de tocar cualquier pantalla, lee [UI-RULES.md](./UI-RULES.md):** qué
+> componente va para qué (vacíos, campos, grupos, fechas, íconos…) y el
+> protocolo de revisión. La prueba `src/ui-consistency.test.ts` vigila las
+> reglas y corre con `npx vitest run`.
+
 > **Fundación técnica actual:** Next.js App Router + React 19 + TypeScript
 > + Tailwind v4 + Supabase — ver [FOUNDATION.md](./FOUNDATION.md) para el
 > stack, la estructura de carpetas, cómo se conectan los tokens de tema y

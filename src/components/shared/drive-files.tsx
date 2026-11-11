@@ -14,6 +14,7 @@ import { strings, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { createDriveSubfolderAction, listDriveFolderAction, startDriveUploadAction, trashDriveItemAction } from "@/app/(app)/drive-actions";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { EmptyState } from "@/components/shared/page-header";
 
 /** Hasta este tamaño se ve dentro de la app (pasa por Vercel); más pesado, en Drive. */
 const PREVIEW_MAX = 4 * 1024 * 1024;
@@ -125,12 +126,12 @@ export function DriveFiles({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!enabled) {
-    return <p className={cn("rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground", className)}>{td("not_connected")}</p>;
+    return <EmptyState className={className}>{td("not_connected")}</EmptyState>;
   }
   if (!rootId) {
     return (
-      <div className={cn("flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-4 py-5 text-center", className)}>
-        <p className="max-w-sm text-xs text-muted-foreground">{td("create_folder_hint")}</p>
+      <EmptyState className={className}>
+        <p className="max-w-sm">{td("create_folder_hint")}</p>
         <input ref={inputRef} type="file" multiple hidden onChange={(e) => void createAndUpload([...(e.target.files ?? [])])} />
         <div className="flex flex-wrap justify-center gap-2">
           <Button size="sm" variant="outline" disabled={creating} onClick={() => inputRef.current?.click()}>
@@ -142,7 +143,7 @@ export function DriveFiles({
             {td("create_folder")}
           </Button>
         </div>
-      </div>
+      </EmptyState>
     );
   }
   return <FolderBrowser key={rootId} rootId={rootId} className={className} />;
@@ -282,16 +283,16 @@ function FolderBrowser({ rootId, className }: { rootId: string; className?: stri
           {td("loading")}
         </p>
       ) : error ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+        <EmptyState>
           <span>
             {td("error")} <span className="text-destructive">{error}</span>
           </span>
           <Button size="sm" variant="outline" onClick={() => setReload((r) => r + 1)}>
             {td("retry")}
           </Button>
-        </div>
+        </EmptyState>
       ) : items.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">{td("empty")}</p>
+        <EmptyState>{td("empty")}</EmptyState>
       ) : (
         <ul className="flex max-h-80 flex-col overflow-y-auto rounded-lg border border-border">
           {items.map((item) => (
@@ -405,6 +406,7 @@ export function PendingFiles({ files, onChange, disabled }: { files: File[]; onC
           if (!disabled) add(e.dataTransfer.files);
         }}
         className={cn(
+          // ui-allow: dropzone (zona para arrastrar archivos, no un vacío)
           "flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-4 text-center transition-colors",
           over ? "border-primary bg-primary/5" : "border-border",
         )}

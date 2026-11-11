@@ -14,7 +14,7 @@ import { t, strings } from "@/lib/i18n";
 import { getAdminDashboardAction } from "./actions";
 import { ADMIN_SERIES, AdminMonthlyChart, type AdminSeriesKey } from "./admin-monthly-chart";
 import { contractorProfilePath, employeeProfilePath } from "@/lib/personal/paths";
-import { Stepper } from "@/components/shared/page-header";
+import { Stepper, EmptyState } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { KpiCard } from "@/components/shared/kpi-card";
 
@@ -105,12 +105,12 @@ export function AdminDashboardView() {
       </div>
 
       {failed ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <EmptyState>
           {tt("load_failed")}
           <Button size="sm" variant="outline" onClick={() => setAttempt((a) => a + 1)}>
             {tt("retry")}
           </Button>
-        </div>
+        </EmptyState>
       ) : !dash || !m || !data ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (

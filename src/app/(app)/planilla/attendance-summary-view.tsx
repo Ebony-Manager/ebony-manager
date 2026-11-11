@@ -5,7 +5,7 @@ import { CalendarX2, ChevronDown, CircleCheck, Clock, TrendingDown } from "lucid
 
 import { RankList, type RankItem } from "@/components/shared/rank-list";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { SectionHeader, Stepper } from "@/components/shared/page-header";
+import { SectionHeader, Stepper, EmptyState } from "@/components/shared/page-header";
 import { summarizeAttendance, type AttendanceEmployee, type AttendancePeriodRow, type AttendancePersonTotal } from "@/lib/planilla/attendance-summary";
 import { currentPeriod, formatCents, monthLabel, type Period } from "@/lib/planilla/payroll-period";
 import { employeeProfilePath, type EmployeeFrom } from "@/lib/personal/paths";
@@ -158,7 +158,7 @@ export function AttendanceSummaryView({
           ) : !summary ? (
             <p className="text-xs text-muted-foreground">{tp("loading")}</p>
           ) : summary.byAbsences.length === 0 && summary.byLateness.length === 0 && summary.spotless.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">{period ? ta("empty_period") : ta("empty")}</p>
+            <EmptyState>{period ? ta("empty_period") : ta("empty")}</EmptyState>
           ) : (
             <>
               {/* Totales en una línea, cada uno con su ícono de color. */}

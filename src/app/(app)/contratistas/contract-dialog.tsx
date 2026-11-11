@@ -41,6 +41,7 @@ import {
   type WorkDraft,
 } from "./work-editor";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { EmptyState } from "@/components/shared/page-header";
 
 export interface ContractPerson {
   id: string;
@@ -280,16 +281,16 @@ export function ContractDialog({
             </div>
 
             {loading ? (
-              <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+              <EmptyState>
                 {tt("loading")}
-              </p>
+              </EmptyState>
             ) : editableWork ? (
               person ? (
                 <WorkEditor draft={work} onChange={setWork} rates={rates} />
               ) : (
-                <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+                <EmptyState>
                   {tt("ct_pick_contractor_first")}
-                </p>
+                </EmptyState>
               )
             ) : (
               <div className="flex flex-col gap-2 rounded-lg border border-border p-3">

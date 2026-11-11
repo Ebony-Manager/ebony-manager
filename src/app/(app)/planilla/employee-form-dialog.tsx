@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Field } from "@/components/shared/field";
 import toast from "react-hot-toast";
 import { Settings } from "lucide-react";
 
@@ -620,22 +621,5 @@ export function EmployeeFormDialog({
         onPositionsChanged={setPositionsList}
       />
     </>
-  );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
-    </div>
   );
 }

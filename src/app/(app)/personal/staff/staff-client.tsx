@@ -34,7 +34,7 @@ import type { MatchCandidate } from "@/lib/personal/jotform-intake";
 import { ContractorAvatar } from "../../contratistas/contractor-avatar";
 import { ContractorFormDialog } from "../../contratistas/contractor-form-dialog";
 import { downloadStaffDocuments } from "./download-documents";
-import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { PAGE_CLASS, PageHeader, EmptyState } from "@/components/shared/page-header";
 
 /**
  * Personal → Staff: empleados y contratistas en una sola lista, con
@@ -274,9 +274,9 @@ export function StaffClient({
 
 function EmptyBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+    <EmptyState size="page">
       {children}
-    </div>
+    </EmptyState>
   );
 }
 

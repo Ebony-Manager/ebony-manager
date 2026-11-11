@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, Folder, FolderOpen, MapPin, Paperclip, Users, Waypoints } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, Folder, FolderOpen, MapPin, MessageSquare, Paperclip, Users, Waypoints } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { FormSection, WithIcon } from "@/components/shared/form-section";
 import { DriveFiles, PendingFiles, uploadFilesToDrive } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
+import { EmptyState } from "@/components/shared/page-header";
 
 export interface SalesProject {
   id: string;
@@ -369,8 +370,7 @@ export function OpportunityDialog({
             <>
               <LinkedQuotes o={existing} lang={lang} />
               {driveEnabled && (
-                <section className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t(lang, strings.drive.title)}</h3>
+                <FormSection icon={Paperclip} title={t(lang, strings.drive.title)}>
                   <DriveFiles
                     enabled
                     folderId={existing.driveFolderId}
@@ -380,7 +380,7 @@ export function OpportunityDialog({
                       return res.ok ? res.data : null;
                     }}
                   />
-                </section>
+                </FormSection>
               )}
               <NotesLog id={existing.id} />
             </>
@@ -438,18 +438,20 @@ export function OpportunityDialog({
 function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
   const { tv } = useTv();
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">{tv("quotes_title")}</h3>
+    <FormSection
+      icon={FileText}
+      title={tv("quotes_title")}
+      action={
         <Button asChild size="sm" variant="outline">
           <Link href={`/cotizacion/nueva?oportunidad=${o.id}`}>
             <FilePlus2 className="size-3.5" />
             {tv("new_quote")}
           </Link>
         </Button>
-      </div>
+      }
+    >
       {o.quotes.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">{tv("quotes_empty")}</p>
+        <EmptyState>{tv("quotes_empty")}</EmptyState>
       ) : (
         <ul className="flex flex-col rounded-lg border border-border">
           {o.quotes.map((q, i) => (
@@ -466,7 +468,7 @@ function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
           ))}
         </ul>
       )}
-    </section>
+    </FormSection>
   );
 }
 
@@ -501,8 +503,7 @@ function NotesLog({ id }: { id: string }) {
   }
 
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-foreground">{tv("notes_title")}</h3>
+    <FormSection icon={MessageSquare} title={tv("notes_title")}>
       <div className="flex gap-2">
         <Input
           value={body}
@@ -533,6 +534,6 @@ function NotesLog({ id }: { id: string }) {
           ))}
         </ul>
       )}
-    </section>
+    </FormSection>
   );
 }

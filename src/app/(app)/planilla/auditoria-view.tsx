@@ -59,7 +59,7 @@ import {
   writeSavedView,
 } from "@/lib/planilla/saved-view";
 import toast from "react-hot-toast";
-import { Stepper } from "@/components/shared/page-header";
+import { Stepper, EmptyState } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 const LEGEND_CATEGORIES: PayrollCategoryKey[] = ["salario", "bonos", "descuentos", "descuentoPrestamos", "decimo"];
@@ -934,9 +934,9 @@ export function AuditoriaView({
       )}
 
       {data && query.trim() !== "" && filteredRows.length === 0 && (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <EmptyState>
           {tt("emp_search_empty")}
-        </p>
+        </EmptyState>
       )}
 
       {data && data.rows.length > 0 && (

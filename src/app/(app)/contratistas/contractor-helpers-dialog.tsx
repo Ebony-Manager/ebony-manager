@@ -27,6 +27,7 @@ import {
 } from "./actions";
 import { Field } from "./field";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { EmptyState } from "@/components/shared/page-header";
 
 /**
  * Ayudantes de un contratista: lista + alta / edición / baja en el mismo
@@ -249,9 +250,9 @@ export function ContractorHelpersDialog({
             {helpers === null ? (
               <p className="text-sm text-muted-foreground">{tt("loading")}</p>
             ) : helpers.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+              <EmptyState>
                 {tt("helpers_empty")}
-              </p>
+              </EmptyState>
             ) : (
               <ul className="flex flex-col gap-2">
                 {helpers.map((h) => (

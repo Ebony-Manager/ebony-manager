@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/cotizador/pricing";
@@ -12,6 +12,7 @@ import { strings, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { QuoteSummary } from "@/types/cotizador";
 import { QUOTE_STATUS_STYLE } from "./status-style";
+import { EmptyState } from "@/components/shared/page-header";
 
 /**
  * Las cotizaciones de un proyecto o de un cliente: número, estado, para quién,
@@ -27,7 +28,7 @@ export function QuoteRows({
   quotes: QuoteSummary[];
   newHref?: string;
   showWho?: boolean;
-  /** Dentro de una ficha: sin la fila de arriba (el botón lo pone la ficha) y, vacío, una línea de texto. */
+  /** Dentro de una ficha: sin la fila de arriba (el botón lo pone el encabezado del bloque). */
   compact?: boolean;
 }) {
   const { lang } = useLang();
@@ -65,14 +66,7 @@ export function QuoteRows({
       </div>
       )}
       {quotes.length === 0 ? (
-        compact ? (
-          <p className="-mt-1 text-xs text-muted-foreground">{tt("qr_none")}</p>
-        ) : (
-        <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-border py-8 text-sm text-muted-foreground">
-          <FileText className="size-4" />
-          {tt("qr_none")}
-        </p>
-        )
+        <EmptyState>{tt("qr_none")}</EmptyState>
       ) : (
         <ul className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           {quotes.map((q) => (

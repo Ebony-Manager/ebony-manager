@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 
@@ -73,20 +72,5 @@ export function FormDialog({
   );
 }
 
-/** Campo etiquetado para usar dentro de FormDialog. */
-export function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
-    </div>
-  );
-}
+// El campo etiquetado vive en components/shared/field.tsx (uno solo para toda la app).
+export { Field } from "@/components/shared/field";

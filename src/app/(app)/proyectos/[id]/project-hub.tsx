@@ -40,7 +40,7 @@ import { DriveFiles } from "@/components/shared/drive-files";
 import { usePageTitle } from "@/components/shared/page-title";
 import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
-import { BackLink, PAGE_CLASS, SubTabs } from "@/components/shared/page-header";
+import { BackLink, PAGE_CLASS, SubTabs, EmptyState } from "@/components/shared/page-header";
 
 type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos";
 
@@ -372,7 +372,7 @@ function ContractsSection({
         </Button>
       </div>
       {contracts.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">{tt("no_contracts")}</p>
+        <EmptyState>{tt("no_contracts")}</EmptyState>
       ) : (
         <>
           {active.length > 0 && <ContractsTable contracts={active} onOpen={onOpen} showContractor />}

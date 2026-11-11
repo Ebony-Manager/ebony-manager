@@ -45,6 +45,7 @@ import { downloadQuincenaPdf } from "./quincena-pdf";
 import { buildQuincenaReport } from "@/lib/planilla/quincena-report";
 import { EmployeeAvatar } from "./employee-avatar";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared/page-header";
 
 type Row = RegistroRow;
 
@@ -239,9 +240,9 @@ export function RegistroView({
 
   if (employees.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+      <EmptyState size="page">
         {tt("empty_registro")}
-      </div>
+      </EmptyState>
     );
   }
 
@@ -493,9 +494,9 @@ export function RegistroView({
       </div>
 
       {searching && visibleRows !== null && shownRows.length === 0 && (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <EmptyState>
           {tt("emp_search_empty")}
-        </p>
+        </EmptyState>
       )}
 
       {confirmDialog}

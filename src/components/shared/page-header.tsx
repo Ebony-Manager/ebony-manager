@@ -123,10 +123,21 @@ export function Stepper({
   );
 }
 
-/** El recuadro punteado de "todavía no hay nada" / "no hay resultados". */
-export function EmptyState({ children, className }: { children: React.ReactNode; className?: string }) {
+/**
+ * El recuadro punteado de "todavía no hay nada" / "no hay resultados" / "no se
+ * pudo cargar": el ÚNICO vacío de la app (ver UI-RULES.md). Texto en el
+ * centro y, si hace falta, un botón debajo. `size="page"` para cuando es toda
+ * la vista (una lista, una pestaña); por defecto, el de un bloque o diálogo.
+ */
+export function EmptyState({ children, size = "block", className }: { children: React.ReactNode; size?: "block" | "page"; className?: string }) {
   return (
-    <div className={cn("flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground", className)}>
+    <div
+      className={cn(
+        "flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-4 text-center text-sm text-muted-foreground",
+        size === "page" ? "py-12" : "py-6",
+        className,
+      )}
+    >
       {children}
     </div>
   );

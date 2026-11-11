@@ -15,6 +15,7 @@ import { Field } from "../../contratistas/field";
 import { lendToolsAction } from "../actions";
 import { Combo, ItemThumb, SearchBox, useTa } from "../shared";
 import type { Project } from "./common";
+import { EmptyState } from "@/components/shared/page-header";
 
 /**
  * Prestar: a quién (de Personal), una o varias herramientas disponibles,
@@ -110,9 +111,9 @@ export function LendDialog({
               <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
             </div>
             {available.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+              <EmptyState>
                 {query ? ta("no_results") : ta("lend_none_available")}
-              </p>
+              </EmptyState>
             ) : (
               <ul className="flex max-h-64 flex-col overflow-y-auto rounded-lg border border-border">
                 {available.map((t) => (

@@ -14,7 +14,7 @@ import { EmployeeAvatar } from "./employee-avatar";
 import { PayrollKpiCard } from "./payroll-kpi-card";
 import { MonthlyPayrollChart } from "./monthly-payroll-chart";
 import { employeeProfilePath } from "@/lib/personal/paths";
-import { SectionHeader, Stepper } from "@/components/shared/page-header";
+import { SectionHeader, Stepper, EmptyState } from "@/components/shared/page-header";
 
 /**
  * Dashboard de Planilla — cuatro números, un gráfico y dos listas cortas:
@@ -77,12 +77,12 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
       />
 
       {failed ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <EmptyState>
           {tt("load_failed")}
           <Button size="sm" variant="outline" onClick={retry}>
             {tt("retry")}
           </Button>
-        </div>
+        </EmptyState>
       ) : loading ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : (
