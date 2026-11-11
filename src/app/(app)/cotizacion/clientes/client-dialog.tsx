@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Building2, FileText, Folder, Mail, Phone, User, UserPlus, Users, Waypoints, X } from "lucide-react";
+import { Building2, FileText, Folder, Mail, Phone, Plus, User, UserPlus, Users, Waypoints, X } from "lucide-react";
 
 import { FormSection, WithIcon } from "@/components/shared/form-section";
 
@@ -240,66 +240,64 @@ export function ClientDialog({
           <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("notes_ph")} aria-label={tv("f_notes")} />
           {existing && <ShowToggle checked={form.active} onChange={(v) => set("active", v)} label={tv("f_active")} />}
 
-          {stats && (
-            <section className="flex flex-col gap-2">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Waypoints className="size-4 text-muted-foreground" />
-                {tv("cli_opps_list")}
-              </h3>
-              {stats.opportunities.length === 0 ? (
-                <p className="text-xs text-muted-foreground">{tv("cli_none")}</p>
-              ) : (
-                <ul className="flex flex-col rounded-lg border border-border">
-                  {stats.opportunities.map((o) => {
-                    const amount = opportunityAmount(o);
-                    return (
-                      <li key={o.id} className="border-b border-border last:border-0">
-                        <Link href={`${SEGUIMIENTO_PATH}?abrir=${o.id}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-2 text-sm hover:bg-muted/30">
-                          <span className="font-medium">{opportunityTitle(o, clientById)}</span>
-                          <StageBadge stage={o.stage} />
-                          <span className="text-xs text-muted-foreground">
-                            {formatDateCompact(lang, o.receivedOn)} · {o.designerId === existing!.id ? tv("as_designer") : tv("as_client")}
-                          </span>
-                          <span className="ml-auto tabular-nums">{amount == null ? "—" : formatMoney(amount)}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          )}
-
+          {/* Lo que ya tiene este cliente: aparte del formulario, los tres bloques iguales. */}
           {existing && (
-            <section className="flex flex-col gap-2">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <FileText className="size-4 text-muted-foreground" />
-                {tv("cli_quotes")}
-              </h3>
-              <QuoteRows
-                showWho
-                quotes={quotes.filter((q) => q.designerId === existing.id || q.clientId === existing.id)}
-                newHref={`/cotizacion/nueva?cliente=${existing.id}`}
-              />
-            </section>
-          )}
+            <div className="flex flex-col gap-5 border-t border-border pt-4">
+              {stats && (
+                <FormSection icon={Waypoints} title={tv("cli_opps_list")}>
+                  {stats.opportunities.length === 0 ? (
+                    <p className="-mt-1 text-xs text-muted-foreground">{tv("cli_none")}</p>
+                  ) : (
+                    <ul className="flex flex-col rounded-lg border border-border">
+                      {stats.opportunities.map((o) => {
+                        const amount = opportunityAmount(o);
+                        return (
+                          <li key={o.id} className="border-b border-border last:border-0">
+                            <Link href={`${SEGUIMIENTO_PATH}?abrir=${o.id}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-2 text-sm hover:bg-muted/30">
+                              <span className="font-medium">{opportunityTitle(o, clientById)}</span>
+                              <StageBadge stage={o.stage} />
+                              <span className="text-xs text-muted-foreground">
+                                {formatDateCompact(lang, o.receivedOn)} · {o.designerId === existing.id ? tv("as_designer") : tv("as_client")}
+                              </span>
+                              <span className="ml-auto tabular-nums">{amount == null ? "—" : formatMoney(amount)}</span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </FormSection>
+              )}
 
-          {myProjects.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Folder className="size-4 text-muted-foreground" />
-                {tv("cli_projects")}
-              </h3>
-              <ul className="flex flex-wrap gap-2">
-                {myProjects.map((p) => (
-                  <li key={p.id}>
-                    <Button asChild size="sm" variant="outline">
-                      <Link prefetch={false} href={projectPath(p.id)}>{p.name}</Link>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+              <FormSection
+                icon={FileText}
+                title={tv("cli_quotes")}
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/cotizacion/nueva?cliente=${existing.id}`}>
+                      <Plus className="size-3.5" />
+                      {tv("cli_new_quote")}
+                    </Link>
+                  </Button>
+                }
+              >
+                <QuoteRows compact showWho quotes={quotes.filter((q) => q.designerId === existing.id || q.clientId === existing.id)} />
+              </FormSection>
+
+              {myProjects.length > 0 && (
+                <FormSection icon={Folder} title={tv("cli_projects")}>
+                  <ul className="flex flex-wrap gap-2">
+                    {myProjects.map((p) => (
+                      <li key={p.id}>
+                        <Button asChild size="sm" variant="outline">
+                          <Link prefetch={false} href={projectPath(p.id)}>{p.name}</Link>
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </FormSection>
+              )}
+            </div>
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}

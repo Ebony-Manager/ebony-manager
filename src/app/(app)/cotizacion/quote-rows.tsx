@@ -18,7 +18,18 @@ import { QUOTE_STATUS_STYLE } from "./status-style";
  * fecha y total, cada una con su enlace. Arriba lo aprobado y lo que sigue
  * abierto; con `newHref`, un botón para crear una ya amarrada.
  */
-export function QuoteRows({ quotes, newHref, showWho = false }: { quotes: QuoteSummary[]; newHref?: string; showWho?: boolean }) {
+export function QuoteRows({
+  quotes,
+  newHref,
+  showWho = false,
+  compact = false,
+}: {
+  quotes: QuoteSummary[];
+  newHref?: string;
+  showWho?: boolean;
+  /** Dentro de una ficha: sin la fila de arriba (el botón lo pone la ficha) y, vacío, una línea de texto. */
+  compact?: boolean;
+}) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
   const approved = quotes.filter((q) => q.status === "APROBADA").reduce((s, q) => s + q.total, 0);
@@ -26,6 +37,14 @@ export function QuoteRows({ quotes, newHref, showWho = false }: { quotes: QuoteS
 
   return (
     <div className="flex flex-col gap-3">
+      {compact ? (
+        quotes.length > 0 && (
+          <p className="-mt-1 text-xs text-muted-foreground">
+            {tt("qr_approved")} <span className="font-semibold text-foreground tabular-nums">{formatMoney(approved)}</span>
+            {open.length > 0 && ` · ${tt("qr_open")} ${open.length}`}
+          </p>
+        )
+      ) : (
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {quotes.length > 0 && (
@@ -44,11 +63,16 @@ export function QuoteRows({ quotes, newHref, showWho = false }: { quotes: QuoteS
           </Button>
         )}
       </div>
+      )}
       {quotes.length === 0 ? (
+        compact ? (
+          <p className="-mt-1 text-xs text-muted-foreground">{tt("qr_none")}</p>
+        ) : (
         <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-border py-8 text-sm text-muted-foreground">
           <FileText className="size-4" />
           {tt("qr_none")}
         </p>
+        )
       ) : (
         <ul className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           {quotes.map((q) => (

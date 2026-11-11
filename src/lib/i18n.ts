@@ -2507,6 +2507,7 @@ export const strings = {
     f_company_ph: { es: "Empresa (opcional)", en: "Company (optional)" },
     f_email_ph: { es: "Correo (opcional)", en: "Email (optional)" },
     sec_contact: { es: "Contacto", en: "Contact" },
+    cli_new_quote: { es: "Nueva", en: "New" },
     f_active: { es: "Activo", en: "Active" },
     name_required: { es: "Falta el nombre.", en: "Name is required." },
     cli_opps: { es: "Cotizaciones", en: "Quotes" },
