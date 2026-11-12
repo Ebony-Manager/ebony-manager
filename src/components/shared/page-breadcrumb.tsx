@@ -44,7 +44,7 @@ export function SegmentedFilter<T extends string>({
   className,
 }: {
   value: T;
-  options: { value: T; label: string; icon?: LucideIcon }[];
+  options: { value: T; label: string; icon?: LucideIcon; /** Tono del ícono (un estado: `TONE_TEXT[STATUS.x.tone]`). */ iconClass?: string }[];
   onChange: (value: T) => void;
   fill?: boolean;
   className?: string;
@@ -70,7 +70,7 @@ export function SegmentedFilter<T extends string>({
             value === o.value ? "bg-card font-semibold text-foreground shadow-sm" : "font-medium text-muted-foreground hover:text-foreground",
           )}
         >
-          {o.icon && <o.icon className="size-3.5" />}
+          {o.icon && <o.icon className={cn("size-3.5", o.iconClass)} />}
           {o.label}
         </button>
       ))}

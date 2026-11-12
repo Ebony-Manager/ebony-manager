@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { LucideIcon } from "lucide-react";
+import { CircleAlert, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export function FormSection({
   icon: Icon,
   title,
   note,
+  error,
   quiet = false,
   action,
   className,
@@ -24,6 +25,8 @@ export function FormSection({
   title: string;
   /** Aclaración corta al lado del título (ej. "al menos uno"). */
   note?: string;
+  /** Falla de todo el grupo (ej. "elige al menos uno"): se ve en rojo bajo el título. */
+  error?: string;
   quiet?: boolean;
   className?: string;
   children: React.ReactNode;
@@ -36,6 +39,12 @@ export function FormSection({
         {note && <span className="text-xs font-normal text-muted-foreground">· {note}</span>}
         {action && <span className="ml-auto">{action}</span>}
       </h3>
+      {error && (
+        <p role="alert" className="-mt-1.5 flex items-center gap-1 text-xs text-destructive">
+          <CircleAlert className="size-3.5 shrink-0" />
+          {error}
+        </p>
+      )}
       {children}
     </section>
   );

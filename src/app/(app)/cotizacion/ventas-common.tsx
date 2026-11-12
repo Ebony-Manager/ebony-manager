@@ -13,6 +13,7 @@ import { SubTabs } from "@/components/shared/page-header";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useField } from "@/components/shared/field";
 
 export type VentasKey = keyof typeof strings.ventas;
 
@@ -125,6 +126,8 @@ export function ClientPicker({
   disabled?: boolean;
 }) {
   const { tv } = useTv();
+  const field = useField();
+  const FieldIcon = field?.icon;
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [creating, setCreating] = React.useState(false);
@@ -145,8 +148,20 @@ export function ClientPicker({
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" disabled={disabled} className="w-full justify-between font-normal">
-          <span className={cn("truncate", !picked && "text-muted-foreground")}>{picked ? picked.name : placeholder}</span>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          id={field?.id}
+          aria-invalid={field?.invalid || undefined}
+          aria-required={field?.required || undefined}
+          aria-describedby={field?.describedBy}
+          className="w-full justify-between font-normal aria-invalid:border-destructive aria-invalid:ring-destructive/20"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            {FieldIcon && <FieldIcon className="size-4 shrink-0 text-muted-foreground" />}
+            <span className={cn("truncate", !picked && "text-muted-foreground")}>{picked ? picked.name : placeholder}</span>
+          </span>
           <ChevronDown className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>

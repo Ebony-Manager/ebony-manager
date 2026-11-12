@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CheckCircle2, ExternalLink, FilePlus2, FileText, Folder, FolderOpen, MapPin, MessageSquare, Paperclip, Users, Waypoints } from "lucide-react";
+import { CheckCircle2, ExternalLink, FilePlus2, FileText, FolderOpen } from "lucide-react";
 
 import { LOST_REASONS, STAGES, type Client, type ClientKind, type LostReason, type Opportunity, type OpportunityNote, type SalesPerson, type Stage } from "@/types/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,10 @@ import {
 import { ClientPicker, StageBadge, StageLabel, useTv } from "../ventas-common";
 import { ClientDialog } from "../clientes/client-dialog";
 import { cn } from "@/lib/utils";
-import { FormSection, WithIcon } from "@/components/shared/form-section";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { DriveFiles, PendingFiles, uploadFilesToDrive } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
 import { EmptyState } from "@/components/shared/page-header";
@@ -110,7 +113,9 @@ export function OpportunityDialog({
   const [form, setForm] = React.useState<Form>(() => formOf(existing, currentUserId));
   const [created, setCreated] = React.useState<Client[]>([]);
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"who" | "lostReason">();
+  /** Cómo estaba el formulario al abrir, para avisar si se cierra con cambios sin guardar. */
+  const initial = React.useRef("");
   /** Nueva: archivos elegidos antes de guardar (se suben a su carpeta al guardar). */
   const [pending, setPending] = React.useState<File[]>([]);
   const [uploadingNew, setUploadingNew] = React.useState(false);
@@ -119,7 +124,8 @@ export function OpportunityDialog({
   React.useEffect(() => {
     if (!open) return;
     setForm(formOf(existing, currentUserId));
-    setError(null);
+    initial.current = JSON.stringify(formOf(existing, currentUserId));
+    reset();
     setSaving(false);
     setPending([]);
     setUploadingNew(false);
@@ -128,7 +134,13 @@ export function OpportunityDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const allClients = React.useMemo(() => [...clients, ...created.filter((c) => !clients.some((x) => x.id === c.id))], [clients, created]);
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (k === "lostReason") clear("lostReason");
+    if (k === "clientId") clear("who");
+  };
+  const isDirty = React.useCallback(() => JSON.stringify(form) !== initial.current || pending.length > 0, [form, pending]);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
   const fromQuote = (existing?.quotes.length ?? 0) > 0;
   const firmContacts = allClients.find((c) => c.id === form.designerId)?.contacts ?? [];
   const stageOptions = STAGES.filter((s) => s !== "aprobada" || form.stage === "aprobada");
@@ -142,10 +154,12 @@ export function OpportunityDialog({
   }
 
   async function save() {
-    if (!form.designerId && !form.clientId) return setError(tv("someone_required"));
-    if (form.stage === "perdida" && !form.lostReason) return setError(tv("lost_reason_required"));
+    const ok = validate([
+      ["who", !form.designerId && !form.clientId, tv("someone_required")],
+      ["lostReason", form.stage === "perdida" && !form.lostReason, tv("lost_reason_required")],
+    ]);
+    if (!ok) return;
     setSaving(true);
-    setError(null);
     const input = {
       title: form.title,
       designerId: form.designerId,
@@ -166,12 +180,12 @@ export function OpportunityDialog({
     if (existing) {
       const res = await updateOpportunityAction(existing.id, input);
       setSaving(false);
-      if (!res.ok) return setError(res.error);
+      if (!res.ok) return void toast.error(res.error);
     } else {
       const res = await createOpportunityAction(input);
       if (!res.ok) {
         setSaving(false);
-        return setError(res.error);
+        return void toast.error(res.error);
       }
       // Con archivos: se crea su carpeta en Drive y se suben ahí.
       if (driveEnabled && pending.length) {
@@ -194,13 +208,13 @@ export function OpportunityDialog({
   async function remove() {
     if (!existing) return;
     const res = await deleteOpportunityAction(existing.id);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(tv("deleted"));
     onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
@@ -210,14 +224,17 @@ export function OpportunityDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          <FormSection icon={Users} title={tv("sec_who")} note={!form.designerId && !form.clientId ? tv("f_someone_hint") : undefined}>
+          <FormSection icon={ICON.people} title={tv("sec_who")} note={error("who") ? undefined : tv("f_someone_hint")} error={error("who")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={tv("f_designer")}>
+            <Field label={tv("f_designer")} icon={ICON.firm} invalid={!!error("who")}>
               <ClientPicker
                 clients={allClients}
                 kind="arquitecto"
                 value={form.designerId}
-                onChange={(id) => setForm((f) => ({ ...f, designerId: id, designerContactId: null }))}
+                onChange={(id) => {
+                  clear("who");
+                  setForm((f) => ({ ...f, designerId: id, designerContactId: null }));
+                }}
                 onClear={() => setForm((f) => ({ ...f, designerId: null, designerContactId: null }))}
                 onCreate={(n) => createClient("arquitecto", n)}
                 placeholder={tv("pick_designer")}
@@ -238,7 +255,7 @@ export function OpportunityDialog({
                 </Select>
               )}
             </Field>
-            <Field label={tv("f_client")}>
+            <Field label={tv("f_client")} icon={ICON.client} invalid={!!error("who")}>
               <ClientPicker
                 clients={allClients}
                 kind="cliente"
@@ -252,21 +269,19 @@ export function OpportunityDialog({
           </div>
           </FormSection>
 
-          <FormSection icon={Folder} title={tv("sec_project")}>
+          <FormSection icon={ICON.project} title={tv("sec_project")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={tv("f_project_name")}>
+            <Field label={tv("f_project_name")} icon={ICON.project}>
               <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={tv("f_project_ph")} />
             </Field>
-            <Field label={tv("f_location")} optional={tv("optional_lc")}>
-              <WithIcon icon={MapPin}>
-                <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
-              </WithIcon>
+            <Field label={tv("f_location")} icon={ICON.location}>
+              <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
             </Field>
           </div>
           </FormSection>
 
-          <FormSection icon={Waypoints} title={tv("sec_tracking")} quiet>
-          <div className={cn("grid grid-cols-2 gap-3", fromQuote && "sm:grid-cols-3")}>
+          <FormSection icon={ICON.opportunity} title={tv("sec_tracking")} quiet>
+          <div className={cn("grid grid-cols-1 gap-3 min-[480px]:grid-cols-2", fromQuote && "sm:grid-cols-3")}>
             <Field label={tv("f_stage")}>
               <Select value={form.stage} onValueChange={(v) => set("stage", v as Stage)} disabled={form.stage === "aprobada"}>
                 <SelectTrigger className="w-full">
@@ -281,7 +296,7 @@ export function OpportunityDialog({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={tv("f_owner")}>
+            <Field label={tv("f_owner")} icon={ICON.owner}>
               <Select value={form.ownerId ?? ""} onValueChange={(v) => set("ownerId", v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder={tv("pick_owner")} />
@@ -304,7 +319,7 @@ export function OpportunityDialog({
 
           {form.stage === "perdida" && (
             <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
-              <Field label={tv("f_lost_reason")}>
+              <Field label={tv("f_lost_reason")} required error={error("lostReason")}>
                 <Select value={form.lostReason ?? ""} onValueChange={(v) => set("lostReason", v as LostReason)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={tv("pick_owner")} />
@@ -318,8 +333,8 @@ export function OpportunityDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={tv("f_lost_note")}>
-                <Input value={form.lostNote} onChange={(e) => set("lostNote", e.target.value)} placeholder={tv("optional")} />
+              <Field label={tv("f_lost_note")} icon={ICON.note}>
+                <Input value={form.lostNote} onChange={(e) => set("lostNote", e.target.value)} />
               </Field>
               {existing?.stage !== "perdida" && existing?.driveFolderId && !existing.projectId && (
                 <p className="text-xs text-destructive sm:col-span-2">{tv("lost_drive_warning")}</p>
@@ -327,15 +342,15 @@ export function OpportunityDialog({
             </div>
           )}
 
-          <div className={cn("grid grid-cols-2 gap-3", showFollowUp && "sm:grid-cols-3")}>
-            <Field label={tv("f_received")}>
+          <div className={cn("grid grid-cols-1 gap-3 min-[480px]:grid-cols-2", showFollowUp && "sm:grid-cols-3")}>
+            <Field label={tv("f_received")} icon={ICON.date}>
               <Input type="date" value={form.receivedOn} onChange={(e) => set("receivedOn", e.target.value)} />
             </Field>
-            <Field label={tv("f_due")}>
+            <Field label={tv("f_due")} icon={ICON.date}>
               <Input type="date" value={form.dueOn} onChange={(e) => set("dueOn", e.target.value)} />
             </Field>
             {showFollowUp && (
-              <Field label={tv("f_follow_up")} hint={tv("f_follow_up_hint")}>
+              <Field label={tv("f_follow_up")} icon={ICON.date} hint={tv("f_follow_up_hint")}>
                 <Input type="date" value={form.nextFollowUp} onChange={(e) => set("nextFollowUp", e.target.value)} />
               </Field>
             )}
@@ -358,10 +373,12 @@ export function OpportunityDialog({
           </Field>
           )}
 
-          <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("notes_ph")} aria-label={tv("f_notes")} />
+          <Field label={tv("f_notes")} icon={ICON.notes}>
+            <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+          </Field>
 
           {!existing && driveEnabled && (
-            <FormSection icon={Paperclip} title={t(lang, strings.drive.title)} note={tv("optional_lc")}>
+            <FormSection icon={ICON.files} title={t(lang, strings.drive.title)}>
               <PendingFiles files={pending} onChange={setPending} disabled={saving} />
             </FormSection>
           )}
@@ -370,7 +387,7 @@ export function OpportunityDialog({
             <>
               <LinkedQuotes o={existing} lang={lang} />
               {driveEnabled && (
-                <FormSection icon={Paperclip} title={t(lang, strings.drive.title)}>
+                <FormSection icon={ICON.files} title={t(lang, strings.drive.title)}>
                   <DriveFiles
                     enabled
                     folderId={existing.driveFolderId}
@@ -386,7 +403,6 @@ export function OpportunityDialog({
             </>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
@@ -410,7 +426,7 @@ export function OpportunityDialog({
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={() => void requestClose()}>
               {tv("cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={saving}>
@@ -419,6 +435,7 @@ export function OpportunityDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
       <ClientDialog
         client={newClient}
         clients={allClients}
@@ -439,7 +456,7 @@ function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
   const { tv } = useTv();
   return (
     <FormSection
-      icon={FileText}
+      icon={ICON.quote}
       title={tv("quotes_title")}
       action={
         <Button asChild size="sm" variant="outline">
@@ -503,7 +520,7 @@ function NotesLog({ id }: { id: string }) {
   }
 
   return (
-    <FormSection icon={MessageSquare} title={tv("notes_title")}>
+    <FormSection icon={ICON.note} title={tv("notes_title")}>
       <div className="flex gap-2">
         <Input
           value={body}

@@ -3,9 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Building2, FileText, Folder, Mail, Phone, Plus, User, UserPlus, Users, Waypoints, X } from "lucide-react";
+import { Building2, Plus, User, UserPlus, X } from "lucide-react";
 
-import { FormSection, WithIcon } from "@/components/shared/form-section";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
@@ -13,6 +16,7 @@ import { CLIENT_KINDS, type Client, type ClientKind, type Opportunity } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/shared/field";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ShowToggle } from "@/components/shared/page-header";
@@ -81,19 +85,27 @@ export function ClientDialog({
   const draft = client && client !== "new" && !("id" in client) ? client : null;
   const [form, setForm] = React.useState<Form>(() => ({ ...formOf(existing), ...draft }));
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  /** Cómo estaba el formulario al abrir, para avisar si se cierra con cambios sin guardar. */
+  const initial = React.useRef("");
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
     setForm({ ...formOf(existing), ...draft });
-    setError(null);
+    initial.current = JSON.stringify({ ...formOf(existing), ...draft });
+    reset();
     setSaving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de ficha.
   }, [open, existing?.id]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (k === "name") clear("name");
+  };
+  const isDirty = React.useCallback(() => JSON.stringify(form) !== initial.current, [form]);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
   const isFirm = form.kind === "arquitecto";
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const stats = existing ? clientStats(existing.id, opportunities) : null;
@@ -101,19 +113,18 @@ export function ClientDialog({
   const wa = whatsappUrl(form.phone, "");
 
   async function save() {
-    if (!form.name.trim()) return setError(tv("name_required"));
+    if (!validate([["name", !form.name.trim(), tv("name_required")]])) return;
     setSaving(true);
-    setError(null);
     // Los contactos son de las firmas (arquitecto/diseñador); un cliente final no los usa.
     const input = { ...form, contacts: form.kind === "arquitecto" ? form.contacts : undefined };
     if (existing) {
       const res = await updateClientAction(existing.id, input);
       setSaving(false);
-      if (!res.ok) return setError(res.error);
+      if (!res.ok) return void toast.error(res.error);
     } else {
       const res = await createClientAction(input);
       setSaving(false);
-      if (!res.ok) return setError(res.error);
+      if (!res.ok) return void toast.error(res.error);
       onCreated?.(res.data);
     }
     toast.success(tv("saved"));
@@ -121,7 +132,7 @@ export function ClientDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{existing ? existing.name : tv("new_client")}</DialogTitle>
@@ -142,30 +153,28 @@ export function ClientDialog({
             onChange={(v) => set("kind", v)}
             options={CLIENT_KINDS.map((k) => ({ value: k, label: tv(`kind_${k}`), icon: k === "arquitecto" ? Building2 : User }))}
           />
-          <FormSection icon={isFirm ? Building2 : User} title={isFirm ? tv("f_firm") : tv("f_name")} note={isFirm ? tv("f_firm_hint_short") : undefined}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {/* Arquitecto/diseñador: el nombre ES la firma (las personas van en Contactos). */}
-              <Input
-                className={isFirm && !form.company ? "sm:col-span-2" : undefined}
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                autoFocus={!existing}
-                placeholder={isFirm ? tv("f_firm_ph") : tv("f_name_ph")}
-                aria-label={isFirm ? tv("f_firm") : tv("f_name")}
-              />
-              {(!isFirm || form.company) && (
-                <WithIcon icon={Building2}>
-                  <Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder={tv("f_company_ph")} aria-label={tv("f_company")} />
-                </WithIcon>
-              )}
-            </div>
-          </FormSection>
-          <FormSection icon={Phone} title={tv("sec_contact")}>
-            <div className="grid gap-3 sm:grid-cols-2">
+          {/* Arquitecto/diseñador: el nombre ES la firma (las personas van en Contactos). */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label={isFirm ? tv("f_firm") : tv("f_name")}
+              icon={isFirm ? ICON.firm : ICON.client}
+              required
+              error={error("name")}
+              hint={isFirm && !error("name") ? tv("f_firm_hint_short") : undefined}
+              className={isFirm && !form.company ? "sm:col-span-2" : undefined}
+            >
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus={!existing} placeholder={isFirm ? tv("f_firm_ph") : tv("f_name_ph")} />
+            </Field>
+            {(!isFirm || form.company) && (
+              <Field label={tv("f_company")} icon={ICON.firm}>
+                <Input value={form.company} onChange={(e) => set("company", e.target.value)} />
+              </Field>
+            )}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={tv("f_phone")} icon={ICON.phone}>
               <div className="flex gap-2">
-                <WithIcon icon={Phone} className="flex-1">
-                  <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />
-                </WithIcon>
+                <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
                 {wa && (
                   <Button asChild variant="outline" size="icon" className="shrink-0" title={tv("whatsapp_open")} aria-label={tv("whatsapp_open")}>
                     <a href={wa.replace(/\?text=$/, "")} target="_blank" rel="noreferrer">
@@ -174,14 +183,14 @@ export function ClientDialog({
                   </Button>
                 )}
               </div>
-              <WithIcon icon={Mail}>
-                <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={tv("f_email_ph")} aria-label={tv("f_email")} />
-              </WithIcon>
-            </div>
-          </FormSection>
+            </Field>
+            <Field label={tv("f_email")} icon={ICON.email}>
+              <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+            </Field>
+          </div>
           {form.kind === "arquitecto" && (
             <FormSection
-              icon={Users}
+              icon={ICON.people}
               title={tv("contacts_title")}
               action={
                 <Button
@@ -237,14 +246,16 @@ export function ClientDialog({
             </FormSection>
           )}
 
-          <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tv("notes_ph")} aria-label={tv("f_notes")} />
+          <Field label={tv("f_notes")} icon={ICON.notes}>
+            <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+          </Field>
           {existing && <ShowToggle checked={form.active} onChange={(v) => set("active", v)} label={tv("f_active")} />}
 
           {/* Lo que ya tiene este cliente: aparte del formulario, los tres bloques iguales. */}
           {existing && (
             <div className="flex flex-col gap-5 border-t border-border pt-4">
               {stats && (
-                <FormSection icon={Waypoints} title={tv("cli_opps_list")}>
+                <FormSection icon={ICON.opportunity} title={tv("cli_opps_list")}>
                   {stats.opportunities.length === 0 ? (
                     <p className="-mt-1 text-xs text-muted-foreground">{tv("cli_none")}</p>
                   ) : (
@@ -270,7 +281,7 @@ export function ClientDialog({
               )}
 
               <FormSection
-                icon={FileText}
+                icon={ICON.quote}
                 title={tv("cli_quotes")}
                 action={
                   <Button asChild size="sm" variant="outline">
@@ -285,7 +296,7 @@ export function ClientDialog({
               </FormSection>
 
               {myProjects.length > 0 && (
-                <FormSection icon={Folder} title={tv("cli_projects")}>
+                <FormSection icon={ICON.project} title={tv("cli_projects")}>
                   <ul className="flex flex-wrap gap-2">
                     {myProjects.map((p) => (
                       <li key={p.id}>
@@ -300,11 +311,10 @@ export function ClientDialog({
             </div>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {tv("cancel")}
           </Button>
           <Button onClick={() => void save()} disabled={saving}>
@@ -312,6 +322,7 @@ export function ClientDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

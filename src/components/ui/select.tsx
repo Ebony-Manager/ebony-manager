@@ -4,6 +4,7 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
+import { useField } from "@/components/shared/field";
 import { cn } from "@/lib/utils";
 
 function Select(props: React.ComponentProps<typeof SelectPrimitive.Root>) {
@@ -22,21 +23,35 @@ function SelectTrigger({
   className,
   size = "default",
   children,
+  id,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
 }) {
+  const field = useField();
+  const Icon = field?.icon;
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
+      id={id ?? field?.id}
+      aria-invalid={props["aria-invalid"] ?? (field?.invalid || undefined)}
+      aria-required={props["aria-required"] ?? (field?.required || undefined)}
+      aria-describedby={props["aria-describedby"] ?? field?.describedBy}
       className={cn(
-        "flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs outline-none data-[size=default]:h-9 data-[size=sm]:h-8 data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:opacity-50",
+        "flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs outline-none data-[size=default]:h-9 data-[size=sm]:h-8 data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:opacity-50",
         className,
       )}
       {...props}
     >
-      {children}
+      {Icon ? (
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <Icon className="!opacity-100 text-muted-foreground" />
+          <span className="min-w-0 flex-1 truncate text-left">{children}</span>
+        </span>
+      ) : (
+        children
+      )}
       <SelectPrimitive.Icon asChild>
         <ChevronDownIcon className="size-4 opacity-50" />
       </SelectPrimitive.Icon>

@@ -3,7 +3,7 @@
 import { ListToolbar } from "@/components/shared/search-input";
 import * as React from "react";
 import Link from "next/link";
-import { ClipboardList, History, Plus, SlidersHorizontal } from "lucide-react";
+import { ClipboardList, History, List, Plus, SlidersHorizontal } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, Supplier } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { PAGE_CLASS } from "@/components/shared/page-header";
 import { ItemDialog } from "./item-dialog";
 import { AdjustmentDialog } from "./adjustment-dialog";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, StockBadge, qtyWithUnit, useTa } from "./shared";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 
 type Filter = "all" | "low" | "out";
 
@@ -135,9 +136,9 @@ export function StockView({
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: ta("filter_all") },
-            { value: "low", label: ta("filter_low") },
-            { value: "out", label: ta("filter_out") },
+            { value: "all", label: ta("filter_all"), icon: List },
+            { value: "low", label: ta("filter_low"), icon: STATUS.stock_low.icon, iconClass: TONE_TEXT[STATUS.stock_low.tone] },
+            { value: "out", label: ta("filter_out"), icon: STATUS.stock_out.icon, iconClass: TONE_TEXT[STATUS.stock_out.tone] },
           ]}
         />
       </ListToolbar>

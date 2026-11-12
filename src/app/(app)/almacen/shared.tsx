@@ -5,7 +5,6 @@ import { ChevronDown, Package } from "lucide-react";
 import { SearchInput } from "@/components/shared/search-input";
 
 import type { InventoryItem, InventoryVariant } from "@/types/almacen";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -14,6 +13,7 @@ import { t, strings } from "@/lib/i18n";
 import { formatQty, stockStatus, unitLabel, variantName } from "@/lib/almacen/inventory";
 import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoUrl } from "@/lib/almacen/photos";
 import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 export type AlmacenKey = keyof typeof strings.almacen;
 
@@ -41,9 +41,9 @@ export function SearchBox({ value, onChange, placeholder }: { value: string; onC
 export function StockBadge({ variant }: { variant: Pick<InventoryVariant, "stockQty" | "minQty"> }) {
   const { ta } = useTa();
   const s = stockStatus(variant);
-  if (s === "sin") return <Badge variant="destructive">{ta("status_out")}</Badge>;
-  if (s === "bajo") return <Badge variant="warning">{ta("status_low")}</Badge>;
-  return <Badge variant="success">{ta("status_ok")}</Badge>;
+  if (s === "sin") return <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>;
+  if (s === "bajo") return <StatusBadge status="stock_low">{ta("status_low")}</StatusBadge>;
+  return <StatusBadge status="stock_ok">{ta("status_ok")}</StatusBadge>;
 }
 
 /** Foto del producto (o un ícono si no tiene). `size="fill"` ocupa todo el espacio del contenedor. */
