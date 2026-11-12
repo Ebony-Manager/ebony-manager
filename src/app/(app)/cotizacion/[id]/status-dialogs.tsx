@@ -26,6 +26,9 @@ import { strings, t } from "@/lib/i18n";
 import { LOST_REASONS, type LostReason } from "@/types/ventas";
 import type { Quote, QuoteOwnerOptions, QuoteSibling } from "@/types/cotizador";
 import { Field } from "../../contratistas/field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { useTv } from "../ventas-common";
 import { QuotePickList } from "../seguimiento/stage-dialogs";
 
@@ -68,19 +71,22 @@ export function ApproveQuoteDialog({
   const [projectId, setProjectId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [also, setAlso] = React.useState<string[]>([]);
+  const { error, validate, clear, reset } = useFormErrors<"name" | "project">();
+  const initial = React.useRef("");
+  const snapshot = () => JSON.stringify({ mode, name, projectId, also });
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
+    const startName = quote.projectName.split(" · ")[0] || quote.clientName || quote.designerName;
     setAlso([]);
     setMode("new");
-    setName(
-      quote.projectName.split(" · ")[0] ||
-        quote.clientName ||
-        quote.designerName,
-    );
+    setName(startName);
+    initial.current = JSON.stringify({ mode: "new", name: startName, projectId: "", also: [] });
     setProjectId("");
     setSaving(false);
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -89,10 +95,9 @@ export function ApproveQuoteDialog({
   const project = projects.find((p) => p.id === quote.projectId);
   // Las otras abiertas de la misma oportunidad: se marcan las que también se aprobaron.
   const others = fromOpp ? siblings.filter((s) => isOpen(s) && s.opportunityId === quote.opportunityId) : [];
-  const ready = !fromOpp || (mode === "new" ? !!name.trim() : !!projectId);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{tt("st_approve_title")}</DialogTitle>
@@ -118,16 +123,25 @@ export function ApproveQuoteDialog({
               />
             )}
             {mode === "new" ? (
-              <Field label={tv("f_project")}>
+              <Field label={tv("f_project")} icon={ICON.project} required error={error("name")}>
                 <Input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clear("name");
+                  }}
                   placeholder={tv("f_project_ph")}
                 />
               </Field>
             ) : (
-              <Field label={tv("f_project")}>
-                <Select value={projectId} onValueChange={setProjectId}>
+              <Field label={tv("f_project")} icon={ICON.project} required error={error("project")}>
+                <Select
+                  value={projectId}
+                  onValueChange={(v) => {
+                    setProjectId(v);
+                    clear("project");
+                  }}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={tv("approve_pick_project")} />
                   </SelectTrigger>
@@ -153,12 +167,20 @@ export function ApproveQuoteDialog({
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {tv("cancel")}
           </Button>
           <Button
-            disabled={saving || !ready}
+            disabled={saving}
             onClick={async () => {
+              if (
+                fromOpp &&
+                !validate([
+                  ["name", mode === "new" && !name.trim(), tv("approve_name_required")],
+                  ["project", mode === "existing" && !projectId, tv("approve_project_required")],
+                ])
+              )
+                return;
               setSaving(true);
               await onConfirm(
                 fromOpp
@@ -176,6 +198,7 @@ export function ApproveQuoteDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }
@@ -203,6 +226,8 @@ export function RejectQuoteDialog({
   const [reason, setReason] = React.useState<LostReason | "">("");
   const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const { error, validate, clear, reset } = useFormErrors<"reason">();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => !!reason || !!note.trim(), onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -210,6 +235,8 @@ export function RejectQuoteDialog({
     setReason("");
     setNote("");
     setSaving(false);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -217,7 +244,7 @@ export function RejectQuoteDialog({
   const needsReason = !!quote.opportunityId && stillOpen.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{tt("st_reject_title")}</DialogTitle>
@@ -231,10 +258,13 @@ export function RejectQuoteDialog({
         </DialogHeader>
         {needsReason && (
           <div className="flex flex-col gap-4">
-            <Field label={tv("f_lost_reason")}>
+            <Field label={tv("f_lost_reason")} required error={error("reason")}>
               <Select
                 value={reason}
-                onValueChange={(v) => setReason(v as LostReason)}
+                onValueChange={(v) => {
+                  setReason(v as LostReason);
+                  clear("reason");
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder={tv("f_lost_reason")} />
@@ -253,19 +283,19 @@ export function RejectQuoteDialog({
                 rows={2}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder={tv("optional")}
               />
             </Field>
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {tv("cancel")}
           </Button>
           <Button
             variant="destructive"
-            disabled={saving || (needsReason && !reason)}
+            disabled={saving}
             onClick={async () => {
+              if (needsReason && !validate([["reason", !reason, tv("lost_reason_required")]])) return;
               setSaving(true);
               await onConfirm(
                 needsReason ? (reason as LostReason) : null,
@@ -278,6 +308,7 @@ export function RejectQuoteDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

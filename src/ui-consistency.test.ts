@@ -66,7 +66,7 @@ describe("consistencia de la interfaz", () => {
 
   it("los campos son <Field> con asterisco en lo obligatorio: no se escribe «opcional» en los campos — la deuda existente no puede crecer", () => {
     // Deuda anotada al crear la guardia: pantallas por migrar. Si baja, bájala acá; si sube, la prueba falla.
-    const BASELINE = 29;
+    const BASELINE = 28;
     const bad = find((l) => /placeholder=\{[^}]*(optional|opcional)[^}]*\}|placeholder="[^"]*(opcional|Optional|optional)/.test(l));
     expect(bad.length, fix("Lo obligatorio lleva asterisco (<Field required>); lo opcional no se marca. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });
@@ -79,7 +79,7 @@ describe("consistencia de la interfaz", () => {
   });
 
   it("los formularios en diálogo avisan antes de descartar cambios (useDiscardGuard) — la deuda existente no puede crecer", () => {
-    const BASELINE = 20;
+    const BASELINE = 16;
     const bad = find((l) => l.includes("onOpenChange={(o) => !o && onClose()}"));
     expect(bad.length, fix("Usa useDiscardGuard (components/shared/discard-guard); si el diálogo no tiene nada que escribir, marca `ui-allow: sin-campos`. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });

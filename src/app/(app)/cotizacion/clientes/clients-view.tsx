@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { List, Plus } from "lucide-react";
+import { ICON } from "@/lib/ui/concepts";
 
 import type { Client, ClientKind, Opportunity } from "@/types/ventas";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ export function ClientsView({ clients, opportunities, projects, quotes }: { clie
           onChange={setKind}
           options={(["all", "arquitecto", "cliente"] as const).map((k) => ({
             value: k,
+            icon: k === "all" ? List : k === "arquitecto" ? ICON.firm : ICON.client,
             label: `${k === "all" ? tv("filter_all") : tv(`kind_${k}_plural`)} (${count(k)})`,
           }))}
         />

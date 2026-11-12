@@ -1,4 +1,4 @@
-import { CircleCheck, PackageX, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, CircleX, FilePen, PackageX, Send, TriangleAlert, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -21,6 +21,11 @@ export const STATUS = {
   stock_ok: { icon: CircleCheck, tone: "ok" },
   stock_low: { icon: TriangleAlert, tone: "warn" },
   stock_out: { icon: PackageX, tone: "error" },
+  // Cotizaciones
+  quote_BORRADOR: { icon: FilePen, tone: "muted" },
+  quote_ENVIADA: { icon: Send, tone: "warn" },
+  quote_APROBADA: { icon: CircleCheck, tone: "ok" },
+  quote_RECHAZADA: { icon: CircleX, tone: "error" },
 } satisfies Record<string, StatusDef>;
 
 export type StatusKey = keyof typeof STATUS;

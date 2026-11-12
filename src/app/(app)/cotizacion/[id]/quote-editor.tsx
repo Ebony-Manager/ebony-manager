@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { projectPath } from "../../proyectos/paths";
-import { QUOTE_STATUS_STYLE } from "../status-style";
+import { StatusBadge } from "@/components/shared/status-badge";
 import {
   ApproveQuoteDialog,
   RejectQuoteDialog,
@@ -602,7 +602,7 @@ export function QuoteEditor({
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">
             {quote.number || tt("number_pending")}
-            <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] tracking-normal", QUOTE_STATUS_STYLE[quote.status])}>{statusLabel(quote.status)}</span>
+            <StatusBadge status={`quote_${quote.status}`}>{statusLabel(quote.status)}</StatusBadge>
             {quote.status === "APROBADA" && alegraEnabled && <AlegraChip quoteId={quote.id} initial={alegra} justApproved={justApproved} />}
           </p>
           <h1 className={cn("truncate text-xl font-semibold", quoteWho(quote) ? "text-foreground" : "text-muted-foreground")}>
@@ -658,14 +658,7 @@ export function QuoteEditor({
                     className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 tabular-nums hover:border-ring"
                   >
                     {sib.number}
-                    <span
-                      className={cn(
-                        "rounded px-1 text-[10px] font-semibold",
-                        QUOTE_STATUS_STYLE[sib.status],
-                      )}
-                    >
-                      {statusLabel(sib.status)}
-                    </span>
+                    <StatusBadge status={`quote_${sib.status}`}>{statusLabel(sib.status)}</StatusBadge>
                   </Link>
                 ))}
               </div>

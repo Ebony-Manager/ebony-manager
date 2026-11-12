@@ -1,5 +1,6 @@
 "use client";
 
+import { ICON } from "@/lib/ui/concepts";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Calculator, Check, CheckCircle2, ChevronDown, Inbox, Plus, Send, X, XCircle, type LucideIcon } from "lucide-react";
@@ -65,6 +66,15 @@ export const STAGE_META: Record<Stage, { icon: LucideIcon; color: string }> = {
   perdida: { icon: XCircle, color: "var(--destructive)" },
 };
 
+/** Lo mismo que `color` de STAGE_META, como clase (para el ícono de un filtro). */
+export const STAGE_ICON_CLASS: Record<Stage, string> = {
+  por_cotizar: "text-warning",
+  cotizando: "text-[var(--stage-cotizando)]",
+  enviada: "text-primary",
+  aprobada: "text-success",
+  perdida: "text-destructive",
+};
+
 export function StageIcon({ stage, className }: { stage: Stage; className?: string }) {
   const { icon: Icon, color } = STAGE_META[stage];
   return <Icon className={cn("size-3.5 shrink-0", className)} style={{ color }} />;
@@ -97,7 +107,13 @@ export function StageBadge({ stage, className }: { stage: Stage; className?: str
 
 export function KindBadge({ kind }: { kind: ClientKind }) {
   const { tv } = useTv();
-  return <Badge variant={kind === "arquitecto" ? "secondary" : "outline"}>{tv(`kind_${kind}_short`)}</Badge>;
+  const Icon = kind === "arquitecto" ? ICON.firm : ICON.client;
+  return (
+    <Badge variant={kind === "arquitecto" ? "secondary" : "outline"}>
+      <Icon className="size-3" />
+      {tv(`kind_${kind}_short`)}
+    </Badge>
+  );
 }
 
 /**

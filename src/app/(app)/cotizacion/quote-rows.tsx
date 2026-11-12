@@ -9,9 +9,8 @@ import { quoteWho } from "@/lib/cotizador/owner";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { strings, t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import type { QuoteSummary } from "@/types/cotizador";
-import { QUOTE_STATUS_STYLE } from "./status-style";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/page-header";
 
 /**
@@ -73,7 +72,7 @@ export function QuoteRows({
             <li key={q.id} className="border-b border-border last:border-0">
               <Link prefetch={false} href={`/cotizacion/${q.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-sm hover:bg-muted/30">
                 <span className="font-semibold tabular-nums">{q.number || "—"}</span>
-                <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                <StatusBadge status={`quote_${q.status}`}>{tt(`status_${q.status}`)}</StatusBadge>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground max-sm:order-last max-sm:basis-full">
                   {[showWho ? quoteWho(q) : null, q.projectName, formatDateCompact(lang, q.quoteDate)].filter(Boolean).join(" · ")}
                 </span>

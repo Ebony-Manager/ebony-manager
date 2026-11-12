@@ -5,6 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { CircleAlert } from "lucide-react";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { ICON } from "@/lib/ui/concepts";
 
 import { LOST_REASONS, type Client, type LostReason, type Opportunity } from "@/types/ventas";
@@ -39,6 +40,7 @@ export function LostDialog({
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"reason">();
   const open = opportunity !== null;
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => !!reason || !!note.trim(), onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -52,7 +54,7 @@ export function LostDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -91,7 +93,7 @@ export function LostDialog({
           {opportunity?.driveFolderId && !opportunity.projectId && <p className="text-xs text-destructive">{tv("lost_drive_warning")}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {tv("cancel")}
           </Button>
           <Button
@@ -106,6 +108,7 @@ export function LostDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }
@@ -190,16 +193,23 @@ export function ApproveDialog({
   const { error, validate, clear, reset } = useFormErrors<"name" | "project" | "quotes">();
   const [picked, setPicked] = React.useState<string[]>([]);
   const open_ = opportunity ? openQuotes(opportunity.quotes) : [];
+  const initial = React.useRef("");
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => JSON.stringify({ mode, name, projectId, picked }) !== initial.current, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!opportunity) return;
     // Con una sola cotización abierta, viene marcada.
     const abiertas = openQuotes(opportunity.quotes);
-    setPicked(abiertas.length === 1 ? [abiertas[0].id] : []);
-    setMode(opportunity.projectId ? "existing" : "new");
-    setName(opportunityTitle(opportunity, clients));
-    setProjectId(opportunity.projectId ?? "");
+    const startPicked = abiertas.length === 1 ? [abiertas[0].id] : [];
+    const startMode = opportunity.projectId ? "existing" : "new";
+    const startName = opportunityTitle(opportunity, clients);
+    const startProject = opportunity.projectId ?? "";
+    setPicked(startPicked);
+    setMode(startMode);
+    setName(startName);
+    setProjectId(startProject);
+    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: startProject, picked: startPicked });
     setSaving(false);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
@@ -234,7 +244,7 @@ export function ApproveDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{tv("approve_title")}</DialogTitle>
@@ -300,7 +310,7 @@ export function ApproveDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {tv("cancel")}
           </Button>
           <Button disabled={saving} onClick={() => void approve()}>
@@ -308,6 +318,7 @@ export function ApproveDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

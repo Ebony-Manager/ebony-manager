@@ -23,7 +23,7 @@ import { whatsappUrl } from "@/lib/almacen/inventory";
 import { daysSince, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
 import { cn } from "@/lib/utils";
 import { setOpportunityStageAction } from "../ventas-actions";
-import { CotizacionTabs, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
+import { CotizacionTabs, STAGE_ICON_CLASS, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
 import { OpportunityDialog, type SalesProject } from "./opportunity-dialog";
 import { ApproveDialog, LostDialog } from "./stage-dialogs";
 
@@ -228,7 +228,7 @@ export function PipelineView({
               fill
               value={mobileStage}
               onChange={setMobileStage}
-              options={STAGES.map((s) => ({ value: s, label: `${tv(`stage_${s}`)} (${byStage.get(s)!.length})` }))}
+              options={STAGES.map((s) => ({ value: s, label: `${tv(`stage_${s}`)} (${byStage.get(s)!.length})`, icon: STAGE_META[s].icon, iconClass: STAGE_ICON_CLASS[s] }))}
             />
             {byStage.get(mobileStage)!.length === 0 ? <EmptyState>{tv("empty_stage")}</EmptyState> : byStage.get(mobileStage)!.map((o) => card(o))}
           </div>

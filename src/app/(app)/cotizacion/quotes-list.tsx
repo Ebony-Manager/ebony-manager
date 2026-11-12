@@ -5,14 +5,13 @@ import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BellRing, Copy, FileText, Plus, Trash2 } from "lucide-react";
+import { BellRing, Copy, FileText, List, Plus, Trash2 } from "lucide-react";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { quoteWho } from "@/lib/cotizador/owner";
-import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
@@ -20,7 +19,8 @@ import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
 import { RowMenu } from "@/components/shared/row-menu";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
 import { CotizacionTabs } from "./ventas-common";
-import { QUOTE_STATUS_STYLE } from "./status-style";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 
@@ -118,7 +118,11 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
         <SegmentedFilter
           value={filter}
           onChange={setFilter}
-          options={(["all", ...QUOTE_STATUSES] as const).map((f) => ({ value: f, label: f === "all" ? tt("filter_all") : tt(`status_${f}`) }))}
+          options={(["all", ...QUOTE_STATUSES] as const).map((f) =>
+            f === "all"
+              ? { value: f, label: tt("filter_all"), icon: List }
+              : { value: f, label: tt(`status_${f}`), icon: STATUS[`quote_${f}`].icon, iconClass: TONE_TEXT[STATUS[`quote_${f}`].tone] },
+          )}
         />
       </ListToolbar>
 
@@ -156,7 +160,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                 <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/80">
                   <span className="shrink-0">{date(q.quoteDate)}</span>
                   {q.number && <span className="min-w-0 truncate tabular-nums">· {q.number}</span>}
-                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                  <StatusBadge status={`quote_${q.status}`}>{tt(`status_${q.status}`)}</StatusBadge>
                   {followUp(q)}
                   <span className="ml-auto flex shrink-0 items-center">{actions(q.id)}</span>
                 </div>
@@ -173,7 +177,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
                   {q.number || "—"}
                 </span>
                 <span className="w-24 shrink-0 text-xs text-foreground/80">{date(q.quoteDate)}</span>
-                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold", QUOTE_STATUS_STYLE[q.status])}>{tt(`status_${q.status}`)}</span>
+                <StatusBadge status={`quote_${q.status}`}>{tt(`status_${q.status}`)}</StatusBadge>
                   {followUp(q)}
                 <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatMoney(q.total)}</span>
                 <span className="flex shrink-0 items-center">{actions(q.id)}</span>
