@@ -2527,6 +2527,7 @@ export const strings = {
     contact_any: { es: "Contacto: la firma en general", en: "Contact: the firm in general" },
     contact_name: { es: "Nombre", en: "Name" },
     contact_role: { es: "Cargo", en: "Role" },
+    contact_n: { es: "Contacto {n}", en: "Contact {n}" },
   },
 
   // Archivos en Google Drive (oportunidades de Ventas y proyectos).

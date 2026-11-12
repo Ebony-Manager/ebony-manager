@@ -333,7 +333,7 @@ export function OpportunityDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={tv("f_lost_note")} icon={ICON.note}>
+              <Field label={tv("f_lost_note")}>
                 <Input value={form.lostNote} onChange={(e) => set("lostNote", e.target.value)} />
               </Field>
               {existing?.stage !== "perdida" && existing?.driveFolderId && !existing.projectId && (
@@ -373,7 +373,7 @@ export function OpportunityDialog({
           </Field>
           )}
 
-          <Field label={tv("f_notes")} icon={ICON.notes}>
+          <Field label={tv("f_notes")}>
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
 
@@ -405,7 +405,7 @@ export function OpportunityDialog({
 
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="flex-col items-stretch sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {existing && existing.stage !== "aprobada" && (
               <Button variant="outline" className="text-success" onClick={() => onApprove(existing)}>
@@ -425,7 +425,7 @@ export function OpportunityDialog({
               <ConfirmButton label={tv("delete")} confirmLabel={tv("delete_confirm")} onConfirm={() => void remove()} />
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 max-sm:[&>button]:flex-1">
             <Button variant="outline" onClick={() => void requestClose()}>
               {tv("cancel")}
             </Button>

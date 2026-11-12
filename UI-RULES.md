@@ -30,9 +30,11 @@
 - **Colores del tema**, nunca literales: `bg-primary`, `text-muted-foreground`, `text-destructive`… 🛡️ (la paleta de Tailwind no puede crecer).
 - **Un concepto, un ícono: el del menú principal.** Proyecto = `Folder`, Cliente = `User`, Firma/arquitecto = `Building2`, Cotización = `FileText`, Oportunidad/seguimiento = `Waypoints`. No se inventan variantes (`FolderKanban`) 🛡️.
 - **El ícono va donde ayuda a reconocer**: en el encabezado de cada grupo, en filtros, pestañas y dentro de campos evidentes (ubicación, celular, correo, fecha). No en el título de cada campo.
-- **Todo campo lleva su título arriba**, siempre (`<Field>`). El texto de adentro (placeholder) es solo un ejemplo, nunca el título: un campo de "Notas" no dice "Notas" por dentro. La excepción son las filas repetidas de una lista (contactos de una firma), donde un título por fila sería ruido.
+- **Todo campo lleva su título arriba**, siempre (`<Field>`). El texto de adentro (placeholder) es solo un ejemplo, nunca el título: un campo de "Notas" no dice "Notas" por dentro. Sin excepciones: una fila repetida (contactos de una firma) es una tarjeta con sus campos titulados, no cuatro cajas con texto adentro.
 - **Obligatorio = asterisco rojo junto al título** (`required`). Lo opcional no se marca: no se escribe «opcional» en ninguna parte 🛡️. En un "uno u otro" (arquitecto o cliente) ninguno lleva asterisco; el grupo dice "al menos uno".
 - **El ícono va DENTRO del campo**, a la izquierda y tenue (`icon={ICON.owner}`), y el título queda limpio. Si el concepto está en `lib/ui/concepts.ts` se usa; si no, el campo no lleva ícono. Quien se encarga de algo (responsable, quien recibe) = persona.
+- **Los campos de texto largo (Notas, descripción) no llevan ícono**: solo el título de arriba.
+- **Pie de un diálogo: Cancelar a la izquierda y Guardar a la derecha, uno al lado del otro, también en el teléfono** (ahí cada uno ocupa media fila). Se usa siempre `DialogFooter`; las acciones secundarias (Aprobar, Eliminar…) van en su propia fila arriba en el teléfono y a la izquierda en escritorio.
 - **En el teléfono (< 480 px) los campos de un bloque van uno por fila**: un campo con ícono y una fecha necesitan ancho; en dos columnas el valor se corta.
 - **Estados con ícono y tono, definidos una sola vez** (`lib/ui/status.ts`). La etiqueta de una fila y la opción del filtro del mismo estado usan el mismo ícono y tono; el color nunca es la única señal.
 - **Las acciones de un bloque van en su encabezado** (`action=` de `FormSection`), no sueltas debajo.

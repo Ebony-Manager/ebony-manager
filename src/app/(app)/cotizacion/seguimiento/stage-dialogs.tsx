@@ -80,7 +80,7 @@ export function LostDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label={tv("f_lost_note")} icon={ICON.note}>
+          <Field label={tv("f_lost_note")}>
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
           {opportunity && openQuotes(opportunity.quotes).length > 0 && (

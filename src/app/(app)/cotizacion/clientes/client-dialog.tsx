@@ -210,34 +210,49 @@ export function ClientDialog({
                   {form.contacts.map((c, i) => {
                     const edit = (patch: Partial<typeof c>) => set("contacts", form.contacts.map((x, j) => (j === i ? { ...x, ...patch } : x)));
                     return (
-                      <li key={c.id ?? `new-${i}`} className="flex items-start gap-2 rounded-lg border border-border p-2">
-                        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-[1.5fr_1fr_1fr_1.2fr]">
-                          <Input value={c.name} onChange={(e) => edit({ name: e.target.value })} placeholder={tv("contact_name")} aria-label={tv("contact_name")} />
-                          <Input value={c.role} onChange={(e) => edit({ role: e.target.value })} placeholder={tv("contact_role")} aria-label={tv("contact_role")} />
-                          <Input type="tel" inputMode="tel" value={c.phone} onChange={(e) => edit({ phone: e.target.value })} placeholder={tv("f_phone")} aria-label={tv("f_phone")} />
-                          <Input type="email" value={c.email} onChange={(e) => edit({ email: e.target.value })} placeholder={tv("f_email")} aria-label={tv("f_email")} />
+                      <li key={c.id ?? `new-${i}`} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {tv("contact_n").replace("{n}", String(i + 1))}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {whatsappUrl(c.phone, "") && (
+                              <a
+                                href={whatsappUrl(c.phone, "")!.replace(/\?text=$/, "")}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={tv("whatsapp_open")}
+                                title={tv("whatsapp_open")}
+                                className="flex size-7 shrink-0 items-center justify-center rounded hover:bg-muted"
+                              >
+                                <WhatsAppIcon brand className="size-[18px]" />
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => set("contacts", form.contacts.filter((_, j) => j !== i))}
+                              aria-label={tv("remove")}
+                              title={tv("remove")}
+                              className="flex size-7 shrink-0 items-center justify-center rounded text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="size-4" />
+                            </button>
+                          </div>
                         </div>
-                        {whatsappUrl(c.phone, "") && (
-                          <a
-                            href={whatsappUrl(c.phone, "")!.replace(/\?text=$/, "")}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label={tv("whatsapp_open")}
-                            title={tv("whatsapp_open")}
-                            className="mt-1.5 flex size-7 shrink-0 items-center justify-center rounded hover:bg-muted"
-                          >
-                            <WhatsAppIcon brand className="size-[18px]" />
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => set("contacts", form.contacts.filter((_, j) => j !== i))}
-                          aria-label={tv("remove")}
-                          title={tv("remove")}
-                          className="mt-1.5 flex size-7 shrink-0 items-center justify-center rounded text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="size-4" />
-                        </button>
+                        <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+                          <Field label={tv("contact_name")} icon={ICON.client}>
+                            <Input value={c.name} onChange={(e) => edit({ name: e.target.value })} />
+                          </Field>
+                          <Field label={tv("contact_role")} icon={ICON.firm}>
+                            <Input value={c.role} onChange={(e) => edit({ role: e.target.value })} />
+                          </Field>
+                          <Field label={tv("f_phone")} icon={ICON.phone}>
+                            <Input type="tel" inputMode="tel" value={c.phone} onChange={(e) => edit({ phone: e.target.value })} />
+                          </Field>
+                          <Field label={tv("f_email")} icon={ICON.email}>
+                            <Input type="email" value={c.email} onChange={(e) => edit({ email: e.target.value })} />
+                          </Field>
+                        </div>
                       </li>
                     );
                   })}
@@ -246,7 +261,7 @@ export function ClientDialog({
             </FormSection>
           )}
 
-          <Field label={tv("f_notes")} icon={ICON.notes}>
+          <Field label={tv("f_notes")}>
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
           {existing && <ShowToggle checked={form.active} onChange={(v) => set("active", v)} label={tv("f_active")} />}

@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 function Textarea({ className, id, ...props }: React.ComponentProps<"textarea">) {
   const field = useField();
-  const Icon = field?.icon;
-  const control = (
+  // Sin ícono: el título de arriba basta (UI-RULES §2).
+  return (
     <textarea
       id={id ?? field?.id}
       data-slot="textarea"
@@ -17,18 +17,10 @@ function Textarea({ className, id, ...props }: React.ComponentProps<"textarea">)
       aria-describedby={props["aria-describedby"] ?? field?.describedBy}
       className={cn(
         "flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20",
-        Icon && "pl-9",
         className,
       )}
       {...props}
     />
-  );
-  if (!Icon) return control;
-  return (
-    <div className="relative w-full min-w-0">
-      <Icon className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
-      {control}
-    </div>
   );
 }
 
