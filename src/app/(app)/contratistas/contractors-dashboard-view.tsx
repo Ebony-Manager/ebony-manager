@@ -28,6 +28,8 @@ export interface ContractorsDashboardInput {
   contractors: DashboardContractor[];
   entries: DashboardEntry[];
   projectNames: [string, string][];
+  /** Contratos con algo por pagar (Saldos): explican el saldo de cada contratista. */
+  pending?: { contractorId: string; contractId: string; name: string; projectName: string; pendingCents: number }[];
 }
 
 /** Lista corta con barra: la misma pieza para los dos rankings. */

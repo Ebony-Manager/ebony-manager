@@ -118,21 +118,30 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                     {isOpen && (
                       <tr className="border-b border-border bg-muted/20">
                         <td colSpan={8} className="px-2 py-3 pl-3 sm:pl-12">
-                          {c.projects.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">{tt("cd_proj_none")}</p>
-                          ) : (
-                            <ul className="grid grid-cols-1 gap-x-8 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                              {c.projects.map((p) => (
-                                <li key={p.key} className="flex items-baseline justify-between gap-2">
-                                  <span className="truncate text-foreground">{p.name}</span>
-                                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                                    {formatCents(p.billedCents)}
-                                    {p.days > 0 ? ` · ${p.days} ${tt("cd_proj_days")}` : ""}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                          {(() => {
+                            const lines = (input.pending ?? [])
+                              .filter((p) => p.contractorId === c.contractor.id)
+                              .sort((x, y) => y.pendingCents - x.pendingCents);
+                            // Lo que no viene de un contrato (descuentos, adelantos, pagos a cuenta): así la suma siempre cuadra con el saldo.
+                            const other = c.balanceCents - lines.reduce((s, l) => s + l.pendingCents, 0);
+                            if (lines.length === 0 && other === 0) return <p className="text-xs text-muted-foreground">{tt("cd_pending_none")}</p>;
+                            return (
+                              <ul className="grid grid-cols-1 gap-x-8 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                                {lines.map((l) => (
+                                  <li key={l.contractId} className="flex items-baseline justify-between gap-2">
+                                    <span className="truncate text-foreground">{l.name !== l.projectName ? `${l.projectName} · ${l.name}` : l.projectName}</span>
+                                    <span className="shrink-0 tabular-nums text-muted-foreground">{formatCents(l.pendingCents)}</span>
+                                  </li>
+                                ))}
+                                {other !== 0 && (
+                                  <li className="flex items-baseline justify-between gap-2">
+                                    <span className="truncate text-foreground">{tt("cd_pending_other")}</span>
+                                    <span className="shrink-0 tabular-nums text-muted-foreground">{formatCents(other)}</span>
+                                  </li>
+                                )}
+                              </ul>
+                            );
+                          })()}
                         </td>
                       </tr>
                     )}

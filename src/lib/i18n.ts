@@ -1661,6 +1661,8 @@ export const strings = {
     cd_balance_hint: { es: "Saldo de toda la historia. Positivo: Ebony le debe. Negativo: se le ha entregado de más.", en: "Lifetime balance. Positive: Ebony owes them. Negative: overpaid." },
     cd_proj_billed: { es: "facturado", en: "billed" },
     cd_proj_days: { es: "días", en: "days" },
+    cd_pending_none: { es: "Sin pendientes.", en: "Nothing pending." },
+    cd_pending_other: { es: "Descuentos y otros movimientos", en: "Deductions and other movements" },
     cd_proj_none: { es: "Sin proyectos de trabajo en este período.", en: "No work projects in this period." },
     cd_speed_title: { es: "Tiempo por proyecto (aproximado)", en: "Time per project (approximate)" },
     cd_speed_note: {

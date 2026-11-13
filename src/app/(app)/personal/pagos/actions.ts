@@ -1,7 +1,7 @@
 "use server";
 
 import { requireModule } from "@/lib/auth/dal";
-import { getContractorsDashboardInput } from "@/services/contractors";
+import { getContractorsDashboardInput, getContracts } from "@/services/contractors";
 
 /**
  * El historial de los contratistas (para Préstamos y Saldos), pedido solo
@@ -10,5 +10,10 @@ import { getContractorsDashboardInput } from "@/services/contractors";
  */
 export async function getContractorsDashboardAction() {
   await requireModule("contratistas");
-  return getContractorsDashboardInput();
+  const [input, contracts] = await Promise.all([getContractorsDashboardInput(), getContracts()]);
+  // Lo que falta por pagar en cada contrato: es lo que explica el saldo de cada contratista.
+  const pending = contracts
+    .filter((c) => c.valueCents - c.allocatedCents > 0)
+    .map((c) => ({ contractorId: c.contractorId, contractId: c.id, name: c.name, projectName: c.projectName, pendingCents: c.valueCents - c.allocatedCents }));
+  return { ...input, pending };
 }
