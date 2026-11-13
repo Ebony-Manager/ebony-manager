@@ -31,12 +31,15 @@ export function ProjectsList({
   contracts,
   canContracts,
   canCreate = true,
+  mineIds,
 }: {
   projects: Project[];
   contracts: ContractorContract[];
   canContracts: boolean;
   /** false = diseñadora: ve sus proyectos pero no crea nuevos. */
   canCreate?: boolean;
+  /** Solo diseñadoras: ids de los proyectos que lleva (muestra el filtro Todos / Míos). */
+  mineIds?: string[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -45,6 +48,7 @@ export function ProjectsList({
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<StatusFilter>("active");
   const [adding, setAdding] = React.useState(false);
+  const [scope, setScope] = React.useState<"all" | "mine">("all");
 
   const contractCount = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -56,8 +60,9 @@ export function ProjectsList({
     const q = normalizeSearchText(query);
     return projects
       .filter((p) => status === "all" || (status === "active" ? p.status === "ACTIVE" : p.status !== "ACTIVE"))
+      .filter((p) => scope === "all" || !mineIds || mineIds.includes(p.id))
       .filter((p) => !q || [p.name, p.location, p.clientName].some((s) => matchesSearch(s, q)));
-  }, [projects, query, status]);
+  }, [projects, query, status, scope, mineIds]);
 
   return (
     <div className={PAGE_CLASS}>
@@ -85,6 +90,16 @@ export function ProjectsList({
             { value: "all", label: tt("filter_all") },
           ]}
         />
+        {mineIds && (
+          <SegmentedFilter
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: "all", label: tt("scope_all") },
+              { value: "mine", label: tt("scope_mine") },
+            ]}
+          />
+        )}
       </ListToolbar>
 
       {projects.length === 0 ? (

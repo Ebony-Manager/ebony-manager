@@ -117,10 +117,10 @@ export function ProjectHub({
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "suministros", label: tt("tab_suministros"), visible: !designerView },
     { key: "pintura", label: tt("tab_pintura"), visible: true },
-    { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled && !designerView },
+    { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled },
     { key: "embalaje", label: tt("tab_embalaje"), visible: true },
     { key: "entregas", label: tt("tab_entregas"), visible: true },
-    { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled && !designerView },
+    { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
   ];
   const visible = sections.filter((s) => s.visible);
   const [tab, setTab] = React.useState<SectionKey>(

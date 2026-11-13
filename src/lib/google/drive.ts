@@ -167,11 +167,12 @@ export interface DriveItem {
   modifiedTime: string;
   webViewLink: string | null;
   hasThumbnail: boolean;
+  parentId?: string | null;
 }
 
-const ITEM_FIELDS = "id,name,mimeType,size,modifiedTime,webViewLink,hasThumbnail,thumbnailLink";
+const ITEM_FIELDS = "id,name,mimeType,size,modifiedTime,webViewLink,hasThumbnail,thumbnailLink,parents";
 
-type RawItem = { id: string; name: string; mimeType: string; size?: string; modifiedTime: string; webViewLink?: string; hasThumbnail?: boolean };
+type RawItem = { id: string; name: string; mimeType: string; size?: string; modifiedTime: string; webViewLink?: string; hasThumbnail?: boolean; parents?: string[] };
 const mapItem = (f: RawItem): DriveItem => ({
   id: f.id,
   name: f.name,
@@ -208,7 +209,7 @@ export async function listFolder(folderId: string): Promise<DriveItem[]> {
 export async function getItem(id: string): Promise<DriveItem & { thumbnailLink: string | null }> {
   const res = await driveFetch(`${API}/files/${encodeURIComponent(id)}?fields=${ITEM_FIELDS}&${ALL_DRIVES}`);
   const raw = (await res.json()) as RawItem & { thumbnailLink?: string };
-  return { ...mapItem(raw), thumbnailLink: raw.thumbnailLink ?? null };
+  return { ...mapItem(raw), parentId: raw.parents?.[0] ?? null, thumbnailLink: raw.thumbnailLink ?? null };
 }
 
 /** Borrar = mandar a la papelera de Drive (se puede recuperar ahí por 30 días). */

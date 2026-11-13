@@ -1,9 +1,11 @@
 -- Diseñadoras (equipo de Ebony) en los proyectos.
 --
---  * Permiso nuevo `diseno`: ve SOLO los proyectos donde está asignada, hace sus formularios y ve la
---    cotización del proyecto SIN precios. No es "Cotización": ese permiso sigue dando todo.
---  * `project_designers`: qué personas de Personal (payroll_employees) están en cada proyecto (varias por
---    proyecto). Se asigna a la persona, no al usuario: se puede asignar antes de darle acceso a la app.
+--  * Permiso nuevo `diseno`: ve TODOS los proyectos, hace sus formularios y ve las cotizaciones APROBADAS de
+--    cada proyecto SIN precios (un proyecto lo es desde que se aprueba la cotización). No es "Cotización":
+--    ese permiso sigue dando todo.
+--  * `project_designers`: qué personas de Personal (payroll_employees) llevan cada proyecto (varias por
+--    proyecto). Sirve para filtrar "mis proyectos" y, más adelante, para dueñas de ítems de producción.
+--    Se asigna a la persona, no al usuario: se puede asignar antes de darle acceso a la app.
 --  * Los precios no se esconden en la pantalla sino aquí: las diseñadoras NO tienen lectura sobre quotes,
 --    quote_sections ni quote_lines. Solo leen dos funciones que devuelven la cotización sin ningún monto
 --    (ni precios, ni márgenes, ni costos, ni totales, ni ITBMS, ni descuentos).
@@ -39,24 +41,23 @@ $$;
 revoke all on function private.my_employee_id() from public, anon;
 grant execute on function private.my_employee_id() to authenticated;
 
+-- Con el permiso Diseño se ven todos los proyectos (el parámetro queda por compatibilidad con las políticas).
 create or replace function private.is_designer_of(p_project uuid)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select private.has_module('diseno')
-     and exists (select 1 from public.project_designers d
-                  where d.project_id = p_project and d.employee_id = private.my_employee_id())
 $$;
 revoke all on function private.is_designer_of(uuid) from public, anon;
 grant execute on function private.is_designer_of(uuid) to authenticated;
 
--- ¿Puede esta diseñadora ver la cotización cuyo id viene como carpeta de una imagen? (las imágenes se guardan en "<id de la cotización>/archivo.jpg")
+-- ¿Puede esta diseñadora ver la cotización (aprobada, de un proyecto) cuyo id viene como carpeta de una imagen? (las imágenes se guardan en "<id de la cotización>/archivo.jpg")
 create or replace function private.designer_can_see_quote_folder(p_folder text)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (select 1 from public.quotes q
-                  where q.id::text = p_folder and q.project_id is not null and private.is_designer_of(q.project_id))
+                  where q.id::text = p_folder and q.status = 'APROBADA' and q.project_id is not null and private.is_designer_of(q.project_id))
 $$;
 revoke all on function private.designer_can_see_quote_folder(text) from public, anon;
 grant execute on function private.designer_can_see_quote_folder(text) to authenticated;
@@ -121,13 +122,13 @@ as $$
   select q.id, q.number, q.status, q.quote_date, q.client_name, q.designer_name, q.project_name,
          (select count(*)::int from public.quote_sections s where s.quote_id = q.id)
     from public.quotes q
-   where q.project_id = p_project and private.is_designer_of(p_project)
+   where q.project_id = p_project and q.status = 'APROBADA' and private.is_designer_of(p_project)
    order by q.created_at desc
 $$;
 revoke all on function public.designer_project_quotes(uuid) from public, anon;
 grant execute on function public.designer_project_quotes(uuid) to authenticated;
 
--- Una cotización completa SIN ningún monto. Devuelve null si no existe o no es de un proyecto suyo.
+-- Una cotización aprobada completa SIN ningún monto. Devuelve null si no existe, no está aprobada o no es de un proyecto.
 create or replace function public.designer_quote(p_quote uuid)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -157,7 +158,7 @@ begin
                from public.quote_sections s where s.quote_id = q.id), '[]'::jsonb))
     into v
     from public.quotes q
-   where q.id = p_quote and q.project_id is not null and private.is_designer_of(q.project_id);
+   where q.id = p_quote and q.status = 'APROBADA' and q.project_id is not null and private.is_designer_of(q.project_id);
   return v;
 end;
 $$;

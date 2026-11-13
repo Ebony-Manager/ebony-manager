@@ -2584,8 +2584,10 @@ export const strings = {
 
   // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
   proyectos: {
+    scope_all: { es: "Todos los proyectos", en: "All projects" },
+    scope_mine: { es: "Mis proyectos", en: "My projects" },
     dz_title: { es: "Diseñadoras", en: "Designers" },
-    dz_hint: { es: "Quienes llevan este proyecto en diseño. Cada una ve solo los proyectos donde está asignada.", en: "Who handles this project's design. Each one sees only the projects she's assigned to." },
+    dz_hint: { es: "Quienes llevan este proyecto en diseño. Sirve para filtrar «Mis proyectos».", en: "Who handles this project's design. Used for the “My projects” filter." },
     dz_add: { es: "Asignar diseñadora", en: "Assign designer" },
     dz_pick: { es: "Elegir persona…", en: "Pick a person…" },
     dz_none: { es: "Todavía no hay diseñadoras asignadas.", en: "No designers assigned yet." },
@@ -2595,7 +2597,7 @@ export const strings = {
     dz_added: { es: "Diseñadora asignada", en: "Designer assigned" },
     dz_removed: { es: "Diseñadora quitada", en: "Designer removed" },
     dq_no_prices: { es: "Vista sin precios", en: "Price-free view" },
-    dq_empty: { es: "Este proyecto todavía no tiene cotizaciones.", en: "This project has no quotes yet." },
+    dq_empty: { es: "Este proyecto no tiene cotizaciones aprobadas.", en: "This project has no approved quotes." },
     dq_items: { es: "{n} ítems", en: "{n} items" },
     dq_back: { es: "Volver al proyecto", en: "Back to project" },
     dq_delivery: { es: "Entrega: {n} días hábiles", en: "Delivery: {n} working days" },

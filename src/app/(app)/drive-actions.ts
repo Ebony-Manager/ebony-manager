@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { requireAnyModule, requireModule } from "@/lib/auth/dal";
+import { hasModule, isDesignerView } from "@/lib/auth/modules";
 import { createClient } from "@/lib/supabase/server";
 import {
   CLIENT_INFO_FOLDER,
@@ -13,6 +14,7 @@ import {
   driveRoot,
   ensureSubfolders,
   folderUrl,
+  getItem,
   listFolder,
   startUpload,
   trashItem,
@@ -34,11 +36,22 @@ async function run<T>(fn: () => Promise<T>): Promise<DriveResult<T>> {
   }
 }
 
-const VIEWERS = ["cotizacion", "proyectos", "contratistas"] as const;
+const VIEWERS = ["cotizacion", "proyectos", "contratistas", "diseno"] as const;
+
+/**
+ * La carpeta COTIZACION del proyecto trae los PDF con precios: la diseñadora (Diseño sin Cotización,
+ * Proyectos ni Contratistas) no la ve ni la abre; ella ve la cotización sin precios en la pestaña.
+ */
+const PRICED_FOLDER = "COTIZACION";
+const isDesignerOnly = (p: Parameters<typeof isDesignerView>[0]) => isDesignerView(p) && !hasModule(p, "cotizacion");
 
 export async function listDriveFolderAction(folderId: string): Promise<DriveResult<DriveItem[]>> {
-  await requireAnyModule(...VIEWERS);
-  return run(() => listFolder(folderId));
+  const profile = await requireAnyModule(...VIEWERS);
+  return run(async () => {
+    if (!isDesignerOnly(profile)) return listFolder(folderId);
+    if ((await getItem(folderId)).name.trim().toUpperCase() === PRICED_FOLDER) throw new Error("Sin permiso");
+    return (await listFolder(folderId)).filter((i) => !(i.isFolder && i.name.trim().toUpperCase() === PRICED_FOLDER));
+  });
 }
 
 export async function createDriveSubfolderAction(parentId: string, name: string): Promise<DriveResult<string>> {

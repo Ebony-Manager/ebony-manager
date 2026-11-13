@@ -104,3 +104,11 @@ export async function getDesignerQuote(quoteId: string): Promise<DesignerQuote |
   };
 }
 
+
+/** Los proyectos que lleva quien tiene sesión (la RLS deja ver solo sus propias filas). */
+export async function getMyDesignerProjectIds(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("project_designers").select("project_id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => r.project_id);
+}
