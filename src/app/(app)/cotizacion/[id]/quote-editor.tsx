@@ -43,6 +43,7 @@ import {
   type ApproveChoice,
 } from "./status-dialogs";
 import type { Client } from "@/types/ventas";
+import type { DesignerCandidate } from "@/types/designers";
 import { quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { Textarea } from "@/components/ui/textarea";
 import { OwnerPanel } from "./owner-panel";
@@ -89,6 +90,7 @@ export function QuoteEditor({
   clients,
   owners,
   siblings = [],
+  designerCandidates = [],
   isAdmin = false,
   initialImages = [],
   docs,
@@ -105,6 +107,8 @@ export function QuoteEditor({
   docs: DocumentSettings;
   /** Imágenes de referencia de los ítems. */
   initialImages?: QuoteImage[];
+  /** A quién se puede asignar como diseñadora al aprobar (Personal, sin sueldos). */
+  designerCandidates?: DesignerCandidate[];
   initialQuote: Quote;
   isNew?: boolean;
   catalog: CatalogItem[];
@@ -1066,12 +1070,14 @@ export function QuoteEditor({
         open={statusDialog === "approve"}
         siblings={siblings}
         projects={owners.projects}
+        designerCandidates={designerCandidates}
         onClose={() => setStatusDialog(null)}
         onConfirm={(c: ApproveChoice) =>
           runStatus("APROBADA", {
             projectName: c.projectName,
             projectId: c.projectId,
             also: c.also,
+            designerIds: c.designerIds,
           })
         }
       />

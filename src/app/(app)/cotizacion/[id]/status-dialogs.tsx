@@ -31,6 +31,8 @@ import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import { useTv } from "../ventas-common";
 import { QuotePickList } from "../seguimiento/stage-dialogs";
+import { DesignerPick } from "@/components/shared/designer-pick";
+import type { DesignerCandidate } from "@/types/designers";
 
 type Tk = keyof typeof strings.cotizador;
 const isOpen = (s: QuoteSibling) =>
@@ -41,6 +43,7 @@ export interface ApproveChoice {
   projectId: string | null;
   /** Otras de la misma oportunidad que el cliente también aprobó. */
   also: string[];
+  designerIds: string[];
 }
 
 /**
@@ -53,6 +56,7 @@ export function ApproveQuoteDialog({
   open,
   siblings,
   projects,
+  designerCandidates,
   onClose,
   onConfirm,
 }: {
@@ -60,6 +64,7 @@ export function ApproveQuoteDialog({
   open: boolean;
   siblings: QuoteSibling[];
   projects: QuoteOwnerOptions["projects"];
+  designerCandidates: DesignerCandidate[];
   onClose: () => void;
   onConfirm: (choice: ApproveChoice) => Promise<void>;
 }) {
@@ -71,9 +76,10 @@ export function ApproveQuoteDialog({
   const [projectId, setProjectId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [also, setAlso] = React.useState<string[]>([]);
+  const [designerIds, setDesignerIds] = React.useState<string[]>([]);
   const { error, validate, clear, reset } = useFormErrors<"name" | "project">();
   const initial = React.useRef("");
-  const snapshot = () => JSON.stringify({ mode, name, projectId, also });
+  const snapshot = () => JSON.stringify({ mode, name, projectId, also, designerIds });
   const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
@@ -81,9 +87,10 @@ export function ApproveQuoteDialog({
     if (!open) return;
     const startName = quote.projectName.split(" · ")[0] || quote.designerName || quote.clientName;
     setAlso([]);
+    setDesignerIds([]);
     setMode("new");
     setName(startName);
-    initial.current = JSON.stringify({ mode: "new", name: startName, projectId: "", also: [] });
+    initial.current = JSON.stringify({ mode: "new", name: startName, projectId: "", also: [], designerIds: [] });
     setProjectId("");
     setSaving(false);
     reset();
@@ -155,6 +162,14 @@ export function ApproveQuoteDialog({
                 </Select>
               </Field>
             )}
+            <Field label={tv("f_designers")} icon={ICON.designer} hint={tv("f_designers_hint")}>
+              <DesignerPick
+                value={designerIds}
+                onChange={setDesignerIds}
+                candidates={designerCandidates}
+                labels={{ add: tv("designers_add"), none: tv("designers_none"), remove: tv("designers_remove") }}
+              />
+            </Field>
             {others.length > 0 && (
               <QuotePickList
                 quotes={others}
@@ -188,8 +203,9 @@ export function ApproveQuoteDialog({
                       projectName: mode === "new" ? name.trim() : null,
                       projectId: mode === "existing" ? projectId : null,
                       also,
+                      designerIds,
                     }
-                  : { projectName: null, projectId: null, also: [] },
+                  : { projectName: null, projectId: null, also: [], designerIds: [] },
               );
               setSaving(false);
             }}

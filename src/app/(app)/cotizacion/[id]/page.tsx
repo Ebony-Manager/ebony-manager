@@ -9,6 +9,7 @@ import { getClients } from "@/services/ventas";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { getDocumentSettings, getSectionKinds } from "@/services/settings";
 import { alegraReady, getQuoteAlegra } from "@/services/alegra";
+import { getDesignerCandidates } from "@/services/project-designers";
 import { QuoteEditor } from "./quote-editor";
 
 // Cotizar es para cualquier usuario de la app; el gate de `(app)/layout`
@@ -33,7 +34,7 @@ export default async function QuotePage({
   const [{ id }, { oportunidad, proyecto, cliente }] = await Promise.all([params, searchParams]);
 
   const isNew = id === NEW_QUOTE;
-  const [saved, catalog, inputs, clients, owners, siblings, images, docs, kinds, alegra, alegraEnabled] = await Promise.all([
+  const [saved, catalog, inputs, clients, owners, siblings, images, docs, kinds, alegra, alegraEnabled, designerCandidates] = await Promise.all([
     isNew ? null : getQuote(id),
     getCatalog(),
     getCostInputs(),
@@ -45,6 +46,7 @@ export default async function QuotePage({
     getSectionKinds(),
     isNew ? null : getQuoteAlegra(id),
     alegraReady(),
+    getDesignerCandidates().catch(() => []),
   ]);
   const defaults = defaultsFromInputs(inputs);
   const blank = isNew ? newQuote(crypto.randomUUID(), crypto.randomUUID(), defaults, todayInPanama()) : null;
@@ -71,6 +73,7 @@ export default async function QuotePage({
       clients={clients}
       owners={owners}
       siblings={siblings}
+      designerCandidates={designerCandidates}
       initialImages={images}
       docs={docs}
       kinds={kinds}

@@ -526,6 +526,8 @@ export interface SetQuoteStatusInput {
   projectId?: string | null;
   /** Al aprobar una de oportunidad: otras de la misma oportunidad que el cliente también aprobó. */
   also?: string[];
+  /** Al aprobar una de oportunidad: las diseñadoras del proyecto (ids de Personal). */
+  designerIds?: string[];
 }
 
 /** Cambia el estado con sus reglas (ver set_quote_status en la base). */
@@ -539,6 +541,7 @@ export async function setQuoteStatus(id: string, status: QuoteStatus, input: Set
     p_project_name: input.projectName ?? null,
     p_project_id: input.projectId ?? null,
     p_also: input.also ?? null,
+    p_designer_ids: input.designerIds ?? null,
   });
   if (error) throw new Error(error.message);
   const { data, error: readError } = await supabase.from("quotes").select("status, sent_on, closed_on, follow_up_on, project_id, updated_at").eq("id", id).single();
