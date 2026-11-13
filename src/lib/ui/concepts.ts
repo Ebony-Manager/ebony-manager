@@ -3,6 +3,8 @@ import {
   CalendarDays,
   FileText,
   Folder,
+  Hash,
+  House,
   Mail,
   MapPin,
   MessageSquare,
@@ -34,6 +36,10 @@ export const ICON = {
   phone: Phone,
   email: Mail,
   location: MapPin,
+  /** Edificio o casa. */
+  building: House,
+  /** Número de apartamento. */
+  unit: Hash,
   date: CalendarDays,
   notes: StickyNote,
   note: MessageSquare,

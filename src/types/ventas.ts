@@ -52,7 +52,12 @@ export interface Opportunity {
   /** Con cuál persona de la firma se lleva (opcional). */
   designerContactId: string | null;
   clientId: string | null;
+  /** Barrio o zona (no entra en el nombre del proyecto). */
   location: string | null;
+  /** Edificio o casa. */
+  building: string | null;
+  /** Apartamento: solo número y letra ("19C"). */
+  unit: string | null;
   stage: Stage;
   lostReason: LostReason | null;
   lostNote: string | null;

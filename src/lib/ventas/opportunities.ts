@@ -48,12 +48,20 @@ export function opportunitySubtitle(o: Pick<Opportunity, "title" | "designerId" 
     .join(" · ");
 }
 
+/** Del apartamento se guarda solo el número (y letra): "Apt 19C", "piso 2B" y "19C" quedan en "19C". */
+export function cleanUnit(unit: string | null | undefined): string {
+  return (unit ?? "").trim().replace(/^(?:apartamento|apto|apt|piso)\b\.?\s*/i, "").trim();
+}
+
 /**
- * El nombre del proyecto que se propone solo: "arquitecto o cliente – ubicación"
- * (como "MM Interiores – The Colonial 23C"). Solo se llena con lo que haya.
+ * El nombre del proyecto que se propone solo: "arquitecto o cliente – edificio Apt número"
+ * ("Vdesings – Ph Landmark Apt 22B"). El "Apt" lo pone la app; una casa va en el edificio y no lleva Apt.
+ * Solo se llena con lo que haya.
  */
-export function suggestedProjectName(who: string | null | undefined, location: string | null | undefined): string {
-  return [who?.trim(), location?.trim()].filter(Boolean).join(" – ");
+export function suggestedProjectName(who: string | null | undefined, building: string | null | undefined, unit: string | null | undefined): string {
+  const u = cleanUnit(unit);
+  const place = [building?.trim(), u ? `Apt ${u}` : ""].filter(Boolean).join(" ");
+  return [who?.trim(), place].filter(Boolean).join(" – ");
 }
 
 /** Quién da nombre al proyecto: la firma si hay, si no el cliente final. `nameOf` busca un cliente por id. */
@@ -61,18 +69,9 @@ export function whoOf(designerId: string | null, clientId: string | null, nameOf
   return (designerId && nameOf(designerId)) || (clientId && nameOf(clientId)) || "";
 }
 
-/** Encabezado de la cotización: "nombre · ubicación", sin repetir la ubicación si el nombre ya la trae. */
-export function projectLabel(title: string | null | undefined, location: string | null | undefined): string {
-  const t = (title ?? "").trim();
-  const l = (location ?? "").trim();
-  if (!l) return t;
-  if (!t) return l;
-  return t.toLowerCase().includes(l.toLowerCase()) ? t : `${t} · ${l}`;
-}
-
-/** El nombre que se propone al aprobar: el de la oportunidad; si no tiene, "arquitecto o cliente – ubicación". */
-export function defaultProjectName(o: Pick<Opportunity, "title" | "designerId" | "clientId" | "location">, clients: Map<string, Client>): string {
-  return o.title.trim() || suggestedProjectName(whoOf(o.designerId, o.clientId, (id) => clients.get(id)?.name), o.location) || opportunityPeople(o, clients) || "";
+/** El nombre que se propone al aprobar: el de la oportunidad; si no tiene, "arquitecto o cliente – edificio Apt número". */
+export function defaultProjectName(o: Pick<Opportunity, "title" | "designerId" | "clientId" | "building" | "unit">, clients: Map<string, Client>): string {
+  return o.title.trim() || suggestedProjectName(whoOf(o.designerId, o.clientId, (id) => clients.get(id)?.name), o.building, o.unit) || opportunityPeople(o, clients) || "";
 }
 
 /** El nombre de la tarjeta: el nombre del proyecto, o si no hay, quiénes son. */

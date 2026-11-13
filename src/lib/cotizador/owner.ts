@@ -1,5 +1,4 @@
 import type { Quote, QuoteOwnerOptions } from "@/types/cotizador";
-import { projectLabel } from "@/lib/ventas/opportunities";
 
 /**
  * De quién es una cotización ("¿Para qué es?"). Las personas salen siempre
@@ -25,7 +24,7 @@ export function linkOpportunity(opp: Opp, people: Person[]): OwnerPatch {
     clientId: opp.clientId,
     designerName: nameOf(people, opp.designerId),
     clientName: nameOf(people, opp.clientId),
-    projectName: projectLabel(opp.title, opp.location),
+    projectName: opp.title.trim(),
   };
 }
 

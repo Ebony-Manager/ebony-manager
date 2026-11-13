@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { Client, Opportunity } from "@/types/ventas";
-import { clientStats, defaultProjectName, opportunitySubtitle, projectLabel, suggestedProjectName, whoOf, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
+import { cleanUnit, clientStats, defaultProjectName, opportunitySubtitle, suggestedProjectName, whoOf, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
 
 const opp = (p: Partial<Opportunity>): Opportunity => ({
-  id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
+  id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, building: null, unit: null, stage: "por_cotizar", lostReason: null, lostNote: null,
   receivedOn: "2026-10-01", dueOn: null, nextFollowUp: null, stageChangedAt: "2026-10-01T12:00:00Z", sentOn: null, closedOn: null,
   ownerId: null, ownerName: null, amount: null, projectId: null, driveFolderId: null, driveFolderUrl: null, notes: null,
   createdAt: "2026-10-01T12:00:00Z", quotes: [], ...p,
@@ -76,16 +76,28 @@ describe("oportunidades", () => {
   });
 });
 
-describe("Nombre del proyecto: arquitecto o cliente – ubicación", () => {
+describe("Nombre del proyecto: arquitecto o cliente – edificio Apt número", () => {
   const firm = client("f1", "Dlineare", "arquitecto");
   const person = client("c1", "Ben Avi", "cliente");
   const map = new Map([[firm.id, firm], [person.id, person]]);
 
-  it("se arma con quién y dónde, con lo que haya", () => {
-    expect(suggestedProjectName("Dlineare", "Ph Serena")).toBe("Dlineare – Ph Serena");
-    expect(suggestedProjectName("Dlineare", "")).toBe("Dlineare");
-    expect(suggestedProjectName("", "Ph Serena")).toBe("Ph Serena");
-    expect(suggestedProjectName(null, null)).toBe("");
+  it("el Apt lo pone la app y el apartamento solo trae número y letra", () => {
+    expect(suggestedProjectName("Vdesings", "Ph Landmark", "22B")).toBe("Vdesings – Ph Landmark Apt 22B");
+    expect(suggestedProjectName("Vdesings", "Ph Landmark", "Apt 22B")).toBe("Vdesings – Ph Landmark Apt 22B");
+    expect(suggestedProjectName("Vdesings", "Ph Landmark", "piso 22")).toBe("Vdesings – Ph Landmark Apt 22");
+    expect(cleanUnit("Apto. 19C")).toBe("19C");
+    expect(cleanUnit("  2B ")).toBe("2B");
+  });
+
+  it("una casa va en el edificio y no lleva Apt", () => {
+    expect(suggestedProjectName("Fernando Tussie", "Casa 76", "")).toBe("Fernando Tussie – Casa 76");
+  });
+
+  it("se arma con lo que haya", () => {
+    expect(suggestedProjectName("Dlineare", "Ph Serena", null)).toBe("Dlineare – Ph Serena");
+    expect(suggestedProjectName("Dlineare", "", "")).toBe("Dlineare");
+    expect(suggestedProjectName("", "Ph Serena", "12B")).toBe("Ph Serena Apt 12B");
+    expect(suggestedProjectName(null, null, null)).toBe("");
   });
 
   it("da nombre la firma; si no hay firma, el cliente", () => {
@@ -96,16 +108,9 @@ describe("Nombre del proyecto: arquitecto o cliente – ubicación", () => {
   });
 
   it("al aprobar propone el nombre de la oportunidad; si no tiene, lo arma", () => {
-    expect(defaultProjectName(opp({ title: "Ph Altair", designerId: "f1" }), map)).toBe("Ph Altair");
-    expect(defaultProjectName(opp({ designerId: "f1", location: "Ph Serena" }), map)).toBe("Dlineare – Ph Serena");
-    expect(defaultProjectName(opp({ clientId: "c1", location: "Ph Landmark piso 22" }), map)).toBe("Ben Avi – Ph Landmark piso 22");
-  });
-
-  it("el encabezado de la cotización no repite la ubicación", () => {
-    expect(projectLabel("Ph Altair", "Santa Maria")).toBe("Ph Altair · Santa Maria");
-    expect(projectLabel("Dlineare – Ph Serena", "Ph Serena")).toBe("Dlineare – Ph Serena");
-    expect(projectLabel("", "Santa Maria")).toBe("Santa Maria");
-    expect(projectLabel("Casa 76", "")).toBe("Casa 76");
+    expect(defaultProjectName(opp({ title: "Nómada Studio – Ph Altair", designerId: "f1" }), map)).toBe("Nómada Studio – Ph Altair");
+    expect(defaultProjectName(opp({ designerId: "f1", building: "Ph Serena", unit: "12B" }), map)).toBe("Dlineare – Ph Serena Apt 12B");
+    expect(defaultProjectName(opp({ clientId: "c1", building: "Casa 76" }), map)).toBe("Ben Avi – Casa 76");
   });
 });
 

@@ -41,7 +41,6 @@ import {
   type OwnerPatch,
 } from "@/lib/cotizador/owner";
 import { cn } from "@/lib/utils";
-import { projectLabel } from "@/lib/ventas/opportunities";
 import type { strings } from "@/lib/i18n";
 import {
   quoteOwnerKind,
@@ -222,7 +221,7 @@ export function OwnerPanel({
             options={oppOptions.map((o) => ({
               id: o.id,
               label:
-                projectLabel(o.title, o.location) ||
+                o.title.trim() ||
                 people(o.designerId, o.clientId),
               sub: people(o.designerId, o.clientId),
               badge: <StageBadge stage={o.stage as Stage} />,

@@ -8,7 +8,7 @@ const people = [
 ];
 
 describe("dueño de la cotización", () => {
-  it("una oportunidad trae firma, contacto, cliente y nombre de la obra", () => {
+  it("una oportunidad trae firma, contacto, cliente y nombre del proyecto (sin el barrio)", () => {
     const p = linkOpportunity({ id: "o1", title: "Royal Palace", location: "Costa del Este", stage: "cotizando", designerId: "f1", designerContactId: "k1", clientId: "c1" }, people);
     expect(p).toEqual({
       opportunityId: "o1",
@@ -18,7 +18,7 @@ describe("dueño de la cotización", () => {
       clientId: "c1",
       designerName: "NDesign",
       clientName: "Teo Zebede",
-      projectName: "Royal Palace · Costa del Este",
+      projectName: "Royal Palace",
     });
   });
 

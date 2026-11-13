@@ -52,6 +52,8 @@ interface Form {
   designerContactId: string | null;
   clientId: string | null;
   location: string;
+  building: string;
+  unit: string;
   stage: Stage;
   lostReason: LostReason | null;
   lostNote: string;
@@ -71,6 +73,8 @@ function formOf(o: Opportunity | null, currentUserId: string | null): Form {
     designerContactId: o?.designerContactId ?? null,
     clientId: o?.clientId ?? null,
     location: o?.location ?? "",
+    building: o?.building ?? "",
+    unit: o?.unit ?? "",
     stage: o?.stage ?? "por_cotizar",
     lostReason: o?.lostReason ?? null,
     lostNote: o?.lostNote ?? "",
@@ -140,9 +144,9 @@ export function OpportunityDialog({
   const update = (patch: Partial<Form>) =>
     setForm((f) => {
       const next = { ...f, ...patch };
-      if (!titleTouched.current && ("designerId" in patch || "clientId" in patch || "location" in patch)) {
+      if (!titleTouched.current && ("designerId" in patch || "clientId" in patch || "building" in patch || "unit" in patch)) {
         const who = whoOf(next.designerId, next.clientId, (id) => allClients.find((c) => c.id === id)?.name);
-        next.title = suggestedProjectName(who, next.location);
+        next.title = suggestedProjectName(who, next.building, next.unit);
       }
       return next;
     });
@@ -178,6 +182,8 @@ export function OpportunityDialog({
       designerContactId: form.designerContactId,
       clientId: form.clientId,
       location: form.location,
+      building: form.building,
+      unit: form.unit,
       stage: form.stage,
       lostReason: form.lostReason,
       lostNote: form.lostNote,
@@ -283,8 +289,14 @@ export function OpportunityDialog({
 
           <FormSection icon={ICON.project} title={tv("sec_project")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={tv("f_location")} icon={ICON.location} hint={tv("f_location_hint")}>
-              <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+            <Field label={tv("f_building")} icon={ICON.building}>
+              <Input value={form.building} onChange={(e) => set("building", e.target.value)} placeholder={tv("f_building_ph")} />
+            </Field>
+            <Field label={tv("f_unit")} icon={ICON.unit} hint={tv("f_unit_hint")}>
+              <Input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder={tv("f_unit_ph")} />
+            </Field>
+            <Field label={tv("f_location")} icon={ICON.location}>
+              <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder={tv("f_location_ph")} />
             </Field>
             <Field label={tv("f_project_name")} icon={ICON.project} hint={tv("f_project_name_hint")}>
               <Input

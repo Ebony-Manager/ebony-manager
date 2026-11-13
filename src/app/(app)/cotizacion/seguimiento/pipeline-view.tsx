@@ -97,7 +97,7 @@ export function PipelineView({
     const q = normalizeSearchText(query);
     return opportunities
       .filter((o) => owner === "all" || o.ownerId === owner)
-      .filter((o) => !q || matchesSearch(`${o.title} ${opportunityPeople(o, clientById)} ${o.location ?? ""} ${o.ownerName ?? ""}`, q));
+      .filter((o) => !q || matchesSearch(`${o.title} ${opportunityPeople(o, clientById)} ${o.building ?? ""} ${o.unit ?? ""} ${o.location ?? ""} ${o.ownerName ?? ""}`, q));
   }, [opportunities, owner, query, clientById]);
 
   const monthStart = `${today.slice(0, 7)}-01`;

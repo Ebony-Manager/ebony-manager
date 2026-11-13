@@ -1,4 +1,5 @@
 import "server-only";
+import { cleanUnit } from "@/lib/ventas/opportunities";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -46,6 +47,8 @@ function mapOpp(r: OppRow, quotes: LinkedQuote[]): Opportunity {
     designerContactId: r.designer_contact_id,
     clientId: r.client_id,
     location: r.location,
+    building: r.building,
+    unit: r.unit,
     stage: r.stage as Stage,
     lostReason: r.lost_reason as LostReason | null,
     lostNote: r.lost_note,
@@ -168,6 +171,8 @@ export interface OpportunityInput {
   designerContactId: string | null;
   clientId: string | null;
   location: string | null;
+  building: string | null;
+  unit: string | null;
   stage: Stage;
   lostReason: LostReason | null;
   lostNote: string | null;
@@ -187,6 +192,8 @@ function oppRow(i: OpportunityInput) {
     designer_contact_id: i.designerId ? i.designerContactId : null,
     client_id: i.clientId,
     location: t(i.location),
+    building: t(i.building),
+    unit: cleanUnit(i.unit) || null,
     stage: i.stage,
     lost_reason: i.stage === "perdida" ? i.lostReason : null,
     lost_note: i.stage === "perdida" ? t(i.lostNote) : null,
