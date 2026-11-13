@@ -37,8 +37,6 @@ import { ICON } from "@/lib/ui/concepts";
 import { DriveFiles, PendingFiles, uploadFilesToDrive } from "@/components/shared/drive-files";
 import { ensureOpportunityFolderAction } from "../../drive-actions";
 import { EmptyState } from "@/components/shared/page-header";
-import { DesignerPick } from "@/components/shared/designer-pick";
-import type { DesignerCandidate } from "@/types/designers";
 
 export interface SalesProject {
   id: string;
@@ -63,7 +61,6 @@ interface Form {
   dueOn: string;
   nextFollowUp: string;
   ownerId: string | null;
-  designerEmployeeIds: string[];
   driveFolderUrl: string;
   notes: string;
 }
@@ -85,7 +82,6 @@ function formOf(o: Opportunity | null, currentUserId: string | null): Form {
     dueOn: o?.dueOn ?? "",
     nextFollowUp: o?.nextFollowUp ?? "",
     ownerId: o ? o.ownerId : currentUserId,
-    designerEmployeeIds: o?.designerEmployeeIds ?? [],
     driveFolderUrl: o?.driveFolderUrl ?? "",
     notes: o?.notes ?? "",
   };
@@ -102,7 +98,6 @@ export function OpportunityDialog({
   opportunity,
   clients,
   people,
-  designerCandidates,
   onClose,
   onApprove,
   driveEnabled,
@@ -111,7 +106,6 @@ export function OpportunityDialog({
   opportunity: Opportunity | "new" | null;
   clients: Client[];
   people: SalesPerson[];
-  designerCandidates: DesignerCandidate[];
   onClose: () => void;
   onApprove: (o: Opportunity) => void;
   driveEnabled: boolean;
@@ -197,7 +191,6 @@ export function OpportunityDialog({
       dueOn: form.dueOn || null,
       nextFollowUp: form.nextFollowUp || null,
       ownerId: form.ownerId,
-      designerEmployeeIds: form.designerEmployeeIds,
       // Con Drive conectado la carpeta la maneja la app: se conserva la guardada.
       driveFolderUrl: driveEnabled ? (existing?.driveFolderUrl ?? null) : form.driveFolderUrl,
       notes: form.notes,
@@ -347,14 +340,6 @@ export function OpportunityDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
-            <Field label={tv("f_designers")} icon={ICON.designer} hint={tv("f_designers_hint")}>
-              <DesignerPick
-                value={form.designerEmployeeIds}
-                onChange={(ids) => set("designerEmployeeIds", ids)}
-                candidates={designerCandidates}
-                labels={{ add: tv("designers_add"), none: tv("designers_none"), remove: tv("designers_remove") }}
-              />
             </Field>
             {fromQuote && (
               <Field label={tv("f_amount")} hint={tv("f_amount_hint_quote")}>

@@ -296,7 +296,6 @@ export function PipelineView({
         opportunity={editingNow}
         clients={clients}
         people={people}
-        designerCandidates={designerCandidates}
         driveEnabled={driveEnabled}
         currentUserId={people.some((p) => p.id === currentUserId) ? currentUserId : null}
         onClose={() => setEditing(null)}

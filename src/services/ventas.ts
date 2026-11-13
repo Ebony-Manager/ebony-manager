@@ -181,7 +181,6 @@ export interface OpportunityInput {
   dueOn: string | null;
   nextFollowUp: string | null;
   ownerId: string | null;
-  designerEmployeeIds: string[];
   driveFolderUrl: string | null;
   notes: string | null;
 }
@@ -203,7 +202,6 @@ function oppRow(i: OpportunityInput) {
     due_on: i.dueOn || null,
     next_follow_up: i.nextFollowUp || null,
     owner_id: i.ownerId,
-    designer_employee_ids: i.designerEmployeeIds,
     drive_folder_url: t(i.driveFolderUrl),
     notes: t(i.notes),
   };

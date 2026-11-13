@@ -2434,7 +2434,7 @@ export const strings = {
     open_quote: { es: "Cotización {n}", en: "Quote {n}" },
     f_owner: { es: "Responsable", en: "Owner" },
     f_designers: { es: "Diseñadoras", en: "Designers" },
-    f_designers_hint: { es: "Quienes llevarán el diseño; al aprobar pasan al proyecto.", en: "Who will handle the design; they carry over to the project on approval." },
+    f_designers_hint: { es: "Quienes llevarán el diseño de este proyecto.", en: "Who will handle this project's design." },
     designers_add: { es: "Agregar diseñadora", en: "Add designer" },
     designers_none: { es: "Sin diseñadoras asignadas", en: "No designers assigned" },
     designers_remove: { es: "Quitar", en: "Remove" },
