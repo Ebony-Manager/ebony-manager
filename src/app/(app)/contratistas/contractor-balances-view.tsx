@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ICON } from "@/lib/ui/concepts";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
@@ -13,7 +12,6 @@ import { t, strings } from "@/lib/i18n";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { ContractorAvatar } from "./contractor-avatar";
 import type { ContractorsDashboardInput } from "./contractors-dashboard-view";
-import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 /**
  * Personal → Pagos → Contratistas: cada contratista con lo facturado, lo
@@ -26,12 +24,8 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
-  const years = React.useMemo(
-    () => [...new Set(input.entries.map((e) => Number(e.entryDate.slice(0, 4))))].sort((a, b) => b - a),
-    [input.entries]
-  );
-  // El saldo es siempre de toda la historia; el período solo cambia las otras columnas.
-  const [period, setPeriod] = React.useState<DashboardPeriod>("all");
+  // Siempre toda la historia (sin filtro de año).
+  const period: DashboardPeriod = "all";
   const [open, setOpen] = React.useState<Set<string>>(new Set());
 
   const data = React.useMemo(
@@ -57,13 +51,6 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
 
   return (
     <div className="flex flex-col gap-4">
-      <SegmentedFilter
-        className="self-end"
-        value={String(period)}
-        onChange={(v) => setPeriod(v === "all" ? "all" : Number(v))}
-        options={[...years.map((y) => ({ value: String(y), label: String(y), icon: ICON.period })), { value: "all", label: tt("cd_all"), icon: ICON.all }]}
-      />
-
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-medium text-foreground">{tt("cd_table_title")}</p>
