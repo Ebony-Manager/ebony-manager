@@ -1,5 +1,9 @@
 "use client";
 
+import { Gift, TriangleAlert, Users, Wallet } from "lucide-react";
+import { Field } from "@/components/shared/field";
+import { FormSection } from "@/components/shared/form-section";
+import { KpiCard } from "@/components/shared/kpi-card";
 import * as React from "react";
 import { Download } from "lucide-react";
 
@@ -122,22 +126,15 @@ export function BankExportDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border px-3 py-2">
-            <p className="text-xs text-muted-foreground">{tt("ach_in_file")}</p>
-            <p className="text-xl font-semibold tabular-nums text-foreground">{payload.rows.length}</p>
-          </div>
-          <div className="rounded-lg border border-border px-3 py-2">
-            <p className="text-xs text-muted-foreground">{tt("ach_total")}</p>
-            <p className="text-xl font-semibold tabular-nums text-foreground">{formatCents(payload.totalCents)}</p>
-          </div>
+          <KpiCard icon={Users} label={tt("ach_in_file")} value={payload.rows.length} />
+          <KpiCard icon={Wallet} label={tt("ach_total")} value={formatCents(payload.totalCents)} tone="primary" />
         </div>
 
         {(payload.totalsByConcept.decimo.count > 0 ||
           payload.totalsByConcept.vacacion.count > 0 ||
           payload.totalsByConcept.prima.count > 0) && (
-          <div className="rounded-lg border border-border p-3 text-xs">
-            <p className="mb-1 font-medium text-foreground">{tt("ach_by_concept")}</p>
-            <ul className="flex flex-col gap-0.5">
+          <FormSection quiet icon={Gift} title={tt("ach_by_concept")}>
+            <ul className="flex flex-col gap-0.5 text-xs">
               {ACH_CONCEPT_ORDER.filter((c) => payload.totalsByConcept[c].count > 0).map((c) => (
                 <li key={c} className="flex justify-between gap-3 text-muted-foreground">
                   <span>
@@ -147,15 +144,11 @@ export function BankExportDialog({
                 </li>
               ))}
             </ul>
-          </div>
+          </FormSection>
         )}
 
         {payload.incomplete.length > 0 && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
-            <p className="font-medium text-foreground">
-              {payload.incomplete.length} {tt("ach_incomplete_title")}
-            </p>
-            <p className="mb-2 text-xs text-muted-foreground">{tt("ach_incomplete_hint")}</p>
+          <FormSection icon={TriangleAlert} title={`${payload.incomplete.length} ${tt("ach_incomplete_title")}`} note={tt("ach_incomplete_hint")}>
             <ul className="max-h-40 overflow-y-auto text-xs">
               {payload.incomplete.map((e) => (
                 <li key={e.employeeId} className="flex items-start justify-between gap-3 border-t border-border/60 py-1">
@@ -168,7 +161,7 @@ export function BankExportDialog({
                 </li>
               ))}
             </ul>
-          </div>
+          </FormSection>
         )}
 
         {(notTransfer > 0 || zero > 0) && (
@@ -179,27 +172,13 @@ export function BankExportDialog({
           </p>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="ach-addenda">
-            {tt("ach_addenda")}
-          </label>
-          <Input
-            id="ach-addenda"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={`${tt("ach_default_text")} ${quincena}`}
-            maxLength={60}
-          />
-          <p className="text-[11px] text-muted-foreground">{tt("ach_addenda_hint")}</p>
-        </div>
+        <Field label={tt("ach_addenda")} hint={tt("ach_addenda_hint")}>
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={`${tt("ach_default_text")} ${quincena}`} maxLength={60} />
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="ach-route">
-            {tt("ach_route")}
-          </label>
-          <Input id="ach-route" value={route} onChange={(e) => onRoute(e.target.value)} placeholder={tt("ach_route_ph")} maxLength={20} />
-          <p className="text-[11px] text-muted-foreground">{tt("ach_route_hint")}</p>
-        </div>
+        <Field label={tt("ach_route")} hint={tt("ach_route_hint")}>
+          <Input value={route} onChange={(e) => onRoute(e.target.value)} placeholder={tt("ach_route_ph")} maxLength={20} />
+        </Field>
 
         <p className="text-[11px] text-muted-foreground">{tt("ach_codes_note")}</p>
 

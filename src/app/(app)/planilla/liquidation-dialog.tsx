@@ -11,6 +11,8 @@ import { t, strings } from "@/lib/i18n";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { updateEmployeeAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 /**
  * Dar de baja a un empleado (o editar su baja): el último día que trabajó y
@@ -38,24 +40,22 @@ export function LiquidationDialog({
   const [endDate, setEndDate] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"endDate">();
+  const dirty = () =>
+    endDate !== (employee.status === "INACTIVE" && employee.endDate ? employee.endDate : todayInPanama()) || notes !== (employee.liquidationNotes ?? "");
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el empleado cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
     setEndDate(employee.status === "INACTIVE" && employee.endDate ? employee.endDate : todayInPanama());
     setNotes(employee.liquidationNotes ?? "");
-    setError(null);
-  }, [open, employee]);
+    reset();
+  }, [open, employee, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onSubmit() {
-    if (!endDate) {
-      setError(tt("liq_f_date_required"));
-      return;
-    }
+    if (!validate([["endDate", !endDate, tt("liq_f_date_required")]])) return;
     setSubmitting(true);
-    setError(null);
     try {
       await updateEmployeeAction(employee.id, {
         endDate,
@@ -65,7 +65,7 @@ export function LiquidationDialog({
       toast.success(tt(isEditing ? "off_saved" : "off_done"));
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -80,10 +80,18 @@ export function LiquidationDialog({
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={isEditing ? tt("action_save") : tt("off_confirm")}
-      error={error}
+      dirty={dirty}
     >
-      <Field label={tt("off_f_date")}>
-        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full min-w-0" />
+      <Field label={tt("off_f_date")} required icon={ICON.date} error={error("endDate")}>
+        <Input
+          type="date"
+          value={endDate}
+          onChange={(e) => {
+            setEndDate(e.target.value);
+            clear("endDate");
+          }}
+          className="w-full min-w-0"
+        />
       </Field>
       <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
         {hasBenefits ? tt("off_hint_benefits") : tt("off_hint")}

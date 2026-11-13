@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { ICON } from "@/lib/ui/concepts";
 import { Pencil, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { ContractorType, LaborRate } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
@@ -73,9 +74,9 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: tt("rates_filter_all") },
-            { value: "ebanista", label: tt("type_ebanista") },
-            { value: "pintor", label: tt("type_pintor") },
+            { value: "all", label: tt("rates_filter_all"), icon: ICON.all },
+            { value: "ebanista", label: tt("type_ebanista"), icon: ICON.ebanista },
+            { value: "pintor", label: tt("type_pintor"), icon: ICON.pintura },
           ]}
         />
         <Button size="sm" onClick={() => setAddOpen(true)}>
@@ -110,7 +111,7 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
                   <span className="shrink-0 text-base font-semibold tabular-nums text-foreground">{formatCents(r.precioCents)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant={r.activo ? "secondary" : "outline"}>{r.activo ? tt("rates_active") : tt("rates_inactive")}</Badge>
+                  <StatusBadge status={r.activo ? "record_active" : "record_inactive"}>{r.activo ? tt("rates_active") : tt("rates_inactive")}</StatusBadge>
                   <div className="flex items-center gap-1">
                     <Button size="sm" variant="outline" className="h-8" onClick={() => setEditing(r)}>
                       <Pencil className="size-3.5" />
@@ -141,15 +142,15 @@ export function LaborRatesView({ rates }: { rates: LaborRate[] }) {
                   <tr key={r.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/40">
                     <td className="px-3 py-2 font-medium text-foreground">
                       {r.descripcion}
-                      <Badge variant="outline" className="ml-2 align-middle">
+                      <StatusBadge status={r.contractorType === "pintor" ? "contractor_pintor" : "contractor_ebanista"}>
                         {r.contractorType === "pintor" ? tt("type_pintor") : tt("type_ebanista")}
-                      </Badge>
+                      </StatusBadge>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{phaseLabel(r)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{unitLabel(r)}</td>
                     <td className="px-3 py-2 text-right font-medium tabular-nums text-foreground">{formatCents(r.precioCents)}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={r.activo ? "secondary" : "outline"}>{r.activo ? tt("rates_active") : tt("rates_inactive")}</Badge>
+                      <StatusBadge status={r.activo ? "record_active" : "record_inactive"}>{r.activo ? tt("rates_active") : tt("rates_inactive")}</StatusBadge>
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right">
                       <Button

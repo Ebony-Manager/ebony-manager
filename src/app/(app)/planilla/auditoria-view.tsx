@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { STATUS } from "@/lib/ui/status";
 import {
   ChevronDown,
   AlertTriangle,
@@ -653,6 +655,7 @@ export function AuditoriaView({
                     options={(["todos", "activo", "inactivo"] as const).map((s) => ({
                       value: s,
                       label: s === "todos" ? tt("filtro_todos") : s === "activo" ? tt("filtro_activo") : tt("filtro_inactivo"),
+                      icon: s === "todos" ? ICON.all : s === "activo" ? STATUS.record_active.icon : STATUS.record_inactive.icon,
                     }))}
                   />
                 </div>

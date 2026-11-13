@@ -14,6 +14,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getEmployeeAnnualDetailAction, updateEmployeeAction, upsertPayrollEntryAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 
 type DetailRow = Awaited<ReturnType<typeof getEmployeeAnnualDetailAction>>[number];
@@ -261,7 +263,7 @@ function PayDialog({
   const [amount, setAmount] = React.useState((concept.accrued(selected) / 100).toFixed(2));
   const [touched, setTouched] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear } = useFormErrors<"amount">();
 
   // Mientras no se haya escrito un monto a mano, sigue al acumulado de la quincena elegida.
   /* eslint-disable react-hooks/set-state-in-effect -- deriva de la quincena elegida. */
@@ -272,12 +274,8 @@ function PayDialog({
 
   async function onSubmit() {
     const cents = Math.round(parseFloat(amount || "0") * 100);
-    if (!(cents > 0)) {
-      setError(tt("loan_f_amount_required"));
-      return;
-    }
+    if (!validate([["amount", !(cents > 0), tt("loan_f_amount_required")]])) return;
     setSubmitting(true);
-    setError(null);
     try {
       await upsertPayrollEntryAction({
         employeeId: employee.id,
@@ -290,7 +288,7 @@ function PayDialog({
       onSaved();
     } catch (err) {
       console.error("Planilla: no se pudo registrar el pago", err);
-      setError(tt("load_failed"));
+      toast.error(tt("load_failed"));
     } finally {
       setSubmitting(false);
     }
@@ -299,15 +297,17 @@ function PayDialog({
   return (
     <FormDialog
       open
-      onOpenChange={(o) => !o && onClose()}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
       title={`${tt("benefits_mark_paid")} · ${tt(concept.title)}`}
       description={tt("benefits_pay_desc")}
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={tt("action_save")}
-      error={error}
+      dirty={() => touched || periodKey !== `${now.year}-${now.month}-${now.half}`}
     >
-      <Field label={tt("benefits_pay_period")}>
+      <Field label={tt("benefits_pay_period")} icon={ICON.period}>
         <Select value={periodKey} onValueChange={setPeriodKey}>
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -322,12 +322,13 @@ function PayDialog({
           </SelectContent>
         </Select>
       </Field>
-      <Field label={tt("loan_f_amount")}>
+      <Field label={tt("loan_f_amount")} required error={error("amount")}>
         <MoneyInput
           value={amount}
           onValueChange={(v) => {
             setTouched(true);
             setAmount(v);
+            clear("amount");
           }}
           autoFocus
         />

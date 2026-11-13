@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { StatusBadge } from "@/components/shared/status-badge";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, HandCoins, RotateCcw } from "lucide-react";
@@ -9,7 +10,6 @@ import toast from "react-hot-toast";
 import type { ContractorContract } from "@/types/contractors";
 import type { ContractorClosingData } from "@/services/contractors";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -250,7 +250,7 @@ export function ContractorClosingView({
               {tt("cl_pay_date")}: {formatDate(lang, data.payDate)}
             </span>
           )}
-          <Badge variant={paid ? "secondary" : "outline"}>{paid ? tt("cl_status_paid") : tt("cl_status_draft")}</Badge>
+          <StatusBadge status={paid ? "closing_paid" : "closing_draft"}>{paid ? tt("cl_status_paid") : tt("cl_status_draft")}</StatusBadge>
         </div>
       </div>
 

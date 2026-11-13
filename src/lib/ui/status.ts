@@ -1,4 +1,4 @@
-import { Ban, CalendarX, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Ban, Briefcase, CalendarX, CirclePause, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -39,6 +39,15 @@ export const STATUS = {
   tool_reparacion: { icon: Wrench, tone: "warn" },
   tool_danada: { icon: ShieldAlert, tone: "error" },
   tool_perdida: { icon: SearchX, tone: "muted" },
+  // Personal y contratistas
+  record_active: { icon: CircleCheck, tone: "ok" },
+  record_inactive: { icon: CirclePause, tone: "muted" },
+  closing_paid: { icon: CircleCheck, tone: "ok" },
+  closing_draft: { icon: FilePen, tone: "muted" },
+  kind_employee: { icon: Briefcase, tone: "info" },
+  kind_contractor: { icon: Hammer, tone: "muted" },
+  contractor_ebanista: { icon: Hammer, tone: "muted" },
+  contractor_pintor: { icon: PaintBucket, tone: "muted" },
   /** El filtro «Fuera de uso» junta reparación, dañada y perdida. */
   tool_out: { icon: Ban, tone: "muted" },
 } satisfies Record<string, StatusDef>;

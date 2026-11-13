@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
 
 /** Diálogo de formulario simple para el módulo Planilla — reemplaza el
  *  `@/components/shared/form-dialog` de Atlas sin sumar dependencias
@@ -27,6 +28,7 @@ export function FormDialog({
   submitting,
   submitLabel,
   error,
+  dirty,
   children,
   wide,
 }: {
@@ -37,13 +39,17 @@ export function FormDialog({
   onSubmit: () => void | Promise<void>;
   submitting?: boolean;
   submitLabel: string;
+  /** Obsoleto: usa `useFormErrors` + `<Field error>`; esto es solo para los que aún no migran. */
   error?: string | null;
+  /** ¿Hay cosas escritas sin guardar? Si sí, cerrar pregunta «¿Descartar los cambios?». */
+  dirty?: () => boolean;
   children: React.ReactNode;
   wide?: boolean;
 }) {
   const { lang } = useLang();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => dirty?.() ?? false, () => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : void requestClose())}>
       <DialogContent className={`max-h-[90vh] overflow-y-auto ${wide ? "max-w-xl" : "max-w-md"}`}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -59,7 +65,7 @@ export function FormDialog({
           {children}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {t(lang, strings.planilla.action_cancel)}
             </Button>
             <Button type="submit" disabled={submitting}>
@@ -68,6 +74,7 @@ export function FormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

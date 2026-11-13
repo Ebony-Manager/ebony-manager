@@ -20,6 +20,10 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createContractorAction, updateContractorAction } from "./actions";
 import { Field } from "./field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 /**
  * Alta y edición de un contratista (ebanista o pintor), con los mismos
@@ -116,13 +120,18 @@ export function ContractorFormDialog({
 
   const [form, setForm] = React.useState<FormState>(() => (contractor ? toForm(contractor) : { ...toForm(), ...prefill }));
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  const initial = React.useRef(JSON.stringify(form));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => JSON.stringify(form) !== initial.current, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(contractor ? toForm(contractor) : { ...toForm(), ...prefill });
-    setError(null);
+    const seed = contractor ? toForm(contractor) : { ...toForm(), ...prefill };
+    setForm(seed);
+    initial.current = JSON.stringify(seed);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, contractor, prefill]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -131,12 +140,8 @@ export function ContractorFormDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setError(tt("f_name_required"));
-      return;
-    }
+    if (!validate([["name", !form.name.trim(), tt("f_name_required")]])) return;
     setSubmitting(true);
-    setError(null);
     const orNull = (v: string) => v.trim() || null;
     const data = {
       name: form.name.trim(),
@@ -168,154 +173,133 @@ export function ContractorFormDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? tt("dlg_edit_title") : tt("dlg_add_title")}</DialogTitle>
           <DialogDescription>{isEdit ? tt("dlg_edit_desc") : tt("dlg_add_desc")}</DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={tt("f_name")} className="sm:col-span-2">
-              <Input
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder={tt("f_name_ph")}
-                autoFocus={!isEdit}
-              />
-            </Field>
-            <Field label={tt("f_type")}>
-              <Select value={form.contractorType} onValueChange={(v) => set("contractorType", v as ContractorType)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ebanista">{tt("type_ebanista")}</SelectItem>
-                  <SelectItem value="pintor">{tt("type_pintor")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label={tt("f_start_date")}>
-              <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
-            <Field label={tp("f_phone")}>
-              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
-            </Field>
-            <Field label={tp("f_id_document_type")}>
-              <Select
-                value={form.idDocumentType}
-                onValueChange={(v) => set("idDocumentType", v as FormState["idDocumentType"])}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{tp("f_optional")}</SelectItem>
-                  <SelectItem value="cedula">{tp("id_type_cedula")}</SelectItem>
-                  <SelectItem value="pasaporte">{tp("id_type_pasaporte")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label={tp("f_id_document")}>
-              <Input value={form.idDocument} onChange={(e) => set("idDocument", e.target.value)} placeholder="8-123-4567" />
-            </Field>
-            <Field label={tp("f_nationality")}>
-              <CountrySelect value={form.nationality} onChange={(code) => set("nationality", code)} />
-            </Field>
-            <Field label={tp("f_birth_date")}>
-              <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
-            </Field>
-            <Field label={tp("f_email")}>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder={tp("f_optional")}
-              />
-            </Field>
-            <Field label={tp("f_address")} className="sm:col-span-2">
-              <Input
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                placeholder={tp("f_address_ph")}
-              />
-            </Field>
-            <Field label={tp("f_emg_name")}>
-              <Input
-                value={form.emergencyContactName}
-                onChange={(e) => set("emergencyContactName", e.target.value)}
-                placeholder={tp("f_optional")}
-              />
-            </Field>
-            <Field label={tp("f_emg_phone")}>
-              <Input
-                value={form.emergencyContactPhone}
-                onChange={(e) => set("emergencyContactPhone", e.target.value)}
-                placeholder="6000-0000"
-              />
-            </Field>
-            <Field label={tp("f_contract")} className="sm:col-span-2">
-              <Input
-                value={form.contractInfo}
-                onChange={(e) => set("contractInfo", e.target.value)}
-                placeholder={tp("f_contract_ph")}
-              />
-            </Field>
-          </div>
-
-          <div className="flex flex-col gap-4 border-t border-border pt-4">
-            <h3 className="text-sm font-medium text-foreground">{tp("bank_section_title")}</h3>
+        <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+          <FormSection icon={ICON.client} title={tt("f_name")}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tp("f_bank_name")}>
-                <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder={tp("f_optional")} />
+              <Field label={tt("f_name")} required error={error("name")} className="sm:col-span-2">
+                <Input
+                  value={form.name}
+                  onChange={(e) => {
+                    set("name", e.target.value);
+                    clear("name");
+                  }}
+                  placeholder={tt("f_name_ph")}
+                  autoFocus={!isEdit}
+                />
               </Field>
-              <Field label={tp("f_bank_account_type")}>
-                <Select
-                  value={form.bankAccountType}
-                  onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}
-                >
+              <Field label={tt("f_type")}>
+                <Select value={form.contractorType} onValueChange={(v) => set("contractorType", v as ContractorType)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>{tp("f_optional")}</SelectItem>
+                    <SelectItem value="ebanista">{tt("type_ebanista")}</SelectItem>
+                    <SelectItem value="pintor">{tt("type_pintor")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tt("f_start_date")} icon={ICON.date}>
+                <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection icon={ICON.phone} title={tp("sec_contact")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tp("f_phone")} icon={ICON.phone}>
+                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
+              </Field>
+              <Field label={tp("f_email")} icon={ICON.email}>
+                <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+              </Field>
+              <Field label={tp("f_address")} icon={ICON.location} className="sm:col-span-2">
+                <Input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={tp("f_address_ph")} />
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection icon={ICON.idDoc} title={tp("sec_identity")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tp("f_id_document_type")}>
+                <Select value={form.idDocumentType} onValueChange={(v) => set("idDocumentType", v as FormState["idDocumentType"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>—</SelectItem>
+                    <SelectItem value="cedula">{tp("id_type_cedula")}</SelectItem>
+                    <SelectItem value="pasaporte">{tp("id_type_pasaporte")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tp("f_id_document")}>
+                <Input value={form.idDocument} onChange={(e) => set("idDocument", e.target.value)} placeholder="8-123-4567" />
+              </Field>
+              <Field label={tp("f_nationality")}>
+                <CountrySelect value={form.nationality} onChange={(code) => set("nationality", code)} />
+              </Field>
+              <Field label={tp("f_birth_date")} icon={ICON.date}>
+                <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+              </Field>
+              <Field label={tp("f_contract")} className="sm:col-span-2">
+                <Input value={form.contractInfo} onChange={(e) => set("contractInfo", e.target.value)} placeholder={tp("f_contract_ph")} />
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection icon={ICON.emergency} title={tp("sec_emergency")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tp("f_emg_name")} icon={ICON.client}>
+                <Input value={form.emergencyContactName} onChange={(e) => set("emergencyContactName", e.target.value)} />
+              </Field>
+              <Field label={tp("f_emg_phone")} icon={ICON.phone}>
+                <Input value={form.emergencyContactPhone} onChange={(e) => set("emergencyContactPhone", e.target.value)} placeholder="6000-0000" />
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection icon={ICON.bank} title={tp("bank_section_title")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={tp("f_bank_name")}>
+                <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} />
+              </Field>
+              <Field label={tp("f_bank_account_type")}>
+                <Select value={form.bankAccountType} onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>—</SelectItem>
                     <SelectItem value="ahorro">{tp("bank_type_ahorro")}</SelectItem>
                     <SelectItem value="corriente">{tp("bank_type_corriente")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
               <Field label={tp("f_bank_routing_code")}>
-                <Input
-                  value={form.bankRoutingCode}
-                  onChange={(e) => set("bankRoutingCode", e.target.value)}
-                  placeholder={tp("f_optional")}
-                />
+                <Input value={form.bankRoutingCode} onChange={(e) => set("bankRoutingCode", e.target.value)} />
               </Field>
               <Field label={tp("f_bank_account_number")}>
-                <Input
-                  value={form.bankAccountNumber}
-                  onChange={(e) => set("bankAccountNumber", e.target.value)}
-                  placeholder={tp("f_optional")}
-                />
+                <Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} />
               </Field>
             </div>
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          </FormSection>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("action_cancel")}
             </Button>
             <Button type="submit" disabled={submitting}>
@@ -324,6 +308,7 @@ export function ContractorFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

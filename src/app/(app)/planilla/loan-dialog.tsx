@@ -30,6 +30,10 @@ import { t, strings } from "@/lib/i18n";
 import { createLoanAction, replaceLoanAction } from "./actions";
 import { createContractorLoanAction } from "../contratistas/actions";
 import { FormDialog, Field } from "./form-dialog";
+import { FormSection } from "@/components/shared/form-section";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
+import { CalendarClock, Percent, SlidersHorizontal } from "lucide-react";
 
 function periodKeyOf(p: Period): string {
   return `${p.year}-${p.month}-${p.half}`;
@@ -161,12 +165,16 @@ export function LoanDialog({
   const [interestMode, setInterestMode] = React.useState<LoanInterestMode>("monthly_pct");
   const [interestValue, setInterestValue] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"amount" | "variable" | "payee">();
+  const initial = React.useRef("");
+  const seeded = React.useRef(false);
+  const snapshot = () => JSON.stringify([category, amount, requestDate, numInstallments, scheme, startPeriodKey, amounts, notes, interestOn, interestMode, interestValue]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setError(null);
+    reset();
+    seeded.current = true;
     if (editing) {
       const sorted = [...editing.installments].sort(
         (a, b) =>
@@ -207,7 +215,15 @@ export function LoanDialog({
       setInterestMode(prefill?.interestTotalPct ? "total_pct" : "monthly_pct");
       setInterestValue(prefill?.interestTotalPct ? String(prefill.interestTotalPct) : "");
     }
-  }, [open, editing, defaultCategory, today, periods, prefill]);
+  }, [open, editing, defaultCategory, today, periods, prefill, reset]);
+
+  // Justo después de sembrar el formulario al abrir, se anota cómo quedó (para avisar al descartar).
+  React.useEffect(() => {
+    if (seeded.current) {
+      seeded.current = false;
+      initial.current = snapshot();
+    }
+  });
 
   // Re-deriva la quincena de inicio al cambiar el tipo o la fecha (solo al crear).
   React.useEffect(() => {
@@ -273,21 +289,16 @@ export function LoanDialog({
   const payoff = startPeriod ? loanPayoffPeriod(startPeriod, n) : null;
 
   async function onSubmit() {
-    if (amountCents <= 0) {
-      setError(tt("loan_f_amount_required"));
+    if (
+      !validate([
+        ["amount", amountCents <= 0, tt("loan_f_amount_required")],
+        ["variable", isVariable && !variableOk, tt("loan_variable_mismatch")],
+        // A un tercero hay que saber a quién se le paga.
+        ["payee", category === "tercero" && !notes.trim(), tt("loan_f_payee_required")],
+      ])
+    )
       return;
-    }
-    if (isVariable && !variableOk) {
-      setError(tt("loan_variable_mismatch"));
-      return;
-    }
-    // A un tercero hay que saber a quién se le paga.
-    if (category === "tercero" && !notes.trim()) {
-      setError(tt("loan_f_payee_required"));
-      return;
-    }
     setSubmitting(true);
-    setError(null);
     try {
       const input = {
         category,
@@ -306,14 +317,14 @@ export function LoanDialog({
           ? await replaceLoanAction(editing.id, { ...input, employeeId: employeeId ?? "" })
           : await createLoanAction({ ...input, employeeId: employeeId ?? "" });
       if (!result.ok) {
-        setError("migrationPending" in result && result.migrationPending ? tt("migration_pending") : result.error);
+        toast.error("migrationPending" in result && result.migrationPending ? tt("migration_pending") : result.error);
         return;
       }
       toast.success(editing ? tt("loan_updated") : tt(SUBMIT_KEY[category]));
       onOpenChange(false);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -346,7 +357,7 @@ export function LoanDialog({
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={editing ? tt("loan_save_changes") : tt(SUBMIT_KEY[category])}
-      error={error}
+      dirty={() => snapshot() !== initial.current}
       wide
     >
       {categories.length > 1 && (
@@ -367,10 +378,17 @@ export function LoanDialog({
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tt("loan_f_amount")}>
-          <MoneyInput value={amount} onValueChange={setAmount} autoFocus />
+        <Field label={tt("loan_f_amount")} required error={error("amount")}>
+          <MoneyInput
+            value={amount}
+            onValueChange={(v) => {
+              setAmount(v);
+              clear("amount");
+            }}
+            autoFocus
+          />
         </Field>
-        <Field label={category === "indrive" ? tt("loan_f_ride_date") : tt("loan_f_request_date")}>
+        <Field label={category === "indrive" ? tt("loan_f_ride_date") : tt("loan_f_request_date")} icon={ICON.date}>
           <Input type="date" value={requestDate} onChange={(e) => setRequestDate(e.target.value)} />
         </Field>
       </div>
@@ -410,7 +428,7 @@ export function LoanDialog({
         </div>
       )}
 
-      <Field label={isAdelanto ? tt("loan_f_deduct_period") : tt("loan_f_first_period")}>
+      <Field label={isAdelanto ? tt("loan_f_deduct_period") : tt("loan_f_first_period")} icon={ICON.period}>
         <Select value={startPeriodKey} onValueChange={setStartPeriodKey}>
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -427,7 +445,7 @@ export function LoanDialog({
       </Field>
 
       {canCharge && (
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+        <FormSection quiet icon={Percent} title={tt("loan_interest_label")}>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={interestOn} onChange={(e) => setInterestOn(e.target.checked)} />
             {tt("loan_interest_charge")}
@@ -483,13 +501,15 @@ export function LoanDialog({
               )}
             </>
           )}
-        </div>
+        </FormSection>
       )}
 
       {isVariable && (
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-foreground">{tt("loan_variable_title")}</p>
+        <FormSection
+          icon={SlidersHorizontal}
+          title={tt("loan_variable_title")}
+          error={error("variable")}
+          action={
             <Button
               type="button"
               variant="ghost"
@@ -498,11 +518,13 @@ export function LoanDialog({
               onClick={() => {
                 setTouched(false);
                 setAmounts(splitEvenly(totalCents, n).map(toCentsStr));
+                clear("variable");
               }}
             >
               {tt("loan_variable_equal")}
             </Button>
-          </div>
+          }
+        >
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {Array.from({ length: n }, (_, i) => {
               let p = startPeriod;
@@ -515,6 +537,7 @@ export function LoanDialog({
                     className="h-8"
                     value={amounts[i] ?? ""}
                     onValueChange={(v) => {
+                      clear("variable");
                       setTouched(true);
                       setAmounts((prev) => {
                         const next = Array.from({ length: n }, (_, k) => prev[k] ?? "0.00");
@@ -537,11 +560,12 @@ export function LoanDialog({
                 ? `${tt("loan_variable_missing")}: ${formatCents(variableDiff)}`
                 : `${tt("loan_variable_over")}: ${formatCents(-variableDiff)}`}
           </p>
-        </div>
+        </FormSection>
       )}
 
       {amountCents > 0 && schedule.length > 0 && payoff && (
-        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <FormSection quiet icon={CalendarClock} title={tt("loan_preview_title")}>
+          <div className="text-xs text-muted-foreground">
           {isAdelanto ? (
             <p>
               {tt("loan_preview_adelanto")}{" "}
@@ -571,12 +595,20 @@ export function LoanDialog({
               </p>
             </>
           )}
-        </div>
+          </div>
+        </FormSection>
       )}
 
       {category === "tercero" ? (
-        <Field label={tt("loan_f_payee")}>
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("loan_f_payee_ph")} />
+        <Field label={tt("loan_f_payee")} required error={error("payee")}>
+          <Input
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              clear("payee");
+            }}
+            placeholder={tt("loan_f_payee_ph")}
+          />
         </Field>
       ) : (
         <Field label={tt("mov_f_notes")}>

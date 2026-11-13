@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { STATUS } from "@/lib/ui/status";
 
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
@@ -37,9 +39,9 @@ export function ResumenClient({
   const tt = (k: keyof typeof strings.adminDash) => t(lang, strings.adminDash[k]);
 
   const options = [
-    ...(canEmployees && canContractors ? [{ value: "todos" as const, label: tt("view_all") }] : []),
-    ...(canEmployees ? [{ value: "empleados" as const, label: tt("view_employees") }] : []),
-    ...(canContractors ? [{ value: "contratistas" as const, label: tt("view_contractors") }] : []),
+    ...(canEmployees && canContractors ? [{ value: "todos" as const, label: tt("view_all"), icon: ICON.all }] : []),
+    ...(canEmployees ? [{ value: "empleados" as const, label: tt("view_employees"), icon: STATUS.kind_employee.icon }] : []),
+    ...(canContractors ? [{ value: "contratistas" as const, label: tt("view_contractors"), icon: STATUS.kind_contractor.icon }] : []),
   ];
   const [view, setViewState] = React.useState<ResumenView>(() =>
     options.some((o) => o.value === initialView) ? (initialView as ResumenView) : options[0].value

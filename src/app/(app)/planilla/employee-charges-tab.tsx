@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { CHARGE_ICON } from "@/lib/ui/charges";
 import { Plus } from "lucide-react";
 
 import type { LoanCategory, PayrollLoanWithSchedule } from "@/types/planilla";
@@ -19,7 +21,7 @@ export function ChargeTypeChips({ value, onChange }: { value: ChargeTypeFilter; 
   const { lang } = useLang();
   const tg = (k: keyof typeof strings.pagos) => t(lang, strings.pagos[k]);
   return (
-    <SegmentedFilter value={value} onChange={onChange} options={(["all", ...CHARGE_TYPES] as const).map((v) => ({ value: v, label: tg(`type_${v}`) }))} />
+    <SegmentedFilter value={value} onChange={onChange} options={(["all", ...CHARGE_TYPES] as const).map((v) => ({ value: v, label: tg(`type_${v}`), icon: v === "all" ? ICON.all : CHARGE_ICON[v] }))} />
   );
 }
 

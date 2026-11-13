@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
 import Link from "next/link";
 import { HandCoins, Hammer, Users, Wallet } from "lucide-react";
 
@@ -108,7 +109,7 @@ export function ContractorsDashboardView({ input }: { input: ContractorsDashboar
           <SegmentedFilter
             value={String(period)}
             onChange={(v) => setPeriod(v === "all" ? "all" : Number(v))}
-            options={[...years.map((y) => ({ value: String(y), label: String(y) })), { value: "all", label: tt("cd_all") }]}
+            options={[...years.map((y) => ({ value: String(y), label: String(y), icon: ICON.period })), { value: "all", label: tt("cd_all"), icon: ICON.all }]}
           />
         }
       />

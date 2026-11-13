@@ -34,6 +34,9 @@ import { t, strings } from "@/lib/i18n";
 import { createLedgerEntryAction, getLedgerEntryItemsAction, updateLedgerEntryAction } from "./actions";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { Field } from "./field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { ContractDialog } from "./contract-dialog";
 import { SearchPicker } from "./search-picker";
 import {
@@ -117,7 +120,10 @@ export function LedgerEntryDialog({
   const [notes, setNotes] = React.useState("");
   const [ebonyAbsorbs, setEbonyAbsorbs] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"items" | "amount" | "contract">();
+  const initial = React.useRef("");
+  const seeded = React.useRef(false);
+  const snapshot = () => JSON.stringify([category, adjustDirection, work, entryDate, contractId, allocContractId, clientText, description, notes, ebonyAbsorbs]);
   const [contractDialogOpen, setContractDialogOpen] = React.useState(false);
 
   // Abonos de este movimiento (si baja el saldo): a qué contratos fue.
@@ -131,7 +137,8 @@ export function LedgerEntryDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir; la entrada editada cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setError(null);
+    reset();
+    seeded.current = true;
     setAllocTouched(false);
     if (entry) {
       setCategory(entry.category);
@@ -155,7 +162,7 @@ export function LedgerEntryDialog({
       setNotes("");
       setEbonyAbsorbs(false);
     }
-  }, [open, entry]);
+  }, [open, entry, reset]);
   React.useEffect(() => {
     if (!open) return;
     setAllocContractId(entryAllocations.length > 0 && !splitAllocation ? entryAllocations[0].contractId : null);
@@ -174,6 +181,15 @@ export function LedgerEntryDialog({
       cancelled = true;
     };
   }, [open, entry]);
+
+  // Después de sembrar el formulario al abrir (y de que lleguen las piezas guardadas), se anota cómo quedó.
+  React.useEffect(() => {
+    if (seeded.current) {
+      seeded.current = false;
+      initial.current = snapshot();
+    }
+  });
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
 
   const fixedDirection = directionForCategory(category);
   const direction = fixedDirection ?? adjustDirection;
@@ -224,20 +240,16 @@ export function LedgerEntryDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isWorkCategory && work.items.length > 0 && workDraftHasEmptyItem(work)) {
-      setError(tt("mov_item_qty_required"));
+    const emptyItem = isWorkCategory && work.items.length > 0 && workDraftHasEmptyItem(work);
+    if (
+      !validate([
+        ["items", emptyItem, tt("mov_item_qty_required")],
+        ["amount", !emptyItem && computedCents <= 0, tt("mov_amount_required")],
+        ["contract", contractRequired && !contractId, tt("mov_contract_required")],
+      ])
+    )
       return;
-    }
-    if (computedCents <= 0) {
-      setError(tt("mov_amount_required"));
-      return;
-    }
-    if (contractRequired && !contractId) {
-      setError(tt("mov_contract_required"));
-      return;
-    }
     setSubmitting(true);
-    setError(null);
     const amount = isWorkCategory ? workDraftToInput(work) : workDraftToInput({ ...work, items: [] });
     const valueContract = isValue ? contractId : null;
     try {
@@ -268,7 +280,7 @@ export function LedgerEntryDialog({
       onOpenChange(false);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -276,7 +288,7 @@ export function LedgerEntryDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
         <DialogContent className="max-h-[90vh] max-w-[min(95vw,42rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{entry ? tt("mov_edit_title") : tt("mov_add_title")}</DialogTitle>
@@ -299,7 +311,7 @@ export function LedgerEntryDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={tt("mov_f_date")}>
+              <Field label={tt("mov_f_date")} icon={ICON.date}>
                 <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
               </Field>
               {!entry && <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">{tt("mov_where_else")}</p>}
@@ -321,14 +333,17 @@ export function LedgerEntryDialog({
 
               {/* Trabajo / extra / bono / ajuste: parte del valor de un contrato. */}
               {isValue && (
-                <Field label={contractRequired ? tt("mov_f_contract") : tt("mov_f_contract_optional")} className="sm:col-span-2">
+                <Field label={tt("mov_f_contract")} required={contractRequired} error={error("contract")} className="sm:col-span-2">
                   <SearchPicker
                     triggerLabel={contractLabel(contractId, contractRequired ? tt("ct_pick_contract") : tt("mov_no_contract"))}
                     searchPlaceholder={tt("ct_search_ph")}
                     emptyText={tt("no_results")}
                     groups={contractGroups(false)}
                     noneLabel={contractRequired ? undefined : tt("mov_no_contract")}
-                    onSelect={setContractId}
+                    onSelect={(id) => {
+                      setContractId(id);
+                      clear("contract");
+                    }}
                     createLabel={tt("ct_add")}
                     onCreate={() => setContractDialogOpen(true)}
                   />
@@ -357,7 +372,18 @@ export function LedgerEntryDialog({
               )}
             </div>
 
-            <WorkEditor draft={work} onChange={setWork} rates={activeRates} showItems={isWorkCategory} />
+            <WorkEditor
+              draft={work}
+              onChange={(next) => {
+                setWork(next);
+                clear("items");
+                clear("amount");
+              }}
+              rates={activeRates}
+              showItems={isWorkCategory}
+              itemsError={error("items")}
+              amountError={error("amount")}
+            />
 
             {showMaterialToggle && (
               <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
@@ -376,20 +402,18 @@ export function LedgerEntryDialog({
 
             <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
               <Field label={tt("mov_f_client_note")}>
-                <Input value={clientText} onChange={(e) => setClientText(e.target.value)} placeholder={tt("f_optional")} />
+                <Input value={clientText} onChange={(e) => setClientText(e.target.value)} />
               </Field>
               <Field label={tt("mov_f_description")}>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={tt("f_optional")} />
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} />
               </Field>
               <Field label={tt("mov_f_notes")} className="sm:col-span-2">
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
               </Field>
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+              <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
                 {tt("action_cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
@@ -398,6 +422,7 @@ export function LedgerEntryDialog({
             </DialogFooter>
           </form>
         </DialogContent>
+        {discardDialog}
       </Dialog>
 
       <ContractDialog

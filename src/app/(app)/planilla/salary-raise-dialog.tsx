@@ -12,6 +12,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { registerSalaryChangeAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 function keyOf(p: Period): string {
   return `${p.year}-${p.month}-${p.half}`;
@@ -73,7 +75,10 @@ export function SalaryRaiseDialog({
   const [periodKey, setPeriodKey] = React.useState(() => keyOf(currentPeriod()));
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"monthly">();
+  const initialMonthly = currentMonthlyCents ? (currentMonthlyCents / 100).toFixed(2) : "";
+  const initialBenefits = currentBenefitsCents != null ? (currentBenefitsCents / 100).toFixed(2) : "";
+  const dirty = () => monthly !== initialMonthly || benefits !== initialBenefits || periodKey !== keyOf(defaultFrom ?? currentPeriod()) || !!notes.trim();
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
@@ -82,20 +87,16 @@ export function SalaryRaiseDialog({
     setBenefits(currentBenefitsCents != null ? (currentBenefitsCents / 100).toFixed(2) : "");
     setPeriodKey(keyOf(defaultFrom ?? currentPeriod()));
     setNotes("");
-    setError(null);
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onSubmit() {
     const monthlyCents = Math.round(parseFloat(monthly || "0") * 100);
-    if (monthlyCents <= 0) {
-      setError(tt("raise_amount_required"));
-      return;
-    }
+    if (!validate([["monthly", monthlyCents <= 0, tt("raise_amount_required")]])) return;
     const p = periods.find((x) => keyOf(x) === periodKey) ?? currentPeriod();
     setSubmitting(true);
-    setError(null);
     try {
       const benefitsCents = benefits.trim() ? Math.round(parseFloat(benefits) * 100) : null;
       await registerSalaryChangeAction({
@@ -111,7 +112,7 @@ export function SalaryRaiseDialog({
       onOpenChange(false);
       onSaved({ monthlySalaryCents: monthlyCents, benefitsBaseSalaryCents: benefitsCents });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -126,18 +127,25 @@ export function SalaryRaiseDialog({
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={tt("raise_submit")}
-      error={error}
+      dirty={dirty}
     >
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tt("raise_f_monthly")}>
-          <MoneyInput value={monthly} onValueChange={setMonthly} autoFocus />
+        <Field label={tt("raise_f_monthly")} required error={error("monthly")}>
+          <MoneyInput
+            value={monthly}
+            onValueChange={(v) => {
+              setMonthly(v);
+              clear("monthly");
+            }}
+            autoFocus
+          />
         </Field>
         <Field label={externalCompany ? `${tt("raise_f_external")} ${externalCompany}` : tt("raise_f_benefits")}>
           <MoneyInput value={benefits} onValueChange={setBenefits} placeholder={tt("f_benefits_hint")} />
         </Field>
       </div>
 
-      <Field label={tt("raise_f_from")}>
+      <Field label={tt("raise_f_from")} icon={ICON.date}>
         <Select value={periodKey} onValueChange={setPeriodKey}>
           <SelectTrigger className="w-full">
             <SelectValue />

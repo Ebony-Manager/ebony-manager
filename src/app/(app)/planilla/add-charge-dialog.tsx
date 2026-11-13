@@ -11,6 +11,7 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FormDialog, Field } from "./form-dialog";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { LoanDialog } from "./loan-dialog";
 
 /** Alguien a quien se le puede registrar un préstamo o descuento. */
@@ -71,7 +72,7 @@ export function AddChargeDialog({
   const [type, setType] = React.useState<LoanCategory | null>(null);
   const [picked, setPicked] = React.useState<ChargePerson | null>(null);
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"type" | "person">();
   // El segundo paso: el formulario del tipo elegido, para esa persona.
   const [form, setForm] = React.useState<{ type: LoanCategory; person: ChargePerson } | null>(null);
 
@@ -80,8 +81,8 @@ export function AddChargeDialog({
     if (!open) return;
     setType(null);
     setPicked(null);
-    setError(null);
-  }, [open]);
+    reset();
+  }, [open, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const person = fixedPerson ?? picked;
@@ -91,11 +92,8 @@ export function AddChargeDialog({
   const kindLabel = (p: ChargePerson) => ts(p.kind === "employee" ? "kind_employee" : "kind_contractor");
 
   function next() {
-    if (!type || !person) {
-      setError(tg("add_missing"));
-      return;
-    }
-    setForm({ type, person });
+    if (!validate([["type", !type, tg("add_missing")], ["person", !person, tg("add_missing")]])) return;
+    setForm({ type: type!, person: person! });
     onOpenChange(false);
   }
 
@@ -108,10 +106,10 @@ export function AddChargeDialog({
         description={tg("add_desc")}
         onSubmit={next}
         submitLabel={tg("add_continue")}
-        error={error}
+        dirty={() => !!type || !!picked}
         wide
       >
-        <Field label={tg("add_type")}>
+        <Field label={tg("add_type")} required error={error("type")}>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {types.map(({ value, icon: Icon, hint }) => (
               <button
@@ -120,7 +118,7 @@ export function AddChargeDialog({
                 onClick={() => {
                   setType(value);
                   if (value === "tercero" && picked?.kind === "contractor") setPicked(null);
-                  setError(null);
+                  clear("type");
                 }}
                 className={cn(
                   "flex items-start gap-3 rounded-lg border p-3 text-left transition-colors",
@@ -138,7 +136,7 @@ export function AddChargeDialog({
         </Field>
 
         {!fixedPerson && (
-          <Field label={tg("add_person")}>
+          <Field label={tg("add_person")} required error={error("person")}>
             <Popover modal open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
                 <Button type="button" variant="outline" className="w-full justify-between font-normal">
@@ -158,7 +156,7 @@ export function AddChargeDialog({
                         onSelect={() => {
                           setPicked(p);
                           setPickerOpen(false);
-                          setError(null);
+                          clear("person");
                         }}
                       >
                         <span className="truncate">{p.name}</span>

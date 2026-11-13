@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
 import Link from "next/link";
 import { Building2, CalendarClock, HandCoins, Hammer, Receipt, Users, Wallet } from "lucide-react";
 
@@ -202,7 +203,7 @@ export function AdminDashboardView() {
                 <SegmentedFilter
                   value={scope}
                   onChange={setScope}
-                  options={(["month", "year"] as const).map((s) => ({ value: s, label: s === "month" ? monthLabel(lang, month) : `${tt("scope_year")} ${year}` }))}
+                  options={(["month", "year"] as const).map((s) => ({ value: s, label: s === "month" ? monthLabel(lang, month) : `${tt("scope_year")} ${year}`, icon: ICON.period }))}
                 />
               </div>
 

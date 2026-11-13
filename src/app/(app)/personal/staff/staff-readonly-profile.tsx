@@ -1,9 +1,9 @@
 "use client";
 
 import { FileText } from "lucide-react";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 import type { DirectoryPerson } from "@/types/staff-directory";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/planilla/format";
 import { countryName } from "@/lib/countries";
@@ -36,7 +36,7 @@ export function StaffReadOnlyProfile({ person }: { person: DirectoryPerson }) {
           <div>
             <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
               {person.name}
-              {!person.active && <Badge variant="secondary">{td("inactive")}</Badge>}
+              {!person.active && <StatusBadge status="record_inactive">{td("inactive")}</StatusBadge>}
             </h1>
             <p className="text-sm text-muted-foreground">{person.position ? `${person.position} · ${group}` : group}</p>
           </div>

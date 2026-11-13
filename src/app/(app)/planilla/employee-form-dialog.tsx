@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Field } from "@/components/shared/field";
 import toast from "react-hot-toast";
-import { Settings } from "lucide-react";
+import { Gift, Settings, Wallet } from "lucide-react";
 
 import type { BankAccountType, EmployeeCategoria, PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import {
@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
 import { CountrySelect } from "@/components/shared/country-select";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -27,6 +26,10 @@ import { createEmployeeAction, updateEmployeeAction } from "./actions";
 import { ManagePositionsDialog } from "./manage-positions-dialog";
 import { SalaryRaiseDialog } from "./salary-raise-dialog";
 import { formatCents } from "@/lib/planilla/payroll-period";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 const NO_ACCOUNT_TYPE = "__none__";
 // Sentinel del Select de "Posición" cuando el valor no es (o ya no es) una
@@ -188,7 +191,8 @@ export function EmployeeFormDialog({
   const { lang } = useLang();
   const [form, setForm] = React.useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  const initial = React.useRef("");
   const [managePositionsOpen, setManagePositionsOpen] = React.useState(false);
   const [raiseOpen, setRaiseOpen] = React.useState(false);
   // Sueldo mostrado en modo edición: parte del que trae el empleado y se
@@ -222,24 +226,24 @@ export function EmployeeFormDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el empleado editado cambia entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setForm(mode === "edit" && employee ? fromEmployee(employee, activePositions) : { ...EMPTY, ...prefill });
+    const seed = mode === "edit" && employee ? fromEmployee(employee, activePositions) : { ...EMPTY, ...prefill };
+    setForm(seed);
+    initial.current = JSON.stringify(seed);
     setSalaryShown({ monthly: employee?.baseSalaryCents ?? 0, benefits: employee?.benefitsBaseSalaryCents ?? null });
-    setError(null);
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario arriba: catálogo solo importa al abrir.
   }, [open, mode, employee, prefill]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => JSON.stringify(form) !== initial.current, () => onOpenChange(false));
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setError(t(lang, strings.planilla.f_name_required));
-      return;
-    }
+    if (!validate([["name", !form.name.trim(), t(lang, strings.planilla.f_name_required)]])) return;
     setSubmitting(true);
-    setError(null);
     try {
       const position = form.positionSelect === OTHER_POSITION ? form.positionOther.trim() || null : form.positionSelect;
       const common = {
@@ -302,7 +306,7 @@ export function EmployeeFormDialog({
       toast.success(t(lang, mode === "edit" ? strings.planilla.action_save : strings.planilla.action_add));
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -312,7 +316,7 @@ export function EmployeeFormDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
         <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -325,274 +329,228 @@ export function EmployeeFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("f_name")} className="sm:col-span-2">
-                <Input
-                  value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  placeholder={tt("f_name_ph")}
-                  autoFocus
-                />
-              </Field>
-              <Field label={tt("f_categoria")}>
-                <Select value={form.categoria} onValueChange={(v) => set("categoria", v as EmployeeCategoria)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="taller">{tt("categoria_taller")}</SelectItem>
-                    <SelectItem value="administrativo">{tt("categoria_administrativo")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">{tt("f_position")}</Label>
-                  <button
-                    type="button"
-                    onClick={() => setManagePositionsOpen(true)}
-                    className="text-muted-foreground hover:text-foreground"
-                    title={tt("manage_positions")}
-                    aria-label={tt("manage_positions")}
-                  >
-                    <Settings className="size-3.5" />
-                  </button>
-                </div>
-                <Select value={form.positionSelect} onValueChange={(v) => set("positionSelect", v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activePositions.map((p) => (
-                      <SelectItem key={p.id} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value={OTHER_POSITION}>{tt("position_other")}</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.positionSelect === OTHER_POSITION && (
-                  <Input
-                    value={form.positionOther}
-                    onChange={(e) => set("positionOther", e.target.value)}
-                    placeholder={tt("position_other_ph")}
-                  />
-                )}
-              </div>
-              <Field label={tt("f_start_date")}>
-                <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
-              </Field>
-              {mode === "add" ? (
-                <>
-                  <Field label={tt("f_base_salary")}>
-                    <MoneyInput value={form.baseSalary} onValueChange={(v) => set("baseSalary", v)} />
-                  </Field>
-                  <Field label={tt("f_benefits_salary")}>
-                    <MoneyInput
-                      value={form.benefitsBaseSalary}
-                      onValueChange={(v) => set("benefitsBaseSalary", v)}
-                      placeholder={tt("f_benefits_hint")}
-                    />
-                  </Field>
-                </>
-              ) : (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 sm:col-span-2">
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">{tt("current_salary")}</p>
-                    {salaryShown.monthly > 0 ? (
-                      <p className="text-sm font-medium text-foreground">
-                        {formatCents(salaryShown.monthly)} {tt("per_month")}
-                        {salaryShown.benefits != null && salaryShown.benefits !== salaryShown.monthly && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">
-                            · {tt("f_benefits_salary")}: {formatCents(salaryShown.benefits)}
-                          </span>
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{tt("salary_not_set")}</p>
-                    )}
-                    {form.benefitsExternalCompany.trim() && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}:{" "}
-                        <span className="font-medium text-foreground">
-                          {salaryShown.benefits != null ? `${formatCents(salaryShown.benefits)} ${tt("per_month")}` : tt("external_salary_missing")}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setRaiseOpen(true)}>
-                      {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
-                    </Button>
-                    {form.benefitsExternalCompany.trim() && (
-                      <button
-                        type="button"
-                        className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        onClick={() => setRaiseOpen(true)}
-                      >
-                        {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={form.benefitsEnabled}
-                onChange={(e) => set("benefitsEnabled", e.target.checked)}
-              />
-              <span>
-                <span className="font-medium text-foreground">{tt("f_benefits_enabled")}</span>
-                <span className="block text-xs text-muted-foreground">{tt("f_benefits_enabled_hint")}</span>
-              </span>
-            </label>
-            {form.benefitsEnabled && (
-              <Field label={tt("f_benefits_external")} className="sm:col-span-2">
-                <Input
-                  value={form.benefitsExternalCompany}
-                  onChange={(e) => set("benefitsExternalCompany", e.target.value)}
-                  placeholder={tt("f_benefits_external_ph")}
-                />
-                <p className="text-xs text-muted-foreground">{tt("f_benefits_external_hint")}</p>
-              </Field>
-            )}
-
-            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
-              <Field label={tt("f_phone")}>
-                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
-              </Field>
-              <Field label={tt("f_id_document_type")}>
-                <Select
-                  value={form.idDocumentType}
-                  onValueChange={(v) => set("idDocumentType", v as FormState["idDocumentType"])}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_ACCOUNT_TYPE}>{tt("f_optional")}</SelectItem>
-                    <SelectItem value="cedula">{tt("id_type_cedula")}</SelectItem>
-                    <SelectItem value="pasaporte">{tt("id_type_pasaporte")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label={tt("f_id_document")}>
-                <Input
-                  value={form.idDocument}
-                  onChange={(e) => set("idDocument", e.target.value)}
-                  placeholder="8-123-4567"
-                />
-              </Field>
-              <Field label={tt("f_nationality")}>
-                <CountrySelect value={form.nationality || null} onChange={(code) => set("nationality", code ?? "")} />
-              </Field>
-              <Field label={tt("f_birth_date")}>
-                <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
-              </Field>
-              <Field label={tt("f_email")}>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("f_address")} className="sm:col-span-2">
-                <Input
-                  value={form.address}
-                  onChange={(e) => set("address", e.target.value)}
-                  placeholder={tt("f_address_ph")}
-                />
-              </Field>
-              <Field label={tt("f_emg_name")}>
-                <Input
-                  value={form.emergencyContactName}
-                  onChange={(e) => set("emergencyContactName", e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
-              </Field>
-              <Field label={tt("f_emg_phone")}>
-                <Input
-                  value={form.emergencyContactPhone}
-                  onChange={(e) => set("emergencyContactPhone", e.target.value)}
-                  placeholder="6000-0000"
-                />
-              </Field>
-              <Field label={tt("f_contract")} className="sm:col-span-2">
-                <Input
-                  value={form.contractInfo}
-                  onChange={(e) => set("contractInfo", e.target.value)}
-                  placeholder={tt("f_contract_ph")}
-                />
-              </Field>
-              <Field label={tt("f_notes")} className="sm:col-span-2">
-                <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
-              </Field>
-            </div>
-
-            <div className="flex flex-col gap-4 border-t border-border pt-4">
-              <h3 className="text-sm font-medium text-foreground">{tt("bank_section_title")}</h3>
+          <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+            <FormSection icon={ICON.client} title={tt("sec_employee")}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label={tt("f_bank_name")}>
+                <Field label={tt("f_name")} required error={error("name")} className="sm:col-span-2">
                   <Input
-                    value={form.bankName}
-                    onChange={(e) => set("bankName", e.target.value)}
-                    placeholder={tt("f_optional")}
+                    value={form.name}
+                    onChange={(e) => {
+                      set("name", e.target.value);
+                      clear("name");
+                    }}
+                    placeholder={tt("f_name_ph")}
+                    autoFocus
                   />
                 </Field>
-                <Field label={tt("f_bank_account_type")}>
-                  <Select
-                    value={form.bankAccountType}
-                    onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}
-                  >
+                <Field label={tt("f_categoria")}>
+                  <Select value={form.categoria} onValueChange={(v) => set("categoria", v as EmployeeCategoria)}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_ACCOUNT_TYPE}>{tt("f_optional")}</SelectItem>
+                      <SelectItem value="taller">{tt("categoria_taller")}</SelectItem>
+                      <SelectItem value="administrativo">{tt("categoria_administrativo")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={tt("f_position")}>
+                  <div className="flex items-center gap-1.5">
+                    <Select value={form.positionSelect} onValueChange={(v) => set("positionSelect", v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activePositions.map((p) => (
+                          <SelectItem key={p.id} value={p.name}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value={OTHER_POSITION}>{tt("position_other")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-9 shrink-0 text-muted-foreground"
+                      onClick={() => setManagePositionsOpen(true)}
+                      title={tt("manage_positions")}
+                      aria-label={tt("manage_positions")}
+                    >
+                      <Settings className="size-4" />
+                    </Button>
+                  </div>
+                </Field>
+                {form.positionSelect === OTHER_POSITION && (
+                  <Field label={tt("position_other")} className="sm:col-span-2">
+                    <Input value={form.positionOther} onChange={(e) => set("positionOther", e.target.value)} placeholder={tt("position_other_ph")} />
+                  </Field>
+                )}
+                <Field label={tt("f_start_date")} icon={ICON.date}>
+                  <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection
+              icon={Wallet}
+              title={tt("salary_section_title")}
+              action={
+                mode === "edit" ? (
+                  <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setRaiseOpen(true)}>
+                    {salaryShown.monthly > 0 ? tt("register_raise") : tt("set_salary")}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {mode === "add" ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label={tt("f_base_salary")}>
+                    <MoneyInput value={form.baseSalary} onValueChange={(v) => set("baseSalary", v)} />
+                  </Field>
+                  <Field label={tt("f_benefits_salary")} hint={tt("f_benefits_hint")}>
+                    <MoneyInput value={form.benefitsBaseSalary} onValueChange={(v) => set("benefitsBaseSalary", v)} />
+                  </Field>
+                </div>
+              ) : (
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{tt("current_salary")}</p>
+                  {salaryShown.monthly > 0 ? (
+                    <p className="text-sm font-medium text-foreground">
+                      {formatCents(salaryShown.monthly)} {tt("per_month")}
+                      {salaryShown.benefits != null && salaryShown.benefits !== salaryShown.monthly && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          · {tt("f_benefits_salary")}: {formatCents(salaryShown.benefits)}
+                        </span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{tt("salary_not_set")}</p>
+                  )}
+                  {form.benefitsExternalCompany.trim() && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {tt("raise_f_external")} {form.benefitsExternalCompany.trim()}:{" "}
+                      <span className="font-medium text-foreground">
+                        {salaryShown.benefits != null ? `${formatCents(salaryShown.benefits)} ${tt("per_month")}` : tt("external_salary_missing")}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+            </FormSection>
+
+            <FormSection icon={Gift} title={tt("f_benefits_enabled")} note={tt("f_benefits_enabled_hint")}>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={form.benefitsEnabled} onChange={(e) => set("benefitsEnabled", e.target.checked)} />
+                {tt("f_benefits_enabled")}
+              </label>
+              {form.benefitsEnabled && (
+                <Field label={tt("f_benefits_external")} hint={tt("f_benefits_external_hint")}>
+                  <Input
+                    value={form.benefitsExternalCompany}
+                    onChange={(e) => set("benefitsExternalCompany", e.target.value)}
+                    placeholder={tt("f_benefits_external_ph")}
+                  />
+                </Field>
+              )}
+            </FormSection>
+
+            <FormSection icon={ICON.phone} title={tt("sec_contact")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={tt("f_phone")} icon={ICON.phone}>
+                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
+                </Field>
+                <Field label={tt("f_email")} icon={ICON.email}>
+                  <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+                </Field>
+                <Field label={tt("f_address")} icon={ICON.location} className="sm:col-span-2">
+                  <Input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={tt("f_address_ph")} />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection icon={ICON.idDoc} title={tt("sec_identity")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={tt("f_id_document_type")}>
+                  <Select value={form.idDocumentType} onValueChange={(v) => set("idDocumentType", v as FormState["idDocumentType"])}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_ACCOUNT_TYPE}>—</SelectItem>
+                      <SelectItem value="cedula">{tt("id_type_cedula")}</SelectItem>
+                      <SelectItem value="pasaporte">{tt("id_type_pasaporte")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={tt("f_id_document")}>
+                  <Input value={form.idDocument} onChange={(e) => set("idDocument", e.target.value)} placeholder="8-123-4567" />
+                </Field>
+                <Field label={tt("f_nationality")}>
+                  <CountrySelect value={form.nationality || null} onChange={(code) => set("nationality", code ?? "")} />
+                </Field>
+                <Field label={tt("f_birth_date")} icon={ICON.date}>
+                  <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+                </Field>
+                <Field label={tt("f_contract")} className="sm:col-span-2">
+                  <Input value={form.contractInfo} onChange={(e) => set("contractInfo", e.target.value)} placeholder={tt("f_contract_ph")} />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection icon={ICON.emergency} title={tt("sec_emergency")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={tt("f_emg_name")} icon={ICON.client}>
+                  <Input value={form.emergencyContactName} onChange={(e) => set("emergencyContactName", e.target.value)} />
+                </Field>
+                <Field label={tt("f_emg_phone")} icon={ICON.phone}>
+                  <Input value={form.emergencyContactPhone} onChange={(e) => set("emergencyContactPhone", e.target.value)} placeholder="6000-0000" />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection icon={ICON.bank} title={tt("bank_section_title")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={tt("f_bank_name")}>
+                  <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} />
+                </Field>
+                <Field label={tt("f_bank_account_type")}>
+                  <Select value={form.bankAccountType} onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_ACCOUNT_TYPE}>—</SelectItem>
                       <SelectItem value="ahorro">{tt("bank_type_ahorro")}</SelectItem>
                       <SelectItem value="corriente">{tt("bank_type_corriente")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
                 <Field label={tt("f_bank_routing_code")}>
-                  <Input
-                    value={form.bankRoutingCode}
-                    onChange={(e) => set("bankRoutingCode", e.target.value)}
-                    placeholder={tt("f_optional")}
-                  />
+                  <Input value={form.bankRoutingCode} onChange={(e) => set("bankRoutingCode", e.target.value)} />
                 </Field>
                 <Field label={tt("f_bank_account_number")}>
-                  <Input
-                    value={form.bankAccountNumber}
-                    onChange={(e) => set("bankAccountNumber", e.target.value)}
-                    placeholder={tt("f_optional")}
-                  />
+                  <Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} />
                 </Field>
               </div>
-            </div>
+            </FormSection>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Field label={tt("f_notes")}>
+              <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+            </Field>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+              <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
                 {tt("action_cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting
-                  ? tt("saving")
-                  : mode === "edit"
-                    ? tt("action_save")
-                    : tt("action_add")}
+                {submitting ? tt("saving") : mode === "edit" ? tt("action_save") : tt("action_add")}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
+        {discardDialog}
       </Dialog>
 
       {mode === "edit" && employee && (

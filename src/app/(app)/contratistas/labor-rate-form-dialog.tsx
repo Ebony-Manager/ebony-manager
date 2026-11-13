@@ -19,6 +19,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { createLaborRateAction, updateLaborRateAction } from "./actions";
 import { Field } from "./field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 
 function toCents(value: string): number {
   const n = parseFloat(value || "0");
@@ -50,7 +52,14 @@ export function LaborRateFormDialog({
   const [descripcion, setDescripcion] = React.useState("");
   const [precio, setPrecio] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"descripcion" | "precio">();
+  const dirty = () =>
+    contractorType !== (rate?.contractorType ?? "ebanista") ||
+    (contractorType === "ebanista" && fase !== (rate?.fase ?? "armado")) ||
+    unidad !== (rate?.unidad ?? "m2") ||
+    descripcion !== (rate?.descripcion ?? "") ||
+    precio !== (rate ? (rate.precioCents / 100).toFixed(2) : "");
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; la tarifa cambia entre aperturas. */
   React.useEffect(() => {
@@ -60,23 +69,16 @@ export function LaborRateFormDialog({
     setUnidad(rate?.unidad ?? "m2");
     setDescripcion(rate?.descripcion ?? "");
     setPrecio(rate ? (rate.precioCents / 100).toFixed(2) : "");
-    setError(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, rate]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!descripcion.trim()) {
-      setError(tt("rate_description_required"));
-      return;
-    }
     const precioCents = toCents(precio);
-    if (precioCents < 0) {
-      setError(tt("rate_price_invalid"));
-      return;
-    }
+    if (!validate([["descripcion", !descripcion.trim(), tt("rate_description_required")], ["precio", precioCents < 0, tt("rate_price_invalid")]])) return;
     setSubmitting(true);
-    setError(null);
     try {
       const payload = {
         contractorType,
@@ -93,14 +95,14 @@ export function LaborRateFormDialog({
       toast.success(tt("rate_saved"));
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{rate ? tt("rate_dlg_edit_title") : tt("rate_dlg_add_title")}</DialogTitle>
@@ -155,31 +157,35 @@ export function LaborRateFormDialog({
             </Field>
           )}
 
-          <Field label={tt("rate_f_description")}>
+          <Field label={tt("rate_f_description")} required error={error("descripcion")}>
             <Input
               value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
+              onChange={(e) => {
+                setDescripcion(e.target.value);
+                clear("descripcion");
+              }}
               placeholder={tt("rate_f_description_ph")}
               autoFocus
             />
           </Field>
 
-          <Field label={tt("rate_f_price")}>
+          <Field label={tt("rate_f_price")} required error={error("precio")}>
             <Input
               type="number"
               step="0.01"
               min="0"
               inputMode="decimal"
               value={precio}
-              onChange={(e) => setPrecio(e.target.value)}
+              onChange={(e) => {
+                setPrecio(e.target.value);
+                clear("precio");
+              }}
               placeholder="0.00"
             />
           </Field>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("action_cancel")}
             </Button>
             <Button type="submit" disabled={submitting}>
@@ -188,6 +194,7 @@ export function LaborRateFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { History } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { ContractorContract, ContractorLedgerEntry, ContractorType, LaborRate, Project } from "@/types/contractors";
@@ -42,6 +43,10 @@ import {
 } from "./work-editor";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { EmptyState } from "@/components/shared/page-header";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 export interface ContractPerson {
   id: string;
@@ -100,12 +105,16 @@ export function ContractDialog({
   const [extraProjects, setExtraProjects] = React.useState<Project[]>([]);
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"contractor" | "project" | "name" | "items" | "prepaid">();
+  const initial = React.useRef("");
+  const seeded = React.useRef(false);
+  const snapshot = () => JSON.stringify([contractorId, projectId, name, contractDate, status, notes, prepaid, work]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setError(null);
+    reset();
+    seeded.current = true;
     setExtraProjects([]);
     setContractorId(contract?.contractorId ?? fixedContractor?.id ?? null);
     setProjectId(contract?.projectId ?? defaultProjectId ?? null);
@@ -116,7 +125,7 @@ export function ContractDialog({
     setPrepaid("");
     setWork(EMPTY_WORK);
     setValueEntries(contract ? null : []);
-  }, [open, contract, fixedContractor, defaultProjectId]);
+  }, [open, contract, fixedContractor, defaultProjectId, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   React.useEffect(() => {
@@ -136,6 +145,15 @@ export function ContractDialog({
       cancelled = true;
     };
   }, [open, contract]);
+
+  // Después de sembrar el formulario al abrir (y de que lleguen sus piezas), se anota cómo quedó.
+  React.useEffect(() => {
+    if (seeded.current && (valueEntries !== null || !contract)) {
+      seeded.current = false;
+      initial.current = snapshot();
+    }
+  });
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
 
   const person = fixedContractor ?? contractors.find((c) => c.id === contractorId) ?? null;
   const rates = React.useMemo(
@@ -165,16 +183,21 @@ export function ContractDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!contractorId) return setError(tt("ct_err_contractor"));
-    if (!projectId) return setError(tt("ct_err_project"));
-    if (!name.trim()) return setError(tt("ct_err_name"));
-    if (editableWork && work.items.length > 0 && workDraftHasEmptyItem(work)) return setError(tt("mov_item_qty_required"));
+    const emptyItem = editableWork && work.items.length > 0 && workDraftHasEmptyItem(work);
     const prepaidCents = Math.round((parseFloat(prepaid || "0") || 0) * 100);
-    if (!contract && prepaidCents > workDraftCents(work)) return setError(tt("ct_err_prepaid"));
+    if (
+      !validate([
+        ["contractor", !contractorId, tt("ct_err_contractor")],
+        ["project", !projectId, tt("ct_err_project")],
+        ["name", !name.trim(), tt("ct_err_name")],
+        ["items", emptyItem, tt("mov_item_qty_required")],
+        ["prepaid", !contract && prepaidCents > workDraftCents(work), tt("ct_err_prepaid")],
+      ])
+    )
+      return;
     setSubmitting(true);
-    setError(null);
     const header = {
-      projectId,
+      projectId: projectId!,
       name: name.trim(),
       contractDate,
       notes: notes.trim() || null,
@@ -185,9 +208,9 @@ export function ContractDialog({
           status,
           ...(editableWork ? { work: workDraftToInput(work), workEntryId } : {}),
         })
-      : await createContractAction({ ...header, contractorId, work: workDraftToInput(work), prepaidCents });
+      : await createContractAction({ ...header, contractorId: contractorId!, work: workDraftToInput(work), prepaidCents });
     setSubmitting(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(tt("ct_saved"));
     onOpenChange(false);
     onSaved(contract ? contract.id : (res as unknown as { id: string }).id);
@@ -198,7 +221,7 @@ export function ContractDialog({
     setSubmitting(true);
     const res = await deleteContractAction(contract.id);
     setSubmitting(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(tt("ct_deleted"));
     onOpenChange(false);
     onSaved();
@@ -214,7 +237,7 @@ export function ContractDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
         <DialogContent className="max-h-[90vh] max-w-[min(95vw,44rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{contract ? tt("ct_edit_title") : tt("ct_add_title")}</DialogTitle>
@@ -235,7 +258,7 @@ export function ContractDialog({
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("ct_f_contractor")}>
+              <Field label={tt("ct_f_contractor")} required error={error("contractor")}>
                 {fixedContractor || contract ? (
                   <Input value={person?.name ?? contract?.contractorName ?? ""} disabled />
                 ) : (
@@ -244,25 +267,36 @@ export function ContractDialog({
                     searchPlaceholder={tt("search_ph")}
                     emptyText={tt("no_results")}
                     groups={[{ options: contractors.map((c) => ({ id: c.id, label: c.name })) }]}
-                    onSelect={(id) => setContractorId(id)}
+                    onSelect={(id) => {
+                      setContractorId(id);
+                      clear("contractor");
+                    }}
                   />
                 )}
               </Field>
-              <Field label={tt("ct_f_project")}>
+              <Field label={tt("ct_f_project")} required error={error("project")}>
                 <SearchPicker
                   triggerLabel={project?.name ?? tt("ct_pick_project")}
                   searchPlaceholder={tt("proj_search_short")}
                   emptyText={tt("no_results")}
                   groups={projectGroups}
-                  onSelect={pickProject}
+                  onSelect={(id) => {
+                    pickProject(id);
+                    clear("project");
+                  }}
                   createLabel={tt("ct_new_project")}
                   onCreate={() => setProjectDialogOpen(true)}
                 />
               </Field>
-              <Field label={tt("ct_f_name")}>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tt("ct_f_name_ph")} />
+              <Field label={tt("ct_f_name")} required error={error("name")}>
+                <Input
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clear("name");
+                  }} placeholder={tt("ct_f_name_ph")} />
               </Field>
-              <Field label={tt("ct_f_date")}>
+              <Field label={tt("ct_f_date")} icon={ICON.date}>
                 <Input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} />
               </Field>
               {contract && (
@@ -286,15 +320,23 @@ export function ContractDialog({
               </EmptyState>
             ) : editableWork ? (
               person ? (
-                <WorkEditor draft={work} onChange={setWork} rates={rates} />
+                <WorkEditor
+                  draft={work}
+                  onChange={(next) => {
+                    setWork(next);
+                    clear("items");
+                    clear("prepaid");
+                  }}
+                  rates={rates}
+                  itemsError={error("items")}
+                />
               ) : (
                 <EmptyState>
                   {tt("ct_pick_contractor_first")}
                 </EmptyState>
               )
             ) : (
-              <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
-                <span className="text-xs font-medium text-muted-foreground">{tt("ct_history_title")}</span>
+              <FormSection icon={History} title={tt("ct_history_title")}>
                 <ul className="flex max-h-56 flex-col divide-y divide-border overflow-y-auto text-xs">
                   {valueEntries.map((e) => (
                     <li key={e.id} className="flex items-center gap-3 py-1.5">
@@ -310,19 +352,22 @@ export function ContractDialog({
                   ))}
                 </ul>
                 <p className="text-xs text-muted-foreground">{tt("ct_history_hint")}</p>
-              </div>
+              </FormSection>
             )}
 
             {/* Avance con que arranca: lo que ya se le abonó antes de registrarlo acá. */}
             {!contract && (
-              <Field label={tt("ct_f_prepaid")}>
+              <Field label={tt("ct_f_prepaid")} error={error("prepaid")}>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   inputMode="decimal"
                   value={prepaid}
-                  onChange={(e) => setPrepaid(e.target.value)}
+                  onChange={(e) => {
+                    setPrepaid(e.target.value);
+                    clear("prepaid");
+                  }}
                   placeholder="0.00"
                   className="max-w-48"
                 />
@@ -330,13 +375,9 @@ export function ContractDialog({
               </Field>
             )}
 
-            <div className="border-t border-border pt-4">
-              <Field label={tt("mov_f_notes")}>
-                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("f_optional")} />
-              </Field>
-            </div>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Field label={tt("mov_f_notes")}>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
 
             <DialogFooter className="gap-2 sm:justify-between">
               {contract ? (
@@ -350,17 +391,16 @@ export function ContractDialog({
               ) : (
                 <span />
               )}
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-                  {tt("action_cancel")}
-                </Button>
-                <Button type="submit" disabled={submitting || loading}>
-                  {submitting ? tt("saving") : contract ? tt("action_save") : tt("ct_create")}
-                </Button>
-              </div>
+              <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
+                {tt("action_cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting || loading}>
+                {submitting ? tt("saving") : contract ? tt("action_save") : tt("ct_create")}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
+        {discardDialog}
       </Dialog>
 
       <ProjectFormDialog

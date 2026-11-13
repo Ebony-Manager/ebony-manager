@@ -395,7 +395,7 @@ export const strings = {
     att_day_need_both: { es: "Anota la entrada y la salida, o marca que no vino.", en: "Enter both clock-in and clock-out, or mark as absent." },
     att_day_order: { es: "La salida debe ser después de la entrada.", en: "Clock-out must be after clock-in." },
     att_day_need_in: { es: "Anota al menos la hora de entrada, o marca que no vino.", en: "Enter at least the clock-in time, or mark as absent." },
-    att_day_out_later: { es: "opcional hoy", en: "optional today" },
+    att_day_out_later: { es: "se anota después", en: "added later" },
     att_not_employed: { es: "antes de ingresar", en: "before start date" },
     att_day_note: { es: "Nota (por qué)", en: "Note (why)" },
     att_day_note_ph: { es: "Ej. olvidó ponchar la salida, confirmó la jefa de taller", en: "E.g. forgot to clock out, confirmed by workshop manager" },
@@ -498,7 +498,8 @@ export const strings = {
       es: "Catálogo de posiciones para el formulario de empleado.",
       en: "Catalog of positions for the employee form.",
     },
-    position_name_ph: { es: "Nombre de la posición", en: "Position name" },
+    position_new: { es: "Nueva posición", en: "New position" },
+    position_name_ph: { es: "Ej. Ayudante de taller", en: "E.g. Shop helper" },
     position_active: { es: "Activa", en: "Active" },
     position_inactive: { es: "Inactiva", en: "Inactive" },
     position_empty: { es: "Todavía no hay posiciones.", en: "No positions yet." },
@@ -802,6 +803,7 @@ export const strings = {
     loan_submit_prestamo: { es: "Registrar préstamo", en: "Register loan" },
     loan_submit_adelanto: { es: "Registrar adelanto", en: "Register advance" },
     loan_f_amount_required: { es: "El monto es obligatorio.", en: "Amount is required." },
+    loan_preview_title: { es: "Cómo quedan las cuotas", en: "How the installments look" },
     loan_preview_adelanto: { es: "Se descuenta completo de la quincena de", en: "Deducted in full from the period of" },
     loan_preview_installments: { es: "cuotas de", en: "installments of" },
     loan_preview_last: { es: "última", en: "last" },
@@ -1199,6 +1201,7 @@ export const strings = {
       en: "Only these hours count as overtime: punches never generate them. Enter each signed form: employee, date and from/to time (e.g. 17:00 to 18:14).",
     },
     att_ot_employee: { es: "Empleado", en: "Employee" },
+    att_ot_date: { es: "Fecha", en: "Date" },
     att_ot_from: { es: "Desde", en: "From" },
     att_ot_to: { es: "Hasta", en: "To" },
     att_ot_add: { es: "Agregar", en: "Add" },
@@ -1335,6 +1338,10 @@ export const strings = {
 
     // Cuenta bancaria — base para el export a Banco General (Tanda 5).
     bank_section_title: { es: "Cuenta bancaria", en: "Bank account" },
+    sec_employee: { es: "Datos del empleado", en: "Employee details" },
+    sec_contact: { es: "Contacto", en: "Contact" },
+    sec_identity: { es: "Identificación", en: "Identification" },
+    sec_emergency: { es: "Contacto de emergencia", en: "Emergency contact" },
     f_bank_name: { es: "Banco", en: "Bank" },
     f_bank_account_type: { es: "Tipo de cuenta", en: "Account type" },
     bank_type_ahorro: { es: "Ahorro", en: "Savings" },
@@ -1863,10 +1870,10 @@ export const strings = {
 
     // Movimiento — contrato.
     mov_f_contract: { es: "Contrato", en: "Contract" },
-    mov_f_contract_optional: { es: "Contrato (opcional)", en: "Contract (optional)" },
+    mov_f_contract_optional: { es: "Contrato", en: "Contract" },
     mov_no_contract: { es: "Sin contrato", en: "No contract" },
     mov_contract_required: { es: "Elige el contrato.", en: "Pick the contract." },
-    mov_f_alloc_contract: { es: "Abonar a contrato (opcional)", en: "Apply to contract (optional)" },
+    mov_f_alloc_contract: { es: "Abonar a contrato", en: "Apply to contract" },
     mov_alloc_none: { es: "No, queda a cuenta", en: "No, leave on account" },
     mov_alloc_split: { es: "Ya está repartido entre varios contratos.", en: "Already split across several contracts." },
     mov_where_else: {
@@ -1878,7 +1885,7 @@ export const strings = {
     mov_f_project: { es: "Proyecto", en: "Project" },
     mov_f_project_none: { es: "Sin proyecto", en: "No project" },
     mov_f_project_new: { es: "＋ Crear proyecto nuevo…", en: "＋ Create new project…" },
-    mov_f_client_note: { es: "Cliente final / nota (opcional)", en: "End client / note (optional)" },
+    mov_f_client_note: { es: "Cliente final / nota", en: "End client / note" },
 
     // Estado / liquidación del contratista (en su ficha).
     status_section_title: { es: "Estado / Liquidación", en: "Status / Settlement" },

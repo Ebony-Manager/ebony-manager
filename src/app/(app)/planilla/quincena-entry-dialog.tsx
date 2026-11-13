@@ -15,6 +15,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { upsertPayrollEntryAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { FormSection } from "@/components/shared/form-section";
+import { Clock, Gift, HandCoins, UserCheck } from "lucide-react";
 import { LEDGER_CATEGORY_LABEL_KEY } from "./ledger-labels";
 
 type Quantity = "extraHours" | "extraDays" | "horasDescontadas" | "diasDescontados";
@@ -67,7 +69,6 @@ export function QuincenaEntryDialog({
     primaAntiguedadPaidCents: "",
   });
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- siembra el formulario al abrir. */
   React.useEffect(() => {
@@ -88,7 +89,6 @@ export function QuincenaEntryDialog({
       vacationPaidCents: toCentsStr(e?.vacationPaidCents ?? 0),
       primaAntiguedadPaidCents: toCentsStr(e?.primaAntiguedadPaidCents ?? 0),
     });
-    setError(null);
   }, [open, row]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -132,7 +132,6 @@ export function QuincenaEntryDialog({
       return;
     }
     setSubmitting(true);
-    setError(null);
     try {
       await upsertPayrollEntryAction({
         employeeId: row!.employee.id,
@@ -146,7 +145,7 @@ export function QuincenaEntryDialog({
       onSaved();
     } catch (err) {
       console.error("Planilla: no se pudo guardar la quincena", err);
-      setError(tt("save_failed"));
+      toast.error(tt("save_failed"));
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +159,6 @@ export function QuincenaEntryDialog({
           step="0.01"
           min="0"
           value={qty[k]}
-          placeholder="0"
           onChange={(e) => setQty((p) => ({ ...p, [k]: e.target.value }))}
           className="w-24 text-right"
         />
@@ -174,8 +172,6 @@ export function QuincenaEntryDialog({
       <MoneyInput value={money[k]} onValueChange={(v) => setMoney((p) => ({ ...p, [k]: v }))} />
     </Field>
   );
-  const section = "flex flex-col gap-3 rounded-lg border border-border p-3";
-  const sectionTitle = "text-xs font-semibold text-foreground";
 
   return (
     <FormDialog
@@ -186,11 +182,10 @@ export function QuincenaEntryDialog({
       onSubmit={submit}
       submitting={submitting}
       submitLabel={tt("qe_save")}
-      error={error}
+      dirty={() => Object.keys(patch).length > 0}
       wide
     >
-      <div className={section}>
-        <p className={sectionTitle}>{tt("qe_extras")}</p>
+      <FormSection icon={Clock} title={tt("qe_extras")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {quantityField("extraHours", tt("col_extra_hours"), "h")}
           {quantityField("extraDays", tt("col_extra_days"), "d")}
@@ -198,20 +193,19 @@ export function QuincenaEntryDialog({
           {moneyField("diasLibresCents", tt("col_dias_libres"))}
           {moneyField("viaticosCents", tt("li_viaticos"))}
         </div>
-      </div>
+      </FormSection>
 
-      <div className={section}>
-        <p className={sectionTitle}>{tt("qe_asistencia")}</p>
-        <p className="-mt-2 text-[11px] text-muted-foreground">{tt("qe_asistencia_hint")}</p>
+      <FormSection icon={UserCheck} title={tt("qe_asistencia")} note={tt("qe_asistencia_hint")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {quantityField("horasDescontadas", tt("col_horas_desc"), "h")}
           {quantityField("diasDescontados", tt("col_dias_desc"), "d")}
         </div>
-      </div>
+      </FormSection>
 
-      <div className={section}>
-        <div className="flex items-center justify-between gap-2">
-          <p className={sectionTitle}>{tt("col_prestamos_desc")}</p>
+      <FormSection
+        icon={HandCoins}
+        title={tt("col_prestamos_desc")}
+        action={
           <Button
             type="button"
             size="sm"
@@ -224,7 +218,8 @@ export function QuincenaEntryDialog({
           >
             {tt("qe_loans_open")}
           </Button>
-        </div>
+        }
+      >
         {row.deductions.length === 0 && !e?.otherDeductionCents ? (
           <p className="text-xs text-muted-foreground">{tt("qe_loans_none")}</p>
         ) : (
@@ -247,16 +242,15 @@ export function QuincenaEntryDialog({
             )}
           </ul>
         )}
-      </div>
+      </FormSection>
 
-      <div className={section}>
-        <p className={sectionTitle}>{tt("col_prestaciones_simple")}</p>
+      <FormSection icon={Gift} title={tt("col_prestaciones_simple")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {moneyField("decimoPaidCents", tt("col_decimo"))}
           {moneyField("vacationPaidCents", tt("col_vacacion"))}
           {moneyField("primaAntiguedadPaidCents", tt("col_prima"))}
         </div>
-      </div>
+      </FormSection>
 
       {preview && (
         <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">

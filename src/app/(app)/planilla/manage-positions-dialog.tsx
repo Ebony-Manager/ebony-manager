@@ -8,6 +8,8 @@ import type { PayrollPosition } from "@/types/planilla";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/shared/field";
+import { EmptyState } from "@/components/shared/page-header";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { getPayrollPositionsAction, createPayrollPositionAction, updatePayrollPositionAction } from "./actions";
@@ -44,7 +46,6 @@ export function ManagePositionsDialog({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState("");
   const [savingId, setSavingId] = React.useState<string | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     const fresh = await getPayrollPositionsAction();
@@ -58,7 +59,6 @@ export function ManagePositionsDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- carga al abrir; el diálogo se reusa entre aperturas. */
   React.useEffect(() => {
     if (!open) return;
-    setError(null);
     setEditingId(null);
     setNewName("");
     load();
@@ -67,16 +67,15 @@ export function ManagePositionsDialog({
 
   async function handleAdd() {
     const name = newName.trim();
-    if (!name) return;
+    if (!name) return void toast.error(tt("position_name_required"));
     setAdding(true);
-    setError(null);
     try {
       await createPayrollPositionAction(name);
       setNewName("");
       await load();
       toast.success(tt("action_add"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setAdding(false);
     }
@@ -90,18 +89,17 @@ export function ManagePositionsDialog({
   async function saveEdit(id: string) {
     const name = editValue.trim();
     if (!name) {
-      setError(tt("position_name_required"));
+      toast.error(tt("position_name_required"));
       return;
     }
     setSavingId(id);
-    setError(null);
     try {
       await updatePayrollPositionAction(id, { name });
       setEditingId(null);
       await load();
       toast.success(tt("action_save"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSavingId(null);
     }
@@ -109,13 +107,12 @@ export function ManagePositionsDialog({
 
   async function toggleActive(position: PayrollPosition) {
     setSavingId(position.id);
-    setError(null);
     try {
       await updatePayrollPositionAction(position.id, { active: !position.active });
       await load();
       toast.success(tt(position.active ? "position_inactive" : "position_active"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSavingId(null);
     }
@@ -132,9 +129,7 @@ export function ManagePositionsDialog({
         <div className="flex flex-col gap-2">
           {list === null && <p className="py-4 text-center text-sm text-muted-foreground">{tt("loading")}</p>}
 
-          {list !== null && list.length === 0 && (
-            <p className="py-4 text-center text-sm text-muted-foreground">{tt("position_empty")}</p>
-          )}
+          {list !== null && list.length === 0 && <EmptyState>{tt("position_empty")}</EmptyState>}
 
           {list?.map((position) => {
             const isEditing = editingId === position.id;
@@ -208,17 +203,16 @@ export function ManagePositionsDialog({
           })}
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-
-        <div className="flex items-center gap-2 border-t border-border pt-4">
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder={tt("position_name_ph")}
-            className="h-8"
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          />
-          <Button size="sm" disabled={adding || !newName.trim()} onClick={handleAdd}>
+        <div className="flex items-end gap-2 border-t border-border pt-4">
+          <Field className="flex-1" label={tt("position_new")}>
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder={tt("position_name_ph")}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+          </Field>
+          <Button size="sm" className="h-9" disabled={adding} onClick={handleAdd}>
             <Plus className="size-3.5" />
             {tt("action_add")}
           </Button>

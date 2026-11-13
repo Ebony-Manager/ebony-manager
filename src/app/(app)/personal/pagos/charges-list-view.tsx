@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Ban, CheckCircle2, HandCoins, Hourglass, ListChecks, Percent } from "lucide-react";
 
 import type { LoanOverviewRow, PayrollEmployee } from "@/types/planilla";
 import type { ContractorLedgerCategory } from "@/types/contractors";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDate, shortPeriodLabel } from "@/lib/planilla/format";
@@ -379,9 +379,9 @@ export function ChargesListView({
                           <ContractorAvatar name={r.personName} />
                         )}
                         <span className="font-medium text-foreground">{r.personName}</span>
-                        <Badge variant={r.kind === "employee" ? "secondary" : "outline"} className="text-[10px]">
+                        <StatusBadge status={r.kind === "employee" ? "kind_employee" : "kind_contractor"}>
                           {ts(r.kind === "employee" ? "kind_employee" : "kind_contractor")}
-                        </Badge>
+                        </StatusBadge>
                       </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">

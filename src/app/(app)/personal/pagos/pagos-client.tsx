@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { STATUS } from "@/lib/ui/status";
+import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Plus, Tags } from "lucide-react";
 
@@ -11,7 +14,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
+import { EmptyState, PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
@@ -167,14 +170,14 @@ export function PagosClient({
 
   // El selector Todos / Taller / Administrativo en las pestañas de
   // empleados; en Préstamos suma "Contratistas".
-  const CATEGORIA_FILTERS: Array<{ value: CategoriaFilter; label: string }> = [
-    { value: "todos", label: tp("categoria_filter_all") },
-    { value: "taller", label: tp("categoria_taller") },
-    { value: "administrativo", label: tp("categoria_administrativo") },
+  const CATEGORIA_FILTERS: Array<{ value: CategoriaFilter; label: string; icon: LucideIcon }> = [
+    { value: "todos", label: tp("categoria_filter_all"), icon: ICON.all },
+    { value: "taller", label: tp("categoria_taller"), icon: ICON.taller },
+    { value: "administrativo", label: tp("categoria_administrativo"), icon: ICON.administrativo },
   ];
-  const LOANS_FILTERS: Array<{ value: LoansFilter; label: string }> = [
+  const LOANS_FILTERS: Array<{ value: LoansFilter; label: string; icon: LucideIcon }> = [
     ...(canEmployees ? CATEGORIA_FILTERS : []),
-    ...(canContractors ? [{ value: "contratistas" as const, label: tg("loans_contractors") }] : []),
+    ...(canContractors ? [{ value: "contratistas" as const, label: tg("loans_contractors"), icon: STATUS.kind_contractor.icon }] : []),
   ];
   const showEmployeeLoans = canEmployees && loansFilter !== "contratistas";
   const showContractorLoans = canContractors && (loansFilter === "contratistas" || loansFilter === "todos");
@@ -286,8 +289,8 @@ export function PagosClient({
                     value={contractorsView}
                     onChange={setContractorsView}
                     options={[
-                      { value: "cierre", label: tg("sub_tab_closing") },
-                      { value: "saldos", label: tg("sub_tab_balances") },
+                      { value: "cierre", label: tg("sub_tab_closing"), icon: ICON.closing },
+                      { value: "saldos", label: tg("sub_tab_balances"), icon: ICON.balances },
                     ]}
                   />
                   {contractorsView === "cierre" ? (
@@ -296,7 +299,7 @@ export function PagosClient({
                     contractorsDashboard ? (
                       <ContractorBalancesView input={contractorsDashboard} />
                     ) : (
-                      <p className="py-8 text-center text-sm text-muted-foreground">{tg("loading")}</p>
+                      <EmptyState>{tg("loading")}</EmptyState>
                     )
                   )}
                 </div>

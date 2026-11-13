@@ -1,5 +1,8 @@
 "use client";
 
+import { Field } from "@/components/shared/field";
+import { EmptyState } from "@/components/shared/page-header";
+import { ICON } from "@/lib/ui/concepts";
 import * as React from "react";
 import { ChevronDown, ClipboardCopy, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -254,7 +257,7 @@ export function AttendanceImportDialog({
   const hasFiles = punches.length > 0;
   const eligible = proposals.filter((p) => p.blockingDays === 0 && rowById.has(p.employeeId)).map((p) => p.employeeId);
   const th = "px-2 py-2 font-medium whitespace-nowrap";
-  const diffClass = (a: string, current: number) => (Math.abs((parseFloat(a || "0") || 0) - current) > 0.004 ? "bg-amber-50 dark:bg-amber-950/30" : "");
+  const diffClass = (a: string, current: number) => (Math.abs((parseFloat(a || "0") || 0) - current) > 0.004 ? "bg-warning/10" : "");
   const quincenaLabel = `${period.half === 1 ? "1Q" : "2Q"} ${monthLabel(lang, period.month)} ${period.year}`;
 
   return (
@@ -274,25 +277,33 @@ export function AttendanceImportDialog({
           </summary>
           <div className="flex flex-col gap-3 border-t border-border p-3">
             <p className="text-xs text-muted-foreground">{tt("att_ot_hint")}</p>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-[1fr_9rem_6rem_6rem_auto]">
-              <Select value={otEmployee} onValueChange={setOtEmployee}>
-                <SelectTrigger className="h-8 w-full">
-                  <SelectValue placeholder={tt("att_ot_employee")} />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  {employees
-                    .filter((e) => e.status === "ACTIVE")
-                    .map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Input type="date" value={otDate} min={range.from} max={range.to} onChange={(e) => setOtDate(e.target.value)} className="h-8" />
-              <Input value={otFrom} onChange={(e) => setOtFrom(e.target.value)} placeholder="17:00" className="h-8" aria-label={tt("att_ot_from")} />
-              <Input value={otTo} onChange={(e) => setOtTo(e.target.value)} placeholder="18:14" className="h-8" aria-label={tt("att_ot_to")} />
-              <Button type="button" size="sm" variant="outline" className="h-8" onClick={addOvertime}>
+            <div className="grid grid-cols-2 items-end gap-2 md:grid-cols-[1fr_10rem_6rem_6rem_auto]">
+              <Field label={tt("att_ot_employee")}>
+                <Select value={otEmployee} onValueChange={setOtEmployee}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {employees
+                      .filter((e) => e.status === "ACTIVE")
+                      .map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tt("att_ot_date")} icon={ICON.date}>
+                <Input type="date" value={otDate} min={range.from} max={range.to} onChange={(e) => setOtDate(e.target.value)} />
+              </Field>
+              <Field label={tt("att_ot_from")}>
+                <Input value={otFrom} onChange={(e) => setOtFrom(e.target.value)} placeholder="17:00" />
+              </Field>
+              <Field label={tt("att_ot_to")}>
+                <Input value={otTo} onChange={(e) => setOtTo(e.target.value)} placeholder="18:14" />
+              </Field>
+              <Button type="button" size="sm" variant="outline" className="h-9" onClick={addOvertime}>
                 <Plus className="size-3.5" />
                 {tt("att_ot_add")}
               </Button>
@@ -316,7 +327,7 @@ export function AttendanceImportDialog({
         </details>
 
         {!hasFiles && overtime.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">{tt("att_empty")}</p>
+          <EmptyState>{tt("att_empty")}</EmptyState>
         ) : (
           <>
             {unmatched.length > 0 && (
@@ -382,7 +393,7 @@ export function AttendanceImportDialog({
                           <td className="px-2 py-1.5 whitespace-nowrap font-medium text-foreground">
                             {p.name}
                             {p.blockingDays > 0 && (
-                              <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                              <span className="ml-2 rounded bg-warning/10 px-1.5 py-0.5 text-[11px] font-medium text-warning">
                                 {p.blockingDays} {tg("att_blocked_days")}
                               </span>
                             )}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
 import { CalendarX2, ChevronDown, CircleCheck, Clock, TrendingDown } from "lucide-react";
 
 import { RankList, type RankItem } from "@/components/shared/rank-list";
@@ -111,8 +112,8 @@ export function AttendanceSummaryView({
         value={scope}
         onChange={setScope}
         options={[
-          { value: "month", label: ta("scope_month") },
-          { value: "year", label: ta("scope_year") },
+          { value: "month", label: ta("scope_month"), icon: ICON.period },
+          { value: "year", label: ta("scope_year"), icon: ICON.period },
         ]}
       />
       )}
@@ -125,9 +126,9 @@ export function AttendanceSummaryView({
         value={categoria}
         onChange={setCategoria}
         options={[
-          { value: "todos", label: tp("categoria_filter_all") },
-          { value: "taller", label: tp("categoria_taller") },
-          { value: "administrativo", label: tp("categoria_administrativo") },
+          { value: "todos", label: tp("categoria_filter_all"), icon: ICON.all },
+          { value: "taller", label: tp("categoria_taller"), icon: ICON.taller },
+          { value: "administrativo", label: tp("categoria_administrativo"), icon: ICON.administrativo },
         ]}
       />
     </>

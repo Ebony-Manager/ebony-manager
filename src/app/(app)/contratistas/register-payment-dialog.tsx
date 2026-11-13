@@ -29,6 +29,10 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { registerContractorPaymentAction } from "./actions";
 import { Field } from "./field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { EmptyState } from "@/components/shared/page-header";
 
 const LOOSE = "__loose__";
@@ -68,7 +72,11 @@ export function RegisterPaymentDialog({
   const [amounts, setAmounts] = React.useState<Record<string, string>>({});
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"amounts">();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(
+    () => Object.values(amounts).some((v) => v.trim()) || !!notes.trim(),
+    () => onOpenChange(false),
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect -- reinicia al abrir. */
   React.useEffect(() => {
@@ -76,8 +84,8 @@ export function RegisterPaymentDialog({
     setDate(todayInPanama());
     setAmounts({});
     setNotes("");
-    setError(null);
-  }, [open]);
+    reset();
+  }, [open, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const payable = React.useMemo(
@@ -101,12 +109,9 @@ export function RegisterPaymentDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (lines.some((l) => l.cents < 0 || l.cents > l.pending) || looseCents < 0 || looseCents > loosePending) {
-      return setError(tt("pay_err_over"));
-    }
-    if (abonosCents <= 0) return setError(tt("pay_err_empty"));
+    const over = lines.some((l) => l.cents < 0 || l.cents > l.pending) || looseCents < 0 || looseCents > loosePending;
+    if (!validate([["amounts", over || abonosCents <= 0, over ? tt("pay_err_over") : tt("pay_err_empty")]])) return;
     setSubmitting(true);
-    setError(null);
     const res = await registerContractorPaymentAction({
       contractorId: contractor.id,
       date,
@@ -115,7 +120,7 @@ export function RegisterPaymentDialog({
       notes: notes.trim() || null,
     });
     setSubmitting(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(tt("pay_saved"));
     onOpenChange(false);
     onSaved();
@@ -124,7 +129,7 @@ export function RegisterPaymentDialog({
   const nothingToPay = payable.length === 0 && loosePending <= 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-[min(95vw,44rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -134,7 +139,7 @@ export function RegisterPaymentDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <Field label={tt("mov_f_date")} className="max-w-48">
+          <Field label={tt("mov_f_date")} icon={ICON.date} className="max-w-48">
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
 
@@ -143,6 +148,7 @@ export function RegisterPaymentDialog({
               {tt("pay_nothing")}
             </EmptyState>
           ) : (
+            <FormSection icon={ICON.quote} title={tt("ct_col_contract")} error={error("amounts")}>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[480px] border-collapse text-sm">
                 <thead>
@@ -161,7 +167,10 @@ export function RegisterPaymentDialog({
                       muted={c.status !== "ACTIVE"}
                       pending={pending}
                       value={amounts[c.id] ?? ""}
-                      onChange={(v) => setAmount(c.id, v)}
+                      onChange={(v) => {
+                        setAmount(c.id, v);
+                        clear("amounts");
+                      }}
                       onFill={() => fill(c.id, pending)}
                       fillLabel={tt("pay_fill")}
                     />
@@ -173,7 +182,10 @@ export function RegisterPaymentDialog({
                       muted
                       pending={loosePending}
                       value={amounts[LOOSE] ?? ""}
-                      onChange={(v) => setAmount(LOOSE, v)}
+                      onChange={(v) => {
+                        setAmount(LOOSE, v);
+                        clear("amounts");
+                      }}
                       onFill={() => fill(LOOSE, loosePending)}
                       fillLabel={tt("pay_fill")}
                     />
@@ -181,6 +193,7 @@ export function RegisterPaymentDialog({
                 </tbody>
               </table>
             </div>
+            </FormSection>
           )}
 
           <PaymentBreakdown
@@ -197,13 +210,11 @@ export function RegisterPaymentDialog({
           />
 
           <Field label={tt("mov_f_notes")}>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={tt("f_optional")} />
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("action_cancel")}
             </Button>
             <Button type="submit" disabled={submitting || nothingToPay}>
@@ -212,6 +223,7 @@ export function RegisterPaymentDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

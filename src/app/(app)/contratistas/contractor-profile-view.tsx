@@ -1,8 +1,10 @@
 "use client";
 
 import { usePageTitle } from "@/components/shared/page-title";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
 import { useRouter } from "next/navigation";
 import {
   Banknote,
@@ -22,6 +24,7 @@ import {
   UserCheck,
   Users,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -35,7 +38,6 @@ import type {
   Project,
 } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -144,6 +146,9 @@ const PERIOD_VIEW_LABEL_KEY: Record<LedgerPeriodView, keyof typeof strings.contr
   last15: "period_last15",
   all: "period_all",
 };
+
+/** Cada forma de agrupar el estado de cuenta, con el ícono de su concepto. */
+const GROUP_ICON: Record<LedgerGroupBy, LucideIcon> = { none: ICON.all, category: ICON.category, project: ICON.project, month: ICON.period };
 
 const GROUP_BY_LABEL_KEY: Record<LedgerGroupBy, keyof typeof strings.contratistas> = {
   none: "group_none",
@@ -573,7 +578,7 @@ export function ContractorProfileView({
               <div>
                 <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
                   {contractor.name}
-                  {isInactive && <Badge variant="secondary">{tt("inactive_badge")}</Badge>}
+                  {isInactive && <StatusBadge status="record_inactive">{tt("inactive_badge")}</StatusBadge>}
                 </h1>
                 <p className="text-sm text-muted-foreground">{typeLabel}</p>
               </div>
@@ -960,7 +965,7 @@ export function ContractorProfileView({
           <SegmentedFilter
             value={groupBy}
             onChange={setGroupBy}
-            options={LEDGER_GROUP_BYS.map((g) => ({ value: g, label: g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g]) }))}
+            options={LEDGER_GROUP_BYS.map((g) => ({ value: g, label: g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g]), icon: GROUP_ICON[g] }))}
           />
         </div>
 

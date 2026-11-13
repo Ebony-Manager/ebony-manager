@@ -1,6 +1,7 @@
 "use client";
 
 import { usePageTitle } from "@/components/shared/page-title";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -221,7 +222,7 @@ export function EmployeeProfileView({
                 <div className="flex flex-col gap-1">
                   <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
                     {employee.name}
-                    {isInactive && <Badge variant="secondary">{tt("inactive")}</Badge>}
+                    {isInactive && <StatusBadge status="record_inactive">{tt("inactive")}</StatusBadge>}
                   </h1>
                   <p className="text-sm text-muted-foreground">{employee.position || tt("no_position")}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

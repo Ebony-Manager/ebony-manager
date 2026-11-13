@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/shared/field";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { deleteContractorAction } from "./actions";
@@ -42,13 +42,11 @@ export function DeleteContractorDialog({
 
   const [confirmText, setConfirmText] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
     setConfirmText("");
-    setError(null);
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -58,14 +56,13 @@ export function DeleteContractorDialog({
     e.preventDefault();
     if (!canDelete) return;
     setSubmitting(true);
-    setError(null);
     try {
       await deleteContractorAction(contractor.id);
       toast.success(tt("del_done"));
       onOpenChange(false);
       onDeleted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
       setSubmitting(false);
     }
   }
@@ -85,20 +82,14 @@ export function DeleteContractorDialog({
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
             {tt("del_warning")}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">
-              {tt("del_type_name")}{" "}
-              <span className="font-medium text-foreground">{contractor.name}</span>
-            </Label>
+          <Field label={`${tt("del_type_name")} ${contractor.name}`}>
             <Input
               value={confirmText}
               onChange={(ev) => setConfirmText(ev.target.value)}
               placeholder={contractor.name}
               autoFocus
             />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          </Field>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>

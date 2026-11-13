@@ -21,6 +21,10 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateContractorAction, zeroContractorBalanceAction } from "./actions";
 import { Field } from "./field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 /**
  * Inactivar / liquidar un contratista: pasa a INACTIVE con fecha de
@@ -55,7 +59,9 @@ export function ContractorLiquidationDialog({
   // Con saldo distinto de cero no hay opción por defecto: se elige a mano.
   const [balanceAction, setBalanceAction] = React.useState<"keep" | "zero" | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"endDate" | "balance">();
+  const dirty = () => endDate !== (contractor.endDate ?? today) || notes !== (contractor.notes ?? "") || balanceAction !== null;
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el contratista cambia entre aperturas. */
   React.useEffect(() => {
@@ -63,27 +69,26 @@ export function ContractorLiquidationDialog({
     setEndDate(contractor.endDate ?? today);
     setNotes(contractor.notes ?? "");
     setBalanceAction(null);
-    setError(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, contractor, today]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!endDate) {
-      setError(tt("liq_f_end_date_required"));
+    if (
+      !validate([
+        ["endDate", !endDate, tt("liq_f_end_date_required")],
+        ["balance", balanceCents !== 0 && !balanceAction, tt("liq_balance_required")],
+      ])
+    )
       return;
-    }
-    if (balanceCents !== 0 && !balanceAction) {
-      setError(tt("liq_balance_required"));
-      return;
-    }
     setSubmitting(true);
-    setError(null);
     try {
       if (balanceCents !== 0 && balanceAction === "zero") {
         const res = await zeroContractorBalanceAction(contractor.id, endDate, tt("liq_zero_note"));
         if (!res.ok) {
-          setError(res.error);
+          toast.error(res.error);
           return;
         }
       }
@@ -96,14 +101,14 @@ export function ContractorLiquidationDialog({
       onOpenChange(false);
       onSaved?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{tt("liq_dlg_title")}</DialogTitle>
@@ -114,13 +119,10 @@ export function ContractorLiquidationDialog({
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           {balanceCents !== 0 && (
-            <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+            <FormSection icon={AlertTriangle} title={tt("liq_balance_warning_title")} error={error("balance")}>
               <div className="flex items-start gap-2 text-xs">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
                 <span className="text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {tt("liq_balance_warning_title")}: {formatCents(balanceCents)}
-                  </span>{" "}
+                  <span className="font-medium text-foreground">{formatCents(balanceCents)}</span>{" "}
                   ({balanceCents > 0 ? tt("bal_ebony_owes") : tt("bal_owes_ebony")}). {tt("liq_balance_question")}
                 </span>
               </div>
@@ -141,7 +143,10 @@ export function ContractorLiquidationDialog({
                     name="balance-action"
                     className="mt-1"
                     checked={balanceAction === value}
-                    onChange={() => setBalanceAction(value)}
+                    onChange={() => {
+                      setBalanceAction(value);
+                      clear("balance");
+                    }}
                   />
                   <span>
                     <span className="font-medium text-foreground">{title}</span>
@@ -149,20 +154,25 @@ export function ContractorLiquidationDialog({
                   </span>
                 </label>
               ))}
-            </div>
+            </FormSection>
           )}
 
-          <Field label={tt("liq_f_end_date")}>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <Field label={tt("liq_f_end_date")} required icon={ICON.date} error={error("endDate")}>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                clear("endDate");
+              }}
+            />
           </Field>
           <Field label={tt("liq_f_notes")}>
             <Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("action_cancel")}
             </Button>
             <Button type="submit" disabled={submitting}>
@@ -171,6 +181,7 @@ export function ContractorLiquidationDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

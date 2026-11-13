@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { DollarSign, ListChecks, Pencil, Ruler, Trash2 } from "lucide-react";
 
 import type { ContractorLedgerEntryItem, LaborRate, LaborRatePhase, LaborRateUnit } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { lineAmountCents } from "@/lib/contractors/contractor-ledger";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { Field } from "./field";
+import { FormSection } from "@/components/shared/form-section";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 
 /** Línea de trabajo en construcción — `cantidad` queda como texto (igual
@@ -124,6 +125,8 @@ export function WorkEditor({
   onChange,
   rates,
   showItems = true,
+  itemsError,
+  amountError,
 }: {
   draft: WorkDraft;
   onChange: (next: WorkDraft) => void;
@@ -131,6 +134,9 @@ export function WorkEditor({
   rates: LaborRate[];
   /** false = solo el monto a mano (sin piezas). */
   showItems?: boolean;
+  /** Falla de las piezas (ej. falta la cantidad) y del monto (ej. el monto es cero): se ven en rojo bajo el título del bloque. */
+  itemsError?: string;
+  amountError?: string;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -168,8 +174,7 @@ export function WorkEditor({
   return (
     <>
       {showItems && (
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-          <span className="text-xs font-medium text-muted-foreground">{tt("mov_items_title")}</span>
+        <FormSection icon={ListChecks} title={tt("mov_items_title")} error={itemsError}>
 
           <Select value={itemPicker} onValueChange={onPickItem}>
             <SelectTrigger className="w-full">
@@ -294,31 +299,24 @@ export function WorkEditor({
               </table>
             </div>
           )}
-        </div>
+        </FormSection>
       )}
 
       {/* Monto: calculado desde las piezas (solo lectura) o a mano. */}
       {hasItems ? (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-          <div>
-            <p className="text-sm font-medium text-foreground">{tt("mov_f_amount_mode")}</p>
-            <p className="text-xs text-muted-foreground">{tt("mov_amount_from_items")}</p>
-          </div>
-          <span className="text-base font-semibold tabular-nums text-foreground">{formatCents(totalCents)}</span>
-        </div>
+        <FormSection quiet icon={DollarSign} title={tt("mov_f_amount_mode")} note={tt("mov_amount_from_items")} action={<span className="text-base font-semibold tabular-nums text-foreground">{formatCents(totalCents)}</span>}>
+          <></>
+        </FormSection>
       ) : (
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{tt("mov_f_amount_mode")}:</span>
-            <SegmentedFilter
-              value={draft.amountMode}
-              onChange={(m) => onChange({ ...draft, amountMode: m })}
-              options={[
-                { value: "flat" as const, label: tt("amount_mode_flat") },
-                { value: "area" as const, label: tt("amount_mode_area") },
-              ]}
-            />
-          </div>
+        <FormSection icon={DollarSign} title={tt("mov_f_amount_mode")} error={amountError}>
+          <SegmentedFilter
+            value={draft.amountMode}
+            onChange={(m) => onChange({ ...draft, amountMode: m })}
+            options={[
+              { value: "flat" as const, label: tt("amount_mode_flat"), icon: DollarSign },
+              { value: "area" as const, label: tt("amount_mode_area"), icon: Ruler },
+            ]}
+          />
 
           {draft.amountMode === "flat" ? (
             <Field label={tt("mov_f_flat")}>
@@ -361,7 +359,7 @@ export function WorkEditor({
               </p>
             </>
           )}
-        </div>
+        </FormSection>
       )}
     </>
   );

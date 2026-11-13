@@ -313,7 +313,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
       {canPayroll && <AttendanceSummaryView collapsible from="registro" period={period} live={liveSummary} />}
 
       {canPayroll && ready && unmatched.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3">
           <p className="text-sm font-medium text-foreground">{tg("att_unmatched_title")}</p>
           <p className="mb-2 text-xs text-muted-foreground">{tg("att_unmatched_hint")}</p>
           <ul className="flex flex-col gap-2">
@@ -434,7 +434,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
                         <td className="px-3 py-2 text-right tabular-nums">{p.earlyLeaveMinutes ? hm(p.earlyLeaveMinutes) : "–"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{absent || "–"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {p.blockingDays ? <span className="font-medium text-amber-600 dark:text-amber-400">{p.blockingDays}</span> : "–"}
+                          {p.blockingDays ? <span className="font-medium text-warning">{p.blockingDays}</span> : "–"}
                         </td>
                         {canPayroll && <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{inQuincena || "–"}</td>}
                       </tr>
@@ -561,7 +561,7 @@ function DayTable({
                   ))}
                 </span>
               </td>
-              <td className={`px-2 py-1 ${blocking ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
+              <td className={`px-2 py-1 ${blocking ? "font-medium text-warning" : "text-muted-foreground"}`}>
                 {[...flags, ...(d.resolution ? [`${tg("att_day_reviewed")}${d.resolution.note ? `: ${d.resolution.note}` : ""}`] : [])].join(", ")}
               </td>
               <td className="whitespace-nowrap px-2 py-1 text-right">

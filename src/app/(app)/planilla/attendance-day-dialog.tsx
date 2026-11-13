@@ -12,6 +12,9 @@ import { t, strings } from "@/lib/i18n";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { resolveAttendanceDayAction } from "./actions";
 import { FormDialog, Field } from "./form-dialog";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { FormSection } from "@/components/shared/form-section";
+import { ICON } from "@/lib/ui/concepts";
 
 const toHHMM = (m: number | null | undefined) => (m === null || m === undefined ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
 const fromHHMM = (s: string): number | null => {
@@ -43,7 +46,8 @@ export function AttendanceDayDialog({
   const [departure, setDeparture] = React.useState("");
   const [note, setNote] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"arrival" | "departure">();
+  const seed = React.useRef("");
 
   /* eslint-disable react-hooks/set-state-in-effect -- siembra el formulario al abrir. */
   React.useEffect(() => {
@@ -51,8 +55,9 @@ export function AttendanceDayDialog({
     setArrival(toHHMM(day.resolution ? day.resolution.arrival ?? day.arrival : day.arrival));
     setDeparture(toHHMM(day.resolution ? day.resolution.departure ?? day.departure : day.departure));
     setNote(day.resolution?.note ?? "");
-    setError(null);
-  }, [open, day]);
+    seed.current = JSON.stringify([toHHMM(day.resolution ? day.resolution.arrival ?? day.arrival : day.arrival), toHHMM(day.resolution ? day.resolution.departure ?? day.departure : day.departure), day.resolution?.note ?? ""]);
+    reset();
+  }, [open, day, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!day) return null;
@@ -60,7 +65,6 @@ export function AttendanceDayDialog({
 
   async function save(a: number | null, d: number | null) {
     setSubmitting(true);
-    setError(null);
     try {
       await resolveAttendanceDayAction({ employeeId: employee.id, date: day!.date, arrival: a, departure: d, note: note.trim() || null });
       toast.success(tg("att_day_saved"));
@@ -68,7 +72,7 @@ export function AttendanceDayDialog({
       onSaved();
     } catch (err) {
       console.error("Asistencia: no se pudo guardar la revisión del día", err);
-      setError(tg("att_day_error"));
+      toast.error(tg("att_day_error"));
     } finally {
       setSubmitting(false);
     }
@@ -83,15 +87,15 @@ export function AttendanceDayDialog({
       return;
     }
     // Ante la duda, a favor de la empresa: un día que ya pasó necesita las dos horas.
-    if (a === null || d === null) {
-      setError(isToday ? tg("att_day_need_in") : tg("att_day_need_both"));
+    const missingOut = isToday ? false : d === null;
+    if (
+      !validate([
+        ["arrival", a === null, isToday ? tg("att_day_need_in") : tg("att_day_need_both")],
+        ["departure", missingOut || (a !== null && d !== null && d <= a), missingOut ? tg("att_day_need_both") : tg("att_day_order")],
+      ])
+    )
       return;
-    }
-    if (d <= a) {
-      setError(tg("att_day_order"));
-      return;
-    }
-    void save(a, d);
+    void save(a!, d!);
   }
 
   return (
@@ -103,26 +107,38 @@ export function AttendanceDayDialog({
       onSubmit={submit}
       submitting={submitting}
       submitLabel={tg("att_day_save")}
-      error={error}
+      dirty={() => JSON.stringify([arrival, departure, note]) !== seed.current}
     >
       {/* min-w-0: en el iPhone el campo de hora no se encoge solo y se montaban uno sobre otro. */}
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tg("att_in")} className="min-w-0">
-          <Input type="time" value={arrival} onChange={(e) => setArrival(e.target.value)} className="w-full min-w-0 appearance-none" />
+        <Field label={tg("att_in")} required className="min-w-0" error={error("arrival")}>
+          <Input
+            type="time"
+            value={arrival}
+            onChange={(e) => {
+              setArrival(e.target.value);
+              clear("arrival");
+            }} className="w-full min-w-0 appearance-none" />
         </Field>
-        <Field label={isToday ? `${tg("att_out")} · ${tg("att_day_out_later")}` : tg("att_out")} className="min-w-0">
-          <Input type="time" value={departure} onChange={(e) => setDeparture(e.target.value)} className="w-full min-w-0 appearance-none" />
+        <Field label={isToday ? `${tg("att_out")} · ${tg("att_day_out_later")}` : tg("att_out")} required={!isToday} className="min-w-0" error={error("departure")}>
+          <Input
+            type="time"
+            value={departure}
+            onChange={(e) => {
+              setDeparture(e.target.value);
+              clear("departure");
+            }} className="w-full min-w-0 appearance-none" />
         </Field>
       </div>
       <Field label={tg("att_day_note")}>
         <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tg("att_day_note_ph")} />
       </Field>
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+      <FormSection quiet icon={ICON.date} title={tg("att_day_absent")}>
         <span className="text-xs text-muted-foreground">{tg("att_day_absent_hint")}</span>
-        <Button type="button" size="sm" variant="outline" disabled={submitting} onClick={() => void save(null, null)}>
+        <Button type="button" size="sm" variant="outline" className="self-start" disabled={submitting} onClick={() => void save(null, null)}>
           {tg("att_day_absent")}
         </Button>
-      </div>
+      </FormSection>
     </FormDialog>
   );
 }

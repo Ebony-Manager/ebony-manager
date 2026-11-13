@@ -24,6 +24,9 @@ import { getProjectPeopleAction } from "../proyectos/people-actions";
 import { ClientPicker } from "../cotizacion/ventas-common";
 import { ClientDialog } from "../cotizacion/clientes/client-dialog";
 import { Field } from "./field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 /** "12.5" → 12.5 ; vacío o no-número o negativo → null. */
 function parseMt2(value: string): number | null {
@@ -73,7 +76,10 @@ export function ProjectFormDialog({
   const [paymentTerms, setPaymentTerms] = React.useState("");
   const [totalMt2, setTotalMt2] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  const snapshot = () => JSON.stringify([name, designerId, clientId, location, status, notes, scope, furnitureType, materialColor, specs, paymentTerms, totalMt2]);
+  const initial = React.useRef("");
+  const seeded = React.useRef(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el proyecto cambia entre aperturas. */
   React.useEffect(() => {
@@ -90,9 +96,20 @@ export function ProjectFormDialog({
     setSpecs(project?.specs ?? "");
     setPaymentTerms(project?.paymentTerms ?? "");
     setTotalMt2(project?.totalMt2 != null ? String(project.totalMt2) : "");
-    setError(null);
+    reset();
+    seeded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, project]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Justo después de sembrar el formulario al abrir, se anota cómo quedó (para avisar al descartar).
+  React.useEffect(() => {
+    if (seeded.current) {
+      seeded.current = false;
+      initial.current = snapshot();
+    }
+  });
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
 
   // La lista de arquitectos/diseñadores y clientes finales, al abrir.
   React.useEffect(() => {
@@ -112,12 +129,8 @@ export function ProjectFormDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) {
-      setError(tt("proj_name_required"));
-      return;
-    }
+    if (!validate([["name", !name.trim(), tt("proj_name_required")]])) return;
     setSubmitting(true);
-    setError(null);
     try {
       const payload = {
         name: name.trim(),
@@ -145,14 +158,14 @@ export function ProjectFormDialog({
       onOpenChange(false);
       onSaved?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{project ? tt("proj_dlg_edit_title") : tt("proj_dlg_add_title")}</DialogTitle>
@@ -160,10 +173,13 @@ export function ProjectFormDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <Field label={tt("proj_f_name")}>
+          <Field label={tt("proj_f_name")} required error={error("name")}>
             <Input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                clear("name");
+              }}
               placeholder={tt("proj_f_name_ph")}
               autoFocus
             />
@@ -201,7 +217,7 @@ export function ProjectFormDialog({
               </Select>
             </Field>
           </div>
-          <Field label={tt("proj_f_location")}>
+          <Field label={tt("proj_f_location")} icon={ICON.location}>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
           </Field>
           <Field label={tt("proj_f_notes")}>
@@ -209,10 +225,8 @@ export function ProjectFormDialog({
           </Field>
 
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("action_cancel")}
             </Button>
             <Button type="submit" disabled={submitting}>
@@ -221,6 +235,7 @@ export function ProjectFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
       <ClientDialog
         client={newClient}
         clients={clients}

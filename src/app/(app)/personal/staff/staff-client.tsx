@@ -1,16 +1,18 @@
 "use client";
 
 import { ListToolbar } from "@/components/shared/search-input";
+import { ICON } from "@/lib/ui/concepts";
+import { STATUS } from "@/lib/ui/status";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import * as React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { ChevronDown, ChevronRight, Download, Hammer, IdCard, Loader2, Phone, Plus, Users, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, Hammer, IdCard, Loader2, Phone, Plus, Users, X, type LucideIcon } from "lucide-react";
 
 import type { PayrollEmployee, PayrollPosition } from "@/types/planilla";
 import type { Contractor } from "@/types/contractors";
 import type { DirectoryPerson } from "@/types/staff-directory";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -136,10 +138,10 @@ export function StaffClient({
   const inactive = visible.filter((m) => !m.active);
   const activeTotal = members.filter((m) => m.active).length;
 
-  const FILTERS: { value: TeamFilter; label: string }[] = [
-    { value: "all", label: tt("filter_all") },
-    { value: "employee", label: tt("filter_employee") },
-    { value: "contractor", label: tt("filter_contractor") },
+  const FILTERS: { value: TeamFilter; label: string; icon: LucideIcon }[] = [
+    { value: "all", label: tt("filter_all"), icon: ICON.all },
+    { value: "employee", label: tt("filter_employee"), icon: STATUS.kind_employee.icon },
+    { value: "contractor", label: tt("filter_contractor"), icon: STATUS.kind_contractor.icon },
   ];
 
   return (
@@ -369,9 +371,9 @@ function TeamList({
               {/* En el celular, tipo · departamento · puesto van en una sola línea bajo el nombre. */}
               <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
                 <div className="md:col-start-2 md:row-start-1">
-                  <Badge variant={m.kind === "employee" ? "secondary" : "outline"}>
+                  <StatusBadge status={m.kind === "employee" ? "kind_employee" : "kind_contractor"}>
                     {tt(m.kind === "employee" ? "kind_employee" : "kind_contractor")}
-                  </Badge>
+                  </StatusBadge>
                 </div>
                 <div className="text-sm text-foreground md:col-start-3 md:row-start-1">{tt(`dept_${m.department}`)}</div>
                 <div className="min-w-0 truncate text-sm text-muted-foreground md:col-start-4 md:row-start-1 md:text-foreground">

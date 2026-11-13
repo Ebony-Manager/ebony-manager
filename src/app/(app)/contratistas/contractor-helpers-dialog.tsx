@@ -28,6 +28,9 @@ import {
 import { Field } from "./field";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { EmptyState } from "@/components/shared/page-header";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 
 /**
  * Ayudantes de un contratista: lista + alta / edición / baja en el mismo
@@ -99,7 +102,9 @@ export function ContractorHelpersDialog({
   // `null` = sin formulario; "new" = alta; un id = editando ese ayudante.
   const [editing, setEditing] = React.useState<string | "new" | null>(null);
   const [form, setForm] = React.useState<FormState>(EMPTY);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  const seed = React.useRef(JSON.stringify(EMPTY));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => editing !== null && JSON.stringify(form) !== seed.current, () => (editing ? setEditing(null) : onOpenChange(false)));
 
   const load = React.useCallback(async () => {
     try {
@@ -116,32 +121,31 @@ export function ContractorHelpersDialog({
   React.useEffect(() => {
     if (!open) return;
     setEditing(null);
-    setError(null);
+    reset();
     setHelpers(null);
     load();
-  }, [open, load]);
+  }, [open, load, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   function startNew() {
     setForm(EMPTY);
-    setError(null);
+    seed.current = JSON.stringify(EMPTY);
+    reset();
     setEditing("new");
   }
 
   function startEdit(h: ContractorHelper) {
     setForm(toForm(h));
-    setError(null);
+    seed.current = JSON.stringify(toForm(h));
+    reset();
     setEditing(h.id);
   }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setError(tt("f_name_required"));
-      return;
-    }
+    if (!validate([["name", !form.name.trim(), tt("f_name_required")]])) return;
     const input = toInput(form);
     const target = editing;
     setEditing(null);
@@ -188,7 +192,7 @@ export function ContractorHelpersDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{tt("helpers_title")}</DialogTitle>
@@ -200,17 +204,25 @@ export function ContractorHelpersDialog({
         {editing ? (
           <form className="flex flex-col gap-4" onSubmit={onSubmit}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tt("f_name")} className="sm:col-span-2">
-                <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={tt("f_name_ph")} autoFocus />
+              <Field label={tt("f_name")} required error={error("name")} className="sm:col-span-2">
+                <Input
+                  value={form.name}
+                  onChange={(e) => {
+                    set("name", e.target.value);
+                    clear("name");
+                  }}
+                  placeholder={tt("f_name_ph")}
+                  autoFocus
+                />
               </Field>
               <Field label={tt("f_id_document")}>
-                <Input value={form.idDocument} onChange={(e) => set("idDocument", e.target.value)} placeholder={tt("f_optional")} />
+                <Input value={form.idDocument} onChange={(e) => set("idDocument", e.target.value)} placeholder="8-123-4567" />
               </Field>
-              <Field label={tt("f_phone")}>
-                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder={tt("f_optional")} />
+              <Field label={tt("f_phone")} icon={ICON.phone}>
+                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="6000-0000" />
               </Field>
               <Field label={tt("f_bank_name")}>
-                <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder={tt("f_optional")} />
+                <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} />
               </Field>
               <Field label={tt("f_bank_account_type")}>
                 <Select value={form.bankAccountType} onValueChange={(v) => set("bankAccountType", v as FormState["bankAccountType"])}>
@@ -218,28 +230,22 @@ export function ContractorHelpersDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_ACCOUNT_TYPE}>{tt("f_optional")}</SelectItem>
+                    <SelectItem value={NO_ACCOUNT_TYPE}>—</SelectItem>
                     <SelectItem value="ahorro">{tt("bank_type_ahorro")}</SelectItem>
                     <SelectItem value="corriente">{tt("bank_type_corriente")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
               <Field label={tt("f_bank_account_number")} className="sm:col-span-2">
-                <Input
-                  value={form.bankAccountNumber}
-                  onChange={(e) => set("bankAccountNumber", e.target.value)}
-                  placeholder={tt("f_optional")}
-                />
+                <Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} />
               </Field>
               <Field label={tt("f_notes")} className="sm:col-span-2">
                 <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
               </Field>
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+              <Button type="button" variant="outline" onClick={() => void requestClose()}>
                 {tt("action_cancel")}
               </Button>
               <Button type="submit">{tt("action_save")}</Button>
@@ -314,6 +320,7 @@ export function ContractorHelpersDialog({
           </div>
         )}
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

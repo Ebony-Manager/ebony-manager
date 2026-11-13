@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { FormDialog, Field } from "./form-dialog";
+import { FormSection } from "@/components/shared/form-section";
+import { ICON } from "@/lib/ui/concepts";
 
 /**
  * "Ajustar cuota": UNA cuota pendiente de un préstamo o adelanto se puede
@@ -61,7 +63,6 @@ export function EditInstallmentDialog({
   const [mode, setMode] = React.useState<ReflowMode>("extend");
   const [periodKey, setPeriodKey] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; la cuota editada cambia entre aperturas. */
   React.useEffect(() => {
@@ -72,7 +73,6 @@ export function EditInstallmentDialog({
     setAmount((selected.amountCents / 100).toFixed(2));
     setPeriodKey(`${selected.period.year}-${selected.period.month}-${selected.period.half}`);
     setMode("extend");
-    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo importa al abrir.
   }, [open, ledgerEntryId]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -115,7 +115,6 @@ export function EditInstallmentDialog({
   async function onSubmit() {
     if (!ledgerEntryId) return;
     setSubmitting(true);
-    setError(null);
     try {
       const moved =
         current && selectedPeriod && (selectedPeriod.year !== current.period.year || selectedPeriod.month !== current.period.month || selectedPeriod.half !== current.period.half)
@@ -126,7 +125,7 @@ export function EditInstallmentDialog({
       onOpenChange(false);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setSubmitting(false);
     }
@@ -141,11 +140,11 @@ export function EditInstallmentDialog({
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={tt("action_save")}
-      error={error}
+      dirty={() => changed || (!!current && periodKey !== `${current.period.year}-${current.period.month}-${current.period.half}`)}
       wide
     >
       {current && <p className="text-sm text-muted-foreground">{pl(current.period)}</p>}
-      <Field label={tt("loan_edit_f_period")}>
+      <Field label={tt("loan_edit_f_period")} icon={ICON.date}>
         <Select value={periodKey} onValueChange={setPeriodKey}>
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent className="max-h-64">
@@ -162,8 +161,7 @@ export function EditInstallmentDialog({
       <p className="text-xs text-muted-foreground">{tt("loan_edit_amount_hint")}</p>
 
       {changed && !same && (
-        <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <legend className="px-1 text-xs font-medium text-foreground">{tt("loan_edit_mode_title")}</legend>
+        <FormSection icon={ICON.adjust} title={tt("loan_edit_mode_title")}>
           {(["extend", "spread"] as const).map((m) => (
             <label key={m} className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
               <input
@@ -181,13 +179,12 @@ export function EditInstallmentDialog({
               </span>
             </label>
           ))}
-        </fieldset>
+        </FormSection>
       )}
 
       {changed && shown.length > 0 && (
-        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          <p className="mb-1 font-medium text-foreground">{tt("loan_edit_preview")}</p>
-          <ul className="flex flex-col gap-0.5">
+        <FormSection quiet icon={ICON.period} title={tt("loan_edit_preview")}>
+          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
             {shown.map((i, idx) => (
               <li key={i.ledgerEntryId ?? `new-${idx}`} className="flex justify-between gap-3">
                 <span>{pl(i.period)}</span>
@@ -195,7 +192,7 @@ export function EditInstallmentDialog({
               </li>
             ))}
           </ul>
-        </div>
+        </FormSection>
       )}
       {changed && same && <p className="text-xs text-muted-foreground">{tt("loan_edit_no_change")}</p>}
     </FormDialog>

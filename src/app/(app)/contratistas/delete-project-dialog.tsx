@@ -38,11 +38,9 @@ export function DeleteProjectDialog({
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
 
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   async function onConfirm() {
     setSubmitting(true);
-    setError(null);
     try {
       const res = await deleteProjectAction(project.id);
       if (!res.ok) throw new Error(res.error);
@@ -50,7 +48,7 @@ export function DeleteProjectDialog({
       onOpenChange(false);
       onDeleted?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
       setSubmitting(false);
     }
   }
@@ -71,8 +69,6 @@ export function DeleteProjectDialog({
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {tt("proj_delete_keeps_moves")}
         </div>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
