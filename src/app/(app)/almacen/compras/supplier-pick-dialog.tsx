@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import type { PurchaseRequest, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { Field } from "../../contratistas/field";
 import { setRequestsSupplierAction } from "../actions";
 import { Combo, qtyWithUnit, useTa, type VariantRef } from "../shared";
@@ -33,12 +35,16 @@ export function SupplierPickDialog({
   const [supplierId, setSupplierId] = React.useState<string | null>(null);
   const [remember, setRemember] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const { error, validate, clear, reset } = useFormErrors<"supplier">();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => supplierId !== (draft?.supplierId ?? null), onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
     if (!draft) return;
     setSupplierId(draft.supplierId);
     setRemember(true);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [draft]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -55,11 +61,11 @@ export function SupplierPickDialog({
   }, [picked, index]);
 
   async function save() {
-    if (!supplierId) return toast.error(ta("supplier_required"));
+    if (!validate([["supplier", !supplierId, ta("supplier_required")]])) return;
     setSaving(true);
     const res = await setRequestsSupplierAction(
       picked.map((r) => r.id),
-      supplierId,
+      supplierId!,
       remember ? unlinked : [],
     );
     setSaving(false);
@@ -69,14 +75,22 @@ export function SupplierPickDialog({
   }
 
   return (
-    <Dialog open={!!draft} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!draft} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ta("choose_supplier")}</DialogTitle>
           <DialogDescription>{ta("choose_supplier_hint")}</DialogDescription>
         </DialogHeader>
-        <Field label={ta("f_supplier")}>
-          <Combo options={options} value={supplierId} onChange={setSupplierId} placeholder={ta("pick_supplier")} />
+        <Field label={ta("f_supplier")} required error={error("supplier")}>
+          <Combo
+            options={options}
+            value={supplierId}
+            onChange={(id) => {
+              setSupplierId(id);
+              clear("supplier");
+            }}
+            placeholder={ta("pick_supplier")}
+          />
         </Field>
         {supplierId && unlinked.length > 0 && (
           <label className="-mt-2 flex items-center gap-2 text-xs text-muted-foreground">
@@ -93,14 +107,15 @@ export function SupplierPickDialog({
           ))}
         </ul>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
             {ta("cancel")}
           </Button>
-          <Button type="button" onClick={() => void save()} disabled={saving || !supplierId}>
+          <Button type="button" onClick={() => void save()} disabled={saving}>
             {saving ? ta("saving") : ta("save")}
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

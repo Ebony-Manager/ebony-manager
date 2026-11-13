@@ -2,21 +2,14 @@
 
 import { RefreshCw, User } from "lucide-react";
 import type { OrderStatus, RequestStatus } from "@/types/almacen";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge as SharedStatusBadge } from "@/components/shared/status-badge";
 import { purchasePack, packText, type PurchasePack } from "@/lib/almacen/inventory";
 import { ItemThumb, qtyWithUnit, useTa, type VariantRef } from "../shared";
 
-const STATUS_BADGE: Record<RequestStatus | OrderStatus, "warning" | "secondary" | "success" | "outline"> = {
-  pendiente: "warning",
-  pedido: "secondary",
-  parcial: "secondary",
-  recibido: "success",
-  cancelado: "outline",
-};
-
+/** El estado de una solicitud o pedido: ícono y tono del registro (lib/ui/status.ts). */
 export function StatusBadge({ status }: { status: RequestStatus | OrderStatus }) {
   const { ta } = useTa();
-  return <Badge variant={STATUS_BADGE[status]}>{ta(`st_${status}`)}</Badge>;
+  return <SharedStatusBadge status={`purchase_${status}`}>{ta(`st_${status}`)}</SharedStatusBadge>;
 }
 
 /** Nombre de lo pedido: el producto del catálogo o el texto libre. */

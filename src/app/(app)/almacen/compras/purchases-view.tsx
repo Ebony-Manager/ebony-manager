@@ -24,6 +24,7 @@ import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import { toPacks, type OrderMessageLine, type PurchasePack } from "@/lib/almacen/inventory";
 import { SubTabs } from "@/components/shared/page-header";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 import {
@@ -691,9 +692,9 @@ function History({
       <ListToolbar>
         <SearchBox value={q} onChange={setQ} placeholder={ta("history_search")} />
         <SegmentedFilter value={status} onChange={setStatus} options={[
-          { value: "recibido", label: ta("st_recibido") },
+          { value: "recibido", label: ta("st_recibido"), icon: STATUS.purchase_recibido.icon, iconClass: TONE_TEXT[STATUS.purchase_recibido.tone] },
           { value: "all", label: ta("origin_all") },
-          { value: "cancelado", label: ta("st_cancelado") },
+          { value: "cancelado", label: ta("st_cancelado"), icon: STATUS.purchase_cancelado.icon, iconClass: TONE_TEXT[STATUS.purchase_cancelado.tone] },
         ]} />
       </ListToolbar>
       {rows.length === 0 ? <EmptyBox>{ta("history_empty")}</EmptyBox> : (

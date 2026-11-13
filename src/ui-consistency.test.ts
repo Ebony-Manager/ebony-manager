@@ -66,14 +66,14 @@ describe("consistencia de la interfaz", () => {
 
   it("los campos son <Field> con asterisco en lo obligatorio: no se escribe «opcional» en los campos — la deuda existente no puede crecer", () => {
     // Deuda anotada al crear la guardia: pantallas por migrar. Si baja, bájala acá; si sube, la prueba falla.
-    const BASELINE = 28;
+    const BASELINE = 26;
     const bad = find((l) => /placeholder=\{[^}]*(optional|opcional)[^}]*\}|placeholder="[^"]*(opcional|Optional|optional)/.test(l));
     expect(bad.length, fix("Lo obligatorio lleva asterisco (<Field required>); lo opcional no se marca. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });
 
   it("la validación es useFormErrors + <Field error>, no un mensaje rojo suelto al final — la deuda existente no puede crecer", () => {
     // Formularios que todavía usan setError(...) (el sistema viejo), por migrar tanda por tanda.
-    const BASELINE_FILES = 31;
+    const BASELINE_FILES = 30;
     const files = new Set(find((l, p) => p.startsWith("app/") && /\bsetError\(/.test(l)).map((x) => x.split(":")[0]));
     expect(files.size, fix("Usa useFormErrors (lib/ui/use-form-errors) y <Field error>. Archivos:", [...files])).toBeLessThanOrEqual(BASELINE_FILES);
   });

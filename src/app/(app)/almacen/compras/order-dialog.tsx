@@ -14,7 +14,10 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatQty, formatUnitCost, parseQty, toPacks } from "@/lib/almacen/inventory";
+import { Receipt } from "lucide-react";
 import { Field } from "../../contratistas/field";
+import { FormSection } from "@/components/shared/form-section";
+import { ICON } from "@/lib/ui/concepts";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, useTa, type VariantRef } from "../shared";
 import { PurchasePhoto, StatusBadge, packOf, purchaseQtyText } from "./common";
@@ -158,8 +161,7 @@ export function OrderDialog({
 
         {/* Cómo llega: Compras lo cambia mientras está abierto; los demás lo ven. */}
         {canPurchase && open ? (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">{ta("delivery_q")}</span>
+          <Field label={ta("delivery_q")}>
             <SegmentedFilter
               value={order.delivery ?? "retiro"}
               onChange={(d) => void changeDelivery(d)}
@@ -168,7 +170,7 @@ export function OrderDialog({
                 { value: "entrega", label: ta("delivery_entrega") },
               ]}
             />
-          </div>
+          </Field>
         ) : (
           order.delivery && (
             <div>
@@ -201,20 +203,16 @@ export function OrderDialog({
                   {(receiving || canCosts) && (
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       {receiving && !done && (
-                        <label className="flex items-center gap-1.5">
-                          <span className="text-xs text-muted-foreground">{ta("col_to_receive")}</span>
-                          <span className="w-24">
-                            <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} aria-label={ta("receive")} />
-                          </span>
-                          {pack && <span className="text-xs text-muted-foreground">× {pack.label || formatQty(pack.qty, lang)}</span>}
-                        </label>
+                        <Field className="w-32" label={ta("col_to_receive")} hint={pack ? `× ${pack.label || formatQty(pack.qty, lang)}` : undefined}>
+                          <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} />
+                        </Field>
                       )}
                       {canCosts && (
                         <span className="flex flex-1 items-center justify-end gap-1.5">
                           {canPurchase ? (
-                            <span className="w-24" title={ta("f_unit_price")}>
-                              <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} aria-label={ta("f_unit_price")} />
-                            </span>
+                            <Field className="w-32" label={ta("f_unit_price")}>
+                              <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} />
+                            </Field>
                           ) : (
                             <span className="tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
                           )}
@@ -232,9 +230,11 @@ export function OrderDialog({
           {receiving && (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">{ta("receive_hint")}</p>
-              <div className="flex items-center gap-2">
-                <Input type="date" className="h-9 w-40" value={receivedOn} onChange={(e) => setReceivedOn(e.target.value)} aria-label={ta("date")} />
-                <Button size="sm" className="flex-1 sm:flex-none" onClick={doReceive} disabled={busy}>
+              <div className="flex items-end gap-2">
+                <Field className="w-44" label={ta("date")} icon={ICON.date}>
+                  <Input type="date" value={receivedOn} onChange={(e) => setReceivedOn(e.target.value)} />
+                </Field>
+                <Button size="sm" className="h-9 flex-1 sm:flex-none" onClick={doReceive} disabled={busy}>
                   {ta("receive_save")}
                 </Button>
               </div>
@@ -242,24 +242,23 @@ export function OrderDialog({
           )}
 
           {canCosts && order.status !== "cancelado" && (
-            <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">{ta("invoice")}</h3>
-                <span className="text-sm font-semibold tabular-nums">{ta("order_total", { t: formatCents(totalCents) })}</span>
-              </div>
+            <FormSection
+              quiet
+              icon={Receipt}
+              title={ta("invoice")}
+              action={<span className="text-sm font-semibold tabular-nums">{ta("order_total", { t: formatCents(totalCents) })}</span>}
+            >
               <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Field label={ta("f_invoice_ref")}>
-                    <Input value={invoiceRef} onChange={(e) => setInvoiceRef(e.target.value)} disabled={!canPurchase} placeholder={canPurchase ? ta("optional") : undefined} />
-                  </Field>
-                </div>
+                <Field className="flex-1" label={ta("f_invoice_ref")}>
+                  <Input value={invoiceRef} onChange={(e) => setInvoiceRef(e.target.value)} disabled={!canPurchase} />
+                </Field>
                 {canPurchase && (
                   <Button size="sm" variant="outline" className="h-9" onClick={doInvoice} disabled={busy || !invoiceDirty}>
                     {ta("save_invoice")}
                   </Button>
                 )}
               </div>
-            </div>
+            </FormSection>
           )}
         </section>
 

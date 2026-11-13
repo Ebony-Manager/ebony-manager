@@ -7,6 +7,7 @@ import { Copy, MapPin, Truck, type LucideIcon } from "lucide-react";
 import type { OrderDelivery, Supplier } from "@/types/almacen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Field } from "../../contratistas/field";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -63,8 +64,7 @@ export function OrderMessageBox({ supplier, lines, notes }: { supplier: Supplier
   return (
     <div className="flex flex-col gap-2">
       {people.length > 1 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-muted-foreground">{ta("pick_contact")}</span>
+        <Field label={ta("pick_contact")}>
           <div className="flex flex-wrap gap-1.5">
             {people.map((c, i) => (
               <button
@@ -81,9 +81,11 @@ export function OrderMessageBox({ supplier, lines, notes }: { supplier: Supplier
               </button>
             ))}
           </div>
-        </div>
+        </Field>
       )}
-      <Textarea rows={8} value={message} onChange={(e) => setMessage(e.target.value)} className="text-sm" />
+      <Field label={ta("order_message")}>
+        <Textarea rows={8} value={message} onChange={(e) => setMessage(e.target.value)} className="text-sm" />
+      </Field>
       <div className="flex flex-wrap items-center gap-2">
         {wa ? (
           <Button asChild size="sm">

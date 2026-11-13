@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatQty, parseQty, roundUpToPack, suggestedOrderQty, toPacks } from "@/lib/almacen/inventory";
 import { Field } from "../../contratistas/field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { createPurchaseRequestAction } from "../actions";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
 import { packOf } from "./common";
@@ -70,7 +72,9 @@ export function RequestDialog({
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [reason, setReason] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<string>();
+  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim()) || !!projectId || !!reason.trim();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -79,7 +83,8 @@ export function RequestDialog({
     setLines([newLine()]);
     setProjectId(null);
     setReason("");
-    setError(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, items]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -100,19 +105,25 @@ export function RequestDialog({
   function changeMode(m: "catalog" | "free") {
     setMode(m);
     setLines([newLine()]);
-    setError(null);
+    reset();
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Los renglones en blanco (el último que se agregó y no se llenó) se ignoran.
     const filled = lines.filter((l) => (mode === "catalog" ? l.variantId : l.description.trim()) || l.qty.trim());
-    if (filled.length === 0 || filled.some((l) => (mode === "catalog" ? !l.variantId : !l.description.trim()))) return setError(ta("what_required"));
     const parsed = filled.map((l) => ({ line: l, n: parseQty(l.qty) }));
-    if (parsed.some((p) => p.n == null || p.n <= 0)) return setError(ta("qty_required"));
+    // Sin ningún renglón lleno, se marca el primero (qué y cuánto).
+    const checked = parsed.length ? parsed : [{ line: lines[0], n: null as number | null }];
+    const ok = validate(
+      checked.flatMap(({ line: l, n }) => [
+        [`what-${l.key}`, mode === "catalog" ? !l.variantId : !l.description.trim(), ta("what_required")] as const,
+        [`qty-${l.key}`, n == null || n <= 0, ta("qty_required")] as const,
+      ]),
+    );
+    if (!ok) return;
 
     setSaving(true);
-    setError(null);
     let done = 0;
     for (const { line: l, n } of parsed) {
       const ref = lineVariant(l);
@@ -135,7 +146,7 @@ export function RequestDialog({
         setSaving(false);
         // Las que ya se guardaron se quitan para no duplicarlas al reintentar.
         setLines((ls) => ls.filter((x) => !parsed.slice(0, done).some((p) => p.line.key === x.key)));
-        return setError(res.error);
+        return void toast.error(res.error);
       }
       done += 1;
     }
@@ -147,7 +158,7 @@ export function RequestDialog({
   const count = lines.filter((l) => (mode === "catalog" ? l.variantId : l.description.trim())).length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ta("new_request")}</DialogTitle>
@@ -168,31 +179,43 @@ export function RequestDialog({
               const pack = linePack(l);
               const n = parseQty(l.qty);
               return (
-                <li key={l.key} className="flex flex-col gap-2 rounded-lg border border-border p-3">
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
+                <li key={l.key} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                  <div className="flex items-end gap-2">
+                    <Field
+                      className="min-w-0 flex-1"
+                      label={mode === "catalog" ? ta("f_product") : ta("f_what")}
+                      required
+                      error={error(`what-${l.key}`)}
+                      hint={ref ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}` : undefined}
+                    >
                       {mode === "catalog" ? (
-                        <Combo options={variantOptions} value={l.variantId} onChange={(id) => pickVariant(l.key, id)} placeholder={ta("pick_product")} />
+                        <Combo
+                          options={variantOptions}
+                          value={l.variantId}
+                          onChange={(id) => {
+                            pickVariant(l.key, id);
+                            clear(`what-${l.key}`);
+                            clear(`qty-${l.key}`);
+                          }}
+                          placeholder={ta("pick_product")}
+                        />
                       ) : (
                         <Input
                           value={l.description}
-                          onChange={(e) => patch(l.key, { description: e.target.value })}
+                          onChange={(e) => {
+                            patch(l.key, { description: e.target.value });
+                            clear(`what-${l.key}`);
+                          }}
                           placeholder={ta("f_what_ph")}
-                          aria-label={ta("f_what")}
                           autoFocus={i === lines.length - 1 && i > 0}
                         />
                       )}
-                      {ref && (
-                        <p className="mt-1 px-1 text-xs text-muted-foreground">
-                          {ta("stock_now")}: {qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}
-                        </p>
-                      )}
-                    </div>
+                    </Field>
                     {lines.length > 1 && (
                       <button
                         type="button"
                         onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
-                        className="flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                        className="mb-0.5 flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                         aria-label={ta("remove")}
                         title={ta("remove")}
                       >
@@ -201,55 +224,57 @@ export function RequestDialog({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="w-24">
-                      <QtyInput value={l.qty} onChange={(v) => patch(l.key, { qty: v })} aria-label={ta("qty")} placeholder={ta("qty")} />
-                    </div>
-                    {mode === "catalog" ? (
-                      <span className="text-sm text-muted-foreground">
-                        {pack
+                  <div className="grid gap-3 min-[480px]:grid-cols-[8rem_1fr]">
+                    <Field
+                      label={ta("qty")}
+                      required
+                      error={error(`qty-${l.key}`)}
+                      hint={
+                        mode === "catalog" && pack
                           ? `× ${pack.label || formatQty(pack.qty, lang)}${n && n > 0 ? ` = ${qtyWithUnit(n * pack.qty, ref?.item.unit, lang)}` : ""}`
-                          : ref
+                          : mode === "catalog" && ref
                             ? ta(`unit_${ref.item.unit}`)
-                            : ""}
-                      </span>
-                    ) : (
-                      <Select value={l.unit} onValueChange={(v) => patch(l.key, { unit: v as InventoryUnit })}>
-                        <SelectTrigger className="w-36" aria-label={ta("f_unit")}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INVENTORY_UNITS.map((u) => (
-                            <SelectItem key={u} value={u}>
-                              {ta(`unit_${u}`)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {supplierOptions.length > 0 && (
-                      <div className="flex min-w-48 flex-1 items-center gap-1">
-                        <Combo
-                          options={supplierOptions}
-                          value={l.supplierId}
-                          onChange={(id) => patch(l.key, { supplierId: id })}
-                          placeholder={ta("f_supplier_opt")}
-                          className="h-9"
-                        />
-                        {l.supplierId && (
-                          <button
-                            type="button"
-                            onClick={() => patch(l.key, { supplierId: null })}
-                            className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
-                            aria-label={ta("remove")}
-                            title={ta("remove")}
-                          >
-                            <X className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
+                            : undefined
+                      }
+                    >
+                      <QtyInput
+                        value={l.qty}
+                        onChange={(v) => {
+                          patch(l.key, { qty: v });
+                          clear(`qty-${l.key}`);
+                        }}
+                      />
+                    </Field>
+                    {mode === "free" && (
+                      <Field label={ta("f_unit")}>
+                        <Select value={l.unit} onValueChange={(v) => patch(l.key, { unit: v as InventoryUnit })}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INVENTORY_UNITS.map((u) => (
+                              <SelectItem key={u} value={u}>
+                                {ta(`unit_${u}`)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
                     )}
                   </div>
+
+                  {supplierOptions.length > 0 && (
+                    <Field label={ta("f_supplier")}>
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <Combo options={supplierOptions} value={l.supplierId} onChange={(id) => patch(l.key, { supplierId: id })} placeholder={ta("pick_supplier")} />
+                        {l.supplierId && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => patch(l.key, { supplierId: null })}>
+                            {ta("remove")}
+                          </Button>
+                        )}
+                      </div>
+                    </Field>
+                  )}
                 </li>
               );
             })}
@@ -262,7 +287,7 @@ export function RequestDialog({
           {projectOptions.length > 0 && (
             <Field label={ta("dest_project")}>
               <div className="grid grid-cols-[1fr_auto] gap-2">
-                <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("optional")} />
+                <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
                 {projectId && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setProjectId(null)}>
                     {ta("remove")}
@@ -276,10 +301,8 @@ export function RequestDialog({
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ta("f_reason_ph")} />
           </Field>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
               {ta("cancel")}
             </Button>
             <Button type="submit" disabled={saving}>
@@ -288,6 +311,7 @@ export function RequestDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }
