@@ -6,6 +6,8 @@ import { requireAnyModule, requireModule } from "@/lib/auth/dal";
 import { PAGOS_PATH, STAFF_PATH } from "@/lib/personal/paths";
 import * as contractors from "@/services/contractors";
 import { syncProjectFolder } from "@/lib/google/drive-stages";
+import { syncProjectFolderName } from "@/lib/google/drive-names";
+import { createClient } from "@/lib/supabase/server";
 import { syncProjectFormsAfter } from "@/services/project-forms";
 
 // Contratistas es para quien tiene el módulo `contratistas` (el admin
@@ -66,6 +68,8 @@ export async function updateProjectAction(id: string, input: contractors.UpdateP
   const project = await contractors.updateProject(id, input);
   // Terminado ↔ activo: su carpeta de Drive pasa a TERMINADOS o vuelve a ACTIVOS.
   if (input.status !== undefined) await syncProjectFolder(id);
+  // Si cambió el nombre, su carpeta de Drive también.
+  if (input.name !== undefined) await syncProjectFolderName(await createClient(), id);
   if (input.status !== undefined || input.name !== undefined) await syncProjectFormsAfter();
   revalidateContractors();
   return project;

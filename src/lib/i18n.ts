@@ -3880,6 +3880,7 @@ export const strings = {
       es: "«Probar» solo valida la clave con una consulta de lectura. El webhook se configura en cada formulario de Jotform.",
       en: "\"Test\" only checks the key with a read-only request. The webhook is set up on each Jotform form.",
     },
+    drive_sync_names: { es: "Sincronizar nombres de carpetas", en: "Sync folder names" },
     drive_desc: {
       es: "Las carpetas de cada oportunidad y proyecto (se crean al aprobar una cotización) y los archivos que se ven dentro de la app.",
       en: "Each opportunity's and project's folders (created when a quote is approved) and the files shown inside the app.",

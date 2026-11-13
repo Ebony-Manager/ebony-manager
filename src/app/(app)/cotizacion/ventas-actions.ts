@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requireModule } from "@/lib/auth/dal";
+import { createClient } from "@/lib/supabase/server";
+import { syncOpportunityFolderName } from "@/lib/google/drive-names";
 import * as ventas from "@/services/ventas";
 import { addProjectSubfolders, trashOpportunityFolder } from "@/services/drive-opportunity";
 import { syncProjectFormsAfter } from "@/services/project-forms";
@@ -42,6 +44,8 @@ export async function updateOpportunityAction(id: string, input: ventas.Opportun
     await ventas.updateOpportunity(id, input);
     // Perdida: su carpeta de Drive se borra (queda 30 días en la papelera de Drive).
     if (input.stage === "perdida") await trashOpportunityFolder(id);
+    // Si no, su carpeta de Drive toma el nombre nuevo.
+    else await syncOpportunityFolderName(await createClient(), id);
   });
 }
 

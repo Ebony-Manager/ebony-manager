@@ -4,6 +4,7 @@ import { syncProjectOptions } from "@/lib/deliveries/acta-server";
 
 import { requireAdmin } from "@/lib/auth/dal";
 import { driveDiagnosis } from "@/lib/google/drive";
+import { syncAllDriveNames } from "@/lib/google/drive-names";
 import { errText, recordRun } from "@/lib/integrations/record";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -81,6 +82,22 @@ export async function testDriveAction(): Promise<TestResult> {
     ok: true,
     message: `Funciona. Carpeta raíz: ${String(d.raiz).replace(/^OK: /, "")}`,
   };
+}
+
+/**
+ * Renombra las carpetas de Drive (proyectos y oportunidades) para que se llamen igual que en la aplicación.
+ * Solo cambia nombres: los enlaces y lo que hay dentro no se tocan. Se detiene si Drive no da permiso.
+ */
+export async function syncDriveNamesAction(): Promise<TestResult> {
+  await requireAdmin();
+  try {
+    const r = await syncAllDriveNames(await createClient());
+    const parts = [`${r.renamed.length} renombradas`, `${r.unchanged} ya estaban bien`];
+    if (r.errors.length) parts.push(`${r.errors.length} con error: ${r.errors.slice(0, 2).join(" · ")}`);
+    return { ok: r.errors.length === 0, message: parts.join(" · ") };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "Error" };
+  }
 }
 
 /** Prueba de solo lectura: ¿Alegra acepta el correo y el token? */

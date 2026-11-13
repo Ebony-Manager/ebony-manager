@@ -220,6 +220,15 @@ export async function trashItem(id: string): Promise<void> {
   });
 }
 
+/** Cambia el nombre de un archivo o carpeta (el identificador, y por tanto los enlaces, no cambian). */
+export async function renameItem(id: string, name: string): Promise<void> {
+  await driveFetch(`${API}/files/${encodeURIComponent(id)}?fields=id&${ALL_DRIVES}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: name.trim() }),
+  });
+}
+
 export async function createFolder(name: string, parentId: string): Promise<string> {
   const res = await driveFetch(`${API}/files?fields=id&${ALL_DRIVES}`, {
     method: "POST",

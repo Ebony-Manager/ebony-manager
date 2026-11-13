@@ -33,6 +33,7 @@ import {
   saveAlegraConfigAction,
   testAlegraAction,
   testDriveAction,
+  syncDriveNamesAction,
   testJotformAction,
 } from "./actions";
 
@@ -257,6 +258,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
           }
           tc={tc}
           test={testDriveAction}
+          extra={{ label: tc("drive_sync_names"), run: syncDriveNamesAction }}
         >
           <Fact label={tc("last_ok")} value={ago(r["drive"]?.last_ok_at)} />
           {failing(r["drive"]) && <ErrorLine run={r["drive"]!} when={when} />}
@@ -403,6 +405,7 @@ function Card({
   health,
   tc,
   test,
+  extra,
   children,
 }: {
   logo: React.ReactNode;
@@ -413,9 +416,25 @@ function Card({
   health: Health;
   tc: (k: Tk) => string;
   test?: () => Promise<{ ok: boolean; message: string }>;
+  /** Otra acción de la tarjeta (ej. sincronizar nombres de carpetas), con su propio texto. */
+  extra?: { label: string; run: () => Promise<{ ok: boolean; message: string }> };
   children: React.ReactNode;
 }) {
   const [testing, setTesting] = React.useState(false);
+  const [extraRunning, setExtraRunning] = React.useState(false);
+  async function runExtra() {
+    if (!extra) return;
+    setExtraRunning(true);
+    try {
+      const res = await extra.run();
+      if (res.ok) toast.success(res.message, { duration: 8000 });
+      else toast.error(res.message, { duration: 12000 });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setExtraRunning(false);
+    }
+  }
   async function runTest() {
     if (!test) return;
     setTesting(true);
@@ -473,17 +492,25 @@ function Card({
               </span>
             )}
           </span>
-          {test && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={testing || !configured}
-              onClick={() => void runTest()}
-            >
-              {testing && <Loader2 className="size-3.5 animate-spin" />}
-              {tc("test")}
-            </Button>
-          )}
+          <span className="flex flex-wrap gap-2">
+            {extra && (
+              <Button size="sm" variant="outline" disabled={extraRunning || !configured} onClick={() => void runExtra()}>
+                {extraRunning && <Loader2 className="size-3.5 animate-spin" />}
+                {extra.label}
+              </Button>
+            )}
+            {test && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={testing || !configured}
+                onClick={() => void runTest()}
+              >
+                {testing && <Loader2 className="size-3.5 animate-spin" />}
+                {tc("test")}
+              </Button>
+            )}
+          </span>
         </div>
       )}
     </section>

@@ -19,6 +19,7 @@ import {
   type DriveItem,
 } from "@/lib/google/drive";
 import { placeProjectFolder, stageFolder } from "@/lib/google/drive-stages";
+import { opportunityFolderName } from "@/lib/google/drive-names";
 import { stageForProject } from "@/lib/google/stage-rules";
 
 // Archivos de Drive (oportunidades de Ventas y proyectos). Ver lib/google/drive.ts.
@@ -85,7 +86,7 @@ export async function ensureOpportunityFolderAction(id: string): Promise<DriveRe
     const supabase = await createClient();
     const { data: opp, error } = await supabase
       .from("sales_opportunities")
-      .select("id, title, location, drive_folder_id, designer_id, client_id, project_id")
+      .select("id, title, location, building, unit, drive_folder_id, designer_id, client_id, project_id")
       .eq("id", id)
       .single();
     if (error) throw new Error(error.message);
@@ -100,12 +101,10 @@ export async function ensureOpportunityFolderAction(id: string): Promise<DriveRe
     if (!folderId) {
       const ids = [opp.designer_id, opp.client_id].filter((v): v is string => !!v);
       const { data: people } = ids.length ? await supabase.from("clients").select("id, name").in("id", ids) : { data: [] };
-      const nameOf = (pid: string | null) => (pid ? (people ?? []).find((p) => p.id === pid)?.name : undefined);
-      // "MM Interiores - The Colonial 23C": la firma (o el cliente) y el proyecto.
-      const who = nameOf(opp.designer_id) ?? nameOf(opp.client_id);
-      const what = opp.title?.trim() || opp.location?.trim() || null;
+      const nameOf = (pid: string) => (people ?? []).find((p) => p.id === pid)?.name;
+      // "MM Interiores – The Colonial 23C": el mismo nombre que tiene en la aplicación.
       root();
-      folderId = await createFolder([who, what].filter(Boolean).join(" - ") || "Oportunidad", await stageFolder("OPORTUNIDADES"));
+      folderId = await createFolder(opportunityFolderName(opp, (pid) => nameOf(pid)), await stageFolder("OPORTUNIDADES"));
     }
     if (folderId !== opp.drive_folder_id) {
       const { error: saveError } = await supabase
