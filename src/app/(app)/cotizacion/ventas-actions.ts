@@ -56,9 +56,9 @@ export async function setOpportunityStageAction(id: string, stage: Stage, lostRe
   });
 }
 
-export async function approveOpportunityAction(id: string, projectName: string | null, projectId: string | null, quoteIds: string[]) {
+export async function approveOpportunityAction(id: string, projectName: string | null, projectId: string | null, quoteIds: string[], designerIds: string[]) {
   return run(async () => {
-    const project = await ventas.approveOpportunity(id, projectName, projectId, quoteIds);
+    const project = await ventas.approveOpportunity(id, projectName, projectId, quoteIds, designerIds);
     // Aprobada: su carpeta recibe las subcarpetas del proyecto (medidas, sketchup…).
     await addProjectSubfolders(id);
     await syncProjectFormsAfter();

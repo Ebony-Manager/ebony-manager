@@ -6,7 +6,7 @@ import { cleanUnit, clientStats, defaultProjectName, opportunitySubtitle, sugges
 const opp = (p: Partial<Opportunity>): Opportunity => ({
   id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, building: null, unit: null, stage: "por_cotizar", lostReason: null, lostNote: null,
   receivedOn: "2026-10-01", dueOn: null, nextFollowUp: null, stageChangedAt: "2026-10-01T12:00:00Z", sentOn: null, closedOn: null,
-  ownerId: null, ownerName: null, amount: null, projectId: null, driveFolderId: null, driveFolderUrl: null, notes: null,
+  ownerId: null, ownerName: null, designerEmployeeIds: [], amount: null, projectId: null, driveFolderId: null, driveFolderUrl: null, notes: null,
   createdAt: "2026-10-01T12:00:00Z", quotes: [], ...p,
 });
 const client = (id: string, name: string, kind: Client["kind"]): Client =>

@@ -69,6 +69,8 @@ export interface Opportunity {
   closedOn: string | null;
   ownerId: string | null;
   ownerName: string | null;
+  /** Diseñadoras de Ebony asignadas (ids de Personal); pasan al proyecto al aprobarla. */
+  designerEmployeeIds: string[];
   /** Escrito a mano (si no hay cotización en la app). */
   amount: number | null;
   projectId: string | null;

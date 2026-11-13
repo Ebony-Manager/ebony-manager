@@ -23,6 +23,8 @@ import { projectPath } from "../../proyectos/paths";
 import { approveOpportunityAction } from "../ventas-actions";
 import { useTv } from "../ventas-common";
 import type { SalesProject } from "./opportunity-dialog";
+import { DesignerPick } from "@/components/shared/designer-pick";
+import type { DesignerCandidate } from "@/types/designers";
 
 /** Perdida: el motivo (obligatorio) y un detalle. */
 export function LostDialog({
@@ -177,11 +179,13 @@ export function ApproveDialog({
   opportunity,
   clients,
   projects,
+  designerCandidates,
   onClose,
 }: {
   opportunity: Opportunity | null;
   clients: Map<string, Client>;
   projects: SalesProject[];
+  designerCandidates: DesignerCandidate[];
   onClose: () => void;
 }) {
   const { tv } = useTv();
@@ -192,9 +196,10 @@ export function ApproveDialog({
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"name" | "project" | "quotes">();
   const [picked, setPicked] = React.useState<string[]>([]);
+  const [designerIds, setDesignerIds] = React.useState<string[]>([]);
   const open_ = opportunity ? openQuotes(opportunity.quotes) : [];
   const initial = React.useRef("");
-  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => JSON.stringify({ mode, name, projectId, picked }) !== initial.current, onClose);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => JSON.stringify({ mode, name, projectId, picked, designerIds }) !== initial.current, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -209,7 +214,8 @@ export function ApproveDialog({
     setMode(startMode);
     setName(startName);
     setProjectId(startProject);
-    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: startProject, picked: startPicked });
+    setDesignerIds(opportunity.designerEmployeeIds);
+    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: startProject, picked: startPicked, designerIds: opportunity.designerEmployeeIds });
     setSaving(false);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
@@ -225,7 +231,7 @@ export function ApproveDialog({
     ]);
     if (!ok) return;
     setSaving(true);
-    const res = await approveOpportunityAction(opportunity.id, mode === "new" ? name.trim() : null, mode === "existing" ? projectId : null, picked);
+    const res = await approveOpportunityAction(opportunity.id, mode === "new" ? name.trim() : null, mode === "existing" ? projectId : null, picked, designerIds);
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     const id = res.data;
@@ -295,6 +301,14 @@ export function ApproveDialog({
               </Select>
             </Field>
           )}
+          <Field label={tv("f_designers")} icon={ICON.designer} hint={tv("f_designers_hint")}>
+            <DesignerPick
+              value={designerIds}
+              onChange={setDesignerIds}
+              candidates={designerCandidates}
+              labels={{ add: tv("designers_add"), none: tv("designers_none"), remove: tv("designers_remove") }}
+            />
+          </Field>
           {open_.length > 0 && (
             <QuotePickList
               quotes={open_}

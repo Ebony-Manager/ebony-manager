@@ -60,6 +60,7 @@ function mapOpp(r: OppRow, quotes: LinkedQuote[]): Opportunity {
     closedOn: r.closed_on,
     ownerId: r.owner_id,
     ownerName: r.owner_name,
+    designerEmployeeIds: r.designer_employee_ids ?? [],
     amount: num(r.amount),
     projectId: r.project_id,
     driveFolderId: r.drive_folder_id,
@@ -180,6 +181,7 @@ export interface OpportunityInput {
   dueOn: string | null;
   nextFollowUp: string | null;
   ownerId: string | null;
+  designerEmployeeIds: string[];
   driveFolderUrl: string | null;
   notes: string | null;
 }
@@ -201,6 +203,7 @@ function oppRow(i: OpportunityInput) {
     due_on: i.dueOn || null,
     next_follow_up: i.nextFollowUp || null,
     owner_id: i.ownerId,
+    designer_employee_ids: i.designerEmployeeIds,
     drive_folder_url: t(i.driveFolderUrl),
     notes: t(i.notes),
   };
@@ -230,9 +233,9 @@ export async function setOpportunityStage(id: string, stage: Stage, lostReason: 
  * Aprueba: crea o enlaza el proyecto. `quoteIds` = las cotizaciones que el
  * cliente aprobó (pueden ser varias); las demás abiertas pasan a rechazadas.
  */
-export async function approveOpportunity(id: string, projectName: string | null, projectId: string | null, quoteIds: string[]): Promise<string> {
+export async function approveOpportunity(id: string, projectName: string | null, projectId: string | null, quoteIds: string[], designerIds: string[]): Promise<string> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("approve_opportunity", { p_id: id, p_project_name: projectName, p_project_id: projectId, p_quote_ids: quoteIds });
+  const { data, error } = await supabase.rpc("approve_opportunity", { p_id: id, p_project_name: projectName, p_project_id: projectId, p_quote_ids: quoteIds, p_designer_ids: designerIds });
   fail(error);
   return data as string;
 }

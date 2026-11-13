@@ -2615,6 +2615,7 @@ export type Database = {
       }
       sales_opportunities: {
         Row: {
+          designer_employee_ids: string[]
           amount: number | null
           client_id: string | null
           closed_on: string | null
@@ -2644,6 +2645,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          designer_employee_ids?: string[]
           amount?: number | null
           client_id?: string | null
           closed_on?: string | null
@@ -2673,6 +2675,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          designer_employee_ids?: string[]
           amount?: number | null
           client_id?: string | null
           closed_on?: string | null
@@ -3584,6 +3587,10 @@ export type Database = {
         Args: { p_project: string }
         Returns: { employee_id: string; name: string; position: string | null; active: boolean; has_access: boolean }[]
       }
+      project_designer_names: {
+        Args: Record<string, never>
+        Returns: { project_id: string; names: string[] }[]
+      }
       designer_candidates: {
         Args: Record<string, never>
         Returns: { id: string; name: string; position: string | null; has_access: boolean }[]
@@ -3667,7 +3674,7 @@ export type Database = {
         Returns: { id: string; name: string }[]
       }
       approve_opportunity: {
-        Args: { p_id: string; p_project_name: string | null; p_project_id: string | null; p_quote_ids?: string[] | null }
+        Args: { p_id: string; p_project_name: string | null; p_project_id: string | null; p_quote_ids?: string[] | null; p_designer_ids?: string[] | null }
         Returns: string
       }
       save_quote: {

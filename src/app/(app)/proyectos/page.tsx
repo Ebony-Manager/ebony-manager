@@ -1,7 +1,7 @@
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule, isDesignerView } from "@/lib/auth/modules";
 import { getContracts, getProjects } from "@/services/contractors";
-import { getMyDesignerProjectIds } from "@/services/project-designers";
+import { getMyDesignerProjectIds, getProjectDesignerNames } from "@/services/project-designers";
 import { ProjectsList } from "./projects-list";
 
 // Proyectos: la lista de todas las obras. Entra quien tiene Proyectos o
@@ -12,10 +12,14 @@ export const dynamic = "force-dynamic";
 export default async function ProyectosPage() {
   const profile = await requireAnyModule("proyectos", "contratistas", "diseno");
   const canContracts = hasModule(profile, "contratistas");
-  const [projects, contracts] = await Promise.all([getProjects(), canContracts ? getContracts() : Promise.resolve([])]);
+  const [projects, contracts, designerNames] = await Promise.all([
+    getProjects(),
+    canContracts ? getContracts() : Promise.resolve([]),
+    getProjectDesignerNames().catch(() => ({})),
+  ]);
 
   const designer = isDesignerView(profile);
   const mineIds = designer ? await getMyDesignerProjectIds().catch(() => []) : undefined;
 
-  return <ProjectsList projects={projects} contracts={contracts} canContracts={canContracts} canCreate={!designer} mineIds={mineIds} />;
+  return <ProjectsList projects={projects} contracts={contracts} canContracts={canContracts} canCreate={!designer} mineIds={mineIds} designerNames={designerNames} />;
 }

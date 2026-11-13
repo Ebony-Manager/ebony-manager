@@ -32,6 +32,7 @@ export function ProjectsList({
   canContracts,
   canCreate = true,
   mineIds,
+  designerNames = {},
 }: {
   projects: Project[];
   contracts: ContractorContract[];
@@ -40,6 +41,8 @@ export function ProjectsList({
   canCreate?: boolean;
   /** Solo diseñadoras: ids de los proyectos que lleva (muestra el filtro Todos / Míos). */
   mineIds?: string[];
+  /** Diseñadoras de cada proyecto (id del proyecto → nombres). */
+  designerNames?: Record<string, string[]>;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -119,10 +122,11 @@ export function ProjectsList({
         <EmptyState>{tt("no_results")}</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <table className="w-full border-collapse text-sm sm:min-w-[560px]">
+          <table className="w-full border-collapse text-sm sm:min-w-[720px]">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="px-3.5 py-2 text-left font-medium">{tt("col_project")}</th>
+                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{tt("col_designers")}</th>
                 <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{tt("col_created")}</th>
                 {canContracts && <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("col_contracts")}</th>}
                 <th className="px-3.5 py-2 text-right font-medium">{tt("col_status")}</th>
@@ -138,6 +142,9 @@ export function ProjectsList({
                   <td className="max-w-0 px-3.5 py-2.5">
                     <span className="block truncate font-semibold text-foreground">{p.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{p.location || tt("no_location")}</span>
+                  </td>
+                  <td className="hidden max-w-[220px] px-3 py-2.5 text-foreground sm:table-cell">
+                    <span className="block truncate">{designerNames[p.id]?.join(", ") || <span className="text-muted-foreground">—</span>}</span>
                   </td>
                   <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">
                     {formatDateCompact(lang, todayInPanama(new Date(p.createdAt)))}

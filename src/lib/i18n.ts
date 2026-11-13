@@ -2433,6 +2433,11 @@ export const strings = {
     open_files: { es: "Archivos (Drive)", en: "Files (Drive)" },
     open_quote: { es: "Cotización {n}", en: "Quote {n}" },
     f_owner: { es: "Responsable", en: "Owner" },
+    f_designers: { es: "Diseñadoras", en: "Designers" },
+    f_designers_hint: { es: "Quienes llevarán el diseño; al aprobar pasan al proyecto.", en: "Who will handle the design; they carry over to the project on approval." },
+    designers_add: { es: "Agregar diseñadora", en: "Add designer" },
+    designers_none: { es: "Sin diseñadoras asignadas", en: "No designers assigned" },
+    designers_remove: { es: "Quitar", en: "Remove" },
     f_amount: { es: "Monto", en: "Amount" },
     f_amount_hint_quote: { es: "Sale de la cotización vigente.", en: "Comes from the current quote." },
     f_follow_up_hint: { es: "Se pone sola: 7 días después de enviada, y otros 7 con cada nota.", en: "Set automatically: 7 days after sending, and 7 more with each note." },
@@ -2584,6 +2589,7 @@ export const strings = {
 
   // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
   proyectos: {
+    col_designers: { es: "Diseñadoras", en: "Designers" },
     scope_all: { es: "Todos los proyectos", en: "All projects" },
     scope_mine: { es: "Mis proyectos", en: "My projects" },
     dz_title: { es: "Diseñadoras", en: "Designers" },

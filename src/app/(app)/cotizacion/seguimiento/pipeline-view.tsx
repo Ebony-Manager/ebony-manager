@@ -24,6 +24,7 @@ import { daysSince, opportunityAlert, opportunityContact, opportunityAmount, opp
 import { cn } from "@/lib/utils";
 import { setOpportunityStageAction } from "../ventas-actions";
 import { CotizacionTabs, STAGE_ICON_CLASS, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
+import type { DesignerCandidate } from "@/types/designers";
 import { OpportunityDialog, type SalesProject } from "./opportunity-dialog";
 import { ApproveDialog, LostDialog } from "./stage-dialogs";
 
@@ -58,6 +59,7 @@ export function PipelineView({
   clients,
   people,
   projects,
+  designerCandidates,
   openId,
   driveEnabled,
   currentUserId,
@@ -66,6 +68,7 @@ export function PipelineView({
   clients: Client[];
   people: SalesPerson[];
   projects: SalesProject[];
+  designerCandidates: DesignerCandidate[];
   openId: string | null;
   driveEnabled: boolean;
   currentUserId: string;
@@ -293,6 +296,7 @@ export function PipelineView({
         opportunity={editingNow}
         clients={clients}
         people={people}
+        designerCandidates={designerCandidates}
         driveEnabled={driveEnabled}
         currentUserId={people.some((p) => p.id === currentUserId) ? currentUserId : null}
         onClose={() => setEditing(null)}
@@ -310,7 +314,7 @@ export function PipelineView({
           await move(o, "perdida", reason, note);
         }}
       />
-      <ApproveDialog opportunity={approving} clients={clientById} projects={projects} onClose={() => setApproving(null)} />
+      <ApproveDialog opportunity={approving} clients={clientById} projects={projects} designerCandidates={designerCandidates} onClose={() => setApproving(null)} />
     </div>
   );
 }

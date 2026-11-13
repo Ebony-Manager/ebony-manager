@@ -112,3 +112,11 @@ export async function getMyDesignerProjectIds(): Promise<string[]> {
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => r.project_id);
 }
+
+/** Nombres de las diseñadoras de cada proyecto (para la lista de proyectos). */
+export async function getProjectDesignerNames(): Promise<Record<string, string[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("project_designer_names");
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).map((r) => [r.project_id, r.names]));
+}

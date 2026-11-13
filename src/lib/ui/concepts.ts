@@ -9,6 +9,7 @@ import {
   MapPin,
   MessageSquare,
   Paperclip,
+  Palette,
   Phone,
   StickyNote,
   User,
@@ -28,6 +29,8 @@ export const ICON = {
   client: User,
   /** Persona que se encarga de algo (responsable, quien recibe…). */
   owner: User,
+  /** Diseñadora de Ebony asignada a un proyecto u oportunidad. */
+  designer: Palette,
   /** "¿Para quién?": quiénes intervienen (arquitecto y/o cliente). */
   people: Users,
   firm: Building2,
