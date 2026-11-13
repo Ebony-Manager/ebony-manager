@@ -12,6 +12,9 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { toolName } from "@/lib/almacen/tools";
 import { Field } from "../../contratistas/field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { lendToolsAction } from "../actions";
 import { Combo, ItemThumb, SearchBox, useTa } from "../shared";
 import type { Project } from "./common";
@@ -44,7 +47,11 @@ export function LendDialog({
   const [dueOn, setDueOn] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"recipient" | "tools">();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(
+    () => !!recipient || !!projectId || !!dueOn || !!notes.trim() || picked.size !== (preselected?.length ?? 0),
+    onClose,
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -55,7 +62,7 @@ export function LendDialog({
     setProjectId(null);
     setDueOn("");
     setNotes("");
-    setError(null);
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -73,39 +80,47 @@ export function LendDialog({
       .sort((a, b) => a.name.localeCompare(b.name, "es") || (a.number ?? 0) - (b.number ?? 0));
   }, [tools, query, picked]);
 
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
+    clear("tools");
     setPicked((s) => {
       const next = new Set(s);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+  };
 
   async function submit() {
-    setError(null);
-    if (!recipient) return setError(ta("recipient_required"));
-    if (picked.size === 0) return setError(ta("lend_tools_required"));
-    const [kind, id] = recipient.split(":") as ["empleado" | "contratista", string];
+    if (!validate([["recipient", !recipient, ta("recipient_required")], ["tools", picked.size === 0, ta("lend_tools_required")]])) return;
+    const [kind, id] = recipient!.split(":") as ["empleado" | "contratista", string];
     setSaving(true);
     const res = await lendToolsAction({ toolIds: [...picked], recipient: { kind, id }, projectId, dueOn: dueOn || null, notes });
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("lend_saved"));
     onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ta("lend_title")}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
-          <Field label={ta("lend_to")}>
-            <Combo options={personOptions} value={recipient} onChange={setRecipient} placeholder={ta("pick_person")} />
+          <Field label={ta("lend_to")} required error={error("recipient")}>
+            <Combo
+              options={personOptions}
+              value={recipient}
+              onChange={(v) => {
+                setRecipient(v);
+                clear("recipient");
+              }}
+              placeholder={ta("pick_person")}
+            />
           </Field>
 
-          <Field label={`${ta("lend_pick_tools")}${picked.size ? ` · ${ta("lend_selected", { n: picked.size })}` : ""}`}>
+          <Field label={`${ta("lend_pick_tools")}${picked.size ? ` · ${ta("lend_selected", { n: picked.size })}` : ""}`} required error={error("tools")}>
             {/* Envuelto: SearchBox crece a lo ancho en las barras de filtros; acá va en columna. */}
             <div>
               <SearchBox value={query} onChange={setQuery} placeholder={ta("search_ph")} />
@@ -135,7 +150,7 @@ export function LendDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={ta("dest_project")}>
               <div className="grid grid-cols-[1fr_auto] gap-2">
-                <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("optional")} />
+                <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
                 {projectId && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setProjectId(null)}>
                     {ta("remove")}
@@ -143,19 +158,17 @@ export function LendDialog({
                 )}
               </div>
             </Field>
-            <Field label={ta("lend_due")} hint={ta("lend_due_hint")}>
+            <Field label={ta("lend_due")} hint={ta("lend_due_hint")} icon={ICON.date}>
               <Input type="date" min={todayInPanama()} value={dueOn} onChange={(e) => setDueOn(e.target.value)} />
             </Field>
           </div>
 
           <Field label={ta("notes")}>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
             {ta("cancel")}
           </Button>
           <Button type="button" onClick={() => void submit()} disabled={saving}>
@@ -163,6 +176,7 @@ export function LendDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

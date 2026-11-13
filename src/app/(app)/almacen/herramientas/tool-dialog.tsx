@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Camera, HandHelping, ImagePlus, Loader2, Trash2, Undo2 } from "lucide-react";
+import { Camera, HandHelping, History, ImagePlus, Loader2, Trash2, Undo2 } from "lucide-react";
 
 import { TOOL_CATEGORIES, type InventoryPerson, type Tool, type ToolCategory, type ToolLoan, type ToolStatus } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { parseQty } from "@/lib/almacen/inventory";
 import { shownStatus, toolName } from "@/lib/almacen/tools";
 import { Field } from "../../contratistas/field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { createToolAction, setToolPhotoAction, updateToolAction } from "../actions";
 import { ItemThumb, QtyInput, useTa } from "../shared";
 import { ToolStatusBadge, holderName, useDueText } from "./common";
@@ -71,7 +74,7 @@ export function ToolDialog({
   const [photoBusy, setPhotoBusy] = React.useState(false);
   const [armPhotoRemove, setArmPhotoRemove] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
@@ -86,9 +89,20 @@ export function ToolDialog({
     setActive(current?.active ?? true);
     setPhotoPath(current?.photoPath ?? null);
     setPendingPhoto(null);
-    setError(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [tool, current]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const dirty = () =>
+    !readOnly &&
+    (name !== (current?.name ?? "") ||
+      number !== (current?.number != null ? String(current.number) : "") ||
+      category !== (current?.category ?? "electrica") ||
+      brand !== (current?.brand ?? "") ||
+      notes !== (current?.notes ?? "") ||
+      !!pendingPhoto);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, onClose);
 
   const history = current ? loans.filter((l) => l.toolId === current.id) : [];
   const openLoan = history.find((l) => l.returnedOn == null);
@@ -137,7 +151,7 @@ export function ToolDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return setError(ta("tool_name_required"));
+    if (!validate([["name", !name.trim(), ta("tool_name_required")]])) return;
     const n = parseQty(number);
     const input = {
       name,
@@ -154,13 +168,13 @@ export function ToolDialog({
       await uploadPhoto(res.data, pendingPhoto.blob, null).catch(() => toast.error(ta("photo_error")));
     }
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("tool_saved"));
     onClose();
   }
 
   return (
-    <Dialog open={!!tool} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!tool} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
@@ -226,8 +240,11 @@ export function ToolDialog({
               )}
             </div>
             <fieldset disabled={readOnly} className="grid flex-1 grid-cols-[1fr_72px] gap-x-3 gap-y-4">
-              <Field label={ta("tool_f_name")}>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={ta("tool_f_name_ph")} autoFocus={!readOnly && !current} />
+              <Field label={ta("tool_f_name")} required error={error("name")}>
+                <Input value={name} onChange={(e) => {
+                  setName(e.target.value);
+                  clear("name");
+                }} placeholder={ta("tool_f_name_ph")} autoFocus={!readOnly && !current} />
               </Field>
               <Field label={ta("tool_f_number")}>
                 <QtyInput value={number} onChange={setNumber} placeholder="—" inputMode="numeric" />
@@ -268,10 +285,10 @@ export function ToolDialog({
               </Field>
             </div>
             <Field label={ta("tool_f_brand")}>
-              <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder={ta("optional")} />
+              <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
             </Field>
             <Field label={ta("notes")}>
-              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
+              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
             {current && !readOnly && canChangeStatus && (
               <label className="flex items-center gap-2 text-sm">
@@ -283,9 +300,8 @@ export function ToolDialog({
 
           {/* Ahora: quién la tiene (Devolver) o, si está en el almacén, Prestar. */}
           {current && (lent && openLoan ? (
-            <section className="flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
-              <h3 className="text-xs font-semibold text-muted-foreground">{ta("tool_now")}</h3>
-              <p className="font-medium">{ta("tool_with", { p: holderName(openLoan, people) })}</p>
+            <FormSection quiet icon={HandHelping} title={ta("tool_now")}>
+              <p className="text-sm font-medium">{ta("tool_with", { p: holderName(openLoan, people) })}</p>
               <p className="text-xs text-muted-foreground">
                 {[openLoan.projectId ? projects.get(openLoan.projectId) : null, `${formatDateCompact(lang, openLoan.lentOn)} → ${dueText(openLoan.dueOn, today)}`]
                   .filter(Boolean)
@@ -295,7 +311,7 @@ export function ToolDialog({
                 <Undo2 className="size-3.5" />
                 {ta("give_back")}
               </Button>
-            </section>
+            </FormSection>
           ) : current.status === "disponible" && current.active ? (
             <Button type="button" size="sm" variant="outline" className="self-start" onClick={() => onLend(current.id)}>
               <HandHelping className="size-3.5" />
@@ -304,8 +320,7 @@ export function ToolDialog({
           ) : null)}
 
           {current && (
-            <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">{ta("tool_history")}</h3>
+            <FormSection icon={History} title={ta("tool_history")}>
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{ta("tool_history_empty")}</p>
               ) : (
@@ -332,14 +347,12 @@ export function ToolDialog({
                   ))}
                 </ul>
               )}
-            </section>
+            </FormSection>
           )}
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!readOnly && (
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+              <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
                 {ta("cancel")}
               </Button>
               <Button type="submit" disabled={saving}>
@@ -349,6 +362,7 @@ export function ToolDialog({
           )}
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

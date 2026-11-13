@@ -65,7 +65,7 @@ export function RevisionRow({ item, suppliers, directory, canEdit }: { item: Inv
 
   const unit = unitLabel(item.unit, 2);
   return (
-    <li className={`grid gap-4 p-3 sm:p-4 md:grid-cols-[96px_minmax(0,1fr)_minmax(0,1.2fr)] ${dirty ? "bg-amber-500/5" : ""}`}>
+    <li className={`grid gap-4 p-3 sm:p-4 md:grid-cols-[96px_minmax(0,1fr)_minmax(0,1.2fr)] ${dirty ? "bg-warning/5" : ""}`}>
       <ItemThumb path={item.photoPath} size={96} />
       <div className="flex min-w-0 flex-col gap-2">
         <div>
@@ -94,14 +94,14 @@ export function RevisionRow({ item, suppliers, directory, canEdit }: { item: Inv
               {suppliers.excel && <div className="text-xs text-muted-foreground">En el Excel: {suppliers.excel}</div>}
               {suppliers.note && <div className="text-xs text-muted-foreground">{suppliers.note}</div>}
               {suppliers.doubt && (
-                <div className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                <div className="flex gap-1.5 text-xs text-warning">
                   <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                   {suppliers.doubt}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+            <div className="flex gap-1.5 text-sm text-warning">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               {suppliers.doubt ?? "Sin proveedor"}
             </div>
@@ -173,7 +173,7 @@ export function RevisionRow({ item, suppliers, directory, canEdit }: { item: Inv
               className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
             />
             <div className="flex items-center justify-end gap-2">
-              {dirty && <span className="text-xs text-amber-700 dark:text-amber-400">Sin guardar</span>}
+              {dirty && <span className="text-xs text-warning">Sin guardar</span>}
               <Button size="sm" onClick={save} disabled={saving || !dirty}>
                 {saving ? "Guardando…" : "Guardar"}
               </Button>

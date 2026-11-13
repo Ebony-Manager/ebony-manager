@@ -17,6 +17,8 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatQty, parseQty, stockStatus } from "@/lib/almacen/inventory";
 import { dimensionCount, optionsAt, reconcile, resolveVariant, selectionOf } from "@/lib/almacen/variant-picker";
 import { Field } from "../../contratistas/field";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { registerIssueAction, returnContainersAction } from "../actions";
 import { PendingReturnsList, usePendingReturns } from "./pending-returns";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
@@ -315,7 +317,7 @@ function CartPanel({
   const [date, setDate] = React.useState(() => todayInPanama(new Date()));
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear } = useFormErrors<"recipient" | "destination" | "container">();
   // Lo que la persona tiene por devolver y, si pide otra vez un devolvible sin
   // haber devuelto el envase anterior, qué se decidió (no bloquea: queda anotado).
   const { items: pending, setItems: setPending, reload: reloadPending } = usePendingReturns(recipient);
@@ -344,12 +346,14 @@ function CartPanel({
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
 
   async function submit() {
-    setError(null);
-    if (cart.length === 0) return setError(ta("lines_required"));
-    if (!recipient) return setError(ta("recipient_required"));
-    if (destKind === "project" && !projectId) return setError(ta("destination_required"));
-    if (owed.length > 0 && !giveAnyway) return setError(ta("container_decide"));
-    const [kind, id] = recipient.split(":") as ["empleado" | "contratista", string];
+    if (cart.length === 0) return void toast.error(ta("lines_required"));
+    const ok = validate([
+      ["recipient", !recipient, ta("recipient_required")],
+      ["destination", destKind === "project" && !projectId, ta("destination_required")],
+      ["container", owed.length > 0 && !giveAnyway, ta("container_decide")],
+    ]);
+    if (!ok) return;
+    const [kind, id] = recipient!.split(":") as ["empleado" | "contratista", string];
     setSaving(true);
     const res = await registerIssueAction({
       issuedOn: date || null,
@@ -360,7 +364,7 @@ function CartPanel({
       lines: cart,
     });
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("issue_saved"));
     setCart([]);
     setNotes("");
@@ -430,8 +434,16 @@ function CartPanel({
         </ul>
       )}
 
-      <Field label={ta("f_recipient")}>
-        <Combo options={personOptions} value={recipient} onChange={setRecipient} placeholder={ta("pick_person")} />
+      <Field label={ta("f_recipient")} required error={error("recipient") ?? error("container")}>
+        <Combo
+          options={personOptions}
+          value={recipient}
+          onChange={(v) => {
+            setRecipient(v);
+            clear("recipient");
+          }}
+          placeholder={ta("pick_person")}
+        />
         {toPainter && <p className="mt-1 text-xs text-warning">{ta("painter_charge_note")}</p>}
         <PendingReturnsList items={pending} onReturned={(pid) => setPending((ps) => ps.filter((p) => p.id !== pid))} />
         {owed.length > 0 && (
@@ -444,7 +456,15 @@ function CartPanel({
                 <Button type="button" size="sm" onClick={() => void containersReturnedNow()}>
                   {ta("container_returned_now")}
                 </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => setGiveAnyway(true)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setGiveAnyway(true);
+                    clear("container");
+                  }}
+                >
                   {ta("container_give_anyway")}
                 </Button>
               </div>
@@ -452,7 +472,7 @@ function CartPanel({
           </div>
         )}
       </Field>
-      <Field label={ta("f_destination")}>
+      <Field label={ta("f_destination")} required error={error("destination")}>
         <div className="flex flex-col gap-2">
           <SegmentedFilter
             value={destKind}
@@ -463,22 +483,28 @@ function CartPanel({
             ]}
           />
           {destKind === "project" ? (
-            <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
+            <Combo
+              options={projectOptions}
+              value={projectId}
+              onChange={(v) => {
+                setProjectId(v);
+                clear("destination");
+              }}
+              placeholder={ta("pick_project")}
+            />
           ) : (
             <SegmentedFilter value={internalUse} onChange={setInternalUse} options={INTERNAL_USES.map((u) => ({ value: u, label: ta(`use_${u}`) }))} />
           )}
         </div>
       </Field>
-      <Field label={ta("date")}>
+      <Field label={ta("date")} icon={ICON.date}>
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
       <Field label={ta("notes")}>
-        <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
+        <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <Button onClick={submit} disabled={saving || cart.length === 0} className="w-full">
+      <Button onClick={submit} disabled={saving} className="w-full">
         {saving ? ta("saving") : `${ta("register_issue")}${cart.length ? ` (${cart.length})` : ""}`}
       </Button>
     </div>

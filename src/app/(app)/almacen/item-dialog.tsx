@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Camera, ImagePlus, Loader2, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Camera, ImagePlus, Layers, Loader2, Plus, RotateCcw, Trash2, Truck, X } from "lucide-react";
 
 import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type ItemKind, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { INVENTORY_PHOTOS_BUCKET, inventoryPhotoPath } from "@/lib/almacen/photo
 import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { Field } from "../contratistas/field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { createItemAction, deleteItemAction, setItemPhotoAction, updateItemAction } from "./actions";
 import { Combo, ItemThumb, QtyInput, qtyWithUnit, useTa } from "./shared";
 
@@ -44,7 +47,6 @@ interface SupplierDraft {
 
 const NONE = "none";
 /** Columnas de la fila de variante: nombre, mínimo, pedir hasta, quitar. */
-const VARIANT_COLS = "grid-cols-[minmax(0,1fr)_64px_84px_36px] sm:grid-cols-[minmax(0,1fr)_88px_104px_36px]";
 let seq = 0;
 const newKey = () => `k${++seq}`;
 const newVariant = (): VariantDraft => ({
@@ -93,7 +95,7 @@ export function ItemDialog({
   const [variants, setVariants] = React.useState<VariantDraft[]>([]);
   const [links, setLinks] = React.useState<SupplierDraft[]>([]);
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<string>();
   // Foto: en un producto existente se sube al elegirla; en uno nuevo, al guardarlo.
   const [photoPath, setPhotoPath] = React.useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = React.useState<{ blob: Blob; preview: string } | null>(null);
@@ -101,6 +103,9 @@ export function ItemDialog({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [armPhotoRemove, setArmPhotoRemove] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  /** Cómo estaba el formulario al abrir, para avisar si se cierra con cambios sin guardar. */
+  const initial = React.useRef("");
+  const seeded = React.useRef(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
@@ -140,9 +145,22 @@ export function ItemDialog({
         isPrimary: s.isPrimary,
       })),
     );
-    setError(null);
+    reset();
+    seeded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [item, current]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const snapshot = () =>
+    JSON.stringify({ name, categoryId, unit, allowsDecimals, kind, notes, active, variants: variants.map((v) => ({ ...v, key: 0 })), links: links.map((l) => ({ ...l, key: 0 })), photo: !!pendingPhoto });
+  // Justo después de sembrar el formulario al abrir, se anota cómo quedó.
+  React.useEffect(() => {
+    if (seeded.current) {
+      seeded.current = false;
+      initial.current = snapshot();
+    }
+  });
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => !readOnly && snapshot() !== initial.current, onClose);
 
   const supplierOptions = React.useMemo(
     () => suppliers.filter((s) => s.active).map((s) => ({ value: s.id, label: s.name, hint: s.contactName ?? undefined })),
@@ -202,15 +220,20 @@ export function ItemDialog({
     setSaving(true);
     const res = await deleteItemAction(current.id);
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("item_deleted"));
     onClose();
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return setError(ta("name_required"));
-    if (variants.some((v) => Number.isNaN(priceCents(v.price)))) return setError(ta("price_invalid"));
+    if (
+      !validate([
+        ["name", !name.trim(), ta("name_required")],
+        ...activeVariants.map((v) => [`price-${v.key}`, Number.isNaN(priceCents(v.price)), ta("price_invalid")] as const),
+      ])
+    )
+      return;
     const input = {
       name,
       categoryId: categoryId === NONE ? null : categoryId,
@@ -239,14 +262,14 @@ export function ItemDialog({
       await uploadPhoto(res.data, pendingPhoto.blob, null).catch(() => toast.error(ta("photo_error")));
     }
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("saved"));
     if (typeof res.data === "number" && res.data > 0) toast(ta("variants_deactivated_toast", { n: res.data }));
     onClose();
   }
 
   return (
-    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!item} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{readOnly ? ta("item_view_title") : current ? ta("item_edit_title") : ta("item_new_title")}</DialogTitle>
@@ -309,8 +332,13 @@ export function ItemDialog({
               )}
             </div>
             <fieldset disabled={readOnly} className="flex-1">
-              <Field label={ta("f_name")}>
-                <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!readOnly && !current} />
+              <Field label={ta("f_name")} required error={error("name")}>
+                <Input
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clear("name");
+                  }} autoFocus={!readOnly && !current} />
               </Field>
             </fieldset>
           </div>
@@ -363,120 +391,100 @@ export function ItemDialog({
             </label>
 
             {/* Variantes */}
-            <div className="flex flex-col gap-2">
-              <div>
-                <h3 className="text-sm font-semibold">{ta("variants")}</h3>
-                <p className="text-xs text-muted-foreground">{ta("variants_hint")}</p>
-              </div>
-              {/* Una fila por variante: nombre (con su existencia debajo), mínimo, pedir hasta y quitar. */}
-              <div className={`grid ${VARIANT_COLS} gap-2 text-[11px] font-medium text-muted-foreground`}>
-                <span>{ta("variant_col")}</span>
-                <span className="text-right">{ta("min_short")}</span>
-                <span className="text-right">{ta("reorder_short")}</span>
-                <span />
-              </div>
-              {activeVariants.map((v) => (
-                <div key={v.key} className={`grid ${VARIANT_COLS} items-start gap-2`}>
-                  <div className="min-w-0">
-                    <Input
-                      className="h-9"
-                      value={v.label}
-                      onChange={(e) => patchVariant(v.key, { label: e.target.value })}
-                      placeholder={activeVariants.length === 1 ? ta("variant_single") : ta("variant_label_ph")}
-                    />
-                    <p className="mt-0.5 truncate px-1 text-[11px] tabular-nums text-muted-foreground">
-                      {qtyWithUnit(v.stockQty, unit, lang)}
-                    </p>
-                  </div>
-                  <QtyInput value={v.min} onChange={(x) => patchVariant(v.key, { min: x })} placeholder="—" aria-label={ta("col_min")} />
-                  <QtyInput value={v.reorder} onChange={(x) => patchVariant(v.key, { reorder: x })} placeholder="—" aria-label={ta("col_reorder")} />
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      title={ta("variant_remove")}
-                      aria-label={ta("variant_remove")}
-                      disabled={activeVariants.length === 1}
-                      onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))}
-                      className="flex size-9 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-30"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                  {/* Precio y presentación de compra: a lo ancho, debajo de la variante. */}
-                  <div className="col-span-full -mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-1 text-[11px] font-medium text-muted-foreground">
-                    {canCosts && (
-                      <label className="flex items-center gap-1">
-                        {ta("item_price")}
-                        <span className="relative block w-20">
-                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs">$</span>
+            <FormSection icon={Layers} title={ta("variants")} note={ta("variants_hint")}>
+              {activeVariants.map((v) => {
+                const per = parseQty(v.packQty);
+                const cents = priceCents(v.price);
+                return (
+                  <div key={v.key} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                    <div className="flex items-end gap-2">
+                      <Field
+                        className="min-w-0 flex-1"
+                        label={ta("variant_col")}
+                        hint={`${ta("stock_now")}: ${qtyWithUnit(v.stockQty, unit, lang)}`}
+                      >
+                        <Input
+                          value={v.label}
+                          onChange={(e) => patchVariant(v.key, { label: e.target.value })}
+                          placeholder={activeVariants.length === 1 ? ta("variant_single") : ta("variant_label_ph")}
+                        />
+                      </Field>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          title={ta("variant_remove")}
+                          aria-label={ta("variant_remove")}
+                          disabled={activeVariants.length === 1}
+                          onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))}
+                          className="mb-1 flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-30"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 min-[480px]:grid-cols-2">
+                      <Field label={ta("col_min")}>
+                        <QtyInput value={v.min} onChange={(x) => patchVariant(v.key, { min: x })} />
+                      </Field>
+                      <Field label={ta("col_reorder")}>
+                        <QtyInput value={v.reorder} onChange={(x) => patchVariant(v.key, { reorder: x })} />
+                      </Field>
+                      {canCosts && (
+                        <Field
+                          label={ta("item_price")}
+                          error={error(`price-${v.key}`)}
+                          hint={
+                            per != null && per > 1 && cents != null && !Number.isNaN(cents)
+                              ? ta("price_pack_equiv", { t: formatCents(Math.round(cents * per)), p: v.packLabel.trim() || formatQty(per, lang) })
+                              : undefined
+                          }
+                        >
                           <Input
-                            className="h-8 pl-5 text-right tabular-nums"
                             inputMode="decimal"
+                            className="text-right tabular-nums"
                             value={v.price}
-                            onChange={(e) => patchVariant(v.key, { price: e.target.value })}
+                            onChange={(e) => {
+                              patchVariant(v.key, { price: e.target.value });
+                              clear(`price-${v.key}`);
+                            }}
                             placeholder="0.00"
-                            aria-label={ta("item_price")}
                           />
-                        </span>
-                        {/* Con presentación: lo que sale la presentación entera, para comparar con la factura. */}
-                        {(() => {
-                          const per = parseQty(v.packQty);
-                          const cents = priceCents(v.price);
-                          return per != null && per > 1 && cents != null && !Number.isNaN(cents) ? (
-                            <span className="whitespace-nowrap font-normal tabular-nums">
-                              {ta("price_pack_equiv", { t: formatCents(Math.round(cents * per)), p: v.packLabel.trim() || formatQty(per, lang) })}
-                            </span>
-                          ) : null;
-                        })()}
-                      </label>
-                    )}
+                        </Field>
+                      )}
+                    </div>
                     {/* Presentación de compra de esta variante: se pide y recibe así, sale del almacén por unidad. */}
                     {v.packOpen ? (
-                      <div className="flex items-center gap-1">
-                        <span className="whitespace-nowrap">{ta("variant_pack")}</span>
-                        <Input
-                          className="h-8 w-24"
-                          value={v.packLabel}
-                          onChange={(e) => patchVariant(v.key, { packLabel: e.target.value })}
-                          placeholder={ta("variant_pack_label_ph")}
-                          disabled={readOnly}
-                          aria-label={ta("variant_pack")}
-                        />
-                        =
-                        <span className="w-14">
-                          <QtyInput value={v.packQty} onChange={(x) => patchVariant(v.key, { packQty: x })} placeholder="—" disabled={readOnly} aria-label={ta("variant_pack_qty")} className="h-8" />
-                        </span>
-                        {unitLabel(unit, 2, lang)}
+                      <div className="grid gap-3 min-[480px]:grid-cols-2">
+                        <Field label={ta("variant_pack")}>
+                          <Input
+                            value={v.packLabel}
+                            onChange={(e) => patchVariant(v.key, { packLabel: e.target.value })}
+                            placeholder={ta("variant_pack_label_ph")}
+                            disabled={readOnly}
+                          />
+                        </Field>
+                        <Field label={ta("variant_pack_qty")} hint={unitLabel(unit, 2, lang)}>
+                          <QtyInput value={v.packQty} onChange={(x) => patchVariant(v.key, { packQty: x })} disabled={readOnly} />
+                        </Field>
                       </div>
                     ) : (
                       !readOnly && (
-                        <button type="button" className="text-primary hover:underline" onClick={() => patchVariant(v.key, { packOpen: true })}>
+                        <button type="button" className="self-start text-xs font-medium text-primary hover:underline" onClick={() => patchVariant(v.key, { packOpen: true })}>
                           {ta("variant_pack_add")}
                         </button>
                       )
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {!readOnly && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="self-start"
-                  onClick={() =>
-                    setVariants((vs) => [...vs, newVariant()])
-                  }
-                >
+                <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setVariants((vs) => [...vs, newVariant()])}>
                   <Plus className="size-3.5" />
                   {ta("add_variant")}
                 </Button>
               )}
               {inactiveVariants.length > 0 && (
-                <div className="mt-1 flex flex-col gap-1 rounded-md border border-dashed border-border px-3 py-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {ta("variants_inactive")} · <span className="font-normal">{ta("variants_inactive_hint")}</span>
-                  </p>
+                <FormSection quiet icon={RotateCcw} title={ta("variants_inactive")} note={ta("variants_inactive_hint")}>
                   {inactiveVariants.map((v) => (
                     <div key={v.key} className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate text-muted-foreground">
@@ -506,25 +514,23 @@ export function ItemDialog({
                       )}
                     </div>
                   ))}
-                </div>
+                </FormSection>
               )}
-            </div>
+            </FormSection>
 
             {/* Proveedores */}
-            <div className="flex flex-col gap-2">
-              <div>
-                <h3 className="text-sm font-semibold">{ta("suppliers")}</h3>
-                <p className="text-xs text-muted-foreground">{ta("suppliers_hint")}</p>
-              </div>
+            <FormSection icon={Truck} title={ta("suppliers")} note={ta("suppliers_hint")}>
               {links.map((l) => (
-                <div key={l.key} className="grid grid-cols-[1fr_auto_28px] items-center gap-2">
-                  <Combo
-                    options={supplierOptions}
-                    value={l.supplierId}
-                    onChange={(id) => patchLink(l.key, { supplierId: id })}
-                    placeholder={ta("pick_supplier")}
-                  />
-                  <label className="flex items-center gap-1.5 text-xs">
+                <div key={l.key} className="grid grid-cols-[1fr_auto_28px] items-end gap-2">
+                  <Field label={ta("f_supplier")}>
+                    <Combo
+                      options={supplierOptions}
+                      value={l.supplierId}
+                      onChange={(id) => patchLink(l.key, { supplierId: id })}
+                      placeholder={ta("pick_supplier")}
+                    />
+                  </Field>
+                  <label className="mb-2 flex items-center gap-1.5 text-xs">
                     <input type="radio" name="primary-supplier" checked={l.isPrimary} onChange={() => patchLink(l.key, { isPrimary: true })} />
                     {ta("primary")}
                   </label>
@@ -532,8 +538,9 @@ export function ItemDialog({
                     <button
                       type="button"
                       title={ta("remove")}
+                      aria-label={ta("remove")}
                       onClick={() => setLinks((ls) => ls.filter((x) => x.key !== l.key))}
-                      className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                      className="mb-1.5 flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
                     >
                       <X className="size-4" />
                     </button>
@@ -552,7 +559,7 @@ export function ItemDialog({
                   {ta("add_supplier_link")}
                 </Button>
               )}
-            </div>
+            </FormSection>
 
             <Field label={ta("notes")}>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -562,8 +569,6 @@ export function ItemDialog({
               {ta("active")}
             </label>
           </fieldset>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!readOnly && (
             <DialogFooter className="sm:justify-between">
@@ -576,7 +581,7 @@ export function ItemDialog({
                 <span />
               )}
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+                <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
                   {ta("cancel")}
                 </Button>
                 <Button type="submit" disabled={saving}>
@@ -587,6 +592,7 @@ export function ItemDialog({
           )}
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

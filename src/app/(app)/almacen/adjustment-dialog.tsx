@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Plus, X } from "lucide-react";
+import { Package, Plus, X } from "lucide-react";
 
 import { ADJUSTMENT_REASONS, type AdjustmentReason, type InventoryCategory, type InventoryItem } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatQty, parseQty } from "@/lib/almacen/inventory";
 import { Field } from "../contratistas/field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { registerAdjustmentAction } from "./actions";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "./shared";
 
@@ -48,7 +51,9 @@ export function AdjustmentDialog({
   const [lines, setLines] = React.useState<LineDraft[]>([newLine()]);
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<string>();
+  const dirty = () => lines.some((l) => l.variantId || l.qty.trim()) || !!notes.trim() || reason !== "conteo";
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -56,7 +61,8 @@ export function AdjustmentDialog({
     setReason("conteo");
     setLines([newLine()]);
     setNotes("");
-    setError(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -79,18 +85,23 @@ export function AdjustmentDialog({
       .map((l) => ({ variantId: l.variantId, qty: parseQty(l.qty) }))
       .filter((l): l is { variantId: string; qty: number } => !!l.variantId && l.qty != null)
       .map((l) => ({ ...l, qty: subtract ? -Math.abs(l.qty) : l.qty }));
-    if (parsed.length === 0) return setError(ta("lines_required"));
-    if (counted && parsed.every((l) => index.get(l.variantId)?.variant.stockQty === l.qty)) return setError(ta("adj_no_changes"));
+    const first = lines[0];
+    const noChanges = counted && parsed.length > 0 && parsed.every((l) => index.get(l.variantId)?.variant.stockQty === l.qty);
+    const ok = validate([
+      [`prod-${first.key}`, parsed.length === 0 && !first.variantId, ta("lines_required")],
+      [`qty-${first.key}`, (parsed.length === 0 && !!first.variantId) || noChanges, noChanges ? ta("adj_no_changes") : ta("qty_required")],
+    ]);
+    if (!ok) return;
     setSaving(true);
     const res = await registerAdjustmentAction(reason, notes || null, counted, parsed);
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("adj_saved"));
     onOpenChange(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ta("new_adjustment")}</DialogTitle>
@@ -111,9 +122,10 @@ export function AdjustmentDialog({
             </Select>
           </Field>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{ta("col_items")}</h3>
+          <FormSection
+            icon={Package}
+            title={ta("col_items")}
+            action={
               <Select value="" onValueChange={addCategory}>
                 <SelectTrigger className="h-8 w-auto">
                   <SelectValue placeholder={ta("add_category")} />
@@ -126,41 +138,57 @@ export function AdjustmentDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            }
+          >
             {lines.map((l) => {
               const ref = l.variantId ? index.get(l.variantId) : undefined;
               const n = parseQty(l.qty);
               const diff = ref && n != null ? (counted ? n - ref.variant.stockQty : subtract ? -Math.abs(n) : n) : null;
               return (
-                <div key={l.key} className="flex flex-col gap-1">
-                  <div className="grid grid-cols-[1fr_96px_28px] items-center gap-2">
-                    <Combo options={variantOptions} value={l.variantId} onChange={(v) => patch(l.key, { variantId: v })} placeholder={ta("pick_product")} />
-                    <QtyInput
-                      value={l.qty}
-                      onChange={(v) => patch(l.key, { qty: v })}
-                      placeholder={counted ? ta("counted") : ta("qty")}
-                      aria-label={counted ? ta("counted") : ta("qty")}
-                    />
+                <div key={l.key} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+                  <div className="grid grid-cols-[1fr_28px] items-end gap-2">
+                    <Field label={ta("f_product")} required error={error(`prod-${l.key}`)}>
+                      <Combo
+                        options={variantOptions}
+                        value={l.variantId}
+                        onChange={(v) => {
+                          patch(l.key, { variantId: v });
+                          clear(`prod-${l.key}`);
+                        }}
+                        placeholder={ta("pick_product")}
+                      />
+                    </Field>
                     <button
                       type="button"
                       title={ta("remove")}
+                      aria-label={ta("remove")}
                       onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [newLine()]))}
-                      className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                      className="mb-1.5 flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
                     >
                       <X className="size-4" />
                     </button>
                   </div>
-                  {ref && (
-                    <p className="text-xs text-muted-foreground">
-                      {ta("stock_now")}: {qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}
-                      {diff != null && diff !== 0 && (
-                        <span className={diff < 0 ? "ml-2 text-destructive" : "ml-2 text-success"}>
-                          {ta("difference")}: {diff > 0 ? "+" : ""}
-                          {formatQty(diff, lang)}
-                        </span>
-                      )}
-                    </p>
-                  )}
+                  <Field
+                    className="w-36"
+                    label={counted ? ta("counted") : ta("qty")}
+                    required
+                    error={error(`qty-${l.key}`)}
+                    hint={
+                      ref
+                        ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}${
+                            diff != null && diff !== 0 ? ` · ${ta("difference")}: ${diff > 0 ? "+" : ""}${formatQty(diff, lang)}` : ""
+                          }`
+                        : undefined
+                    }
+                  >
+                    <QtyInput
+                      value={l.qty}
+                      onChange={(v) => {
+                        patch(l.key, { qty: v });
+                        clear(`qty-${l.key}`);
+                      }}
+                    />
+                  </Field>
                 </div>
               );
             })}
@@ -168,16 +196,14 @@ export function AdjustmentDialog({
               <Plus className="size-3.5" />
               {ta("add_line")}
             </Button>
-          </div>
+          </FormSection>
 
           <Field label={ta("notes")}>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
               {ta("cancel")}
             </Button>
             <Button type="submit" disabled={saving}>
@@ -186,6 +212,7 @@ export function AdjustmentDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

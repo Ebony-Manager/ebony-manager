@@ -13,6 +13,8 @@ import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { toolName } from "@/lib/almacen/tools";
 import { Field } from "../../contratistas/field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { ICON } from "@/lib/ui/concepts";
 import { returnToolAction } from "../actions";
 import { useTa } from "../shared";
 import { holderName } from "./common";
@@ -36,7 +38,7 @@ export function ReturnDialog({
   const [date, setDate] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => condition !== "bien" || !!notes.trim(), onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -44,7 +46,6 @@ export function ReturnDialog({
     setCondition("bien");
     setDate(todayInPanama());
     setNotes("");
-    setError(null);
   }, [loan]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -53,13 +54,13 @@ export function ReturnDialog({
     setSaving(true);
     const res = await returnToolAction(loan.id, condition, notes || null, date || null);
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("return_saved"));
     onClose();
   }
 
   return (
-    <Dialog open={!!loan} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!loan} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{ta("return_title")}</DialogTitle>
@@ -73,16 +74,15 @@ export function ReturnDialog({
           <Field label={ta("return_condition")}>
             <SegmentedFilter value={condition} onChange={setCondition} options={CONDITIONS.map((c) => ({ value: c, label: ta(`cond_${c}`) }))} />
           </Field>
-          <Field label={ta("date")}>
+          <Field label={ta("date")} icon={ICON.date}>
             <Input type="date" max={todayInPanama()} min={loan?.lentOn} value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label={ta("notes")}>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ta("optional")} />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
             {ta("cancel")}
           </Button>
           <Button type="button" onClick={() => void submit()} disabled={saving}>
@@ -90,6 +90,7 @@ export function ReturnDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

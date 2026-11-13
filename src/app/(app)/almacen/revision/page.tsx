@@ -79,9 +79,9 @@ export default async function RevisionPage() {
         </dl>
       </header>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 sm:p-5">
+      <section className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4 sm:p-5">
         <h2 className="flex items-center gap-2 font-semibold text-foreground">
-          <AlertTriangle className="size-4 text-amber-600" />
+          <AlertTriangle className="size-4 text-warning" />
           Preguntas antes de cargar
         </h2>
         <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm text-foreground">
@@ -184,7 +184,7 @@ export default async function RevisionPage() {
                   <td className="px-3 py-2">{unitLabel(n.unit, 1)}</td>
                   <td className="px-3 py-2">{n.primary ? supplierName(n.primary) : "—"}</td>
                   <td className="px-3 py-2">{n.alternatives?.map(supplierName).join(", ") || "—"}</td>
-                  <td className="px-3 py-2 text-amber-700 dark:text-amber-400">{n.doubt ?? ""}</td>
+                  <td className="px-3 py-2 text-warning">{n.doubt ?? ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -228,7 +228,7 @@ function Stat({ label, value, hint, warn }: { label: string; value: number; hint
   return (
     <div className="flex flex-col rounded-lg border border-border bg-card px-3 py-2">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={`text-xl font-semibold tabular-nums ${warn ? "text-amber-600" : "text-foreground"}`}>{value}</dd>
+      <dd className={`text-xl font-semibold tabular-nums ${warn ? "text-warning" : "text-foreground"}`}>{value}</dd>
       {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}
     </div>
   );
