@@ -15,11 +15,14 @@ import { toolName } from "@/lib/almacen/tools";
 import { Field } from "../../contratistas/field";
 import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { ICON } from "@/lib/ui/concepts";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { returnToolAction } from "../actions";
 import { useTa } from "../shared";
 import { holderName } from "./common";
 
 const CONDITIONS: ToolCondition[] = ["bien", "reparacion", "danada", "perdida"];
+/** Cada condición usa el ícono y el tono del estado en que queda la herramienta. */
+const COND_STATUS = { bien: "tool_disponible", reparacion: "tool_reparacion", danada: "tool_danada", perdida: "tool_perdida" } as const;
 
 /** Devolver: cómo llegó (bien → vuelve al almacén; si no, queda en reparación, dañada o perdida). */
 export function ReturnDialog({
@@ -72,7 +75,7 @@ export function ReturnDialog({
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <Field label={ta("return_condition")}>
-            <SegmentedFilter value={condition} onChange={setCondition} options={CONDITIONS.map((c) => ({ value: c, label: ta(`cond_${c}`) }))} />
+            <SegmentedFilter value={condition} onChange={setCondition} options={CONDITIONS.map((c) => ({ value: c, label: ta(`cond_${c}`), icon: STATUS[COND_STATUS[c]].icon, iconClass: TONE_TEXT[STATUS[COND_STATUS[c]].tone] }))} />
           </Field>
           <Field label={ta("date")} icon={ICON.date}>
             <Input type="date" max={todayInPanama()} min={loan?.lentOn} value={date} onChange={(e) => setDate(e.target.value)} />

@@ -14,6 +14,7 @@ import { formatQty, parseQty, roundUpToPack, suggestedOrderQty, toPacks } from "
 import { Field } from "../../contratistas/field";
 import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { createPurchaseRequestAction } from "../actions";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
 import { packOf } from "./common";
@@ -168,8 +169,8 @@ export function RequestDialog({
             value={mode}
             onChange={changeMode}
             options={[
-              { value: "catalog", label: ta("request_from_catalog") },
-              { value: "free", label: ta("request_free") },
+              { value: "catalog", label: ta("request_from_catalog"), icon: ICON.catalog },
+              { value: "free", label: ta("request_free"), icon: ICON.freeText },
             ]}
           />
 

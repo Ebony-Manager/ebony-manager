@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, Clock, FilePen, PackageCheck, PackageOpen, PackageX, Send, Truck, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Ban, CalendarX, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -32,6 +32,15 @@ export const STATUS = {
   purchase_parcial: { icon: PackageOpen, tone: "info" },
   purchase_recibido: { icon: PackageCheck, tone: "ok" },
   purchase_cancelado: { icon: CircleX, tone: "muted" },
+  // Herramientas (el estado que se ve: «vencida» es una prestada que pasó su fecha)
+  tool_disponible: { icon: CircleCheck, tone: "ok" },
+  tool_prestada: { icon: HandHelping, tone: "info" },
+  tool_vencida: { icon: CalendarX, tone: "error" },
+  tool_reparacion: { icon: Wrench, tone: "warn" },
+  tool_danada: { icon: ShieldAlert, tone: "error" },
+  tool_perdida: { icon: SearchX, tone: "muted" },
+  /** El filtro «Fuera de uso» junta reparación, dañada y perdida. */
+  tool_out: { icon: Ban, tone: "muted" },
 } satisfies Record<string, StatusDef>;
 
 export type StatusKey = keyof typeof STATUS;

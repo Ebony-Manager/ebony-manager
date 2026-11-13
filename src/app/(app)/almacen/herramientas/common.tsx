@@ -1,25 +1,16 @@
 "use client";
 
 import type { InventoryPerson, ToolLoan } from "@/types/almacen";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { daysBetween, type ToolShownStatus } from "@/lib/almacen/tools";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { useTa } from "../shared";
 
 export type Project = { id: string; name: string; active: boolean };
 
-const BADGE: Record<ToolShownStatus, "success" | "secondary" | "destructive" | "warning" | "outline"> = {
-  disponible: "success",
-  prestada: "secondary",
-  vencida: "destructive",
-  reparacion: "warning",
-  danada: "destructive",
-  perdida: "outline",
-};
-
 export function ToolStatusBadge({ status }: { status: ToolShownStatus }) {
   const { ta } = useTa();
-  return <Badge variant={BADGE[status]}>{ta(`tool_st_${status}`)}</Badge>;
+  return <StatusBadge status={`tool_${status}`}>{ta(`tool_st_${status}`)}</StatusBadge>;
 }
 
 /** Nombre de quien tiene el préstamo (empleado o contratista). */

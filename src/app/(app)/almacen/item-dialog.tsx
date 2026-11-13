@@ -573,21 +573,17 @@ export function ItemDialog({
           {!readOnly && (
             <DialogFooter className="sm:justify-between">
               {current ? (
-                <Button type="button" variant="ghost" className="text-destructive" onClick={() => void deleteItem()} disabled={saving}>
+                <Button type="button" variant="ghost" className="basis-full justify-start text-destructive sm:basis-auto" onClick={() => void deleteItem()} disabled={saving}>
                   <Trash2 className="size-3.5" />
                   {confirmDelete ? ta("delete_item_confirm") : ta("delete_item")}
                 </Button>
-              ) : (
-                <span />
-              )}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
-                  {ta("cancel")}
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? ta("saving") : ta("save")}
-                </Button>
-              </div>
+              ) : null}
+              <Button type="button" variant="outline" className="max-sm:flex-1 sm:ml-auto" onClick={() => void requestClose()} disabled={saving}>
+                {ta("cancel")}
+              </Button>
+              <Button type="submit" className="max-sm:flex-1" disabled={saving}>
+                {saving ? ta("saving") : ta("save")}
+              </Button>
             </DialogFooter>
           )}
         </form>

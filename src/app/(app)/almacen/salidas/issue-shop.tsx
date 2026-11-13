@@ -478,8 +478,8 @@ function CartPanel({
             value={destKind}
             onChange={setDestKind}
             options={[
-              { value: "project", label: ta("dest_project") },
-              { value: "internal", label: ta("dest_internal") },
+              { value: "project", label: ta("dest_project"), icon: ICON.project },
+              { value: "internal", label: ta("dest_internal"), icon: ICON.internal },
             ]}
           />
           {destKind === "project" ? (
@@ -493,7 +493,7 @@ function CartPanel({
               placeholder={ta("pick_project")}
             />
           ) : (
-            <SegmentedFilter value={internalUse} onChange={setInternalUse} options={INTERNAL_USES.map((u) => ({ value: u, label: ta(`use_${u}`) }))} />
+            <SegmentedFilter value={internalUse} onChange={setInternalUse} options={INTERNAL_USES.map((u) => ({ value: u, label: ta(`use_${u}`), icon: ICON[u] }))} />
           )}
         </div>
       </Field>

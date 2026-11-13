@@ -13,6 +13,15 @@ import { formatQty } from "@/lib/almacen/inventory";
 import { AdjustmentDialog } from "../adjustment-dialog";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
+import { ICON } from "@/lib/ui/concepts";
+
+const KIND_ICON = { salida: ICON.moveOut, recepcion: ICON.moveIn, ajuste: ICON.adjust } as const;
+
+/** El mismo ícono de la opción del filtro, delante de cada movimiento. */
+function KindIcon({ kind }: { kind: string }) {
+  const Icon = KIND_ICON[kind as keyof typeof KIND_ICON];
+  return Icon ? <Icon className="mr-1 inline size-3 align-[-1px]" /> : null;
+}
 
 export type MovementFilter = "all" | "salida" | "recepcion" | "ajuste";
 
@@ -101,10 +110,10 @@ export function MovementsView({
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: ta("filter_all") },
-            { value: "salida", label: ta("mov_filter_out") },
-            { value: "recepcion", label: ta("mov_filter_in") },
-            { value: "ajuste", label: ta("mov_filter_adj") },
+            { value: "all", label: ta("filter_all"), icon: ICON.all },
+            { value: "salida", label: ta("mov_filter_out"), icon: ICON.moveOut },
+            { value: "recepcion", label: ta("mov_filter_in"), icon: ICON.moveIn },
+            { value: "ajuste", label: ta("mov_filter_adj"), icon: ICON.adjust },
           ]}
         />
       </ListToolbar>
@@ -121,6 +130,7 @@ export function MovementsView({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{ref?.name ?? "—"}</p>
                   <p className="truncate text-xs text-muted-foreground">
+                    <KindIcon kind={m.kind} />
                     <span className="font-medium">{kindLabel(m.kind)}</span> · {detail(m)}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">

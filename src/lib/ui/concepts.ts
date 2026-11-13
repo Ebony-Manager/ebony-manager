@@ -8,7 +8,20 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Boxes,
+  List,
+  PenLine,
+  Factory,
+  Package,
+  PaintBucket,
   Paperclip,
+  RefreshCw,
+  ShoppingCart,
+  SlidersHorizontal,
+  TrendingDown,
+  Warehouse,
   Palette,
   Phone,
   StickyNote,
@@ -31,6 +44,28 @@ export const ICON = {
   owner: User,
   /** Diseñadora de Ebony asignada a un proyecto u oportunidad. */
   designer: Palette,
+  /** Movimientos del inventario: lo que sale, lo que entra y lo que se ajusta. */
+  moveOut: ArrowUpFromLine,
+  moveIn: ArrowDownToLine,
+  adjust: SlidersHorizontal,
+  /** Filtro «Todos». */
+  all: List,
+  /** Resumen de Almacén: consumo, existencias, compras. */
+  consumption: TrendingDown,
+  stock: Boxes,
+  purchases: ShoppingCart,
+  /** Período de un resumen. */
+  period: CalendarDays,
+  /** Solicitud automática (llegó al mínimo) y escrita a mano. */
+  auto: RefreshCw,
+  /** Pedir del catálogo / escribir lo que hace falta. */
+  catalog: Boxes,
+  freeText: PenLine,
+  /** Uso interno (taller, embalaje, pintura). */
+  internal: Warehouse,
+  taller: Factory,
+  embalaje: Package,
+  pintura: PaintBucket,
   /** "¿Para quién?": quiénes intervienen (arquitecto y/o cliente). */
   people: Users,
   firm: Building2,

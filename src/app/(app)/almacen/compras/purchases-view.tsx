@@ -25,6 +25,7 @@ import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import { toPacks, type OrderMessageLine, type PurchasePack } from "@/lib/almacen/inventory";
 import { SubTabs } from "@/components/shared/page-header";
 import { STATUS, TONE_TEXT } from "@/lib/ui/status";
+import { ICON } from "@/lib/ui/concepts";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 
 import {
@@ -310,9 +311,9 @@ function OriginFilter({ requests, value, onChange }: { requests: PurchaseRequest
       value={value}
       onChange={onChange}
       options={[
-        { value: "all", label: `${ta("origin_all")} (${requests.length})` },
-        { value: "auto", label: `${ta("origin_auto")} (${auto})` },
-        { value: "manual", label: `${ta("origin_manual")} (${requests.length - auto})` },
+        { value: "all", label: `${ta("origin_all")} (${requests.length})`, icon: ICON.all },
+        { value: "auto", label: `${ta("origin_auto")} (${auto})`, icon: ICON.auto },
+        { value: "manual", label: `${ta("origin_manual")} (${requests.length - auto})`, icon: ICON.owner },
       ]}
     />
   );
@@ -693,7 +694,7 @@ function History({
         <SearchBox value={q} onChange={setQ} placeholder={ta("history_search")} />
         <SegmentedFilter value={status} onChange={setStatus} options={[
           { value: "recibido", label: ta("st_recibido"), icon: STATUS.purchase_recibido.icon, iconClass: TONE_TEXT[STATUS.purchase_recibido.tone] },
-          { value: "all", label: ta("origin_all") },
+          { value: "all", label: ta("origin_all"), icon: ICON.all },
           { value: "cancelado", label: ta("st_cancelado"), icon: STATUS.purchase_cancelado.icon, iconClass: TONE_TEXT[STATUS.purchase_cancelado.tone] },
         ]} />
       </ListToolbar>

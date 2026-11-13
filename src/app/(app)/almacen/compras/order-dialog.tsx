@@ -21,7 +21,7 @@ import { ICON } from "@/lib/ui/concepts";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, useTa, type VariantRef } from "../shared";
 import { PurchasePhoto, StatusBadge, packOf, purchaseQtyText } from "./common";
-import { DeliveryBadge, MapsButton } from "./order-message";
+import { DELIVERY_ICON, DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
 function centsText(cents: number): string {
@@ -166,8 +166,8 @@ export function OrderDialog({
               value={order.delivery ?? "retiro"}
               onChange={(d) => void changeDelivery(d)}
               options={[
-                { value: "retiro", label: ta("delivery_retiro") },
-                { value: "entrega", label: ta("delivery_entrega") },
+                { value: "retiro", label: ta("delivery_retiro"), icon: DELIVERY_ICON.retiro },
+                { value: "entrega", label: ta("delivery_entrega"), icon: DELIVERY_ICON.entrega },
               ]}
             />
           </Field>

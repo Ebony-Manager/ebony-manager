@@ -15,6 +15,16 @@ import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { compareTools, matchesToolFilter, openLoans, shownStatus, toolName, type ToolFilter } from "@/lib/almacen/tools";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, useTa } from "../shared";
 import { ToolStatusBadge, holderName, useDueText, type Project } from "./common";
+import { ICON } from "@/lib/ui/concepts";
+import { STATUS, TONE_TEXT, type StatusKey } from "@/lib/ui/status";
+
+/** Cada filtro de la lista usa el ícono y el tono del estado que selecciona. */
+const TOOL_FILTER_STATUS: Partial<Record<"all" | "stock" | "lent" | "overdue" | "out", StatusKey>> = {
+  stock: "tool_disponible",
+  lent: "tool_prestada",
+  overdue: "tool_vencida",
+  out: "tool_out",
+};
 import { ToolDialog } from "./tool-dialog";
 import { LendDialog } from "./lend-dialog";
 import { ReturnDialog } from "./return-dialog";
@@ -153,7 +163,10 @@ export function ToolsView({
           onChange={setFilter}
           options={(["all", "stock", "lent", "overdue", "out"] as const)
             .filter((f) => f === "all" || f === filter || count(f) > 0)
-            .map((f) => ({ value: f, label: `${ta(`tools_f_${f}`)} (${count(f)})` }))}
+            .map((f) => {
+              const st = TOOL_FILTER_STATUS[f];
+              return { value: f, label: `${ta(`tools_f_${f}`)} (${count(f)})`, icon: st ? STATUS[st].icon : ICON.all, iconClass: st ? TONE_TEXT[STATUS[st].tone] : undefined };
+            })}
         />
       </ListToolbar>
 

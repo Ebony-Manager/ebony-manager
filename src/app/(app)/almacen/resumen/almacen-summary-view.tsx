@@ -1,5 +1,6 @@
 "use client";
 
+import { ICON } from "@/lib/ui/concepts";
 import * as React from "react";
 import { AlertTriangle, ArrowUpFromLine, Boxes, CircleDollarSign, Folder, PackageX, ShoppingCart, Snowflake, Truck, User } from "lucide-react";
 
@@ -96,9 +97,9 @@ export function AlmacenSummaryView({
         value={view}
         onChange={setView}
         options={[
-          { value: "consumo", label: ta("sum_view_consumo") },
-          { value: "stock", label: ta("sum_view_stock") },
-          { value: "compras", label: ta("sum_view_compras") },
+          { value: "consumo", label: ta("sum_view_consumo"), icon: ICON.consumption },
+          { value: "stock", label: ta("sum_view_stock"), icon: ICON.stock },
+          { value: "compras", label: ta("sum_view_compras"), icon: ICON.purchases },
         ]}
       />
 
@@ -108,8 +109,8 @@ export function AlmacenSummaryView({
             value={scope}
             onChange={setScope}
             options={[
-              { value: "month", label: ta("sum_scope_month") },
-              { value: "year", label: ta("sum_scope_year") },
+              { value: "month", label: ta("sum_scope_month"), icon: ICON.period },
+              { value: "year", label: ta("sum_scope_year"), icon: ICON.period },
             ]}
           />
           {scope === "month" ? (
