@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireAnyModule } from "@/lib/auth/dal";
-import { hasModule } from "@/lib/auth/modules";
+import { hasModule, isDesignerView } from "@/lib/auth/modules";
 import { getContractors, getContracts, getLaborRates, getProject, getProjects } from "@/services/contractors";
 import { getInspectionPainters, getProjectInspections } from "@/services/inspections";
 import { getProjectSupplies } from "@/services/almacen";
@@ -10,6 +10,7 @@ import { driveEnabled } from "@/lib/google/drive";
 import { getClients } from "@/services/ventas";
 import { getProjectQuotes } from "@/services/cotizador";
 import { getProjectDeliveries, getUnassignedDeliveries } from "@/services/deliveries";
+import { getDesignerCandidates, getDesignerProjectQuotes, getProjectDesigners } from "@/services/project-designers";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -27,7 +28,8 @@ export default async function ProjectPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const profile = await requireAnyModule("proyectos", "contratistas");
+  const profile = await requireAnyModule("proyectos", "contratistas", "diseno");
+  const designerView = isDesignerView(profile);
   const canContracts = hasModule(profile, "contratistas");
   const canInspections = hasModule(profile, "inspecciones");
   const canQuotes = hasModule(profile, "cotizacion");
@@ -36,19 +38,22 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder, clients, quotes, deliveries, unassigned] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, folder, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
     canContracts ? getLaborRates() : none([]),
     canInspections ? getProjectInspections(id) : none([]),
     canInspections ? getInspectionPainters() : none([]),
-    getProjectSupplies(id),
+    designerView ? none([]) : getProjectSupplies(id),
     createClient().then((s) => s.from("projects").select("drive_folder_id").eq("id", id).maybeSingle()),
     project.designerId || project.clientId ? getClients().catch(() => []) : none([]),
     canQuotes ? getProjectQuotes(id) : none([]),
     getProjectDeliveries(id).catch(() => []),
-    getUnassignedDeliveries().catch(() => []),
+    designerView ? none([]) : getUnassignedDeliveries().catch(() => []),
+    getProjectDesigners(id).catch(() => []),
+    designerView ? none([]) : getDesignerCandidates().catch(() => []),
+    designerView ? getDesignerProjectQuotes(id).catch(() => []) : none([]),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
@@ -71,6 +76,10 @@ export default async function ProjectPage({
       deliveries={deliveries}
       unassignedDeliveries={unassigned}
       projectPeople={{ designer: nameOf(project.designerId), client: nameOf(project.clientId) }}
+      designerView={designerView}
+      designers={designers}
+      designerCandidates={designerCandidates}
+      designerQuotes={designerQuotes}
     />
   );
 }

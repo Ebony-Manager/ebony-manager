@@ -61,7 +61,7 @@ export function canSeeNavItem(item: NavItem, subject: AccessSubject | null | und
 export const RAIL_ITEMS: NavItem[] = [
   // Ventas: Seguimiento (entrada), Cotizaciones y Clientes, como pestañas dentro.
   { href: "/cotizacion/seguimiento", icon: Handshake, label: strings.nav.cotizacion, modules: ["cotizacion"], alsoActive: ["/cotizacion"] },
-  { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas"] },
+  { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas", "diseno"] },
   // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
   { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
   // Directorio de proveedores (materiales y servicios): de la empresa, no solo del Almacén.

@@ -1,5 +1,6 @@
 import { getProfile } from "@/lib/auth/dal";
-import { hasModule, type AppModule } from "@/lib/auth/modules";
+import { hasModule, isDesignerView, type AppModule } from "@/lib/auth/modules";
+import { createClient } from "@/lib/supabase/server";
 import { downloadFile, downloadThumbnail, getItem } from "@/lib/google/drive";
 
 // Ver un archivo de Drive dentro de la app (imagen, PDF, video): la app lo
@@ -9,10 +10,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const profile = await getProfile();
-  if (!profile || !(["cotizacion", "proyectos", "contratistas"] as AppModule[]).some((m) => hasModule(profile, m))) {
-    return new Response("Sin permiso", { status: 403 });
-  }
+  const staff = !!profile && (["cotizacion", "proyectos", "contratistas"] as AppModule[]).some((m) => hasModule(profile, m));
+  const designer = !!profile && isDesignerView(profile);
+  if (!staff && !designer) return new Response("Sin permiso", { status: 403 });
   const { id } = await params;
+  if (!staff) {
+    if (!/^[A-Za-z0-9_-]{10,100}$/.test(id)) return new Response("Sin permiso", { status: 403 });
+    // Una diseñadora solo abre el PDF o la carpeta de un formulario de SUS proyectos (la RLS de project_deliveries filtra).
+    const supabase = await createClient();
+    const { data: own } = await supabase.from("project_deliveries").select("id").or(`pdf_file_id.eq.${id},drive_folder_id.eq.${id}`).limit(1);
+    if (!own?.length) return new Response("Sin permiso", { status: 403 });
+  }
   try {
     const item = await getItem(id);
     if (new URL(request.url).searchParams.get("thumb") === "1") {

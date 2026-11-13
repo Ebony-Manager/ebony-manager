@@ -2584,6 +2584,28 @@ export const strings = {
 
   // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
   proyectos: {
+    dz_title: { es: "Diseñadoras", en: "Designers" },
+    dz_hint: { es: "Quienes llevan este proyecto en diseño. Cada una ve solo los proyectos donde está asignada.", en: "Who handles this project's design. Each one sees only the projects she's assigned to." },
+    dz_add: { es: "Asignar diseñadora", en: "Assign designer" },
+    dz_pick: { es: "Elegir persona…", en: "Pick a person…" },
+    dz_none: { es: "Todavía no hay diseñadoras asignadas.", en: "No designers assigned yet." },
+    dz_no_access: { es: "Sin acceso a la app", en: "No app access" },
+    dz_inactive: { es: "Inactiva", en: "Inactive" },
+    dz_remove: { es: "Quitar", en: "Remove" },
+    dz_added: { es: "Diseñadora asignada", en: "Designer assigned" },
+    dz_removed: { es: "Diseñadora quitada", en: "Designer removed" },
+    dq_no_prices: { es: "Vista sin precios", en: "Price-free view" },
+    dq_empty: { es: "Este proyecto todavía no tiene cotizaciones.", en: "This project has no quotes yet." },
+    dq_items: { es: "{n} ítems", en: "{n} items" },
+    dq_back: { es: "Volver al proyecto", en: "Back to project" },
+    dq_delivery: { es: "Entrega: {n} días hábiles", en: "Delivery: {n} working days" },
+    dq_materials: { es: "Materiales y medidas", en: "Materials and measures" },
+    dq_no_items: { es: "Esta cotización no tiene ítems.", en: "This quote has no items." },
+    dq_hidden_note: { es: "Los precios, totales e impuestos no se muestran en esta vista.", en: "Prices, totals and taxes are not shown in this view." },
+    dq_status_BORRADOR: { es: "Borrador", en: "Draft" },
+    dq_status_ENVIADA: { es: "Enviada", en: "Sent" },
+    dq_status_APROBADA: { es: "Aprobada", en: "Approved" },
+    dq_status_RECHAZADA: { es: "Rechazada", en: "Rejected" },
     title: { es: "Proyectos", en: "Projects" },
     subtitle: {
       es: "Cada proyecto reúne todo lo de la obra: hoy sus contratos.",
@@ -2887,6 +2909,11 @@ export const strings = {
     mod_almacen_herramientas_hint: {
       es: "Crear y editar herramientas y su foto. Sin costos; el estado (dañada, perdida) y dar de baja quedan para Ajustes o Compras.",
       en: "Create and edit tools and their photo. No costs; status (damaged, lost) and retiring stay with Adjustments or Purchasing.",
+    },
+    mod_diseno: { es: "Diseño", en: "Design" },
+    mod_diseno_hint: {
+      es: "Ve solo los proyectos donde está asignada: sus formularios y la cotización sin precios.",
+      en: "Sees only the projects she's assigned to: their forms and the quote without prices.",
     },
     mod_inspecciones: { es: "Inspecciones", en: "Inspections" },
     mod_inspecciones_hint: {

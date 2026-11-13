@@ -1,5 +1,5 @@
 import { requireAnyModule } from "@/lib/auth/dal";
-import { hasModule } from "@/lib/auth/modules";
+import { hasModule, isDesignerView } from "@/lib/auth/modules";
 import { getContracts, getProjects } from "@/services/contractors";
 import { ProjectsList } from "./projects-list";
 
@@ -9,9 +9,9 @@ import { ProjectsList } from "./projects-list";
 export const dynamic = "force-dynamic";
 
 export default async function ProyectosPage() {
-  const profile = await requireAnyModule("proyectos", "contratistas");
+  const profile = await requireAnyModule("proyectos", "contratistas", "diseno");
   const canContracts = hasModule(profile, "contratistas");
   const [projects, contracts] = await Promise.all([getProjects(), canContracts ? getContracts() : Promise.resolve([])]);
 
-  return <ProjectsList projects={projects} contracts={contracts} canContracts={canContracts} />;
+  return <ProjectsList projects={projects} contracts={contracts} canContracts={canContracts} canCreate={!isDesignerView(profile)} />;
 }

@@ -30,10 +30,13 @@ export function ProjectsList({
   projects,
   contracts,
   canContracts,
+  canCreate = true,
 }: {
   projects: Project[];
   contracts: ContractorContract[];
   canContracts: boolean;
+  /** false = diseñadora: ve sus proyectos pero no crea nuevos. */
+  canCreate?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -62,10 +65,12 @@ export function ProjectsList({
         title={tt("title")}
         subtitle={tt("subtitle")}
         action={
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-3.5" />
-            {tt("add")}
-          </Button>
+          canCreate ? (
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus className="size-3.5" />
+              {tt("add")}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -88,10 +93,12 @@ export function ProjectsList({
             <Folder className="size-6 text-walnut" />
           </div>
           <p className="font-semibold text-foreground">{tt("empty")}</p>
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-3.5" />
-            {tt("add")}
-          </Button>
+          {canCreate && (
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus className="size-3.5" />
+              {tt("add")}
+            </Button>
+          )}
         </EmptyState>
       ) : shown.length === 0 ? (
         <EmptyState>{tt("no_results")}</EmptyState>

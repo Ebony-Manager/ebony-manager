@@ -29,12 +29,15 @@ export function ProjectDeliveries({
   kind = "entrega",
   deliveries,
   unassigned,
+  readOnly = false,
 }: {
   project: Project;
   /** Acta de entrega, o autorización a pintura / embalaje (mismo flujo). */
   kind?: DeliveryKind;
   deliveries: ProjectDelivery[];
   unassigned: ProjectDelivery[];
+  /** Diseñadora: abre el formulario y ve lo enviado, pero no marca terminado, no asigna actas sueltas ni abre las carpetas de Drive. */
+  readOnly?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -92,7 +95,7 @@ export function ProjectDeliveries({
         </Button>
       </div>
 
-      {isActa && project.status === "ACTIVE" && deliveries.length > 0 && (
+      {!readOnly && isActa && project.status === "ACTIVE" && deliveries.length > 0 && (
         <Card className="border-primary/30 bg-primary/5 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
@@ -113,13 +116,13 @@ export function ProjectDeliveries({
         <ul className="flex flex-col gap-3">
           {deliveries.map((d) => (
             <li key={d.id}>
-              <DeliveryCard delivery={d} />
+              <DeliveryCard delivery={d} readOnly={readOnly} />
             </li>
           ))}
         </ul>
       )}
 
-      {unassigned.length > 0 && (
+      {!readOnly && unassigned.length > 0 && (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
@@ -150,7 +153,7 @@ export function ProjectDeliveries({
   );
 }
 
-function DeliveryCard({ delivery: d }: { delivery: ProjectDelivery }) {
+function DeliveryCard({ delivery: d, readOnly = false }: { delivery: ProjectDelivery; readOnly?: boolean }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
   return (
@@ -178,7 +181,7 @@ function DeliveryCard({ delivery: d }: { delivery: ProjectDelivery }) {
               </a>
             </Button>
           )}
-          {d.driveFolderId && (
+          {!readOnly && d.driveFolderId && (
             <Button size="sm" variant="ghost" asChild>
               <a href={folderUrl(d.driveFolderId)} target="_blank" rel="noreferrer">
                 <FolderOpen className="size-3.5" />

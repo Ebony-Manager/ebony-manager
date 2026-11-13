@@ -17,7 +17,8 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
  * responde, el formulario sin datos: se puede llenar igual.
  */
 export async function getActaUrlAction(projectId: string, kind: DeliveryKind = "entrega"): Promise<Result<{ url: string; prefilled: boolean }>> {
-  await requireAnyModule("proyectos", "contratistas");
+  // Una diseñadora (permiso Diseño) solo llega a los proyectos donde está asignada: la RLS de `projects` lo decide.
+  await requireAnyModule("proyectos", "contratistas", "diseno");
   const supabase = await createClient();
   const { data: project, error } = await supabase.from("projects").select("name, location, client_name, client_id").eq("id", projectId).single();
   if (error) return { ok: false, error: error.message };

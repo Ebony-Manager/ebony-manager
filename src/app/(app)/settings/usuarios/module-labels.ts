@@ -19,6 +19,7 @@ export const MODULE_LABELS: Record<AppModule, { label: Entry; hint: Entry }> = {
   almacen_herramientas: { label: strings.usuarios.mod_almacen_herramientas, hint: strings.usuarios.mod_almacen_herramientas_hint },
   directorio: { label: strings.usuarios.mod_directorio, hint: strings.usuarios.mod_directorio_hint },
   inspecciones: { label: strings.usuarios.mod_inspecciones, hint: strings.usuarios.mod_inspecciones_hint },
+  diseno: { label: strings.usuarios.mod_diseno, hint: strings.usuarios.mod_diseno_hint },
   accesos: { label: strings.usuarios.mod_accesos, hint: strings.usuarios.mod_accesos_hint },
   form_autorizaciones: { label: strings.usuarios.mod_form_autorizaciones, hint: strings.usuarios.mod_form_autorizaciones_hint },
   form_registro: { label: strings.usuarios.mod_form_registro, hint: strings.usuarios.mod_form_registro_hint },

@@ -56,6 +56,12 @@ export type Database = {
         }
         Relationships: []
       }
+      project_designers: {
+        Row: { project_id: string; employee_id: string; created_at: string }
+        Insert: { project_id: string; employee_id: string; created_at?: string }
+        Update: { project_id?: string; employee_id?: string; created_at?: string }
+        Relationships: []
+      }
       project_deliveries: {
         Row: {
           id: string
@@ -3573,6 +3579,22 @@ export type Database = {
       assign_inspection_schedules: {
         Args: { p_ids: string[]; p_person_kind?: string | null; p_person_id?: string | null }
         Returns: number
+      }
+      project_designers_list: {
+        Args: { p_project: string }
+        Returns: { employee_id: string; name: string; position: string | null; active: boolean; has_access: boolean }[]
+      }
+      designer_candidates: {
+        Args: Record<string, never>
+        Returns: { id: string; name: string; position: string | null; has_access: boolean }[]
+      }
+      designer_project_quotes: {
+        Args: { p_project: string }
+        Returns: { id: string; number: string; status: string; quote_date: string; client_name: string; designer_name: string; project_name: string; items: number }[]
+      }
+      designer_quote: {
+        Args: { p_quote: string }
+        Returns: Json | null
       }
       project_supplies: {
         Args: { p_project: string }

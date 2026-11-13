@@ -34,6 +34,9 @@ import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
 import { ProjectDeliveries } from "./project-deliveries";
+import { ProjectDesigners } from "./project-designers";
+import { DesignerQuoteRows } from "./designer-quote-rows";
+import type { DesignerCandidate, DesignerQuoteSummary, ProjectDesigner } from "@/types/designers";
 import { ProjectPresentation } from "./project-presentation";
 import type { ProjectDelivery } from "@/types/deliveries";
 import { DriveFiles } from "@/components/shared/drive-files";
@@ -69,6 +72,10 @@ export function ProjectHub({
   quotes = [],
   deliveries = [],
   unassignedDeliveries = [],
+  designerView = false,
+  designers = [],
+  designerCandidates = [],
+  designerQuotes = [],
 }: {
   project: Project;
   initialTab?: string;
@@ -91,6 +98,13 @@ export function ProjectHub({
   /** Actas de entrega del proyecto, y las que llegaron sin proyecto. */
   deliveries?: ProjectDelivery[];
   unassignedDeliveries?: ProjectDelivery[];
+  /** Diseñadora (permiso Diseño sin administrar proyectos): solo lectura, cotización sin precios, sin contratos ni archivos. */
+  designerView?: boolean;
+  /** Las diseñadoras de Ebony asignadas a este proyecto, y a quién se puede asignar. */
+  designers?: ProjectDesigner[];
+  designerCandidates?: DesignerCandidate[];
+  /** Las cotizaciones del proyecto sin montos (para la diseñadora). */
+  designerQuotes?: DesignerQuoteSummary[];
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -98,15 +112,15 @@ export function ProjectHub({
 
   const sections: { key: SectionKey; label: string; visible: boolean }[] = [
     { key: "resumen", label: tt("tab_resumen"), visible: true },
-    { key: "cotizaciones", label: tt("tab_cotizaciones"), visible: canQuotes },
+    { key: "cotizaciones", label: tt("tab_cotizaciones"), visible: canQuotes || designerView },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
-    { key: "suministros", label: tt("tab_suministros"), visible: true },
+    { key: "suministros", label: tt("tab_suministros"), visible: !designerView },
     { key: "pintura", label: tt("tab_pintura"), visible: true },
-    { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled },
+    { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled && !designerView },
     { key: "embalaje", label: tt("tab_embalaje"), visible: true },
     { key: "entregas", label: tt("tab_entregas"), visible: true },
-    { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled },
+    { key: "archivos", label: tt("tab_archivos"), visible: drive.enabled && !designerView },
   ];
   const visible = sections.filter((s) => s.visible);
   const [tab, setTab] = React.useState<SectionKey>(
@@ -131,19 +145,21 @@ export function ProjectHub({
     <div className={PAGE_CLASS}>
       <div className="flex items-center justify-between gap-2">
         <BackLink href={PROJECTS_PATH} label={tt("back")} />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={tt("menu")} title={tt("menu")}>
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem variant="destructive" onSelect={() => window.setTimeout(() => setDeleting(true), 0)}>
-              <Trash2 className="size-3.5" />
-              {tt("delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!designerView && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={tt("menu")} title={tt("menu")}>
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem variant="destructive" onSelect={() => window.setTimeout(() => setDeleting(true), 0)}>
+                <Trash2 className="size-3.5" />
+                {tt("delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -158,18 +174,24 @@ export function ProjectHub({
             {[project.location, project.clientName].filter(Boolean).join(" · ") || tt("no_location")}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-          <Pencil className="size-3.5" />
-          {tt("edit")}
-        </Button>
+        {!designerView && (
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+            <Pencil className="size-3.5" />
+            {tt("edit")}
+          </Button>
+        )}
       </div>
 
       <SubTabs value={tab} onChange={changeTab} tabs={visible.map((s) => ({ value: s.key, label: s.label }))} />
 
       {tab === "resumen" && (
-        <Overview project={project} people={projectPeople} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
+        <>
+          <Overview project={project} people={projectPeople} canContracts={canContracts} contracts={contracts} onOpenContracts={() => changeTab("contratos")} />
+          <ProjectDesigners projectId={project.id} designers={designers} candidates={designerCandidates} canEdit={!designerView} />
+        </>
       )}
-      {tab === "cotizaciones" && canQuotes && <QuoteRows quotes={quotes} newHref={`/cotizacion/nueva?proyecto=${project.id}`} />}
+      {tab === "cotizaciones" && designerView && <DesignerQuoteRows projectId={project.id} quotes={designerQuotes} />}
+      {tab === "cotizaciones" && canQuotes && !designerView && <QuoteRows quotes={quotes} newHref={`/cotizacion/nueva?proyecto=${project.id}`} />}
       {tab === "contratos" && canContracts && (
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
@@ -181,6 +203,7 @@ export function ProjectHub({
           key={tab}
           project={project}
           kind={tab === "entregas" ? "entrega" : tab}
+          readOnly={designerView}
           deliveries={deliveries.filter((d) => d.kind === (tab === "entregas" ? "entrega" : tab))}
           unassigned={unassignedDeliveries.filter((d) => d.kind === (tab === "entregas" ? "entrega" : tab))}
         />

@@ -29,6 +29,9 @@ export const APP_MODULES = [
   "directorio",
   // Inspecciones de obra: visitas con fotos y detalles por resolver (sin dinero).
   "inspecciones",
+  // Diseño: la diseñadora ve SOLO los proyectos donde está asignada, hace sus formularios y ve la
+  // cotización del proyecto sin precios. No incluye Cotización (que sí tiene los precios).
+  "diseno",
   // Accesos rápidos: botones a formularios de JotForm en el menú (solo enlaces, sin datos).
   "accesos",
   "form_autorizaciones",
@@ -102,6 +105,14 @@ export function hasModule(subject: AccessSubject | null | undefined, module: App
   if (!subject) return false;
   if (subject.role === "admin") return true;
   return normalizeModules(subject.modules ?? []).includes(module);
+}
+
+/**
+ * Vista de diseñadora: tiene Diseño pero no administra proyectos (Proyectos o Contratistas). Ve solo sus
+ * proyectos, sin contratos, suministros, archivos ni precios. El admin nunca cae acá.
+ */
+export function isDesignerView(subject: AccessSubject | null | undefined): boolean {
+  return hasModule(subject, "diseno") && !hasAnyModule(subject, ["proyectos", "contratistas"]);
 }
 
 /** Todos los módulos pedidos, no alguno. */
