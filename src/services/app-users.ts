@@ -4,7 +4,7 @@ import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isOptInModule, normalizeModules, type AppRole } from "@/lib/auth/modules";
 import type { Database } from "@/types/database";
-import type { AppUser, AppUserInput } from "@/types/usuarios";
+import type { AccessCandidate, AppUser, AppUserInput, LinkedEmployee } from "@/types/usuarios";
 
 /**
  * Capa de datos de Settings → Usuarios. La lista de usuarios es
@@ -31,6 +31,7 @@ function cleanInput(input: AppUserInput) {
     first_name: firstName,
     last_name: lastName,
     role: input.role,
+    ...(input.employeeId !== undefined ? { employee_id: input.employeeId } : {}),
     // El admin entra a todo: no se le guardan módulos sueltos, salvo los "a elección" (Accesos rápidos).
     modules: input.role === "admin" ? normalizeModules(input.modules).filter(isOptInModule) : normalizeModules(input.modules),
     note: input.note?.trim() || null,
@@ -39,12 +40,15 @@ function cleanInput(input: AppUserInput) {
 
 export async function getAppUsers(): Promise<AppUser[]> {
   const supabase = await createClient();
-  const [{ data: allowed, error: e1 }, { data: profiles, error: e2 }] = await Promise.all([
+  const [{ data: allowed, error: e1 }, { data: profiles, error: e2 }, { data: staff, error: e3 }] = await Promise.all([
     supabase.from("allowed_emails").select("*").order("created_at"),
     supabase.from("profiles").select("id, email, full_name, avatar_url, last_sign_in_at"),
+    supabase.from("payroll_employees").select("id, name, position, status"),
   ]);
   if (e1) throw e1;
   if (e2) throw e2;
+  if (e3) throw e3;
+  const employeeById = new Map<string, LinkedEmployee>((staff ?? []).map((e) => [e.id, { id: e.id, name: e.name, position: e.position, active: e.status === "ACTIVE" }]));
 
   const byEmail = new Map((profiles ?? []).map((p) => [p.email.toLowerCase(), p]));
   return (allowed ?? []).map((a) => {
@@ -63,8 +67,28 @@ export async function getAppUsers(): Promise<AppUser[]> {
       fullName: listName || p?.full_name || null,
       avatarUrl: p?.avatar_url ?? null,
       lastSignInAt: p?.last_sign_in_at ?? null,
+      employee: (a.employee_id && employeeById.get(a.employee_id)) || null,
     };
   });
+}
+
+/**
+ * Gente de Personal a la que aún no se le ha dado acceso (activos primero). Solo nombre, cargo y
+ * correo: nada de sueldo ni planilla. `keepId` deja en la lista a la persona ya enlazada (al editar).
+ */
+export async function getAccessCandidates(keepId?: string | null): Promise<AccessCandidate[]> {
+  const supabase = await createClient();
+  const [{ data: staff, error: e1 }, { data: linked, error: e2 }] = await Promise.all([
+    supabase.from("payroll_employees").select("id, name, position, email, status"),
+    supabase.from("allowed_emails").select("employee_id").not("employee_id", "is", null),
+  ]);
+  if (e1) throw e1;
+  if (e2) throw e2;
+  const taken = new Set((linked ?? []).map((l) => l.employee_id as string));
+  return (staff ?? [])
+    .filter((e) => !taken.has(e.id) || e.id === keepId)
+    .map((e) => ({ id: e.id, name: e.name, position: e.position, email: e.email?.trim() || null, active: e.status === "ACTIVE" }))
+    .sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es"));
 }
 
 export async function createAppUser(rawEmail: string, input: AppUserInput, invitedBy: string): Promise<string> {
@@ -75,6 +99,7 @@ export async function createAppUser(rawEmail: string, input: AppUserInput, invit
     .from("allowed_emails")
     .insert({ email, ...cleanInput(input), invited_by: invitedBy });
   // 23505 = el correo (sin importar mayúsculas) ya está en la lista.
+  if (error?.code === "23505" && /employee/i.test(error.message)) throw new Error("Esa persona de Personal ya tiene acceso");
   if (error?.code === "23505") throw new Error("Ese correo ya está en la lista de usuarios");
   if (error) throw error;
   return email;
@@ -83,6 +108,7 @@ export async function createAppUser(rawEmail: string, input: AppUserInput, invit
 export async function updateAppUser(email: string, input: AppUserInput): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("allowed_emails").update(cleanInput(input)).eq("email", email);
+  if (error?.code === "23505") throw new Error("Esa persona de Personal ya tiene acceso");
   if (error) throw error;
 }
 

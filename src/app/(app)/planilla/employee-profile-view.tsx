@@ -27,6 +27,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
+import { EmployeeAccessCard } from "@/app/(app)/settings/usuarios/employee-access-card";
+import type { AppUser } from "@/types/usuarios";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { SalaryHistorySection } from "./salary-history-section";
 import { EmployeeBenefitsSection } from "./employee-benefits-section";
@@ -85,6 +87,7 @@ export function EmployeeProfileView({
   initial,
   loans,
   from,
+  access,
 }: {
   employee: PayrollEmployee;
   positions: PayrollPosition[];
@@ -102,6 +105,8 @@ export function EmployeeProfileView({
     salaryChanges: PayrollSalaryChange[];
   };
   loans: PayrollLoanWithSchedule[];
+  /** Su acceso a la app (solo para el administrador): null = todavía no tiene; sin esta propiedad, no se muestra la tarjeta. */
+  access?: AppUser | null;
 }) {
   usePageTitle([employee.name, titleT(useLang().lang, titleStrings.titles.employee)]);
   const { lang } = useLang();
@@ -241,6 +246,13 @@ export function EmployeeProfileView({
               </div>
             </div>
           </Card>
+
+          {access !== undefined && (
+            <EmployeeAccessCard
+              person={{ id: employee.id, name: employee.name, position: employee.position, email: employee.email, active: !isInactive }}
+              access={access}
+            />
+          )}
         </div>
 
         {/* Datos del empleado — la "ficha" con todo lo que se sabe de la persona. */}

@@ -2751,6 +2751,23 @@ export const strings = {
 
   // Settings → Usuarios: quién entra a la app y a qué módulos.
   usuarios: {
+    src_staff: { es: "De Personal", en: "From Staff" },
+    src_other: { es: "Otra persona", en: "Someone else" },
+    field_staff: { es: "Persona en Personal", en: "Person in Staff" },
+    staff_pick: { es: "Elige a la persona…", en: "Pick the person…" },
+    staff_none: { es: "Ninguna (no está en Personal)", en: "None (not in Staff)" },
+    staff_no_email: { es: "No tiene correo en Personal: escríbelo abajo (el de su cuenta de Google).", en: "No email in Staff: type it below (their Google account)." },
+    staff_link_hint: { es: "Enlaza este usuario con su ficha: así se ve en las dos partes y se avisa si deja de trabajar.", en: "Links this user to their Staff record, so it shows in both places and you get a warning if they stop working." },
+    email_from_staff: { es: "Es el correo que tiene en Personal. Debe ser el de su cuenta de Google; si usa otro, cámbialo.", en: "This is the email in Staff. It must be their Google account; change it if they use another." },
+    staff_of: { es: "Personal", en: "Staff" },
+    unlinked: { es: "Sin ficha en Personal", en: "No Staff record" },
+    inactive_staff: { es: "Inactivo en Personal: todavía tiene acceso", en: "Inactive in Staff: still has access" },
+    access_title: { es: "Acceso a la app", en: "App access" },
+    access_none: { es: "Todavía no tiene acceso a la app.", en: "Doesn't have app access yet." },
+    access_give: { es: "Dar acceso", en: "Give access" },
+    access_manage: { es: "Ver en Usuarios", en: "Open in Users" },
+    access_warn: { es: "Está inactivo en Personal pero todavía puede entrar a la app.", en: "Inactive in Staff but can still sign in to the app." },
+    access_remove: { es: "Quitar acceso", en: "Remove access" },
     title: { es: "Usuarios", en: "Users" },
     subtitle: {
       es: "Quién puede entrar a Ebony Manager y a qué módulos. Cada usuario se agrega por correo y le llega una invitación.",

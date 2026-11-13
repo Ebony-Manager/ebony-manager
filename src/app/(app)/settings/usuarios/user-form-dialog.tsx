@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { ShieldCheck, User } from "lucide-react";
+import { ShieldCheck, User, UserPlus, Users } from "lucide-react";
 
 import {
   Dialog,
@@ -16,11 +16,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Field } from "@/components/shared/field";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { ICON } from "@/lib/ui/concepts";
+import { splitName } from "@/lib/usuarios/split-name";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { APP_MODULES, MODULE_PARENT, isOptInModule, moduleAncestors, normalizeModules, type AppModule, type AppRole } from "@/lib/auth/modules";
-import type { AppUser } from "@/types/usuarios";
+import type { AccessCandidate, AppUser } from "@/types/usuarios";
 import { inviteUserAction, updateUserAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
 
@@ -34,12 +39,18 @@ import { MODULE_LABELS } from "./module-labels";
 export function UserFormDialog({
   user,
   isSelf = false,
+  candidates = [],
+  prefill,
   open,
   onOpenChange,
 }: {
   /** Sin usuario = invitar. */
   user?: AppUser;
   isSelf?: boolean;
+  /** Gente de Personal sin acceso todavía (para elegirla en vez de escribir sus datos). */
+  candidates?: AccessCandidate[];
+  /** Invitar a alguien de Personal ya elegido (desde su ficha). */
+  prefill?: AccessCandidate;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -47,27 +58,45 @@ export function UserFormDialog({
   const tt = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
   const router = useRouter();
   const isInvite = !user;
-
+  /** A quién se puede elegir: los candidatos (y quien viene de su ficha). */
+  const pool = React.useMemo(() => (prefill && !candidates.some((c) => c.id === prefill.id) ? [prefill, ...candidates] : candidates), [candidates, prefill]);
   const [email, setEmail] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [role, setRole] = React.useState<AppRole>("vendedor");
   const [modules, setModules] = React.useState<AppModule[]>([]);
   const [note, setNote] = React.useState("");
+  const [employeeId, setEmployeeId] = React.useState<string | null>(null);
+  const [source, setSource] = React.useState<"staff" | "other">("staff");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const picked = pool.find((c) => c.id === employeeId) ?? null;
+
+  function pickCandidate(id: string) {
+    const c = pool.find((x) => x.id === id);
+    if (!c) return;
+    const n = splitName(c.name);
+    setEmployeeId(c.id);
+    setFirstName(n.first);
+    setLastName(n.last);
+    if (isInvite) setEmail(c.email ?? "");
+  }
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setEmail("");
-    setFirstName(user?.firstName ?? "");
-    setLastName(user?.lastName ?? "");
+    const fromStaff = !user && prefill ? splitName(prefill.name) : null;
+    setEmail(!user && prefill?.email ? prefill.email : "");
+    setFirstName(fromStaff?.first ?? user?.firstName ?? "");
+    setLastName(fromStaff?.last ?? user?.lastName ?? "");
+    setEmployeeId(user ? (user.employee?.id ?? null) : (prefill?.id ?? null));
+    setSource(!user && (prefill || pool.some((c) => c.active)) ? "staff" : "other");
     setRole(user?.role ?? "vendedor");
     setModules(user?.modules ?? []);
     setNote(user?.note ?? "");
     setError(null);
     setSubmitting(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de usuario.
   }, [open, user]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -89,7 +118,7 @@ export function UserFormDialog({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const input = { firstName, lastName, role, modules, note };
+    const input = { firstName, lastName, role, modules, note, employeeId: isInvite && source === "other" ? null : employeeId };
 
     if (isInvite) {
       const res = await inviteUserAction(email, input);
@@ -124,6 +153,49 @@ export function UserFormDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          {isInvite && !prefill && pool.some((c) => c.active) && (
+            <div className="flex flex-col gap-3">
+              <SegmentedFilter
+                fill
+                value={source}
+                onChange={(v) => {
+                  setSource(v);
+                  if (v === "other") setEmployeeId(null);
+                }}
+                options={[
+                  { value: "staff", label: tt("src_staff"), icon: Users },
+                  { value: "other", label: tt("src_other"), icon: UserPlus },
+                ]}
+              />
+              {source === "staff" && (
+                <Field label={tt("field_staff")} icon={ICON.owner} hint={picked && !picked.email ? tt("staff_no_email") : undefined}>
+                  <Select value={employeeId ?? ""} onValueChange={pickCandidate}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={tt("staff_pick")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pool
+                        .filter((c) => c.active)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                            {c.position ? ` · ${c.position}` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+            </div>
+          )}
+          {isInvite && prefill && (
+            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+              <span className="text-muted-foreground">{tt("field_staff")}: </span>
+              <span className="font-medium">{prefill.name}</span>
+              {prefill.position ? <span className="text-muted-foreground"> · {prefill.position}</span> : null}
+            </p>
+          )}
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="user-first-name" className="text-xs text-muted-foreground">
@@ -167,7 +239,37 @@ export function UserFormDialog({
                 onChange={(ev) => setEmail(ev.target.value)}
                 placeholder="nombre@correo.com"
               />
+              {picked?.email && email.trim().toLowerCase() === picked.email.toLowerCase() && (
+                <p className="text-xs text-muted-foreground">{tt("email_from_staff")}</p>
+              )}
             </div>
+          )}
+
+          {!isInvite && (
+            <Field label={tt("field_staff")} icon={ICON.owner} hint={tt("staff_link_hint")}>
+              <Select value={employeeId ?? "__none"} onValueChange={(v) => setEmployeeId(v === "__none" ? null : v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">{tt("staff_none")}</SelectItem>
+                  {user?.employee && (
+                    <SelectItem value={user.employee.id}>
+                      {user.employee.name}
+                      {user.employee.position ? ` · ${user.employee.position}` : ""}
+                    </SelectItem>
+                  )}
+                  {candidates
+                    .filter((c) => c.active && c.id !== user?.employee?.id)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                        {c.position ? ` · ${c.position}` : ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </Field>
           )}
 
           <div className="flex flex-col gap-1.5">

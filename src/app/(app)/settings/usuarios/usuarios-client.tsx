@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { MailPlus, MoreHorizontal, Pencil, Send, UserMinus } from "lucide-react";
+import { AlertTriangle, MailPlus, MoreHorizontal, Pencil, Send, UserMinus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 import { useLang } from "@/context/language-context";
 import { t, strings, type Lang } from "@/lib/i18n";
 import { formatDateCompact } from "@/lib/planilla/format";
-import type { AppUser } from "@/types/usuarios";
+import type { AccessCandidate, AppUser } from "@/types/usuarios";
 import { resendInvitationAction } from "./actions";
 import { MODULE_LABELS } from "./module-labels";
 import { RemoveUserDialog } from "./remove-user-dialog";
@@ -33,7 +33,7 @@ function shortDate(lang: Lang, iso: string | null): string {
  * correo), se cambian permisos, se reenvía la invitación y se quita el
  * acceso. Los datos vienen del servidor; tras cada cambio, router.refresh().
  */
-export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: string }) {
+export function UsuariosClient({ users, candidates, myEmail }: { users: AppUser[]; candidates: AccessCandidate[]; myEmail: string }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
 
@@ -102,6 +102,19 @@ export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: 
                         {me && <span className="shrink-0 text-xs font-normal text-muted-foreground">({tt("you")})</span>}
                       </div>
                       {u.fullName && <div className="truncate text-xs text-muted-foreground">{u.email}</div>}
+                      {u.employee ? (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {tt("staff_of")}: {u.employee.position || u.employee.name}
+                        </div>
+                      ) : (
+                        u.role !== "admin" && <div className="truncate text-xs text-muted-foreground/70">{tt("unlinked")}</div>
+                      )}
+                      {u.employee && !u.employee.active && (
+                        <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-destructive">
+                          <AlertTriangle className="size-3 shrink-0" />
+                          <span className="truncate">{tt("inactive_staff")}</span>
+                        </div>
+                      )}
                       {u.note && <div className="truncate text-xs text-muted-foreground">{u.note}</div>}
                     </div>
                   </div>
@@ -187,11 +200,12 @@ export function UsuariosClient({ users, myEmail }: { users: AppUser[]; myEmail: 
         </div>
       )}
 
-      <UserFormDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <UserFormDialog open={inviteOpen} onOpenChange={setInviteOpen} candidates={candidates} />
       {editing && (
         <UserFormDialog
           user={editing}
           isSelf={isMe(editing)}
+          candidates={candidates}
           open={Boolean(editing)}
           onOpenChange={(o) => !o && setEditing(null)}
         />

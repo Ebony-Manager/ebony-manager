@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/dal";
-import { getAppUsers } from "@/services/app-users";
+import { getAccessCandidates, getAppUsers } from "@/services/app-users";
 import { UsuariosClient } from "./usuarios-client";
 
 // Settings → Usuarios: solo-admin. `requireAdmin()` rebota a los demás
@@ -9,6 +9,6 @@ export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage() {
   const me = await requireAdmin();
-  const users = await getAppUsers();
-  return <UsuariosClient users={users} myEmail={me.email} />;
+  const [users, candidates] = await Promise.all([getAppUsers(), getAccessCandidates()]);
+  return <UsuariosClient users={users} candidates={candidates} myEmail={me.email} />;
 }

@@ -8,6 +8,7 @@ import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { getEmployeePhotoUrls, getPayrollEmployee } from "@/services/payroll-employees";
 import { signedDocumentUrl } from "@/services/photos";
 import { getPayrollPositions } from "@/services/payroll-positions";
+import { getAppUsers } from "@/services/app-users";
 import { getSalaryChanges } from "@/services/payroll-salary";
 import { getEmployeeAnnualDetail, getLedgerEntries, getLoansForEmployee } from "@/services/payroll";
 import { parseEmployeeFrom } from "@/lib/personal/paths";
@@ -50,9 +51,11 @@ export default async function EmployeeDetailPage({
   ]);
   if (!employee) notFound();
 
-  const [photoUrls, documentUrl] = await Promise.all([
+  const [photoUrls, documentUrl, access] = await Promise.all([
     getEmployeePhotoUrls([employee]),
     signedDocumentUrl(employee.idDocumentPath),
+    // Solo el administrador ve (y maneja) el acceso a la app de esta persona.
+    profile.role === "admin" ? getAppUsers().then((all) => all.find((u) => u.employee?.id === id) ?? null) : Promise.resolve(undefined),
   ]);
 
   return (
@@ -64,6 +67,7 @@ export default async function EmployeeDetailPage({
       from={parseEmployeeFrom(from)}
       initial={{ detail: { year, rows: detail }, ledger, salaryChanges }}
       loans={loans}
+      access={access}
     />
   );
 }

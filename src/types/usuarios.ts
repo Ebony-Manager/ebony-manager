@@ -17,6 +17,26 @@ export interface AppUser {
   fullName: string | null;
   avatarUrl: string | null;
   lastSignInAt: string | null;
+  /** Su ficha en Personal, si la tiene. */
+  employee: LinkedEmployee | null;
+}
+
+/** La ficha de Personal a la que está enlazado un usuario. */
+export interface LinkedEmployee {
+  id: string;
+  name: string;
+  position: string | null;
+  /** false = ya no trabaja (inactivo en Personal). */
+  active: boolean;
+}
+
+/** Alguien de Personal al que todavía no se le ha dado acceso a la app. */
+export interface AccessCandidate {
+  id: string;
+  name: string;
+  position: string | null;
+  email: string | null;
+  active: boolean;
 }
 
 export interface AppUserInput {
@@ -25,4 +45,6 @@ export interface AppUserInput {
   role: AppRole;
   modules: readonly string[];
   note?: string | null;
+  /** Su ficha en Personal: undefined = no tocar; null = quitar el enlace. */
+  employeeId?: string | null;
 }

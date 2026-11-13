@@ -315,6 +315,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          employee_id: string | null
           first_name: string | null
           invited_at: string | null
           invited_by: string | null
@@ -327,6 +328,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          employee_id?: string | null
           first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
@@ -339,6 +341,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          employee_id?: string | null
           first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
