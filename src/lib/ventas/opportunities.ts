@@ -29,6 +29,26 @@ export function opportunityPeople(o: Pick<Opportunity, "designerId" | "clientId"
 }
 
 /**
+ * La línea de abajo del nombre en tarjetas y listas: quiénes son, sin repetir lo que el nombre ya dice
+ * ("Estudio Espiral – Casa Chang" no vuelve a poner "Estudio Espiral"). Con la firma ya en el nombre,
+ * solo queda el contacto elegido y el cliente final.
+ */
+export function opportunitySubtitle(o: Pick<Opportunity, "title" | "designerId" | "clientId"> & { designerContactId?: string | null }, clients: Map<string, Client>): string {
+  const title = o.title.trim().toLowerCase();
+  if (!title) return "";
+  const firm = o.designerId ? clients.get(o.designerId) : undefined;
+  const contact = firm && o.designerContactId ? firm.contacts.find((c) => c.id === o.designerContactId)?.name : undefined;
+  const client = o.clientId ? clients.get(o.clientId) : undefined;
+  const firmInTitle = !!firm && title.includes(firm.name.toLowerCase());
+  return [
+    firm && !firmInTitle ? (contact ? `${firm.name} (${contact})` : firm.name) : firmInTitle ? (contact ?? null) : null,
+    client && !title.includes(client.name.toLowerCase()) ? client.name : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
  * El nombre del proyecto que se propone solo: "arquitecto o cliente – ubicación"
  * (como "MM Interiores – The Colonial 23C"). Solo se llena con lo que haya.
  */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Client, Opportunity } from "@/types/ventas";
-import { clientStats, defaultProjectName, projectLabel, suggestedProjectName, whoOf, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
+import { clientStats, defaultProjectName, opportunitySubtitle, projectLabel, suggestedProjectName, whoOf, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
 
 const opp = (p: Partial<Opportunity>): Opportunity => ({
   id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
@@ -106,5 +106,21 @@ describe("Nombre del proyecto: arquitecto o cliente – ubicación", () => {
     expect(projectLabel("Dlineare – Ph Serena", "Ph Serena")).toBe("Dlineare – Ph Serena");
     expect(projectLabel("", "Santa Maria")).toBe("Santa Maria");
     expect(projectLabel("Casa 76", "")).toBe("Casa 76");
+  });
+});
+
+describe("Línea de abajo del nombre", () => {
+  const firm = { ...client("f1", "Estudio Espiral", "arquitecto"), contacts: [{ id: "k1", name: "Laura", role: null, phone: null, email: null }] } as Client;
+  const person = client("c1", "Fernando Tussie", "cliente");
+  const map = new Map([[firm.id, firm], [person.id, person]]);
+
+  it("no repite la firma si el nombre ya la trae", () => {
+    expect(opportunitySubtitle(opp({ title: "Estudio Espiral – Casa Chang", designerId: "f1" }), map)).toBe("");
+    expect(opportunitySubtitle(opp({ title: "Estudio Espiral – Casa Chang", designerId: "f1", designerContactId: "k1" }), map)).toBe("Laura");
+  });
+
+  it("sin la firma en el nombre, la muestra (y al cliente final si no está)", () => {
+    expect(opportunitySubtitle(opp({ title: "Casa Chang", designerId: "f1", clientId: "c1" }), map)).toBe("Estudio Espiral · Fernando Tussie");
+    expect(opportunitySubtitle(opp({ title: "", designerId: "f1" }), map)).toBe("");
   });
 });

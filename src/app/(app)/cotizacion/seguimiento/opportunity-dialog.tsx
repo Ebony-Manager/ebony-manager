@@ -283,7 +283,7 @@ export function OpportunityDialog({
 
           <FormSection icon={ICON.project} title={tv("sec_project")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={tv("f_location")} icon={ICON.location}>
+            <Field label={tv("f_location")} icon={ICON.location} hint={tv("f_location_hint")}>
               <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
             </Field>
             <Field label={tv("f_project_name")} icon={ICON.project} hint={tv("f_project_name_hint")}>

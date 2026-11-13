@@ -2410,6 +2410,7 @@ export const strings = {
     sec_project: { es: "Proyecto", en: "Project" },
     sec_tracking: { es: "Seguimiento", en: "Tracking" },
     f_project_name: { es: "Nombre del proyecto", en: "Project name" },
+    f_location_hint: { es: "Edificio y apartamento o casa: es lo que va en el nombre del proyecto.", en: "Building and apartment or house: this goes in the project name." },
     f_project_name_hint: { es: "Se arma solo: arquitecto o cliente – ubicación. Puedes cambiarlo.", en: "Filled in for you: architect or client – location. You can change it." },
     f_project: { es: "Nombre del proyecto", en: "Project name" },
     f_project_ph: { es: "Ej. Dlineare – Ph Serena", en: "E.g. Dlineare – Ph Serena" },

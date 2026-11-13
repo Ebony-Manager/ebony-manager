@@ -20,7 +20,7 @@ import { formatMoney } from "@/lib/cotizador/pricing";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 import { whatsappUrl } from "@/lib/almacen/inventory";
-import { daysSince, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
+import { daysSince, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunitySubtitle, opportunityTitle, salesStats, sortForBoard, visibleOnBoard } from "@/lib/ventas/opportunities";
 import { cn } from "@/lib/utils";
 import { setOpportunityStageAction } from "../ventas-actions";
 import { CotizacionTabs, STAGE_ICON_CLASS, STAGE_META, StageBadge, StageIcon, useTv } from "../ventas-common";
@@ -334,7 +334,7 @@ function OppCard({
 }) {
   const { tv, lang } = useTv();
   const title = opportunityTitle(o, clients);
-  const people = o.title.trim() ? opportunityPeople(o, clients) : "";
+  const people = opportunitySubtitle(o, clients);
   const amount = opportunityAmount(o);
   const alert = opportunityAlert(o, today);
   const closed = o.stage === "aprobada" || o.stage === "perdida";
@@ -462,7 +462,7 @@ function OppList({
                   <StageBadge stage={o.stage} />
                   {alert && <Badge variant={alert === "vencida" ? "destructive" : "warning"}>{tv(`alert_${alert}`)}</Badge>}
                 </span>
-                {o.title.trim() && <span className="text-xs text-muted-foreground">{opportunityPeople(o, clients)}</span>}
+                {opportunitySubtitle(o, clients) && <span className="text-xs text-muted-foreground">{opportunitySubtitle(o, clients)}</span>}
                 <span className="text-xs text-muted-foreground">
                   {formatDateCompact(lang, o.receivedOn)} · {amount == null ? tv("no_amount") : formatMoney(amount)}
                 </span>
@@ -490,7 +490,7 @@ function OppList({
                 <tr key={o.id} onClick={() => onOpen(o)} className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/30">
                   <td className="min-w-[260px] px-3.5 py-2">
                     <span className="block font-semibold text-foreground">{opportunityTitle(o, clients)}</span>
-                    {o.title.trim() && <span className="block text-xs text-muted-foreground">{opportunityPeople(o, clients)}</span>}
+                    {opportunitySubtitle(o, clients) && <span className="block text-xs text-muted-foreground">{opportunitySubtitle(o, clients)}</span>}
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="flex flex-wrap items-center gap-1">
