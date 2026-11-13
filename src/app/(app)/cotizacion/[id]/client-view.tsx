@@ -8,7 +8,7 @@ import { strings, t } from "@/lib/i18n";
 import type { PdfDetail, Quote, QuoteImage } from "@/types/cotizador";
 import { photoUrl, THUMB_WIDTH } from "@/lib/photo-url";
 import { UNIT_LABEL } from "./line-row";
-import { quoteWho, validUntil } from "@/lib/cotizador/owner";
+import { quoteHeading, validUntil } from "@/lib/cotizador/owner";
 import { groupedOrder } from "@/lib/cotizador/items";
 import type { DocumentSettings } from "@/lib/settings/documents";
 import { TermsBody } from "@/components/shared/terms-view";
@@ -53,6 +53,7 @@ export function ClientView({
   const fmtDate = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(quote.lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "2-digit", year: "numeric" });
   const dateLabel = fmtDate(quote.quoteDate);
+  const heading = quoteHeading(quote);
   // Los botones van en el idioma de la interfaz; la cotización, en el suyo.
   const { lang } = useLang();
   const ui = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
@@ -112,9 +113,8 @@ export function ClientView({
         <div className="flex flex-wrap items-end justify-between gap-4 py-5">
           <div className="min-w-0">
             <p className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">{tt("cv_quote")}</p>
-            <h2 className="text-xl font-semibold text-balance">{quoteWho(quote) || "—"}</h2>
-            {quote.projectName && <p className="text-sm text-foreground/80">{quote.projectName}</p>}
-            {quote.clientName && quote.designerName && <p className="text-xs text-muted-foreground">{quote.designerName}</p>}
+            <h2 className="text-xl font-semibold text-balance">{heading.title || "—"}</h2>
+            {heading.parties && <p className="text-sm text-foreground/80">{heading.parties}</p>}
           </div>
           <dl className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-xs">
             <dt className="text-muted-foreground">{tt("cv_number")}</dt>

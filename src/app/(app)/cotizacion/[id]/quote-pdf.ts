@@ -3,7 +3,7 @@ import type { jsPDF as JsPDF } from "jspdf";
 import { WORDMARK_PATH, WORDMARK_VIEWBOX } from "@/components/brand/ebony-logo";
 import { formatMoney, lineAmount, lineQty, pricedLines, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { groupedOrder } from "@/lib/cotizador/items";
-import { quoteWho, validUntil } from "@/lib/cotizador/owner";
+import { quoteHeading, quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { richSegments } from "@/lib/cotizador/terms";
 import { DEFAULT_DOCUMENTS, type DocumentSettings, type LogoFile } from "@/lib/settings/documents";
 import { strings, t } from "@/lib/i18n";
@@ -196,21 +196,16 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(...INK);
-  const who = doc.splitTextToSize(quoteWho(quote) || "—", contentW * 0.55) as string[];
+  const heading = quoteHeading(quote);
+  const who = doc.splitTextToSize(heading.title || "—", contentW * 0.55) as string[];
   doc.text(who, margin, y + 20);
   let ly = y + 20 + (who.length - 1) * 18 + 16;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  if (quote.projectName) {
+  if (heading.parties) {
     doc.setTextColor(...INK);
-    doc.text(doc.splitTextToSize(quote.projectName, contentW * 0.55) as string[], margin, ly);
+    doc.text(doc.splitTextToSize(heading.parties, contentW * 0.55) as string[], margin, ly);
     ly += 14;
-  }
-  if (quote.clientName && quote.designerName) {
-    doc.setFontSize(9);
-    doc.setTextColor(...MUTED);
-    doc.text(quote.designerName, margin, ly);
-    ly += 13;
   }
   const meta: [string, string][] = [
     [tq("cv_number"), quote.number || "—"],

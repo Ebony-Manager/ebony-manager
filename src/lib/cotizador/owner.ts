@@ -1,4 +1,5 @@
 import type { Quote, QuoteOwnerOptions } from "@/types/cotizador";
+import { normalizeSearchText } from "@/lib/search";
 
 /**
  * De quién es una cotización ("¿Para qué es?"). Las personas salen siempre
@@ -63,6 +64,22 @@ export function linkClients(
 /** Lo que se muestra como "para quién": el cliente final o, si no hay, la firma. */
 export function quoteWho(q: Pick<Quote, "clientName" | "designerName">): string {
   return q.clientName || q.designerName;
+}
+
+/**
+ * Encabezado que ve el cliente: el título es el nombre del proyecto (que ya empieza por la firma o el
+ * cliente: "Firma – Edificio 12B"); debajo solo van las personas que el nombre NO dice, así nada sale
+ * repetido. Sin nombre de proyecto, el título es el "para quién".
+ */
+export function quoteHeading(q: Pick<Quote, "clientName" | "designerName" | "projectName">): { title: string; parties: string } {
+  const name = q.projectName.trim();
+  if (!name) return { title: quoteWho(q), parties: q.clientName && q.designerName ? q.designerName : "" };
+  const flat = normalizeSearchText(name);
+  const parties = [q.clientName, q.designerName]
+    .map((p) => p.trim())
+    .filter((p, i, all) => p && all.indexOf(p) === i && !flat.includes(normalizeSearchText(p)))
+    .join(" · ");
+  return { title: name, parties };
 }
 
 /** Fecha (YYYY-MM-DD) hasta la que vale la cotización. */
