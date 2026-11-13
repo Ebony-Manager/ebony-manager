@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { openQuotes, opportunityTitle } from "@/lib/ventas/opportunities";
+import { defaultProjectName, openQuotes } from "@/lib/ventas/opportunities";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { Field } from "../../contratistas/field";
@@ -203,7 +203,7 @@ export function ApproveDialog({
     const abiertas = openQuotes(opportunity.quotes);
     const startPicked = abiertas.length === 1 ? [abiertas[0].id] : [];
     const startMode = opportunity.projectId ? "existing" : "new";
-    const startName = opportunityTitle(opportunity, clients);
+    const startName = defaultProjectName(opportunity, clients);
     const startProject = opportunity.projectId ?? "";
     setPicked(startPicked);
     setMode(startMode);

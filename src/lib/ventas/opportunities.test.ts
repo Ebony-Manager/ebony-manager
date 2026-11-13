@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Client, Opportunity } from "@/types/ventas";
-import { clientStats, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
+import { clientStats, defaultProjectName, projectLabel, suggestedProjectName, whoOf, opportunityAlert, opportunityContact, opportunityAmount, opportunityPeople, opportunityTitle, salesStats, visibleOnBoard } from "./opportunities";
 
 const opp = (p: Partial<Opportunity>): Opportunity => ({
   id: "o", title: "", designerId: null, designerContactId: null, clientId: null, location: null, stage: "por_cotizar", lostReason: null, lostNote: null,
@@ -73,5 +73,38 @@ describe("oportunidades", () => {
     expect(opportunityContact(opp({ designerId: "f", designerContactId: "c2", clientId: "e" }), map)).toEqual({ name: "Lior Pesso", phone: "6222-3333" });
     expect(opportunityContact(opp({ designerId: "f" }), map)).toEqual({ name: "Ana", phone: "6000-1111" });
     expect(opportunityContact(opp({}), map)).toBeNull();
+  });
+});
+
+describe("Nombre del proyecto: arquitecto o cliente – ubicación", () => {
+  const firm = client("f1", "Dlineare", "arquitecto");
+  const person = client("c1", "Ben Avi", "cliente");
+  const map = new Map([[firm.id, firm], [person.id, person]]);
+
+  it("se arma con quién y dónde, con lo que haya", () => {
+    expect(suggestedProjectName("Dlineare", "Ph Serena")).toBe("Dlineare – Ph Serena");
+    expect(suggestedProjectName("Dlineare", "")).toBe("Dlineare");
+    expect(suggestedProjectName("", "Ph Serena")).toBe("Ph Serena");
+    expect(suggestedProjectName(null, null)).toBe("");
+  });
+
+  it("da nombre la firma; si no hay firma, el cliente", () => {
+    const nameOf = (id: string) => map.get(id)?.name;
+    expect(whoOf("f1", "c1", nameOf)).toBe("Dlineare");
+    expect(whoOf(null, "c1", nameOf)).toBe("Ben Avi");
+    expect(whoOf(null, null, nameOf)).toBe("");
+  });
+
+  it("al aprobar propone el nombre de la oportunidad; si no tiene, lo arma", () => {
+    expect(defaultProjectName(opp({ title: "Ph Altair", designerId: "f1" }), map)).toBe("Ph Altair");
+    expect(defaultProjectName(opp({ designerId: "f1", location: "Ph Serena" }), map)).toBe("Dlineare – Ph Serena");
+    expect(defaultProjectName(opp({ clientId: "c1", location: "Ph Landmark piso 22" }), map)).toBe("Ben Avi – Ph Landmark piso 22");
+  });
+
+  it("el encabezado de la cotización no repite la ubicación", () => {
+    expect(projectLabel("Ph Altair", "Santa Maria")).toBe("Ph Altair · Santa Maria");
+    expect(projectLabel("Dlineare – Ph Serena", "Ph Serena")).toBe("Dlineare – Ph Serena");
+    expect(projectLabel("", "Santa Maria")).toBe("Santa Maria");
+    expect(projectLabel("Casa 76", "")).toBe("Casa 76");
   });
 });

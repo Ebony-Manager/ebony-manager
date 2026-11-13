@@ -16,7 +16,7 @@ import { ConfirmButton } from "@/components/shared/confirm-button";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatMoney } from "@/lib/cotizador/pricing";
-import { opportunityAmount } from "@/lib/ventas/opportunities";
+import { opportunityAmount, suggestedProjectName, whoOf } from "@/lib/ventas/opportunities";
 import { strings, t } from "@/lib/i18n";
 import { Field } from "../../contratistas/field";
 import { projectPath } from "../../proyectos/paths";
@@ -118,6 +118,8 @@ export function OpportunityDialog({
   const initial = React.useRef("");
   /** Nueva: archivos elegidos antes de guardar (se suben a su carpeta al guardar). */
   const [pending, setPending] = React.useState<File[]>([]);
+  /** El nombre del proyecto se arma solo ("arquitecto o cliente – ubicación") hasta que la persona lo escribe. */
+  const titleTouched = React.useRef(false);
   const [uploadingNew, setUploadingNew] = React.useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
@@ -125,6 +127,7 @@ export function OpportunityDialog({
     if (!open) return;
     setForm(formOf(existing, currentUserId));
     initial.current = JSON.stringify(formOf(existing, currentUserId));
+    titleTouched.current = !!existing?.title.trim();
     reset();
     setSaving(false);
     setPending([]);
@@ -134,8 +137,17 @@ export function OpportunityDialog({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const allClients = React.useMemo(() => [...clients, ...created.filter((c) => !clients.some((x) => x.id === c.id))], [clients, created]);
+  const update = (patch: Partial<Form>) =>
+    setForm((f) => {
+      const next = { ...f, ...patch };
+      if (!titleTouched.current && ("designerId" in patch || "clientId" in patch || "location" in patch)) {
+        const who = whoOf(next.designerId, next.clientId, (id) => allClients.find((c) => c.id === id)?.name);
+        next.title = suggestedProjectName(who, next.location);
+      }
+      return next;
+    });
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
-    setForm((f) => ({ ...f, [k]: v }));
+    update({ [k]: v } as Partial<Form>);
     if (k === "lostReason") clear("lostReason");
     if (k === "clientId") clear("who");
   };
@@ -233,9 +245,9 @@ export function OpportunityDialog({
                 value={form.designerId}
                 onChange={(id) => {
                   clear("who");
-                  setForm((f) => ({ ...f, designerId: id, designerContactId: null }));
+                  update({ designerId: id, designerContactId: null });
                 }}
-                onClear={() => setForm((f) => ({ ...f, designerId: null, designerContactId: null }))}
+                onClear={() => update({ designerId: null, designerContactId: null })}
                 onCreate={(n) => createClient("arquitecto", n)}
                 placeholder={tv("pick_designer")}
               />
@@ -271,11 +283,18 @@ export function OpportunityDialog({
 
           <FormSection icon={ICON.project} title={tv("sec_project")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={tv("f_project_name")} icon={ICON.project}>
-              <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={tv("f_project_ph")} />
-            </Field>
             <Field label={tv("f_location")} icon={ICON.location}>
               <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+            </Field>
+            <Field label={tv("f_project_name")} icon={ICON.project} hint={tv("f_project_name_hint")}>
+              <Input
+                value={form.title}
+                onChange={(e) => {
+                  titleTouched.current = e.target.value.trim() !== "";
+                  update({ title: e.target.value });
+                }}
+                placeholder={tv("f_project_ph")}
+              />
             </Field>
           </div>
           </FormSection>

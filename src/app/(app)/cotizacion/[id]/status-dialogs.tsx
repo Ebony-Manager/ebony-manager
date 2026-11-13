@@ -79,7 +79,7 @@ export function ApproveQuoteDialog({
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    const startName = quote.projectName.split(" · ")[0] || quote.clientName || quote.designerName;
+    const startName = quote.projectName.split(" · ")[0] || quote.designerName || quote.clientName;
     setAlso([]);
     setMode("new");
     setName(startName);
