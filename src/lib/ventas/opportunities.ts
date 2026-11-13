@@ -54,13 +54,13 @@ export function cleanUnit(unit: string | null | undefined): string {
 }
 
 /**
- * El nombre del proyecto que se propone solo: "arquitecto o cliente – edificio Apt número"
- * ("Vdesings – Ph Landmark Apt 22B"). El "Apt" lo pone la app; una casa va en el edificio y no lleva Apt.
- * Solo se llena con lo que haya.
+ * El nombre del proyecto que se propone solo: "arquitecto o cliente – edificio número"
+ * ("Vdesings – Ph Landmark 22B"). El apartamento va pegado al edificio, sin "Apt"; una casa va en el
+ * edificio. Solo se llena con lo que haya.
  */
 export function suggestedProjectName(who: string | null | undefined, building: string | null | undefined, unit: string | null | undefined): string {
   const u = cleanUnit(unit);
-  const place = [building?.trim(), u ? `Apt ${u}` : ""].filter(Boolean).join(" ");
+  const place = [building?.trim(), u].filter(Boolean).join(" ");
   return [who?.trim(), place].filter(Boolean).join(" – ");
 }
 
@@ -69,7 +69,7 @@ export function whoOf(designerId: string | null, clientId: string | null, nameOf
   return (designerId && nameOf(designerId)) || (clientId && nameOf(clientId)) || "";
 }
 
-/** El nombre que se propone al aprobar: el de la oportunidad; si no tiene, "arquitecto o cliente – edificio Apt número". */
+/** El nombre que se propone al aprobar: el de la oportunidad; si no tiene, "arquitecto o cliente – edificio número". */
 export function defaultProjectName(o: Pick<Opportunity, "title" | "designerId" | "clientId" | "building" | "unit">, clients: Map<string, Client>): string {
   return o.title.trim() || suggestedProjectName(whoOf(o.designerId, o.clientId, (id) => clients.get(id)?.name), o.building, o.unit) || opportunityPeople(o, clients) || "";
 }
