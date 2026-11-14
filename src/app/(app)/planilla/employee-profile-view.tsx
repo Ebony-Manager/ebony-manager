@@ -8,7 +8,8 @@ import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { LogOut, Pencil, Settings, Trash2, UserCheck } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, LogOut, Pencil, Settings, Trash2, UserCheck } from "lucide-react";
 
 import type { ComponentProps } from "react";
 
@@ -30,7 +31,8 @@ import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { updateEmployeeAction } from "./actions";
 import { EmployeeAvatar } from "./employee-avatar";
-import { EmployeeAccessLine } from "@/app/(app)/settings/usuarios/employee-access-card";
+import { EmployeeAccessWarning } from "@/app/(app)/settings/usuarios/employee-access-card";
+import { UserFormDialog } from "@/app/(app)/settings/usuarios/user-form-dialog";
 import type { AppUser } from "@/types/usuarios";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { SalaryHistorySection } from "./salary-history-section";
@@ -114,11 +116,13 @@ export function EmployeeProfileView({
   usePageTitle([employee.name, titleT(useLang().lang, titleStrings.titles.employee)]);
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
+  const tu = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
   const router = useRouter();
 
   const [editOpen, setEditOpen] = React.useState(false);
   const [liqOpen, setLiqOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [giveAccessOpen, setGiveAccessOpen] = React.useState(false);
   const [togglingStatus, setTogglingStatus] = React.useState(false);
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(initialPhotoUrl);
   const [photoPath, setPhotoPath] = React.useState<string | null>(employee.photoPath);
@@ -179,6 +183,37 @@ export function EmployeeProfileView({
                     {isInactive ? tt("inactive_label") : tt("active_label")}
                   </span>
                 </DropdownMenuLabel>
+                {/* Acceso a la app (solo administrador): dar acceso, o ver el que ya tiene. */}
+                {access !== undefined && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {access ? (
+                      <>
+                        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                          <KeyRound className="size-3.5" />
+                          {tu("access_title")}:{" "}
+                          <span className="font-medium text-foreground">
+                            {access.role === "admin" ? tu("role_admin") : tu("role_user")} ·{" "}
+                            {access.lastSignInAt ? tu("status_active") : tu("status_pending")}
+                          </span>
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href="/settings/usuarios">
+                            <KeyRound className="size-3.5" />
+                            {tu("access_manage")}
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      !isInactive && (
+                        <DropdownMenuItem onSelect={() => window.setTimeout(() => setGiveAccessOpen(true), 0)}>
+                          <KeyRound className="size-3.5" />
+                          {tu("access_give_app")}
+                        </DropdownMenuItem>
+                      )
+                    )}
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 {/* Dar de baja: último día trabajado (y liquidación de prestaciones si las tiene) + inactivo, en un paso. */}
                 <DropdownMenuItem onSelect={() => window.setTimeout(() => setLiqOpen(true), 0)}>
@@ -244,12 +279,7 @@ export function EmployeeProfileView({
               </div>
             </div>
 
-            {access !== undefined && (
-              <EmployeeAccessLine
-                person={{ id: employee.id, name: employee.name, position: employee.position, email: employee.email, active: !isInactive }}
-                access={access}
-              />
-            )}
+            {access !== undefined && <EmployeeAccessWarning access={access} active={!isInactive} />}
           </Card>
         </div>
 
@@ -365,6 +395,13 @@ export function EmployeeProfileView({
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      {access === null && (
+        <UserFormDialog
+          open={giveAccessOpen}
+          onOpenChange={setGiveAccessOpen}
+          prefill={{ id: employee.id, name: employee.name, position: employee.position, email: employee.email, active: !isInactive }}
+        />
+      )}
       <LiquidationDialog
         employee={employee}
         open={liqOpen}

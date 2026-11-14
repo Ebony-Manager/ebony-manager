@@ -2814,6 +2814,7 @@ export const strings = {
     access_none: { es: "Todavía no tiene acceso a la app.", en: "Doesn't have app access yet." },
     access_none_short: { es: "sin acceso todavía", en: "no access yet" },
     access_give: { es: "Dar acceso", en: "Give access" },
+    access_give_app: { es: "Dar acceso a la app", en: "Give app access" },
     access_manage: { es: "Ver en Usuarios", en: "Open in Users" },
     access_warn: { es: "Está inactivo en Personal pero todavía puede entrar a la app.", en: "Inactive in Staff but can still sign in to the app." },
     access_remove: { es: "Quitar acceso", en: "Remove access" },
