@@ -6,6 +6,7 @@ import {
   contractPendingCents,
   contractRetentionCents,
   contractProgressPct,
+  contractStage,
   isLooseCredit,
   isSource,
   looseCredits,
@@ -112,5 +113,19 @@ describe("retención de garantía", () => {
   it("lo que se puede pagar es lo pendiente menos lo retenido", () => {
     expect(contractPayableCents({ valueCents: 100000, allocatedCents: 0, retentionCents: 10000 })).toBe(90000);
     expect(contractPayableCents({ valueCents: 100000, allocatedCents: 95000, retentionCents: 10000 })).toBe(0);
+  });
+});
+
+describe("etapa de un contrato", () => {
+  it("pagado completo pero sin cerrar queda «por cerrar»; solo una persona lo completa", () => {
+    expect(contractStage({ status: "ACTIVE", valueCents: 100000, allocatedCents: 100000 })).toBe("to_close");
+    expect(contractStage({ status: "ACTIVE", valueCents: 100000, allocatedCents: 120000 })).toBe("to_close");
+  });
+  it("con algo pendiente, o sin valor, sigue en curso", () => {
+    expect(contractStage({ status: "ACTIVE", valueCents: 100000, allocatedCents: 40000 })).toBe("in_progress");
+    expect(contractStage({ status: "ACTIVE", valueCents: 0, allocatedCents: 0 })).toBe("in_progress");
+  });
+  it("completado manda sobre lo demás", () => {
+    expect(contractStage({ status: "COMPLETED", valueCents: 100000, allocatedCents: 0 })).toBe("completed");
   });
 });

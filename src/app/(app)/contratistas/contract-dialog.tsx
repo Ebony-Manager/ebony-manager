@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { LoadingBlock } from "@/components/shared/loading-block";
-import { History } from "lucide-react";
+import { CircleCheck, History, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 
 import type { ContractorContract, ContractorLedgerEntry, ContractorType, LaborRate, Project } from "@/types/contractors";
@@ -16,16 +16,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { formatDateCompact } from "@/lib/planilla/format";
-import { contractProgressPct } from "@/lib/contractors/contracts";
+import { contractPendingCents, contractProgressPct, contractStage } from "@/lib/contractors/contracts";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { ContractorAvatar } from "./contractor-avatar";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
   createContractAction,
   deleteContractAction,
+  setContractStatusAction,
   getContractWorkAction,
   getLedgerEntryItemsAction,
   updateContractAction,
@@ -53,6 +56,8 @@ export interface ContractPerson {
   id: string;
   name: string;
   contractorType: ContractorType;
+  /** Ruta de su foto (contractor-photos), si se tiene a mano. */
+  photoPath?: string | null;
 }
 
 /**
@@ -175,6 +180,8 @@ export function ContractDialog({
   const workEntryId = editableWork && valueEntries.length === 1 ? valueEntries[0].id : null;
   const valueCents = editableWork ? workDraftCents(work) : (contract?.valueCents ?? 0);
   const allocatedCents = contract?.allocatedCents ?? 0;
+  const pendingCents = contractPendingCents({ valueCents, allocatedCents });
+  const stage = contractStage({ status: contract?.status ?? "ACTIVE", valueCents, allocatedCents });
 
   function pickProject(id: string | null) {
     setProjectId(id);
@@ -217,6 +224,19 @@ export function ContractDialog({
     onSaved(contract ? contract.id : (res as unknown as { id: string }).id);
   }
 
+  async function setStage(next: "ACTIVE" | "COMPLETED") {
+    if (!contract) return;
+    // Cerrar cierra el formulario: si hay cambios sin guardar, se avisa en vez de perderlos.
+    if (snapshot() !== initial.current) return void toast.error(tt("ct_save_first"));
+    setSubmitting(true);
+    const res = await setContractStatusAction(contract.id, next);
+    setSubmitting(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(tt(next === "COMPLETED" ? "ct_closed_toast" : "ct_reopened_toast"));
+    onOpenChange(false);
+    onSaved(contract.id);
+  }
+
   async function onDelete() {
     if (!contract) return;
     setSubmitting(true);
@@ -246,23 +266,67 @@ export function ContractDialog({
           </DialogHeader>
 
           <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-            {contract && (
-              <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm sm:grid-cols-4">
-                <Stat label={tt("ct_col_value")} value={formatCents(valueCents)} />
-                <Stat label={tt("ct_col_paid")} value={formatCents(allocatedCents)} />
-                <Stat
-                  label={valueCents - allocatedCents < 0 ? tt("ct_overpaid") : tt("ct_col_pending")}
-                  value={formatCents(Math.abs(valueCents - allocatedCents))}
+            {/* Quién y dónde: foto y nombre del contratista, con el punto en que va el contrato. */}
+            {(contract || fixedContractor) && person && (
+              <div className="flex items-center gap-3">
+                <ContractorAvatar
+                  name={person.name}
+                  photoUrl={(contract?.contractorPhotoPath ?? person.photoPath) ? photoUrl("contractor-photos", (contract?.contractorPhotoPath ?? person.photoPath)!, THUMB_WIDTH) : null}
+                  size="md"
                 />
-                <Stat label={tt("ct_col_progress")} value={`${contractProgressPct({ valueCents, allocatedCents })} %`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{person.name}</p>
+                  {project && <p className="truncate text-xs text-muted-foreground">{project.name}</p>}
+                </div>
+                {contract && (
+                  <StatusBadge status={`contract_${stage}` as const}>{tt(`ct_stage_${stage}` as const)}</StatusBadge>
+                )}
+              </div>
+            )}
+
+            {contract && (
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{pendingCents < 0 ? tt("ct_overpaid") : tt("ct_col_pending")}</p>
+                    <p className={`text-xl font-semibold tabular-nums ${pendingCents < 0 ? "text-destructive" : "text-foreground"}`}>{formatCents(Math.abs(pendingCents))}</p>
+                  </div>
+                  <p className="text-right text-xs tabular-nums text-muted-foreground">
+                    {tt("ct_paid_of")} {formatCents(allocatedCents)} / {tt("ct_col_value")} {formatCents(valueCents)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${contractProgressPct({ valueCents, allocatedCents })}%` }} />
+                  </div>
+                  <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{contractProgressPct({ valueCents, allocatedCents })}%</span>
+                </div>
+              </div>
+            )}
+
+            {/* Pagado completo pero sin cerrar: lo cierra una persona (pagado y terminado no es lo mismo). */}
+            {contract && stage === "to_close" && (
+              <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-foreground">{tt("ct_to_close_hint")}</p>
+                <Button type="button" size="sm" disabled={submitting} onClick={() => void setStage("COMPLETED")}>
+                  <CircleCheck className="size-3.5" />
+                  {tt("ct_mark_completed")}
+                </Button>
+              </div>
+            )}
+            {contract && stage === "completed" && (
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">{tt("ct_completed_hint")}</p>
+                <Button type="button" size="sm" variant="outline" disabled={submitting} onClick={() => void setStage("ACTIVE")}>
+                  <RotateCcw className="size-3.5" />
+                  {tt("ct_reopen")}
+                </Button>
               </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {!fixedContractor && !contract && (
               <Field label={tt("ct_f_contractor")} required error={error("contractor")}>
-                {fixedContractor || contract ? (
-                  <Input value={person?.name ?? contract?.contractorName ?? ""} disabled />
-                ) : (
                   <SearchPicker
                     triggerLabel={person?.name ?? tt("ct_pick_contractor")}
                     searchPlaceholder={tt("search_ph")}
@@ -273,8 +337,8 @@ export function ContractDialog({
                       clear("contractor");
                     }}
                   />
-                )}
               </Field>
+              )}
               <Field label={tt("ct_f_project")} required error={error("project")}>
                 <SearchPicker
                   triggerLabel={project?.name ?? tt("ct_pick_project")}
@@ -300,19 +364,6 @@ export function ContractDialog({
               <Field label={tt("ct_f_date")} icon={ICON.date}>
                 <Input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} />
               </Field>
-              {contract && (
-                <Field label={tt("proj_f_status")}>
-                  <Select value={status} onValueChange={(v) => setStatus(v as "ACTIVE" | "COMPLETED")}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">{tt("proj_status_active")}</SelectItem>
-                      <SelectItem value="COMPLETED">{tt("proj_status_completed")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
             </div>
 
             {loading ? (
@@ -414,14 +465,5 @@ export function ContractDialog({
         }}
       />
     </>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-semibold tabular-nums text-foreground">{value}</p>
-    </div>
   );
 }

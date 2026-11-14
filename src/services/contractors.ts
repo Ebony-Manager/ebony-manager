@@ -699,7 +699,7 @@ function mapAllocation(r: AllocationRow): ContractorAllocation {
 }
 
 const CONTRACT_SELECT =
-  "*, projects!contractor_contracts_project_id_fkey(name, status), contractors!contractor_contracts_contractor_id_fkey(name, contractor_type)";
+  "*, projects!contractor_contracts_project_id_fkey(name, status), contractors!contractor_contracts_contractor_id_fkey(name, contractor_type, photo_path)";
 
 /** Contratos (de un contratista, o todos) con su valor y lo abonado. */
 export async function getContracts(filter: { contractorId?: string; projectId?: string } = {}): Promise<ContractorContract[]> {
@@ -767,12 +767,13 @@ export async function getContracts(filter: { contractorId?: string; projectId?: 
   return (contractsRes.data ?? []).map((raw) => {
     const r = raw as unknown as ContractRow & {
       projects: { name: string; status: string } | null;
-      contractors: { name: string; contractor_type: string } | null;
+      contractors: { name: string; contractor_type: string; photo_path: string | null } | null;
     };
     return {
       id: r.id,
       contractorId: r.contractor_id,
       contractorName: r.contractors?.name ?? "—",
+      contractorPhotoPath: r.contractors?.photo_path ?? null,
       projectId: r.project_id,
       projectName: r.projects?.name ?? "—",
       name: r.name,

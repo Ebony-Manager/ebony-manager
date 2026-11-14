@@ -1,4 +1,4 @@
-import { Ban, Briefcase, CalendarX, CirclePause, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Ban, Briefcase, CalendarX, CircleDashed, CirclePause, Flag, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -43,6 +43,11 @@ export const STATUS = {
   record_active: { icon: CircleCheck, tone: "ok" },
   record_inactive: { icon: CirclePause, tone: "muted" },
   closing_paid: { icon: CircleCheck, tone: "ok" },
+  // Contratos: en curso, ya pagado pero sin cerrar, terminado, y sin valor (¿vacío o duplicado?)
+  contract_in_progress: { icon: Hammer, tone: "info" },
+  contract_to_close: { icon: Flag, tone: "warn" },
+  contract_completed: { icon: CircleCheck, tone: "muted" },
+  contract_no_value: { icon: CircleDashed, tone: "muted" },
   closing_draft: { icon: FilePen, tone: "muted" },
   kind_employee: { icon: Briefcase, tone: "info" },
   kind_contractor: { icon: Hammer, tone: "muted" },

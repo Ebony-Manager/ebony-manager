@@ -194,8 +194,62 @@ export function WorkEditor({
             </SelectContent>
           </Select>
 
+          {/* Celular: una tarjeta por ítem (la tabla no cabe y las cantidades quedaban fuera de la pantalla). */}
           {items.length > 0 && (
-            <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-lg border border-border">
+            <div className="flex flex-col gap-2 sm:hidden">
+              {items.map((it) => (
+                <div key={it.key} className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 text-sm font-medium text-foreground">
+                      {it.descripcion}
+                      {it.fase && <span className="font-normal text-muted-foreground"> — {phaseLabel(it.fase)}</span>}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="-mr-1 -mt-1 size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      title={tt("mov_items_remove")}
+                      onClick={() => setItems((cur) => cur.filter((x) => x.key !== it.key))}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={it.detalle}
+                    onChange={(e) => setItems((cur) => cur.map((x) => (x.key === it.key ? { ...x, detalle: e.target.value } : x)))}
+                    placeholder={tt("mov_items_detail_ph")}
+                    className="h-9 text-sm"
+                  />
+                  <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        value={it.cantidad}
+                        onChange={(e) => setItems((cur) => cur.map((x) => (x.key === it.key ? { ...x, cantidad: e.target.value } : x)))}
+                        placeholder="0.00"
+                        className="h-9 w-24 text-right"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {unitLabel(it.unidad)} × {formatCents(it.precioUnitarioCents)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatCents(itemSubtotalCents(it))}</p>
+                  </div>
+                </div>
+              ))}
+              <p className="flex justify-between px-1 text-sm">
+                <span className="text-muted-foreground">{tt("mov_items_total")}</span>
+                <span className="font-semibold tabular-nums text-foreground">{formatCents(totalCents)}</span>
+              </p>
+            </div>
+          )}
+
+          {items.length > 0 && (
+            <div className="hidden max-h-64 overflow-x-auto overflow-y-auto sm:block rounded-lg border border-border">
               <table className="w-full min-w-[560px] border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">

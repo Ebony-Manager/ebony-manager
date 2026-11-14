@@ -28,6 +28,16 @@ export function contractPendingCents(c: Pick<ContractorContract, "valueCents" | 
   return c.valueCents - c.allocatedCents;
 }
 
+/**
+ * En qué punto va un contrato: «en curso», «por cerrar» (ya se pagó completo pero nadie lo ha dado por
+ * terminado) o «completado». Pagado y terminado no son lo mismo: el cierre lo confirma una persona.
+ */
+export type ContractStage = "in_progress" | "to_close" | "completed";
+export function contractStage(c: Pick<ContractorContract, "status" | "valueCents" | "allocatedCents">): ContractStage {
+  if (c.status === "COMPLETED") return "completed";
+  return c.valueCents > 0 && contractPendingCents(c) <= 0 ? "to_close" : "in_progress";
+}
+
 /** Lo que se le puede abonar hoy al contrato: lo pendiente menos lo
  *  retenido (retención de garantía, hasta que el proyecto esté terminado). */
 export function contractPayableCents(

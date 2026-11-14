@@ -158,6 +158,8 @@ export interface ContractorContract {
   id: string;
   contractorId: string;
   contractorName: string;
+  /** Ruta de la foto del contratista (bucket contractor-photos), para mostrarla en las listas; null = sin foto. */
+  contractorPhotoPath?: string | null;
   projectId: string;
   projectName: string;
   name: string;
