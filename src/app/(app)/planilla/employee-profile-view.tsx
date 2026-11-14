@@ -353,13 +353,14 @@ export function EmployeeProfileView({
           </div>
         )}
 
+        {/* Mismo orden que la ficha del contratista: sueldo, prestaciones, préstamos y, al final, el estado de cuenta. */}
+        <SalaryHistorySection employee={employee} initialChanges={initial?.salaryChanges} />
+
         <EmployeeBenefitsSection employee={employee} initialDetail={initial?.detail} />
 
+        <EmployeeLoansSection employee={employee} loans={loans} />
+
         <EmployeeStatementSection employee={employee} initialDetail={initial?.detail} />
-
-        <EmployeeLoansSection employee={employee} initialEntries={initial?.ledger} loans={loans} />
-
-        <SalaryHistorySection employee={employee} initialChanges={initial?.salaryChanges} />
       </div>
 
       <EmployeeFormDialog

@@ -885,7 +885,8 @@ export const strings = {
     // Préstamos: panel y tarjetas
     loans_active: { es: "Vigentes", en: "Active" },
     loans_history: { es: "Historial", en: "History" },
-    loans_none_active: { es: "No hay nada vigente.", en: "Nothing active." },
+    loans_none_active: { es: "Sin préstamos ni descuentos pendientes.", en: "No pending loans or deductions." },
+    loans_show_paid: { es: "Ver pagados", en: "Show paid" },
     loan_edit: { es: "Editar", en: "Edit" },
     loan_delete: { es: "Eliminar", en: "Delete" },
     loan_cancel_btn: { es: "Perdonar saldo", en: "Forgive balance" },
@@ -1826,6 +1827,8 @@ export const strings = {
     pay_sum_deducted: { es: "Se descuenta", en: "Deducted" },
     pay_sum_cash: { es: "A pagar", en: "To pay" },
     pay_left_on_account: { es: "Queda por descontar en el próximo pago:", en: "Left to deduct on the next payment:" },
+    ledger_menu_movement: { es: "Movimiento", en: "Movement" },
+    ledger_menu_charge: { es: "Descuento", en: "Deduction" },
     ledger_filters: { es: "Filtros", en: "Filters" },
     ledger_filters_clear: { es: "Quitar filtros", en: "Clear filters" },
     ledger_more: { es: "Más acciones", en: "More actions" },

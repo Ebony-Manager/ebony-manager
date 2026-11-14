@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Hammer,
   HandCoins,
-  MoreHorizontal,
   SlidersHorizontal,
   LogOut,
   Package,
@@ -796,17 +795,28 @@ export function ContractorProfileView({
         }}
       />
       {/* Estado de cuenta */}
-      {loans.length > 0 && (
-        <ProfileCard
+      <ProfileCard
           icon={ICON.loans}
-          title={tt("loan_progress_title")}
+          title={t(lang, strings.planilla.loans_title)}
+          subtitle={
+            <>
+              {t(lang, strings.planilla.loans_balance)}:{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {formatCents(loans.filter((l) => l.status !== "cancelled").reduce((sum, l) => sum + l.pendingCents, 0))}
+              </span>
+            </>
+          }
           action={
-            loans.some(isLoanFinished) ? (
-              <ShowToggle checked={showFinishedLoans} onChange={setShowFinishedLoans} label={`${tt("loan_show_paid")} (${loans.filter(isLoanFinished).length})`} />
-            ) : undefined
+            <Button size="sm" onClick={() => setChargeOpen(true)}>
+              <Plus className="size-3.5" />
+              {t(lang, strings.pagos.add)}
+            </Button>
           }
         >
-          {(showFinishedLoans ? loans : loans.filter((l) => !isLoanFinished(l))).length === 0 && <EmptyState>{tt("loan_none_pending")}</EmptyState>}
+          {loans.length === 0 && <EmptyState>{t(lang, strings.planilla.loans_empty)}</EmptyState>}
+          {loans.length > 0 && (showFinishedLoans ? loans : loans.filter((l) => !isLoanFinished(l))).length === 0 && (
+            <EmptyState>{t(lang, strings.planilla.loans_none_active)}</EmptyState>
+          )}
           <div className="grid gap-2 sm:grid-cols-2">
             {(showFinishedLoans ? loans : loans.filter((l) => !isLoanFinished(l))).map((loan: ContractorLoanSummary) => {
               const finished = isLoanFinished(loan);
@@ -834,8 +844,14 @@ export function ContractorProfileView({
               );
             })}
           </div>
-        </ProfileCard>
-      )}
+          {loans.some(isLoanFinished) && (
+            <ShowToggle
+              checked={showFinishedLoans}
+              onChange={setShowFinishedLoans}
+              label={`${t(lang, strings.planilla.loans_show_paid)} (${loans.filter(isLoanFinished).length})`}
+            />
+          )}
+      </ProfileCard>
       <ProfileCard
         icon={ICON.statement}
         title={tt("ledger_title")}
@@ -851,15 +867,13 @@ export function ContractorProfileView({
         }
         action={
           <>
-            <Button size="sm" onClick={() => setChargeOpen(true)}>
-              <HandCoins className="size-3.5" />
-              {tt("ledger_add_charge")}
-            </Button>
-            {/* Lo ocasional (material, gasto, extra, ajuste). */}
+            {/* Un solo «Agregar»: un movimiento (material, gasto, extra, ajuste…) o un descuento. */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="outline" className="size-8" aria-label={tt("ledger_more")} title={tt("ledger_more")}>
-                  <MoreHorizontal className="size-4" />
+                <Button size="sm">
+                  <Plus className="size-3.5" />
+                  {t(lang, strings.pagos.add)}
+                  <ChevronDown className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -869,8 +883,12 @@ export function ContractorProfileView({
                     setDialogOpen(true);
                   }}
                 >
-                  <Plus className="size-3.5" />
-                  {tt("ledger_add")}
+                  <ICON.adjust className="size-3.5" />
+                  {tt("ledger_menu_movement")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setChargeOpen(true)}>
+                  <HandCoins className="size-3.5" />
+                  {tt("ledger_menu_charge")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

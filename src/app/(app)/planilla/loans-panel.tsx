@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState, ShowToggle } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Ban, ChevronDown, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
@@ -266,11 +267,14 @@ export function LoansPanel({
   categories,
   loans,
   onChanged,
+  showBalance = true,
 }: {
   employeeId: string;
   categories: LoanCategory[];
   loans: PayrollLoanWithSchedule[] | null;
   onChanged: () => void;
+  /** false cuando el saldo ya va en el encabezado del bloque. */
+  showBalance?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.planilla) => t(lang, strings.planilla[k]);
@@ -288,12 +292,14 @@ export function LoansPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          {tt("loans_balance")}:{" "}
-          <span className="font-medium text-foreground">{loans === null ? "…" : formatCents(owedCents)}</span>
-        </p>
-      </div>
+      {showBalance && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {tt("loans_balance")}:{" "}
+            <span className="font-medium text-foreground">{loans === null ? "…" : formatCents(owedCents)}</span>
+          </p>
+        </div>
+      )}
 
       {loans === null ? (
         <p className="py-3 text-center text-xs text-muted-foreground">{tt("loading")}</p>
@@ -301,32 +307,19 @@ export function LoansPanel({
         <p className="py-3 text-center text-xs text-muted-foreground">{tt("loans_empty")}</p>
       ) : (
         <>
-          <section className="flex flex-col gap-2">
-            <h4 className="text-xs font-medium text-muted-foreground">
-              {tt("loans_active")} ({active.length})
-            </h4>
-            {active.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{tt("loans_none_active")}</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {active.map((l) => (
-                  <LoanCard key={l.id} loan={l} categories={categories} employeeId={employeeId} onChanged={onChanged} />
-                ))}
-              </div>
-            )}
-          </section>
+          {active.length === 0 ? (
+            <EmptyState>{tt("loans_none_active")}</EmptyState>
+          ) : (
+            <div className="grid grid-cols-1 gap-2">
+              {active.map((l) => (
+                <LoanCard key={l.id} loan={l} categories={categories} employeeId={employeeId} onChanged={onChanged} />
+              ))}
+            </div>
+          )}
 
           {history.length > 0 && (
-            <section className="flex flex-col gap-2 border-t border-border pt-3">
-              <button
-                type="button"
-                className="flex w-fit items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                onClick={() => setHistoryOpen((v) => !v)}
-                aria-expanded={historyOpen}
-              >
-                <ChevronDown className={`size-3.5 transition-transform ${historyOpen ? "" : "-rotate-90"}`} />
-                {tt("loans_history")} ({history.length})
-              </button>
+            <>
+              <ShowToggle checked={historyOpen} onChange={setHistoryOpen} label={`${tt("loans_show_paid")} (${history.length})`} />
               {historyOpen && (
                 <div className="grid grid-cols-1 gap-2">
                   {history.map((l) => (
@@ -334,7 +327,7 @@ export function LoansPanel({
                   ))}
                 </div>
               )}
-            </section>
+            </>
           )}
         </>
       )}
