@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useFormBaseline } from "@/components/shared/discard-guard";
 import toast from "react-hot-toast";
 
 import type { LoanCategory, LoanInterestMode, LoanPaymentMethod, PayrollLoanWithSchedule } from "@/types/planilla";
@@ -166,15 +167,14 @@ export function LoanDialog({
   const [interestValue, setInterestValue] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"amount" | "variable" | "payee">();
-  const initial = React.useRef("");
-  const seeded = React.useRef(false);
   const snapshot = () => JSON.stringify([category, amount, requestDate, numInstallments, scheme, startPeriodKey, amounts, notes, interestOn, interestMode, interestValue]);
+  const { isDirty, markSeeded } = useFormBaseline(snapshot);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir. */
   React.useEffect(() => {
     if (!open) return;
     reset();
-    seeded.current = true;
+    markSeeded();
     if (editing) {
       const sorted = [...editing.installments].sort(
         (a, b) =>
@@ -215,15 +215,8 @@ export function LoanDialog({
       setInterestMode(prefill?.interestTotalPct ? "total_pct" : "monthly_pct");
       setInterestValue(prefill?.interestTotalPct ? String(prefill.interestTotalPct) : "");
     }
-  }, [open, editing, defaultCategory, today, periods, prefill, reset]);
+  }, [open, editing, defaultCategory, today, periods, prefill, reset, markSeeded]);
 
-  // Justo después de sembrar el formulario al abrir, se anota cómo quedó (para avisar al descartar).
-  React.useEffect(() => {
-    if (seeded.current) {
-      seeded.current = false;
-      initial.current = snapshot();
-    }
-  });
 
   // Re-deriva la quincena de inicio al cambiar el tipo o la fecha (solo al crear).
   React.useEffect(() => {
@@ -357,7 +350,7 @@ export function LoanDialog({
       onSubmit={onSubmit}
       submitting={submitting}
       submitLabel={editing ? tt("loan_save_changes") : tt(SUBMIT_KEY[category])}
-      dirty={() => snapshot() !== initial.current}
+      dirty={isDirty}
       wide
     >
       {categories.length > 1 && (

@@ -24,7 +24,7 @@ import { getProjectPeopleAction } from "../proyectos/people-actions";
 import { ClientPicker } from "../cotizacion/ventas-common";
 import { ClientDialog } from "../cotizacion/clientes/client-dialog";
 import { Field } from "./field";
-import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 
@@ -78,8 +78,7 @@ export function ProjectFormDialog({
   const [submitting, setSubmitting] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"name">();
   const snapshot = () => JSON.stringify([name, designerId, clientId, location, status, notes, scope, furnitureType, materialColor, specs, paymentTerms, totalMt2]);
-  const initial = React.useRef("");
-  const seeded = React.useRef(false);
+  const { isDirty, markSeeded } = useFormBaseline(snapshot);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el proyecto cambia entre aperturas. */
   React.useEffect(() => {
@@ -97,19 +96,12 @@ export function ProjectFormDialog({
     setPaymentTerms(project?.paymentTerms ?? "");
     setTotalMt2(project?.totalMt2 != null ? String(project.totalMt2) : "");
     reset();
-    seeded.current = true;
+    markSeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open, project]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Justo después de sembrar el formulario al abrir, se anota cómo quedó (para avisar al descartar).
-  React.useEffect(() => {
-    if (seeded.current) {
-      seeded.current = false;
-      initial.current = snapshot();
-    }
-  });
-  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, () => onOpenChange(false));
 
   // La lista de arquitectos/diseñadores y clientes finales, al abrir.
   React.useEffect(() => {

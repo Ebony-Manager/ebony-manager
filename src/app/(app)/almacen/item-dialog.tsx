@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { Field } from "../contratistas/field";
 import { FormSection } from "@/components/shared/form-section";
-import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { createItemAction, deleteItemAction, setItemPhotoAction, updateItemAction } from "./actions";
 import { Combo, ItemThumb, QtyInput, qtyWithUnit, useTa } from "./shared";
@@ -103,9 +103,10 @@ export function ItemDialog({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [armPhotoRemove, setArmPhotoRemove] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const snapshot = () =>
+    JSON.stringify({ name, categoryId, unit, allowsDecimals, kind, notes, active, variants: variants.map((v) => ({ ...v, key: 0 })), links: links.map((l) => ({ ...l, key: 0 })), photo: !!pendingPhoto });
   /** Cómo estaba el formulario al abrir, para avisar si se cierra con cambios sin guardar. */
-  const initial = React.useRef("");
-  const seeded = React.useRef(false);
+  const { isDirty, markSeeded } = useFormBaseline(snapshot);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
@@ -146,21 +147,12 @@ export function ItemDialog({
       })),
     );
     reset();
-    seeded.current = true;
+    markSeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [item, current]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const snapshot = () =>
-    JSON.stringify({ name, categoryId, unit, allowsDecimals, kind, notes, active, variants: variants.map((v) => ({ ...v, key: 0 })), links: links.map((l) => ({ ...l, key: 0 })), photo: !!pendingPhoto });
-  // Justo después de sembrar el formulario al abrir, se anota cómo quedó.
-  React.useEffect(() => {
-    if (seeded.current) {
-      seeded.current = false;
-      initial.current = snapshot();
-    }
-  });
-  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => !readOnly && snapshot() !== initial.current, onClose);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => !readOnly && isDirty(), onClose);
 
   const supplierOptions = React.useMemo(
     () => suppliers.filter((s) => s.active).map((s) => ({ value: s.id, label: s.name, hint: s.contactName ?? undefined })),

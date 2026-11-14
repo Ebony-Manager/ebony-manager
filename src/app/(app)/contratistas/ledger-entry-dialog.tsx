@@ -34,7 +34,7 @@ import { t, strings } from "@/lib/i18n";
 import { createLedgerEntryAction, getLedgerEntryItemsAction, updateLedgerEntryAction } from "./actions";
 import { CONTRACTOR_CATEGORY_LABEL_KEY } from "./ledger-labels";
 import { Field } from "./field";
-import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import { ContractDialog } from "./contract-dialog";
@@ -121,9 +121,10 @@ export function LedgerEntryDialog({
   const [ebonyAbsorbs, setEbonyAbsorbs] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"items" | "amount" | "contract">();
-  const initial = React.useRef("");
-  const seeded = React.useRef(false);
+  // Al editar un trabajo, sus piezas guardadas llegan aparte: hasta entonces no se anota cómo estaba el formulario.
+  const [itemsReady, setItemsReady] = React.useState(true);
   const snapshot = () => JSON.stringify([category, adjustDirection, work, entryDate, contractId, allocContractId, clientText, description, notes, ebonyAbsorbs]);
+  const { isDirty, markSeeded } = useFormBaseline(snapshot, itemsReady);
   const [contractDialogOpen, setContractDialogOpen] = React.useState(false);
 
   // Abonos de este movimiento (si baja el saldo): a qué contratos fue.
@@ -138,7 +139,8 @@ export function LedgerEntryDialog({
   React.useEffect(() => {
     if (!open) return;
     reset();
-    seeded.current = true;
+    markSeeded();
+    setItemsReady(!(entry && entry.category === "trabajo"));
     setAllocTouched(false);
     if (entry) {
       setCategory(entry.category);
@@ -162,7 +164,7 @@ export function LedgerEntryDialog({
       setNotes("");
       setEbonyAbsorbs(false);
     }
-  }, [open, entry, reset]);
+  }, [open, entry, reset, markSeeded]);
   React.useEffect(() => {
     if (!open) return;
     setAllocContractId(entryAllocations.length > 0 && !splitAllocation ? entryAllocations[0].contractId : null);
@@ -175,21 +177,16 @@ export function LedgerEntryDialog({
     if (!open || !entry || entry.category !== "trabajo") return;
     let cancelled = false;
     getLedgerEntryItemsAction(entry.id).then((loaded) => {
-      if (!cancelled && loaded.length > 0) setWork(workDraftFrom(entry, loaded));
+      if (cancelled) return;
+      if (loaded.length > 0) setWork(workDraftFrom(entry, loaded));
+      setItemsReady(true);
     });
     return () => {
       cancelled = true;
     };
   }, [open, entry]);
 
-  // Después de sembrar el formulario al abrir (y de que lleguen las piezas guardadas), se anota cómo quedó.
-  React.useEffect(() => {
-    if (seeded.current) {
-      seeded.current = false;
-      initial.current = snapshot();
-    }
-  });
-  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, () => onOpenChange(false));
 
   const fixedDirection = directionForCategory(category);
   const direction = fixedDirection ?? adjustDirection;

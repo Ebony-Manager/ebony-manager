@@ -48,7 +48,7 @@ import {
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { EmptyState } from "@/components/shared/page-header";
 import { FormSection } from "@/components/shared/form-section";
-import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 
@@ -112,15 +112,14 @@ export function ContractDialog({
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"contractor" | "project" | "name" | "items" | "prepaid">();
-  const initial = React.useRef("");
-  const seeded = React.useRef(false);
   const snapshot = () => JSON.stringify([contractorId, projectId, name, contractDate, status, notes, prepaid, work]);
+  const { isDirty, markSeeded } = useFormBaseline(snapshot, valueEntries !== null || !contract);
 
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir. */
   React.useEffect(() => {
     if (!open) return;
     reset();
-    seeded.current = true;
+    markSeeded();
     setExtraProjects([]);
     setContractorId(contract?.contractorId ?? fixedContractor?.id ?? null);
     setProjectId(contract?.projectId ?? defaultProjectId ?? null);
@@ -131,7 +130,7 @@ export function ContractDialog({
     setPrepaid("");
     setWork(EMPTY_WORK);
     setValueEntries(contract ? null : []);
-  }, [open, contract, fixedContractor, defaultProjectId, reset]);
+  }, [open, contract, fixedContractor, defaultProjectId, reset, markSeeded]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   React.useEffect(() => {
@@ -152,14 +151,7 @@ export function ContractDialog({
     };
   }, [open, contract]);
 
-  // Después de sembrar el formulario al abrir (y de que lleguen sus piezas), se anota cómo quedó.
-  React.useEffect(() => {
-    if (seeded.current && (valueEntries !== null || !contract)) {
-      seeded.current = false;
-      initial.current = snapshot();
-    }
-  });
-  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, () => onOpenChange(false));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, () => onOpenChange(false));
 
   const person = fixedContractor ?? contractors.find((c) => c.id === contractorId) ?? null;
   const rates = React.useMemo(
@@ -227,7 +219,7 @@ export function ContractDialog({
   async function setStage(next: "ACTIVE" | "COMPLETED") {
     if (!contract) return;
     // Cerrar cierra el formulario: si hay cambios sin guardar, se avisa en vez de perderlos.
-    if (snapshot() !== initial.current) return void toast.error(tt("ct_save_first"));
+    if (isDirty()) return void toast.error(tt("ct_save_first"));
     setSubmitting(true);
     const res = await setContractStatusAction(contract.id, next);
     setSubmitting(false);
