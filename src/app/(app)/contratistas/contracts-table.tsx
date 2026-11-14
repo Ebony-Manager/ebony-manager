@@ -1,6 +1,7 @@
 "use client";
 
 import type { ContractorContract } from "@/types/contractors";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { contractPendingCents, contractProgressPct } from "@/lib/contractors/contracts";
 import { useLang } from "@/context/language-context";
@@ -26,6 +27,8 @@ export function ContractsTable({
       {contracts.map((c) => {
         const pending = contractPendingCents(c);
         const pct = contractProgressPct(c);
+        // Con todo abonado (o de más) la barra llena parece «en proceso»: se marca como pagado.
+        const paid = c.valueCents > 0 && pending <= 0;
         const muted = c.status !== "ACTIVE";
         return (
           <li key={c.id} onClick={() => onOpen(c)} className="flex cursor-pointer flex-col gap-2 px-3 py-3 active:bg-muted/40">
@@ -45,12 +48,16 @@ export function ContractsTable({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            {paid ? (
+              <StatusBadge status="closing_paid">{tt("loan_paid_label")}</StatusBadge>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{pct}%</span>
               </div>
-              <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{pct}%</span>
-            </div>
+            )}
           </li>
         );
       })}
@@ -71,6 +78,7 @@ export function ContractsTable({
           {contracts.map((c) => {
             const pending = contractPendingCents(c);
             const pct = contractProgressPct(c);
+            const paid = c.valueCents > 0 && pending <= 0;
             const muted = c.status !== "ACTIVE";
             return (
               <tr
@@ -97,12 +105,16 @@ export function ContractsTable({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                  {paid ? (
+                    <StatusBadge status="closing_paid">{tt("loan_paid_label")}</StatusBadge>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{pct}%</span>
                     </div>
-                    <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{pct}%</span>
-                  </div>
+                  )}
                 </td>
               </tr>
             );

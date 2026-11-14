@@ -205,9 +205,10 @@ export function EmployeeProfileView({
 
           {/* Tarjeta de encabezado: foto + nombre + posición + estado a la
               izquierda, sueldo mensual a la derecha. */}
-          <Card className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+          <Card className="p-4">
+            {/* Foto a la izquierda; nombre, cargo y sueldo en la columna de la derecha (en escritorio el sueldo va al extremo). */}
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr_auto]">
+              <div className="row-span-2 sm:row-span-1">
                 <ProfilePhotoPicker
                   bucket="employee-photos"
                   ownerId={employee.id}
@@ -219,33 +220,32 @@ export function EmployeeProfileView({
                     setPhotoPath(path);
                   }}
                 >
-                  <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="xl" />
+                  <EmployeeAvatar name={employee.name} employeeId={employee.id} sortOrder={employee.sortOrder} size="lg" />
                 </ProfilePhotoPicker>
-                <div className="flex flex-col gap-1">
-                  <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
-                    {employee.name}
-                    {isInactive && <StatusBadge status="record_inactive">{tt("inactive")}</StatusBadge>}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">{employee.position || tt("no_position")}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">
-                      {employee.categoria === "administrativo" ? tt("categoria_administrativo") : tt("categoria_taller")}
-                    </Badge>
-                    {employee.startDate && (
-                      <span>
-                        {tt("pd_start_date")}: {formatDate(lang, employee.startDate)}
-                      </span>
-                    )}
-                  </div>
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
+                  {employee.name}
+                  {isInactive && <StatusBadge status="record_inactive">{tt("inactive")}</StatusBadge>}
+                </h1>
+                <p className="text-sm text-muted-foreground">{employee.position || tt("no_position")}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">
+                    {employee.categoria === "administrativo" ? tt("categoria_administrativo") : tt("categoria_taller")}
+                  </Badge>
+                  {employee.startDate && (
+                    <span>
+                      {tt("pd_start_date")}: {formatDate(lang, employee.startDate)}
+                    </span>
+                  )}
                 </div>
               </div>
-
-              <div className="text-right">
+              <div className="col-start-2 mt-1 sm:col-start-3 sm:row-start-1 sm:mt-0 sm:text-right">
                 <p className="text-xs text-muted-foreground">{tt("base_salary_month")}</p>
-                <p className="text-2xl font-semibold tabular-nums text-foreground">
+                <p className="flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tabular-nums text-foreground sm:block">
                   {formatCents(employee.baseSalaryCents)}
+                  <span className="text-xs font-normal text-muted-foreground sm:block">{tt("per_month")}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">{tt("per_month")}</p>
               </div>
             </div>
           </Card>

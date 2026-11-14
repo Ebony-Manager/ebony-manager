@@ -1,6 +1,8 @@
 "use client";
 
 import { usePageTitle } from "@/components/shared/page-title";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Field } from "@/components/shared/field";
 import { ProfileCard } from "@/components/shared/profile-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { strings as titleStrings, t as titleT } from "@/lib/i18n";
@@ -14,9 +16,10 @@ import {
   ChevronRight,
   Hammer,
   HandCoins,
+  MoreHorizontal,
+  SlidersHorizontal,
   LogOut,
   Package,
-  Palette,
   Pencil,
   Plus,
   Receipt,
@@ -124,7 +127,7 @@ import { ContractorHelpersDialog } from "./contractor-helpers-dialog";
 import { DeleteContractorDialog } from "./delete-contractor-dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ConfirmButton } from "@/components/shared/confirm-button";
-import { BackLink, PAGE_CLASS, EmptyState } from "@/components/shared/page-header";
+import { BackLink, PAGE_CLASS, EmptyState, ShowToggle } from "@/components/shared/page-header";
 
 /** Fila compacta de dato personal para el menú del engranaje. */
 /** Un dato de la ficha "Datos del contratista" (mismo formato que la del empleado). */
@@ -151,6 +154,9 @@ const PERIOD_VIEW_LABEL_KEY: Record<LedgerPeriodView, keyof typeof strings.contr
 /** Cada forma de agrupar el estado de cuenta, con el ícono de su concepto. */
 const GROUP_ICON: Record<LedgerGroupBy, LucideIcon> = { none: ICON.all, category: ICON.category, project: ICON.project, month: ICON.period };
 
+/** Un préstamo ya terminado: sin saldo pendiente (pagado) o cancelado. */
+const isLoanFinished = (l: { status: string; pendingCents: number }) => l.status === "cancelled" || l.pendingCents <= 0;
+
 const GROUP_BY_LABEL_KEY: Record<LedgerGroupBy, keyof typeof strings.contratistas> = {
   none: "group_none",
   category: "group_category",
@@ -164,17 +170,6 @@ const PROJ_NONE = "__none__";
 
 // La vista de período del estado de cuenta se recuerda por navegador.
 const PERIOD_STORAGE_KEY = "contratistas:ledger-period";
-
-// La elección de paleta ("full" / "sober") se recuerda por navegador.
-const PALETTE_STORAGE_KEY = "contratistas:ledger-palette";
-function readStoredPalette(): LedgerPalette | null {
-  try {
-    const v = window.localStorage.getItem(PALETTE_STORAGE_KEY);
-    return v === "full" || v === "sober" ? v : null;
-  } catch {
-    return null;
-  }
-}
 
 // Si la fila de KPIs va expandida o colapsada — también se recuerda.
 const KPIS_STORAGE_KEY = "contratistas:kpis-open";
@@ -250,6 +245,7 @@ export function ContractorProfileView({
   const [payOpen, setPayOpen] = React.useState(false);
   const [chargeOpen, setChargeOpen] = React.useState(false);
   const [showCompletedContracts, setShowCompletedContracts] = React.useState(false);
+  const [showFinishedLoans, setShowFinishedLoans] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<ContractorLedgerEntry | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
@@ -297,27 +293,11 @@ export function ContractorProfileView({
   const [catFilter, setCatFilter] = React.useState<string>(CAT_ALL);
   const [projFilter, setProjFilter] = React.useState<string>(PROJ_ALL);
   const [groupBy, setGroupBy] = React.useState<LedgerGroupBy>("none");
+  const activeFilters = (catFilter !== CAT_ALL ? 1 : 0) + (projFilter !== PROJ_ALL ? 1 : 0) + (groupBy !== "none" ? 1 : 0);
 
-  // Paleta de la tabla: "full" (fila a todo color) o "sober" (neutra, por
-  // defecto — la marca no tiene acento de color, así que la vista sobria
-  // es la que se ve al abrir). Arranca en "sober" para que el server y el
-  // primer render del cliente coincidan; la preferencia guardada se
-  // aplica tras hidratar.
-  const [palette, setPalette] = React.useState<LedgerPalette>("sober");
-  const sober = palette === "sober";
-  /* eslint-disable react-hooks/set-state-in-effect -- lee localStorage post-hidratación. */
-  React.useEffect(() => {
-    const stored = readStoredPalette();
-    if (stored) setPalette(stored);
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem(PALETTE_STORAGE_KEY, palette);
-    } catch {
-      /* ignore */
-    }
-  }, [palette]);
+  // La tabla va siempre en la vista neutra (sin la vieja opción de fila a todo color).
+  const palette: LedgerPalette = "sober";
+  const sober = true;
 
   // Fila de KPIs colapsable — por defecto expandida; la elección se
   // recuerda para dar más espacio a la tabla cuando el usuario quiera.
@@ -561,8 +541,9 @@ export function ContractorProfileView({
             saldo a la derecha. Reemplaza la vieja tarjeta grande de
             "Fecha de inicio". */}
         <Card className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          {/* Foto a la izquierda; nombre, tipo y saldo en la columna de la derecha (en escritorio el saldo va al extremo). */}
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr_auto]">
+            <div className="row-span-2 sm:row-span-1">
               <ProfilePhotoPicker
                 bucket="contractor-photos"
                 ownerId={contractor.id}
@@ -574,23 +555,22 @@ export function ContractorProfileView({
                   setPhotoPath(path);
                 }}
               >
-                <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="xl" />
+                <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="lg" />
               </ProfilePhotoPicker>
-              <div>
-                <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
-                  {contractor.name}
-                  {isInactive && <StatusBadge status="record_inactive">{tt("inactive_badge")}</StatusBadge>}
-                </h1>
-                <p className="text-sm text-muted-foreground">{typeLabel}</p>
-              </div>
             </div>
-
-            <div className="text-right">
+            <div className="min-w-0">
+              <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
+                {contractor.name}
+                {isInactive && <StatusBadge status="record_inactive">{tt("inactive_badge")}</StatusBadge>}
+              </h1>
+              <p className="text-sm text-muted-foreground">{typeLabel}</p>
+            </div>
+            <div className="col-start-2 sm:col-start-3 sm:row-start-1 sm:text-right">
               <p className="text-xs text-muted-foreground">{tt("balance_label")}</p>
-              <p className="text-2xl font-semibold tabular-nums" style={toneTextStyle(balTone)}>
+              <p className="flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tabular-nums sm:block" style={toneTextStyle(balTone)}>
                 {formatCents(balanceCents)}
+                <span className="text-xs font-normal text-muted-foreground sm:block">{balDescription}</span>
               </p>
-              <p className="text-xs text-muted-foreground">{balDescription}</p>
             </div>
           </div>
         </Card>
@@ -817,9 +797,19 @@ export function ContractorProfileView({
       />
       {/* Estado de cuenta */}
       {loans.length > 0 && (
-        <ProfileCard icon={ICON.loans} title={tt("loan_progress_title")}>
+        <ProfileCard
+          icon={ICON.loans}
+          title={tt("loan_progress_title")}
+          action={
+            loans.some(isLoanFinished) ? (
+              <ShowToggle checked={showFinishedLoans} onChange={setShowFinishedLoans} label={`${tt("loan_show_paid")} (${loans.filter(isLoanFinished).length})`} />
+            ) : undefined
+          }
+        >
+          {(showFinishedLoans ? loans : loans.filter((l) => !isLoanFinished(l))).length === 0 && <EmptyState>{tt("loan_none_pending")}</EmptyState>}
           <div className="grid gap-2 sm:grid-cols-2">
-            {loans.map((loan: ContractorLoanSummary) => {
+            {(showFinishedLoans ? loans : loans.filter((l) => !isLoanFinished(l))).map((loan: ContractorLoanSummary) => {
+              const finished = isLoanFinished(loan);
               const remaining = loan.status === "cancelled" ? 0 : loan.pendingCents;
               const total = loan.principalCents + loan.interestCents;
               const progress = total > 0 ? Math.min(100, Math.round((loan.paidCents / total) * 100)) : 0;
@@ -828,9 +818,15 @@ export function ContractorProfileView({
                 <article key={loan.id} className="rounded-lg border border-border p-3 text-xs">
                   <div className="flex items-start justify-between gap-3">
                     <div><p className="font-medium text-foreground">{type} · {formatCents(loan.principalCents)}</p><p className="mt-0.5 text-muted-foreground">{tt("loan_requested")} {formatDate(lang, loan.requestDate)}</p></div>
-                    <span className="tabular-nums font-medium text-foreground">{tt("loan_balance_remaining")}: {formatCents(remaining)}</span>
+                    {finished ? (
+                      <StatusBadge status="closing_paid">{tt("loan_paid_label")}</StatusBadge>
+                    ) : (
+                      <span className="tabular-nums font-medium text-foreground">{tt("loan_balance_remaining")}: {formatCents(remaining)}</span>
+                    )}
                   </div>
-                  <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full bg-walnut" style={{ width: `${progress}%` }} /></div><span className="text-muted-foreground">{loan.paidCount} {tt("loan_of")} {loan.installmentCount}</span></div>
+                  {!finished && (
+                    <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full bg-walnut" style={{ width: `${progress}%` }} /></div><span className="text-muted-foreground">{loan.paidCount} {tt("loan_of")} {loan.installmentCount}</span></div>
+                  )}
                   {loan.next && <p className="mt-2 text-muted-foreground">{tt("loan_next_installment")} {formatDate(lang, loan.next.date)} · {formatCents(loan.next.amountCents)}</p>}
                   <details className="mt-2 border-t border-border pt-2"><summary className="cursor-pointer font-medium text-muted-foreground">{tt("loan_installments_toggle")}</summary><ul className="mt-1 space-y-1">{loan.installments.map((installment, index) => <li key={`${loan.id}-${installment.entryDate}-${index}`} className="flex items-center justify-between gap-2 text-muted-foreground"><span>{formatDate(lang, installment.entryDate)} · {tt(installment.paid ? "loan_installment_paid_badge" : "loan_pending")}</span><span className="flex items-center gap-1"><span className="tabular-nums">{formatCents(installment.amountCents)}</span>{!installment.paid && loan.status !== "cancelled" && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setAdjusting({ loan, entryId: installment.id })}><Pencil className="size-3" />{tt("loan_installment_adjust")}</Button>}</span></li>)}</ul></details>
                   {loan.notes && <p className="mt-2 italic text-muted-foreground">{loan.notes}</p>}
@@ -860,22 +856,30 @@ export function ContractorProfileView({
               {tt("ledger_add_charge")}
             </Button>
             {/* Lo ocasional (material, gasto, extra, ajuste). */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
-              }}
-            >
-              <Plus className="size-3.5" />
-              {tt("ledger_add")}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="outline" className="size-8" aria-label={tt("ledger_more")} title={tt("ledger_more")}>
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setEditing(null);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Plus className="size-3.5" />
+                  {tt("ledger_add")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       >
-        {/* Período que se ve. */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Una sola fila: el período a la izquierda y los filtros (categoría, proyecto, agrupar) en un botón. */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isCalendarView(periodView) && (
               <div className="flex items-center gap-1 rounded-lg border border-border px-1">
                 <Button
@@ -914,64 +918,73 @@ export function ContractorProfileView({
                 ))}
               </SelectContent>
             </Select>
-        </div>
-
-        {/* Filtros (categoría, proyecto) + interruptor de paleta. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={catFilter} onValueChange={setCatFilter}>
-            <SelectTrigger className="h-8 w-[190px] text-xs" aria-label={tt("filter_category")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={CAT_ALL}>{tt("filter_category_all")}</SelectItem>
-              {CONTRACTOR_LEDGER_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {label(CONTRACTOR_CATEGORY_LABEL_KEY[c])}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={projFilter} onValueChange={setProjFilter}>
-            <SelectTrigger className="h-8 w-[200px] text-xs" aria-label={tt("filter_project")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={PROJ_ALL}>{tt("filter_project_all")}</SelectItem>
-              <SelectItem value={PROJ_NONE}>{tt("filter_project_none")}</SelectItem>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Interruptor de paleta: fila a todo color ⇄ vista sobria.
-              La elección se persiste en localStorage. */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="ml-auto h-8 text-xs"
-            aria-label={tt("palette_label")}
-            title={tt("palette_toggle_hint")}
-            onClick={() => setPalette((p) => (p === "full" ? "sober" : "full"))}
-          >
-            <Palette className="size-3.5" />
-            {sober ? tt("palette_sober") : tt("palette_full")}
-          </Button>
-        </div>
-
-        {/* Agrupar por — tabs pequeñas encima de la tabla. "Sin agrupar"
-            es la 4ª tab (vuelve al estado sin agrupación). */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">{tt("group_by")}:</span>
-          <SegmentedFilter
-            value={groupBy}
-            onChange={setGroupBy}
-            options={LEDGER_GROUP_BYS.map((g) => ({ value: g, label: g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g]), icon: GROUP_ICON[g] }))}
-          />
+          </div>
+          <Popover modal>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" size="sm" className="h-9">
+                <SlidersHorizontal className="size-3.5" />
+                {tt("ledger_filters")}
+                {activeFilters > 0 && (
+                  <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{activeFilters}</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="flex w-[min(92vw,20rem)] flex-col gap-4 p-4">
+              <Field label={tt("filter_category")}>
+                <Select value={catFilter} onValueChange={setCatFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CAT_ALL}>{tt("filter_category_all")}</SelectItem>
+                    {CONTRACTOR_LEDGER_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {label(CONTRACTOR_CATEGORY_LABEL_KEY[c])}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tt("filter_project")}>
+                <Select value={projFilter} onValueChange={setProjFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PROJ_ALL}>{tt("filter_project_all")}</SelectItem>
+                    <SelectItem value={PROJ_NONE}>{tt("filter_project_none")}</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={tt("group_by")}>
+                <SegmentedFilter
+                  value={groupBy}
+                  onChange={setGroupBy}
+                  options={LEDGER_GROUP_BYS.map((g) => ({ value: g, label: g === "none" ? tt("group_none") : tt(GROUP_BY_LABEL_KEY[g]), icon: GROUP_ICON[g] }))}
+                />
+              </Field>
+              {activeFilters > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => {
+                    setCatFilter(CAT_ALL);
+                    setProjFilter(PROJ_ALL);
+                    setGroupBy("none");
+                  }}
+                >
+                  {tt("ledger_filters_clear")}
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Total de lo filtrado — suma de lo VISIBLE (no el saldo corrido). */}

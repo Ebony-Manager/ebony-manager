@@ -15,11 +15,11 @@ export function EmployeeAvatar({
   name: string;
   employeeId: string;
   sortOrder: number;
-  size?: "sm" | "md" | "xl";
+  size?: "sm" | "md" | "lg" | "xl";
 }) {
   const photoUrl = useEmployeePhoto(employeeId);
   const initial = name.trim().charAt(0).toUpperCase() || "?";
-  const dims = size === "xl" ? "size-24 text-3xl" : size === "md" ? "size-10 text-sm" : "size-7 text-[11px]";
+  const dims = size === "xl" ? "size-24 text-3xl" : size === "lg" ? "size-16 text-2xl" : size === "md" ? "size-10 text-sm" : "size-7 text-[11px]";
   if (photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal de Supabase Storage; next/image no aplica.

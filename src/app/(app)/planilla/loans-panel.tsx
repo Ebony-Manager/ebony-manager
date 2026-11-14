@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Ban, ChevronDown, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -88,10 +89,12 @@ function LoanCard({
           <p className="font-medium text-foreground">
             {label} · {formatCents(loan.principalCents)}
             {isCancelled && <span className="ml-2 font-normal text-muted-foreground">({tt("loan_cancelled")})</span>}
-            {!isCancelled && pending.length === 0 && sorted.length > 0 && (
-              <span className="ml-2 font-normal text-muted-foreground">({tt("loan_paid_off")})</span>
-            )}
           </p>
+          {!isCancelled && pending.length === 0 && sorted.length > 0 && (
+            <div className="mt-1">
+              <StatusBadge status="closing_paid">{tt("loan_paid_off")}</StatusBadge>
+            </div>
+          )}
           {loan.interestCents > 0 && (
             <p className="mt-0.5 text-muted-foreground">
               {tt("loan_interest_card")}: {formatCents(loan.interestCents)}
@@ -155,7 +158,7 @@ function LoanCard({
         </p>
       ) : (
         <div className="mt-2 space-y-1 text-muted-foreground">
-          {sorted.length > 0 && (
+          {sorted.length > 0 && pending.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                 <div className="h-full bg-walnut" style={{ width: `${progress}%` }} />
