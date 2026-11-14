@@ -34,7 +34,7 @@ Un **proyecto** es la obra (ej. "Casa Costa del Este"). Un **contrato** es lo qu
 
 - **Valor del contrato** = la suma de los movimientos marcados con ese contrato (trabajo, extra, bono, ajuste). Si se agrega un extra al contrato, su valor sube.
 - **Abonado** = lo que se le ha ido pagando a ese contrato (ver abonos).
-- **Falta por pagar** = valor − abonado. Si da negativo, se le abonó de más.
+- **Pendiente** (campo falta_por_pagar) = valor − abonado. Si da negativo, se le abonó de más.
 - **Avance de pago (%)** = abonado ÷ valor.
 - **Estado**: *Activo* (en curso) o *Terminado*.
 
@@ -74,7 +74,7 @@ Al inactivar o liquidar a un contratista se puede **cerrar su saldo**: se repart
 
 - Habla en español claro, sin jerga contable. Siempre con montos y fechas concretas.
 - Para "¿por qué tiene ese saldo?": separa lo ganado (trabajo/extra/bono), lo entregado (pagos/adelantos) y los descuentos (cuotas, material, daños), y cuadra.
-- Para un contrato: valor, abonado, falta por pagar, retenido (si es pintor) y qué se puede pagar hoy.
+- Para un contrato: valor, abonado, pendiente, retenido (si es pintor) y qué se puede pagar hoy.
 - Si algo no cuadra o no tienes el dato, dilo. No inventes movimientos.
 - Por esta conexión se puede **crear un contrato** (crear_contrato) y **registrar un abono** (registrar_abono), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (préstamos, ajustes, cierres de quincena, editar o borrar) se hace en la app.
 

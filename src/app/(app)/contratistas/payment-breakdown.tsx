@@ -37,7 +37,6 @@ export function PaymentBreakdown({
   const leftCents = pendingCents - deductedCents;
   const advances = pending.filter((r) => isAdvance(r.entry));
   const deductions = pending.filter((r) => !isAdvance(r.entry));
-  const shown = abonos.filter((a) => a.cents > 0);
 
   const itemLabel = (e: DeductionEntry) =>
     e.category === "pago"
@@ -78,14 +77,7 @@ export function PaymentBreakdown({
 
       <div className="flex flex-col gap-1 rounded-lg bg-muted/40 p-3 text-sm">
         <div className="flex items-start justify-between gap-3">
-          <span className="text-muted-foreground">
-            {tt("pay_sum_abonos")}
-            {shown.length > 0 && (
-              <span className="block text-xs">
-                {shown.map((a) => `${a.label} ${formatCents(a.cents)}`).join(" · ")}
-              </span>
-            )}
-          </span>
+          <span className="text-muted-foreground">{tt("pay_sum_abonos")}</span>
           <span className="tabular-nums text-foreground">{formatCents(abonosCents)}</span>
         </div>
         {pendingCents > 0 && (

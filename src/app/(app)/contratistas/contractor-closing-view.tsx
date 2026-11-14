@@ -32,6 +32,8 @@ import {
   unallocatedSources,
 } from "@/lib/contractors/contracts";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
+import { ContractorAvatar } from "./contractor-avatar";
 import { contractorProfilePath } from "@/lib/personal/paths";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -69,6 +71,7 @@ function currentQuincena(): PeriodSel {
 interface RowData {
   id: string;
   name: string;
+  photoPath: string | null;
   contracts: { contract: ContractorContract; pending: number }[];
   loosePending: number;
   onAccount: ReturnType<typeof unallocatedSources<ContractorClosingData["entries"][number]>>;
@@ -151,6 +154,7 @@ export function ContractorClosingView({
       out.push({
         id: c.id,
         name: c.name,
+        photoPath: c.photoPath,
         contracts,
         loosePending,
         onAccount,
@@ -262,6 +266,10 @@ export function ContractorClosingView({
           {paid ? tt("cl_paid_empty") : tt("cl_empty")}
         </EmptyState>
       ) : (
+        <>
+        <p className="text-xs text-muted-foreground">
+          {tt("cl_summary_topay")} <span className="text-sm font-semibold tabular-nums text-foreground">{formatCents(totals.cash)}</span> · {toPay.length} {tt("cl_summary_people")}
+        </p>
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full border-collapse text-sm sm:min-w-[720px]">
             <thead>
@@ -278,21 +286,29 @@ export function ContractorClosingView({
                 const isOpen = open.has(r.id);
                 const show = r.paid ?? r;
                 const pendingTotal = r.contracts.reduce((s, x) => s + Math.max(0, x.pending), 0) + r.loosePending;
+                const noPayment = show.abonosCents <= 0 && show.cashCents <= 0;
+                // Celular: solo lo que cambia (lo pendiente si es distinto de lo que se abona, lo que se abona y los descuentos).
+                const summary = [
+                  pendingTotal !== show.abonosCents ? `${tt("cl_col_pending")} ${formatCents(pendingTotal)}` : null,
+                  show.abonosCents > 0 ? `${tt("pay_sum_abonos")} ${formatCents(show.abonosCents)}` : null,
+                  show.deductedCents > 0 ? `${tt("cl_col_deducted")} −${formatCents(show.deductedCents)}` : null,
+                ].filter(Boolean) as string[];
                 return (
                   <React.Fragment key={r.id}>
-                    <tr className="cursor-pointer border-b border-border hover:bg-muted/40" onClick={() => toggle(r.id)}>
+                    <tr className={`cursor-pointer border-b border-border hover:bg-muted/40 ${noPayment && !paid ? "opacity-70" : ""}`} onClick={() => toggle(r.id)}>
                       <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                          {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                          {r.name}
-                        </span>
-                        {/* Celular: las otras columnas, en una línea bajo el nombre. */}
-                        <span className="ml-5 block text-xs text-muted-foreground tabular-nums sm:hidden">
-                          {tt("cl_col_pending")} {formatCents(pendingTotal)}
-                          {show.abonosCents > 0 && ` · ${tt("pay_sum_abonos")} ${formatCents(show.abonosCents)}`}
-                          {show.deductedCents > 0 && ` · −${formatCents(show.deductedCents)}`}
-                        </span>
-                        {r.over && <span className="ml-5 block text-xs text-destructive">{tt("pay_err_over")}</span>}
+                        <div className="flex items-center gap-2">
+                          {isOpen ? <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />}
+                          <ContractorAvatar name={r.name} photoUrl={r.photoPath ? photoUrl("contractor-photos", r.photoPath, THUMB_WIDTH) : null} size="md" />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">{r.name}</p>
+                            {/* Celular: las otras columnas, en una línea bajo el nombre. */}
+                            <p className="text-xs text-muted-foreground tabular-nums sm:hidden">
+                              {noPayment && !paid ? tt("cl_no_payment") + (summary.length ? ` · ${summary.join(" · ")}` : "") : summary.join(" · ")}
+                            </p>
+                            {r.over && <p className="text-xs text-destructive">{tt("pay_err_over")}</p>}
+                          </div>
+                        </div>
                       </td>
                       <td className="hidden px-3 py-2 text-right tabular-nums text-muted-foreground sm:table-cell">{formatCents(pendingTotal)}</td>
                       <td className="hidden px-3 py-2 text-right tabular-nums text-foreground sm:table-cell">{formatCents(show.abonosCents)}</td>
@@ -389,6 +405,7 @@ export function ContractorClosingView({
             </tfoot>
           </table>
         </div>
+        </>
       )}
 
       {data && rows.length > 0 && (
@@ -498,13 +515,14 @@ function LineRow({
     }
   }, [value, onCommit]);
   return (
-    <div className="flex flex-wrap items-center gap-3 px-3 py-2">
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:gap-3">
+      <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm text-foreground">{label}</p>
         {sublabel && <p className="truncate text-xs text-muted-foreground">{sublabel}</p>}
       </div>
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
       <span className="text-xs tabular-nums text-muted-foreground">
-        {pendingLabel}: {formatCents(pending)}
+        {pendingLabel} {formatCents(pending)}
       </span>
       <div className="flex items-center gap-1">
         {!disabled && (
@@ -536,6 +554,7 @@ function LineRow({
           placeholder="0.00"
           className={`h-8 w-28 text-right ${over ? "border-destructive text-destructive" : ""}`}
         />
+      </div>
       </div>
     </div>
   );

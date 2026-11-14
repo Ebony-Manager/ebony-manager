@@ -5,7 +5,7 @@ import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
 import { installmentDate, isScheduled, periodOfDate, todayInPanama } from "@/lib/contractors/contractor-loans";
-import { contractRetentionCents, type RetentionRule } from "@/lib/contractors/contracts";
+import { contractRetentionCents, looseCredits, unallocatedSources, type RetentionRule } from "@/lib/contractors/contracts";
 import {
   computeLoanInterestCents,
   computeLoanSchedule,
@@ -209,7 +209,7 @@ export async function getContractorsDashboardInput(): Promise<{
 }> {
   const supabase = await createClient();
   const [contractorsRes, rows, projectsRes] = await Promise.all([
-    supabase.from("contractors").select("id, name, contractor_type, status").order("name"),
+    supabase.from("contractors").select("id, name, contractor_type, status, photo_path").order("name"),
     selectAllRows((from, to) =>
       supabase
         .from("contractor_ledger_entries")
@@ -232,6 +232,7 @@ export async function getContractorsDashboardInput(): Promise<{
       name: c.name,
       contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
       status: c.status,
+      photoPath: c.photo_path,
     })),
     entries: due.map((r) => ({
       contractorId: r.contractor_id,
@@ -1055,7 +1056,7 @@ export interface ContractorClosingData {
   payDate: string;
   lines: ContractorPayLine[];
   results: ContractorPayResult[];
-  contractors: { id: string; name: string; contractorType: ContractorType; status: ContractorStatus }[];
+  contractors: { id: string; name: string; contractorType: ContractorType; status: ContractorStatus; photoPath: string | null }[];
   contracts: ContractorContract[];
   entries: ClosingEntry[];
   allocations: (ContractorAllocation & { contractorId: string })[];
@@ -1079,7 +1080,7 @@ export async function getContractorClosing(year: number, month: number, half: 1 
   if (pErr) throw new Error(pErr.message);
 
   const [contractorsRes, contracts, entryRows, allocRows, linesRes, resultsRes] = await Promise.all([
-    supabase.from("contractors").select("id, name, contractor_type, status").order("sort_order").order("name"),
+    supabase.from("contractors").select("id, name, contractor_type, status, photo_path").order("sort_order").order("name"),
     getContracts(),
     selectAllRows((from, to) =>
       supabase
@@ -1129,6 +1130,7 @@ export async function getContractorClosing(year: number, month: number, half: 1 
       name: c.name,
       contractorType: c.contractor_type === "pintor" ? "pintor" : "ebanista",
       status: c.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      photoPath: c.photo_path,
     })),
     contracts,
     entries: entryRows.map((r) => ({
@@ -1145,6 +1147,47 @@ export async function getContractorClosing(year: number, month: number, half: 1 
     })),
     allocations: allocRows.map((r) => ({ ...mapAllocation(r), contractorId: r.contractor_id })),
   };
+}
+
+/**
+ * Lo que explica el saldo de cada contratista además de sus contratos (Pagos → Saldos): lo acreditado sin
+ * contrato que aún no se le ha abonado, y lo que está a cuenta por descontar (hasta `until`). Son los mismos
+ * cálculos de la quincena, para que las dos pantallas cuenten el dinero igual.
+ */
+export async function getContractorOffsets(until: string): Promise<{ contractorId: string; looseCents: number; onAccountCents: number }[]> {
+  const supabase = await createClient();
+  const [entryRows, allocRows] = await Promise.all([
+    selectAllRows((from, to) =>
+      supabase
+        .from("contractor_ledger_entries")
+        .select("id, contractor_id, entry_date, direction, amount_cents, contract_id, ebony_absorbs_material")
+        .order("id")
+        .range(from, to)
+    ),
+    selectAllRows((from, to) => supabase.from("contractor_payment_allocations").select("*").order("id").range(from, to)),
+  ]);
+  const byContractor = new Map<string, { entries: Parameters<typeof looseCredits>[0][number][]; allocations: ContractorAllocation[] }>();
+  const bucket = (id: string) => {
+    let b = byContractor.get(id);
+    if (!b) byContractor.set(id, (b = { entries: [], allocations: [] }));
+    return b;
+  };
+  for (const r of entryRows) {
+    bucket(r.contractor_id).entries.push({
+      id: r.id,
+      entryDate: r.entry_date,
+      direction: r.direction === "a_favor" ? "a_favor" : "reduce",
+      amountCents: r.amount_cents,
+      contractId: r.contract_id,
+      ebonyAbsorbsMaterial: r.ebony_absorbs_material,
+    });
+  }
+  for (const r of allocRows) bucket(r.contractor_id).allocations.push(mapAllocation(r));
+  return [...byContractor].map(([contractorId, { entries, allocations }]) => ({
+    contractorId,
+    looseCents: looseCredits(entries, allocations).reduce((s, x) => s + x.remainingCents, 0),
+    onAccountCents: unallocatedSources(entries, allocations, until).reduce((s, x) => s + x.remainingCents, 0),
+  }));
 }
 
 /** Guarda (o borra, con 0) el abono de un contrato en el borrador de la quincena. */

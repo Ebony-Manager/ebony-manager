@@ -26,6 +26,8 @@ export interface DashboardContractor {
   name: string;
   contractorType: ContractorType;
   status: "ACTIVE" | "INACTIVE" | string;
+  /** Ruta de su foto (contractor-photos), para mostrarla en las listas. */
+  photoPath?: string | null;
 }
 
 export interface DashboardEntry {

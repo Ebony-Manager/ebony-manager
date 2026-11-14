@@ -30,6 +30,8 @@ export interface ContractorsDashboardInput {
   projectNames: [string, string][];
   /** Contratos con algo por pagar (Saldos): explican el saldo de cada contratista. */
   pending?: { contractorId: string; contractId: string; name: string; projectName: string; pendingCents: number }[];
+  /** Lo acreditado sin contrato y lo que está a cuenta por descontar, por contratista (Saldos). */
+  offsets?: { contractorId: string; looseCents: number; onAccountCents: number }[];
 }
 
 /** Lista corta con barra: la misma pieza para los dos rankings. */

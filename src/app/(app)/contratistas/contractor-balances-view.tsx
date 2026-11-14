@@ -10,15 +10,21 @@ import { formatDate } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { contractorProfilePath } from "@/lib/personal/paths";
+import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
+import { matchesSearch, normalizeSearchText } from "@/lib/search";
+import { SearchInput } from "@/components/shared/search-input";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { EmptyState } from "@/components/shared/page-header";
 import { ContractorAvatar } from "./contractor-avatar";
 import type { ContractorsDashboardInput } from "./contractors-dashboard-view";
 
+type TypeFilter = "all" | "ebanista" | "pintor";
+
 /**
- * Personal → Pagos → Contratistas: cada contratista con lo facturado, lo
- * pagado, lo prestado y su saldo (de toda la historia: positivo = Ebony le
- * debe). Los que más se les debe van arriba. Clic en la fila despliega los
- * proyectos que lleva; el nombre abre su estado de cuenta para registrar
- * el pago.
+ * Personal → Pagos → Contratistas → Saldos: cada contratista con su saldo de toda la historia (positivo = Ebony
+ * le debe; negativo = se le ha entregado de más). Los que más se les debe van arriba. Al abrir una fila, el
+ * saldo se explica de punta a punta: lo pendiente de cada contrato, lo acreditado sin contrato, los descuentos
+ * y pagos a cuenta, y el saldo. El nombre abre su estado de cuenta.
  */
 export function ContractorBalancesView({ input }: { input: ContractorsDashboardInput }) {
   const { lang } = useLang();
@@ -27,6 +33,8 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
   // Siempre toda la historia (sin filtro de año).
   const period: DashboardPeriod = "all";
   const [open, setOpen] = React.useState<Set<string>>(new Set());
+  const [query, setQuery] = React.useState("");
+  const [type, setType] = React.useState<TypeFilter>("all");
 
   const data = React.useMemo(
     () => computeContractorsDashboard(input.contractors, input.entries, new Map(input.projectNames), period),
@@ -34,9 +42,15 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
   );
   // Lista de cuentas: solo los contratistas activos (los inactivos no se muestran acá; su estado de cuenta
   // sigue en su ficha).
-  const tableRows = data.contractors
-    .filter((c) => c.contractor.status === "ACTIVE")
-    .sort((a, b) => b.balanceCents - a.balanceCents || b.deliveredCents - a.deliveredCents);
+  const tableRows = React.useMemo(() => {
+    const q = normalizeSearchText(query);
+    return data.contractors
+      .filter((c) => c.contractor.status === "ACTIVE")
+      .filter((c) => type === "all" || c.contractor.contractorType === type)
+      .filter((c) => !q || matchesSearch(c.contractor.name, q))
+      .sort((a, b) => b.balanceCents - a.balanceCents || b.deliveredCents - a.deliveredCents);
+  }, [data, query, type]);
+  const totalBalance = tableRows.reduce((s, c) => s + c.balanceCents, 0);
 
   const toggle = (id: string) =>
     setOpen((prev) => {
@@ -50,23 +64,41 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
     c.contractor.contractorType === "pintor" ? tt("cd_type_pintor") : tt("cd_type_ebanista");
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-medium text-foreground">{tt("cd_table_title")}</p>
-          <p className="text-xs text-muted-foreground">{tt("cd_table_hint")}</p>
-        </div>
-        <div className="overflow-x-auto">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput value={query} onChange={setQuery} placeholder={tt("cd_search_ph")} className="min-w-0 flex-1 sm:max-w-xs" />
+        <SegmentedFilter
+          fill
+          value={type}
+          onChange={setType}
+          options={[
+            { value: "all" as const, label: tt("cd_filter_all") },
+            { value: "ebanista" as const, label: tt("cd_type_ebanista") },
+            { value: "pintor" as const, label: tt("cd_type_pintor") },
+          ]}
+        />
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {tt("cd_total_balance")}{" "}
+        <span className={`font-medium ${totalBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCents(totalBalance)}</span> · {tableRows.length}{" "}
+        {tt("cl_summary_people")}
+      </p>
+
+      {tableRows.length === 0 ? (
+        <EmptyState>{tt("no_results")}</EmptyState>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full border-collapse text-sm sm:min-w-[820px]">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-2 py-2 font-medium">{tt("cd_col_contractor")}</th>
+                <th className="px-3 py-2 font-medium">{tt("cd_col_contractor")}</th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_projects")}</th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_billed")}</th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_paid")}</th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_loans")}</th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_material")}</th>
-                <th className="px-2 py-2 text-right font-medium" title={tt("cd_balance_hint")}>
+                <th className="px-3 py-2 text-right font-medium" title={tt("cd_balance_hint")}>
                   {tt("cd_col_balance")}
                 </th>
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{tt("cd_col_last")}</th>
@@ -77,27 +109,25 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                 const isOpen = open.has(c.contractor.id);
                 return (
                   <React.Fragment key={c.contractor.id}>
-                    <tr
-                      className="cursor-pointer border-b border-border hover:bg-muted/40"
-                      onClick={() => toggle(c.contractor.id)}
-                    >
-                      <td className="px-2 py-2">
+                    <tr className="cursor-pointer border-b border-border hover:bg-muted/40" onClick={() => toggle(c.contractor.id)}>
+                      <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <ChevronDown
-                            className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                          <ChevronDown className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                          <ContractorAvatar
+                            name={c.contractor.name}
+                            photoUrl={c.contractor.photoPath ? photoUrl("contractor-photos", c.contractor.photoPath, THUMB_WIDTH) : null}
+                            size="md"
                           />
-                          <ContractorAvatar name={c.contractor.name} />
                           <div className="min-w-0">
-                            <Link prefetch={false}
+                            <Link
+                              prefetch={false}
                               href={contractorProfilePath(c.contractor.id, "pagos")}
                               onClick={(e) => e.stopPropagation()}
                               className="whitespace-nowrap font-medium text-foreground hover:underline"
                             >
                               {c.contractor.name}
                             </Link>
-                            <p className="text-[11px] text-muted-foreground">
-                              {typeLabel(c)}
-                            </p>
+                            <p className="text-[11px] text-muted-foreground">{typeLabel(c)}</p>
                           </div>
                         </div>
                       </td>
@@ -106,9 +136,7 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                       <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.paidCents ? formatCents(c.paidCents) : "–"}</td>
                       <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.loansCents ? formatCents(c.loansCents) : "–"}</td>
                       <td className="hidden px-2 py-2 text-right tabular-nums sm:table-cell">{c.materialCents ? formatCents(c.materialCents) : "–"}</td>
-                      <td
-                        className={`px-2 py-2 text-right font-medium tabular-nums ${c.balanceCents < 0 ? "text-destructive" : "text-foreground"}`}
-                      >
+                      <td className={`px-3 py-2 text-right font-medium tabular-nums ${c.balanceCents < 0 ? "text-destructive" : "text-foreground"}`}>
                         {formatCents(c.balanceCents)}
                       </td>
                       <td className="hidden px-2 py-2 text-right text-xs text-muted-foreground sm:table-cell">
@@ -117,31 +145,13 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
                     </tr>
                     {isOpen && (
                       <tr className="border-b border-border bg-muted/20">
-                        <td colSpan={8} className="px-2 py-3 pl-3 sm:pl-12">
-                          {(() => {
-                            const lines = (input.pending ?? [])
-                              .filter((p) => p.contractorId === c.contractor.id)
-                              .sort((x, y) => y.pendingCents - x.pendingCents);
-                            // Lo que no viene de un contrato (descuentos, adelantos, pagos a cuenta): así la suma siempre cuadra con el saldo.
-                            const other = c.balanceCents - lines.reduce((s, l) => s + l.pendingCents, 0);
-                            if (lines.length === 0 && other === 0) return <p className="text-xs text-muted-foreground">{tt("cd_pending_none")}</p>;
-                            return (
-                              <ul className="grid grid-cols-1 gap-x-8 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                                {lines.map((l) => (
-                                  <li key={l.contractId} className="flex items-baseline justify-between gap-2">
-                                    <span className="truncate text-foreground">{l.name !== l.projectName ? `${l.projectName} · ${l.name}` : l.projectName}</span>
-                                    <span className="shrink-0 tabular-nums text-muted-foreground">{formatCents(l.pendingCents)}</span>
-                                  </li>
-                                ))}
-                                {other !== 0 && (
-                                  <li className="flex items-baseline justify-between gap-2">
-                                    <span className="truncate text-foreground">{tt("cd_pending_other")}</span>
-                                    <span className="shrink-0 tabular-nums text-muted-foreground">{formatCents(other)}</span>
-                                  </li>
-                                )}
-                              </ul>
-                            );
-                          })()}
+                        <td colSpan={8} className="px-3 py-3 sm:pl-12">
+                          <BalanceBreakdown
+                            balanceCents={c.balanceCents}
+                            lines={(input.pending ?? []).filter((p) => p.contractorId === c.contractor.id).sort((x, y) => y.pendingCents - x.pendingCents)}
+                            offsets={input.offsets?.find((o) => o.contractorId === c.contractor.id) ?? null}
+                            tt={tt}
+                          />
                         </td>
                       </tr>
                     )}
@@ -151,8 +161,56 @@ export function ContractorBalancesView({ input }: { input: ContractorsDashboardI
             </tbody>
           </table>
         </div>
-      </div>
+      )}
+    </div>
+  );
+}
 
+/**
+ * Cómo se llega al saldo: lo pendiente de cada contrato (contrato arriba, proyecto debajo) + lo acreditado sin
+ * contrato − los descuentos y pagos a cuenta (+ lo que quede sin explicar, para que siempre cuadre) = saldo.
+ */
+function BalanceBreakdown({
+  balanceCents,
+  lines,
+  offsets,
+  tt,
+}: {
+  balanceCents: number;
+  lines: NonNullable<ContractorsDashboardInput["pending"]>;
+  offsets: { looseCents: number; onAccountCents: number } | null;
+  tt: (k: keyof typeof strings.contratistas) => string;
+}) {
+  const pendingSum = lines.reduce((s, l) => s + l.pendingCents, 0);
+  const loose = offsets?.looseCents ?? 0;
+  const onAccount = offsets?.onAccountCents ?? 0;
+  // Lo que no cae en ninguna de las partes anteriores: así la suma siempre da el saldo.
+  const residual = balanceCents - (pendingSum + loose - onAccount);
+  if (lines.length === 0 && loose === 0 && onAccount === 0 && residual === 0) return <p className="text-xs text-muted-foreground">{tt("cd_pending_none")}</p>;
+
+  const row = (label: React.ReactNode, cents: number, key: string, sub?: string) => (
+    <li key={key} className="flex items-baseline justify-between gap-3">
+      <span className="min-w-0">
+        <span className="block truncate text-foreground">{label}</span>
+        {sub && <span className="block truncate text-[11px] text-muted-foreground">{sub}</span>}
+      </span>
+      <span className={`shrink-0 tabular-nums ${cents < 0 ? "text-destructive" : "text-muted-foreground"}`}>{formatCents(cents)}</span>
+    </li>
+  );
+
+  return (
+    <div className="flex max-w-lg flex-col gap-2 text-xs">
+      {lines.length > 0 && <p className="font-medium text-muted-foreground">{tt("cd_pending_caption")}</p>}
+      <ul className="flex flex-col gap-1.5">
+        {lines.map((l) => row(l.name !== l.projectName ? l.name : l.projectName, l.pendingCents, l.contractId, l.name !== l.projectName ? l.projectName : undefined))}
+        {loose !== 0 && row(tt("pay_loose"), loose, "loose")}
+        {onAccount !== 0 && row(tt("cd_pending_other"), -onAccount, "on-account")}
+        {residual !== 0 && row(tt("cd_pending_residual"), residual, "residual")}
+      </ul>
+      <p className="flex items-baseline justify-between gap-3 border-t border-border pt-2 text-sm">
+        <span className="font-medium text-foreground">{tt("cd_balance_line")}</span>
+        <span className={`font-semibold tabular-nums ${balanceCents < 0 ? "text-destructive" : "text-foreground"}`}>{formatCents(balanceCents)}</span>
+      </p>
     </div>
   );
 }
