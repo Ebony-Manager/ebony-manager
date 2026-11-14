@@ -2812,6 +2812,7 @@ export const strings = {
     inactive_staff: { es: "Inactivo en Personal: todavía tiene acceso", en: "Inactive in Staff: still has access" },
     access_title: { es: "Acceso a la app", en: "App access" },
     access_none: { es: "Todavía no tiene acceso a la app.", en: "Doesn't have app access yet." },
+    access_none_short: { es: "sin acceso todavía", en: "no access yet" },
     access_give: { es: "Dar acceso", en: "Give access" },
     access_manage: { es: "Ver en Usuarios", en: "Open in Users" },
     access_warn: { es: "Está inactivo en Personal pero todavía puede entrar a la app.", en: "Inactive in Staff but can still sign in to the app." },

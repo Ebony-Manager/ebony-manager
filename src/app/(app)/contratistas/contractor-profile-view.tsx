@@ -540,36 +540,36 @@ export function ContractorProfileView({
             saldo a la derecha. Reemplaza la vieja tarjeta grande de
             "Fecha de inicio". */}
         <Card className="p-4">
-          {/* Foto a la izquierda; nombre, tipo y saldo en la columna de la derecha (en escritorio el saldo va al extremo). */}
-          <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr_auto]">
-            <div className="row-span-2 sm:row-span-1">
-              <ProfilePhotoPicker
-                bucket="contractor-photos"
-                ownerId={contractor.id}
-                currentPath={photoPath}
-                hasPhoto={photoUrl !== null}
-                savePath={(path) => updateContractorAction(contractor.id, { photoPath: path })}
-                onPhotoChange={(url, path) => {
-                  setPhotoUrl(url);
-                  setPhotoPath(path);
-                }}
-              >
-                <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="lg" />
-              </ProfilePhotoPicker>
-            </div>
-            <div className="min-w-0">
-              <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
-                {contractor.name}
-                {isInactive && <StatusBadge status="record_inactive">{tt("inactive_badge")}</StatusBadge>}
-              </h1>
-              <p className="text-sm text-muted-foreground">{typeLabel}</p>
-            </div>
-            <div className="col-start-2 sm:col-start-3 sm:row-start-1 sm:text-right">
-              <p className="text-xs text-muted-foreground">{tt("balance_label")}</p>
-              <p className="flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tabular-nums sm:block" style={toneTextStyle(balTone)}>
-                {formatCents(balanceCents)}
-                <span className="text-xs font-normal text-muted-foreground sm:block">{balDescription}</span>
-              </p>
+          {/* Foto a la izquierda; a la derecha, nombre y tipo, y el saldo (en escritorio, al extremo). */}
+          <div className="flex items-start gap-4">
+            <ProfilePhotoPicker
+              bucket="contractor-photos"
+              ownerId={contractor.id}
+              currentPath={photoPath}
+              hasPhoto={photoUrl !== null}
+              savePath={(path) => updateContractorAction(contractor.id, { photoPath: path })}
+              onPhotoChange={(url, path) => {
+                setPhotoUrl(url);
+                setPhotoPath(path);
+              }}
+            >
+              <ContractorAvatar name={contractor.name} photoUrl={photoUrl} size="lg" />
+            </ProfilePhotoPicker>
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0">
+                <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
+                  {contractor.name}
+                  {isInactive && <StatusBadge status="record_inactive">{tt("inactive_badge")}</StatusBadge>}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">{typeLabel}</p>
+              </div>
+              <div className="sm:text-right">
+                <p className="text-xs text-muted-foreground">{tt("balance_label")}</p>
+                <p className="text-2xl font-semibold tabular-nums" style={toneTextStyle(balTone)}>
+                  {formatCents(balanceCents)}
+                </p>
+                <p className="text-xs text-muted-foreground">{balDescription}</p>
+              </div>
             </div>
           </div>
         </Card>

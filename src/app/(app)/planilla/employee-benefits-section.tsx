@@ -134,20 +134,8 @@ export function EmployeeBenefitsSection({
 
   const payingConcept = CONCEPTS.find((c) => c.key === paying) ?? null;
 
-  // Sin prestaciones (la mayoría): una sola línea, para no ocupar la ficha.
-  if (!enabled) {
-    return (
-      <section className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
-        <p className="text-sm">
-          <span className="font-semibold text-foreground">{tt("benefits_title")}</span>
-          <span className="text-muted-foreground"> · {tt("benefits_off")}</span>
-        </p>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => void toggleEnabled(true)}>
-          {tt("benefits_enable")}
-        </Button>
-      </section>
-    );
-  }
+  // Sin prestaciones (la mayoría): no hay bloque. Se activan desde «Editar datos».
+  if (!enabled) return null;
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
