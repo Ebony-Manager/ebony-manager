@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import toast from "react-hot-toast";
 import { ChevronRight, Download, ExternalLink, File, FileImage, FileText, FileVideo, Folder, FolderPlus, Loader2, Upload, X } from "lucide-react";
 
@@ -278,10 +279,7 @@ function FolderBrowser({ rootId, className }: { rootId: string; className?: stri
       )}
 
       {items === null ? (
-        <p className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-4 text-xs text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" />
-          {td("loading")}
-        </p>
+        <LoadingBlock rows={2} />
       ) : error ? (
         <EmptyState>
           <span>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { BadgeCheck, Undo2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -159,7 +160,7 @@ export function EmployeeBenefitsSection({
       )}
 
       {rows === null ? (
-        <p className="py-2 text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock variant="cards" />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {CONCEPTS.map((c) => {

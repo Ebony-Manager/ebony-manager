@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { EmptyState } from "@/components/shared/page-header";
 import { ProfileCard } from "@/components/shared/profile-card";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -154,7 +155,7 @@ export function EmployeeStatementSection({
       {failed ? (
         <p className="text-sm text-muted-foreground">{tt("load_failed")}</p>
       ) : rows === null ? (
-        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock variant="table" rows={4} />
       ) : rows.length === 0 ? (
         <EmptyState>{tt("st_empty")}</EmptyState>
       ) : (

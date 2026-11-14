@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { StatusBadge } from "@/components/shared/status-badge";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -255,7 +256,7 @@ export function ContractorClosingView({
       </div>
 
       {!data ? (
-        <EmptyState size="page">{tt("loading")}</EmptyState>
+        <LoadingBlock variant="table" size="page" />
       ) : rows.length === 0 ? (
         <EmptyState size="page">
           {paid ? tt("cl_paid_empty") : tt("cl_empty")}

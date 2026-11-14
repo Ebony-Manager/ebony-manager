@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { ICON } from "@/lib/ui/concepts";
 import Link from "next/link";
 import { Building2, CalendarClock, HandCoins, Hammer, Receipt, Users, Wallet } from "lucide-react";
@@ -113,7 +114,7 @@ export function AdminDashboardView() {
           </Button>
         </EmptyState>
       ) : !dash || !m || !data ? (
-        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock variant="cards" rows={4} />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

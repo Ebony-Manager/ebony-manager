@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { ICON } from "@/lib/ui/concepts";
 import { CalendarX2, ChevronDown, CircleCheck, Clock, TrendingDown } from "lucide-react";
 
@@ -157,7 +158,7 @@ export function AttendanceSummaryView({
           {loaded === "error" ? (
             <p className="text-xs text-destructive">{tp("load_failed")}</p>
           ) : !summary ? (
-            <p className="text-xs text-muted-foreground">{tp("loading")}</p>
+            <LoadingBlock variant="table" rows={4} />
           ) : summary.byAbsences.length === 0 && summary.byLateness.length === 0 && summary.spotless.length === 0 ? (
             <EmptyState>{period ? ta("empty_period") : ta("empty")}</EmptyState>
           ) : (

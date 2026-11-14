@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { EmptyState, ShowToggle } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Ban, ChevronDown, Pencil } from "lucide-react";
@@ -302,7 +303,7 @@ export function LoansPanel({
       )}
 
       {loans === null ? (
-        <p className="py-3 text-center text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock rows={2} />
       ) : mine.length === 0 ? (
         <EmptyState>{tt("loans_empty")}</EmptyState>
       ) : (

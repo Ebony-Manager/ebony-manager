@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { EmptyState } from "@/components/shared/page-header";
 import { CalendarX2, ChevronDown, CircleCheck, Clock, TriangleAlert, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
@@ -388,7 +389,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
       {/* Al guardar una revisión se actualiza sin quitar la lista (no se pierde la posición). */}
       <div className={`rounded-lg border border-border bg-card transition-opacity ${ready && pending ? "opacity-70" : ""}`} aria-busy={pending}>
         {!ready ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">{tp("loading")}</p>
+          <LoadingBlock variant="table" className="p-3" />
         ) : proposals.length === 0 ? (
           <EmptyState className="m-3">{tg("att_no_punches")}</EmptyState>
         ) : (

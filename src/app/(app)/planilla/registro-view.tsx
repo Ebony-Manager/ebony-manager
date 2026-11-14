@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import {
   ChevronLeft,
   ChevronRight,
@@ -510,7 +511,7 @@ export function RegistroView({
         onOpenLoans={(id) => onViewDetail(id, "prestamos")}
       />
 
-      {(pending || visibleRows === null) && <p className="text-xs text-muted-foreground">{tt("loading")}</p>}
+      {(pending || visibleRows === null) && <LoadingBlock variant="table" />}
     </div>
   );
 }

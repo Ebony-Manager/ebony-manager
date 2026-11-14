@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { ICON } from "@/lib/ui/concepts";
 import { STATUS } from "@/lib/ui/status";
 import {
@@ -800,7 +801,7 @@ export function AuditoriaView({
       )}
 
       {!data ? (
-        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock variant="table" rows={8} />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table

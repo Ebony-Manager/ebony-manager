@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { Pencil, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -254,7 +255,7 @@ export function ContractorHelpersDialog({
         ) : (
           <div className="flex flex-col gap-3">
             {helpers === null ? (
-              <p className="text-sm text-muted-foreground">{tt("loading")}</p>
+              <LoadingBlock rows={3} />
             ) : helpers.length === 0 ? (
               <EmptyState>
                 {tt("helpers_empty")}

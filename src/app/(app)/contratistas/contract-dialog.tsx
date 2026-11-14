@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { History } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -315,9 +316,7 @@ export function ContractDialog({
             </div>
 
             {loading ? (
-              <EmptyState>
-                {tt("loading")}
-              </EmptyState>
+              <LoadingBlock rows={4} />
             ) : editableWork ? (
               person ? (
                 <WorkEditor

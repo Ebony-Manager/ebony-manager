@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { ICON } from "@/lib/ui/concepts";
 import { ProfileCard } from "@/components/shared/profile-card";
 import { TrendingUp } from "lucide-react";
@@ -81,7 +82,7 @@ export function SalaryHistorySection({
       }
     >
       {changes === null ? (
-        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock rows={2} />
       ) : sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tt("salary_history_empty")}</p>
       ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { ICON } from "@/lib/ui/concepts";
 import { STATUS } from "@/lib/ui/status";
 import type { LucideIcon } from "lucide-react";
@@ -14,7 +15,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
-import { EmptyState, PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
+import { PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
 import { PendingBadge } from "@/components/shared/pending-badge";
 import { currentPeriod } from "@/lib/planilla/payroll-period";
 import { useLang } from "@/context/language-context";
@@ -299,7 +300,7 @@ export function PagosClient({
                     contractorsDashboard ? (
                       <ContractorBalancesView input={contractorsDashboard} />
                     ) : (
-                      <EmptyState>{tg("loading")}</EmptyState>
+                      <LoadingBlock variant="table" />
                     )
                   )}
                 </div>

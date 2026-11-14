@@ -39,6 +39,11 @@ describe("consistencia de la interfaz", () => {
     expect(bad, fix("Usa <EmptyState> de @/components/shared/page-header (o marca `ui-allow: dropzone`/`ui-allow: foto` si es una zona de arrastre o un botón de agregar foto):", bad)).toEqual([]);
   });
 
+  it("«cargando» es siempre <LoadingBlock> (barras grises con la forma del contenido), no un texto suelto", () => {
+    const bad = find((l, p) => p !== "components/shared/loading-block.tsx" && /^\s*\{?t[a-z]*\("loading[a-z_]*"\)\}?\s*$|<(p|span|div)[^>]*>\s*\{t[a-z]*\("loading[a-z_]*"\)\}\s*<\/(p|span|div)>|<EmptyState[^>]*>\s*\{t[a-z]*\("loading[a-z_]*"\)\}/.test(l));
+    expect(bad, fix("Usa <LoadingBlock variant=\"lines|cards|table\"> de @/components/shared/loading-block:", bad)).toEqual([]);
+  });
+
   it("hay un solo <Field> (components/shared/field.tsx), no definiciones locales", () => {
     const bad = find((l, p) => p !== "components/shared/field.tsx" && /^\s*(export )?function Field\(/.test(l));
     expect(bad, fix("Importa Field de @/components/shared/field:", bad)).toEqual([]);

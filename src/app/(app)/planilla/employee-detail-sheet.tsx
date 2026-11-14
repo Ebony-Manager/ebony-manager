@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { EmptyState } from "@/components/shared/page-header";
 import Link from "next/link";
 import { ChevronDown, ExternalLink, ListTree } from "lucide-react";
@@ -248,7 +249,7 @@ export function EmployeeDetailSheet({
                     </Button>
                   </EmptyState>
                 ) : (
-                  <p className="py-8 text-center text-sm text-muted-foreground">{tt("loading")}</p>
+                  <LoadingBlock variant="table" />
                 )
               )}
               {withActivity.length === 0 && rows && (

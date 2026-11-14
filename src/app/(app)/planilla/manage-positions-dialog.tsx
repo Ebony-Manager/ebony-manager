@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { Pencil, Check, X, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -127,7 +128,7 @@ export function ManagePositionsDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
-          {list === null && <p className="py-4 text-center text-sm text-muted-foreground">{tt("loading")}</p>}
+          {list === null && <LoadingBlock rows={4} />}
 
           {list !== null && list.length === 0 && <EmptyState>{tt("position_empty")}</EmptyState>}
 

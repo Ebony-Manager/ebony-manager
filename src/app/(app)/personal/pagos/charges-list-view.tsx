@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { EmptyState } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useRouter } from "next/navigation";
@@ -289,7 +290,7 @@ export function ChargesListView({
           </Button>
         </EmptyState>
       ) : showEmployees && employeeLoans === null ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">{tp("loading")}</p>
+        <LoadingBlock variant="table" />
       ) : shown.length === 0 ? (
         <EmptyState size="page">{tp("lo_empty")}</EmptyState>
       ) : (

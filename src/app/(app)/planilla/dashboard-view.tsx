@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import Link from "next/link";
 import { Wallet, CalendarClock, HandCoins, Users } from "lucide-react";
 
@@ -84,7 +85,7 @@ export function DashboardView({ year, onYearChange }: { year: number; onYearChan
           </Button>
         </EmptyState>
       ) : loading ? (
-        <p className="text-xs text-muted-foreground">{tt("loading")}</p>
+        <LoadingBlock variant="cards" rows={4} />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
