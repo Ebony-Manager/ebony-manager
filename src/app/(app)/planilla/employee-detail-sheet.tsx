@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/page-header";
 import Link from "next/link";
 import { ChevronDown, ExternalLink, ListTree } from "lucide-react";
 
@@ -239,23 +240,21 @@ export function EmployeeDetailSheet({
 
             <TabsContent value="resumen" className="mt-0">
               {rows === null && (
-                <div className="py-8 text-center text-sm text-muted-foreground">
-                  {rowsFailed ? (
-                    <>
-                      <p>{tt("load_failed")}</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={loadRows}>
-                        {tt("retry")}
-                      </Button>
-                    </>
-                  ) : (
-                    tt("loading")
-                  )}
-                </div>
+                rowsFailed ? (
+                  <EmptyState>
+                    <p>{tt("load_failed")}</p>
+                    <Button variant="outline" size="sm" onClick={loadRows}>
+                      {tt("retry")}
+                    </Button>
+                  </EmptyState>
+                ) : (
+                  <p className="py-8 text-center text-sm text-muted-foreground">{tt("loading")}</p>
+                )
               )}
               {withActivity.length === 0 && rows && (
-                <p className="py-8 text-center text-sm text-muted-foreground">
+                <EmptyState>
                   {tt("no_pagos_en")} {year}.
-                </p>
+                </EmptyState>
               )}
               {withActivity.length > 0 && (
                 <>

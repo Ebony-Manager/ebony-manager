@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/page-header";
 import { ProfileCard } from "@/components/shared/profile-card";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ICON } from "@/lib/ui/concepts";
@@ -155,7 +156,7 @@ export function EmployeeStatementSection({
       ) : rows === null ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : rows.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">{tt("st_empty")}</p>
+        <EmptyState>{tt("st_empty")}</EmptyState>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-sm">

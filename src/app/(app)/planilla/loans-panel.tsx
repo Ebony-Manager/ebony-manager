@@ -304,7 +304,7 @@ export function LoansPanel({
       {loans === null ? (
         <p className="py-3 text-center text-xs text-muted-foreground">{tt("loading")}</p>
       ) : mine.length === 0 ? (
-        <p className="py-3 text-center text-xs text-muted-foreground">{tt("loans_empty")}</p>
+        <EmptyState>{tt("loans_empty")}</EmptyState>
       ) : (
         <>
           {active.length === 0 ? (

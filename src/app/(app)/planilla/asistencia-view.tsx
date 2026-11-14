@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/page-header";
 import { CalendarX2, ChevronDown, CircleCheck, Clock, TriangleAlert, MapPin, Smartphone, Undo2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -389,7 +390,7 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
         {!ready ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">{tp("loading")}</p>
         ) : proposals.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">{tg("att_no_punches")}</p>
+          <EmptyState className="m-3">{tg("att_no_punches")}</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[840px] border-collapse text-sm">

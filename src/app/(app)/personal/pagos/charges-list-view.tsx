@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -281,16 +282,16 @@ export function ChargesListView({
       <ShowToggle className="self-end" checked={history} onChange={setHistory} label={tp("lo_show_history")} />
 
       {failed ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">
+        <EmptyState size="page">
           <p>{tp("load_failed")}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={load}>
+          <Button variant="outline" size="sm" onClick={load}>
             {tp("retry")}
           </Button>
-        </div>
+        </EmptyState>
       ) : showEmployees && employeeLoans === null ? (
         <p className="py-8 text-center text-sm text-muted-foreground">{tp("loading")}</p>
       ) : shown.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">{tp("lo_empty")}</p>
+        <EmptyState size="page">{tp("lo_empty")}</EmptyState>
       ) : (
         <>
         {/* Celular: una tarjeta por préstamo o descuento. */}
