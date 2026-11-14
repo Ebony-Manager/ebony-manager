@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { Plus } from "lucide-react";
 
 import type { PayrollEmployee, PayrollLedgerEntry, PayrollLoanWithSchedule } from "@/types/planilla";
@@ -57,17 +59,16 @@ export function EmployeeLoansSection({
   const statement = React.useMemo(() => (entries ? buildLoanStatement(entries, currentPeriod()) : null), [entries]);
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-foreground">{tt("loans_title")}</h2>
-        <div className="flex flex-wrap items-center gap-1">
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="size-3.5" />
-            {t(lang, strings.pagos.add)}
-          </Button>
-        </div>
-      </div>
-
+    <ProfileCard
+      icon={ICON.loans}
+      title={tt("loans_title")}
+      action={
+        <Button size="sm" onClick={() => setAddOpen(true)}>
+          <Plus className="size-3.5" />
+          {t(lang, strings.pagos.add)}
+        </Button>
+      }
+    >
       {loans.length > 0 && <LoansPanel employeeId={employee.id} categories={["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro", "tercero"]} loans={loans} onChanged={() => setReloads((n) => n + 1)} />}
 
       {failed ? (
@@ -139,6 +140,6 @@ export function EmployeeLoansSection({
         person={{ kind: "employee", id: employee.id, name: employee.name }}
         onSaved={() => setReloads((n) => n + 1)}
       />
-    </section>
+    </ProfileCard>
   );
 }

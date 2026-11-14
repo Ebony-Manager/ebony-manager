@@ -12,6 +12,7 @@
 |---|---|---|
 | "Todavía no hay nada" / "no hay resultados" / "no se pudo cargar" | `<EmptyState>` (`size="page"` si es toda la vista) 🛡️ | `shared/page-header` |
 | Un campo con su título | `<Field label required? error? icon? hint?>` — el único 🛡️ | `shared/field` |
+| Un bloque de una ficha de lectura (empleado, contratista): tarjeta con ícono, título, línea de apoyo y la acción a la derecha | `<ProfileCard icon title subtitle? action?>` — todos los bloques de una ficha lo usan; la acción principal es el botón relleno y las secundarias, de borde | `shared/profile-card` |
 | Un grupo de campos o un bloque de una ficha, con ícono y título | `<FormSection icon title note? action? quiet?>` 🛡️ | `shared/form-section` |
 | Un estado (sin stock, bajo stock, pendiente…) | `<StatusBadge status>` y, en el filtro, el mismo ícono y tono (`STATUS`, `TONE_TEXT`) | `shared/status-badge`, `lib/ui/status` |
 | Validar un formulario | `useFormErrors` + `<Field error>` | `lib/ui/use-form-errors` |

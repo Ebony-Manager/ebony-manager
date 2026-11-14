@@ -1,6 +1,7 @@
 "use client";
 
 import { usePageTitle } from "@/components/shared/page-title";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
@@ -596,14 +597,16 @@ export function ContractorProfileView({
       </div>
 
       {/* Datos del contratista — la "ficha" con todo lo que se sabe de la persona, como la del empleado. */}
-      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">{tt("details_section_title")}</h2>
+      <ProfileCard
+        icon={ICON.client}
+        title={tt("details_section_title")}
+        action={
           <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
             <Pencil className="size-3.5" />
             {tp("pd_edit")}
           </Button>
-        </div>
+        }
+      >
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <DataItem
             label={tp("pd_document")}
@@ -657,7 +660,7 @@ export function ContractorProfileView({
           <DataItem label={tp("pd_bank")} value={bank || null} />
           <DataItem label={tp("f_bank_routing_code")} value={contractor.bankRoutingCode} hideWhenEmpty />
         </dl>
-      </section>
+      </ProfileCard>
 
       {contractor.notes && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
@@ -721,11 +724,11 @@ export function ContractorProfileView({
       </div>
 
       {/* Contratos: lo acordado y lo abonado. */}
-      <div className="flex flex-col gap-3 border-t border-border pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-medium text-foreground">{tt("ct_section_title")}</h2>
-            <p className="text-xs text-muted-foreground">
+      <ProfileCard
+        icon={ICON.contract}
+        title={tt("ct_section_title")}
+        subtitle={
+          <>
               {tt("ct_col_pending")}: <span className="font-medium text-foreground tabular-nums">{formatCents(contractsPendingCents)}</span>
               {contractsRetainedCents > 0 && (
                 <>
@@ -747,9 +750,10 @@ export function ContractorProfileView({
                   {tt("ct_on_account")}: <span className="tabular-nums">{formatCents(onAccountCents)}</span>
                 </>
               )}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+            </>
+        }
+        action={
+          <>
             <Button size="sm" variant="outline" onClick={() => setContractAdding(true)}>
               <Plus className="size-3.5" />
               {tt("ct_add")}
@@ -758,9 +762,9 @@ export function ContractorProfileView({
               <Banknote className="size-3.5" />
               {tt("pay_title")}
             </Button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {contracts.length === 0 ? (
           <EmptyState>
             {tt("ct_empty_contractor")}
@@ -787,7 +791,7 @@ export function ContractorProfileView({
             )}
           </>
         )}
-      </div>
+      </ProfileCard>
 
       <EditInstallmentDialog
         ledgerEntryId={adjusting?.entryId ?? null}
@@ -813,8 +817,7 @@ export function ContractorProfileView({
       />
       {/* Estado de cuenta */}
       {loans.length > 0 && (
-        <section className="flex flex-col gap-3 border-t border-border pt-4">
-          <h2 className="text-sm font-medium text-foreground">{tt("loan_progress_title")}</h2>
+        <ProfileCard icon={ICON.loans} title={tt("loan_progress_title")}>
           <div className="grid gap-2 sm:grid-cols-2">
             {loans.map((loan: ContractorLoanSummary) => {
               const remaining = loan.status === "cancelled" ? 0 : loan.pendingCents;
@@ -835,23 +838,44 @@ export function ContractorProfileView({
               );
             })}
           </div>
-        </section>
+        </ProfileCard>
       )}
-      <div className="flex flex-col gap-3 border-t border-border pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-medium text-foreground">{tt("ledger_title")}</h2>
-            <p className="text-xs text-muted-foreground">
+      <ProfileCard
+        icon={ICON.statement}
+        title={tt("ledger_title")}
+        subtitle={
+          <>
               {tt("balance_label")}:{" "}
               <span className="font-medium tabular-nums" style={toneTextStyle(balTone)}>
                 {formatCents(balanceCents)}
               </span>
               {" · "}
               {balDescription}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+            </>
+        }
+        action={
+          <>
+            <Button size="sm" onClick={() => setChargeOpen(true)}>
+              <HandCoins className="size-3.5" />
+              {tt("ledger_add_charge")}
+            </Button>
+            {/* Lo ocasional (material, gasto, extra, ajuste). */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="size-3.5" />
+              {tt("ledger_add")}
+            </Button>
+          </>
+        }
+      >
+        {/* Período que se ve. */}
+        <div className="flex flex-wrap items-center gap-2">
             {isCalendarView(periodView) && (
               <div className="flex items-center gap-1 rounded-lg border border-border px-1">
                 <Button
@@ -890,25 +914,6 @@ export function ContractorProfileView({
                 ))}
               </SelectContent>
             </Select>
-
-            <Button size="sm" variant="outline" onClick={() => setChargeOpen(true)}>
-              <HandCoins className="size-3.5" />
-              {tt("ledger_add_charge")}
-            </Button>
-            {/* Lo ocasional (material, gasto, extra, ajuste): más discreto. */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-muted-foreground"
-              onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
-              }}
-            >
-              <Plus className="size-3.5" />
-              {tt("ledger_add")}
-            </Button>
-          </div>
         </div>
 
         {/* Filtros (categoría, proyecto) + interruptor de paleta. */}
@@ -1190,7 +1195,7 @@ export function ContractorProfileView({
             </table>
           </div>
         )}
-      </div>
+      </ProfileCard>
 
       <LedgerEntryDialog
         contractorId={contractor.id}

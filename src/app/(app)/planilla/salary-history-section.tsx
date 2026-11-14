@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ICON } from "@/lib/ui/concepts";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { TrendingUp } from "lucide-react";
 
 import type { PayrollEmployee, PayrollSalaryChange } from "@/types/planilla";
@@ -57,48 +59,47 @@ export function SalaryHistorySection({
   );
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-medium text-foreground">{tt("salary_section_title")}</h3>
-          <p className="text-xs text-muted-foreground">
-            {tt("current_salary")}: <span className="font-medium text-foreground">{formatCents(employee.baseSalaryCents)}</span>{" "}
-            {tt("per_month")}
-            {employee.benefitsBaseSalaryCents != null &&
-              employee.benefitsBaseSalaryCents !== employee.baseSalaryCents && (
-                <>
-                  {" · "}
-                  {tt("f_benefits_salary")}: {formatCents(employee.benefitsBaseSalaryCents)}
-                </>
-              )}
-          </p>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => setRaiseOpen(true)}>
+    <ProfileCard
+      icon={ICON.salary}
+      title={tt("salary_section_title")}
+      subtitle={
+        <>
+          {tt("current_salary")}: <span className="font-medium text-foreground">{formatCents(employee.baseSalaryCents)}</span> {tt("per_month")}
+          {employee.benefitsBaseSalaryCents != null && employee.benefitsBaseSalaryCents !== employee.baseSalaryCents && (
+            <>
+              {" · "}
+              {tt("f_benefits_salary")}: {formatCents(employee.benefitsBaseSalaryCents)}
+            </>
+          )}
+        </>
+      }
+      action={
+        <Button size="sm" onClick={() => setRaiseOpen(true)}>
           <TrendingUp className="size-3.5" />
           {tt("register_raise")}
         </Button>
-      </div>
-
+      }
+    >
       {changes === null ? (
         <p className="text-xs text-muted-foreground">{tt("loading")}</p>
       ) : sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tt("salary_history_empty")}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
+          <table className="w-full min-w-[520px] border-collapse text-xs">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="py-1.5 font-medium">{tt("salary_col_from")}</th>
-                <th className="py-1.5 text-right font-medium">{tt("salary_col_monthly")}</th>
-                <th className="py-1.5 text-right font-medium">{tt("salary_col_benefits")}</th>
-                <th className="py-1.5 font-medium">{tt("salary_col_notes")}</th>
-                <th className="py-1.5 text-right font-medium">{tt("salary_col_registered")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 font-medium">{tt("salary_col_from")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right font-medium">{tt("salary_col_monthly")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right font-medium">{tt("salary_col_benefits")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 font-medium">{tt("salary_col_notes")}</th>
+                <th className="whitespace-nowrap px-2 py-1.5 text-right font-medium">{tt("salary_col_registered")}</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((c, i) => (
                 <tr key={c.id} className="border-b border-border last:border-0">
-                  <td className="py-1.5 text-foreground">
+                  <td className="px-2 py-1.5 text-foreground">
                     {monthShort(lang, c.effectiveMonth)} {c.effectiveYear} ·{" "}
                     {c.effectiveHalf === 1 ? tt("quincena_1") : tt("quincena_2")}
                     {i === 0 && (
@@ -107,14 +108,14 @@ export function SalaryHistorySection({
                       </span>
                     )}
                   </td>
-                  <td className="py-1.5 text-right tabular-nums text-foreground">{formatCents(c.monthlySalaryCents)}</td>
-                  <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-foreground">{formatCents(c.monthlySalaryCents)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
                     {c.benefitsBaseSalaryCents != null ? formatCents(c.benefitsBaseSalaryCents) : "—"}
                   </td>
-                  <td className="max-w-48 truncate py-1.5 text-muted-foreground" title={c.notes ?? undefined}>
+                  <td className="max-w-48 truncate px-2 py-1.5 text-muted-foreground" title={c.notes ?? undefined}>
                     {c.notes ?? "—"}
                   </td>
-                  <td className="py-1.5 text-right text-muted-foreground">
+                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-muted-foreground">
                     {formatDate(lang, c.createdAt.slice(0, 10))}
                   </td>
                 </tr>
@@ -125,6 +126,6 @@ export function SalaryHistorySection({
       )}
 
       <SalaryRaiseDialog employeeId={employee.id} open={raiseOpen} onOpenChange={setRaiseOpen} onSaved={load} />
-    </div>
+    </ProfileCard>
   );
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { ProfileCard } from "@/components/shared/profile-card";
+import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
+import { ICON } from "@/lib/ui/concepts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { PayrollEmployee } from "@/types/planilla";
@@ -97,28 +100,24 @@ export function EmployeeStatementSection({
     r.half === null ? monthLabel(lang, r.month) : `${monthLabel(lang, r.month).slice(0, 3)} · ${r.half === 1 ? "1ra" : "2da"}`;
 
   const th = "px-3 py-2 text-right font-medium";
-  const td = "px-3 py-1.5 text-right tabular-nums";
+  // nowrap: el signo menos no se separa del monto en el teléfono.
+  const td = "whitespace-nowrap px-3 py-1.5 text-right tabular-nums";
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">{tt("st_title")}</h2>
-          <p className="text-xs text-muted-foreground">{tt("st_subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-xs">
-            {(["month", "quincena"] as const).map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setGranularity(g)}
-                className={`rounded-lg px-2.5 py-1 font-medium transition-colors ${granularity === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {g === "month" ? tt("st_view_month") : tt("st_view_quincena")}
-              </button>
-            ))}
-          </div>
+    <ProfileCard
+      icon={ICON.statement}
+      title={tt("st_title")}
+      subtitle={tt("st_subtitle")}
+      action={
+        <>
+          <SegmentedFilter
+            value={granularity}
+            onChange={setGranularity}
+            options={[
+              { value: "month", label: tt("st_view_month"), icon: ICON.period },
+              { value: "quincena", label: tt("st_view_quincena"), icon: ICON.period },
+            ]}
+          />
           <div className="flex items-center gap-1 rounded-lg border border-border px-1">
             <Button variant="ghost" size="icon" className="size-7" onClick={() => setYear((y) => y - 1)}>
               <ChevronLeft className="size-4" />
@@ -128,8 +127,9 @@ export function EmployeeStatementSection({
               <ChevronRight className="size-4" />
             </Button>
           </div>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* Interruptores: qué columnas ver. */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -230,6 +230,6 @@ export function EmployeeStatementSection({
         </div>
       )}
       {rows && rows.some((r) => !r.occurred) && <p className="text-xs text-muted-foreground">{tt("st_future_hint")}</p>}
-    </section>
+    </ProfileCard>
   );
 }

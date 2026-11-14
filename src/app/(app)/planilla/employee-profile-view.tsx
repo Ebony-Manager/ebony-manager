@@ -1,6 +1,8 @@
 "use client";
 
 import { usePageTitle } from "@/components/shared/page-title";
+import { ICON } from "@/lib/ui/concepts";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { strings as titleStrings, t as titleT } from "@/lib/i18n";
 import * as React from "react";
@@ -257,14 +259,16 @@ export function EmployeeProfileView({
         </div>
 
         {/* Datos del empleado — la "ficha" con todo lo que se sabe de la persona. */}
-        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">{tt("pd_title")}</h2>
+        <ProfileCard
+          icon={ICON.client}
+          title={tt("pd_title")}
+          action={
             <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditOpen(true)}>
               <Pencil className="size-3.5" />
               {tt("pd_edit")}
             </Button>
-          </div>
+          }
+        >
           <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <DataItem
               label={tt("pd_document")}
@@ -334,7 +338,7 @@ export function EmployeeProfileView({
             />
             <DataItem label={tt("f_bank_routing_code")} value={employee.bankRoutingCode} hideWhenEmpty />
           </dl>
-        </section>
+        </ProfileCard>
 
         {employee.notes && (
           <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

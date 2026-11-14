@@ -3,6 +3,7 @@ import {
   CalendarDays,
   FileText,
   Folder,
+  FileSignature,
   Hammer,
   Hash,
   IdCard,
@@ -24,6 +25,10 @@ import {
   Package,
   PaintBucket,
   Paperclip,
+  Receipt,
+  TrendingUp,
+  Wallet,
+  HandCoins,
   Tag,
   RefreshCw,
   ShoppingCart,
@@ -72,6 +77,12 @@ export const ICON = {
   /** Uso interno (taller, embalaje, pintura). */
   internal: Warehouse,
   taller: Factory,
+  /** Bloques de las fichas de personal: sueldo, estado de cuenta, préstamos y descuentos, contratos. */
+  salary: Wallet,
+  raise: TrendingUp,
+  statement: Receipt,
+  loans: HandCoins,
+  contract: FileSignature,
   /** Categoría administrativa del personal (la de taller usa la fábrica). */
   administrativo: Briefcase,
   /** Cierre de la quincena / saldos de los contratistas. */
