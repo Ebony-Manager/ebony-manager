@@ -145,7 +145,9 @@ export function ContractorClosingView({
       const result = data.results.find((r) => r.contractorId === c.id) ?? null;
       const hasLines = lineContracts.size > 0;
       if (paid ? !result : c.status !== "ACTIVE" && !hasLines) continue;
-      if (!paid && contracts.length === 0 && loosePending <= 0 && !hasLines) continue;
+      // Sin contratos por pagar, solo entra si lo acreditado sin contrato supera lo que debe (lo que está a cuenta):
+      // un «abono a deuda» de alguien que todavía debe no es algo que haya que pagarle (saldos viejos de la migración).
+      if (!paid && contracts.length === 0 && loosePending <= onAccountCents && !hasLines) continue;
 
       const amount = (contractId: string | null) => toCents(inputs[lineKey(c.id, contractId)] ?? "");
       const abonosCents = contracts.reduce((s, x) => s + amount(x.contract.id), 0) + amount(null);
