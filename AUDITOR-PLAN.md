@@ -48,11 +48,33 @@ Partir de `UI-RULES.md` y convertirlo en checklist con gravedad (seguridad/permi
 4. Contratistas  5. Personal y Planilla  6. Inspecciones  7. Directorio y Settings  8. Compartido (menú, componentes comunes, Dashboard).
 
 ## Límites a recordar
-- Revisa **código**, no ve pantallas (la app pide Google para entrar). Las revisiones de Carlos en el teléfono siguen siendo necesarias.
+- Hoy revisa **código**, no ve pantallas (la app pide Google para entrar) — ver «Pendiente nuevo» arriba para resolverlo.
 - Puede señalar cosas que no son problema: por eso cada hallazgo debe traer archivo y línea, y el auditor no cambia código.
 - Cada sesión consume uso; por eso se parte por módulo y no se repite lo ya auditado.
 
+## Pendiente nuevo (15 nov): que Claude pueda VER la app, no solo leer el código
+Carlos pidió resolver esto: revisar solo por código limita mucho (no se ven cortes de texto, saltos, cómo queda en
+el teléfono). Hoy no se puede porque la app solo deja entrar con Google, y eso no se puede automatizar en un navegador
+de prueba. La sesión sí tiene Chromium + Playwright instalados para sacar capturas a tamaño de teléfono.
+
+Opciones a evaluar (decidir con Carlos):
+1. **Usuario de prueba con correo y contraseña, solo fuera de producción.** Crear en Supabase una cuenta «auditor»
+   con contraseña y una entrada por contraseña que solo exista en el servidor local / vista previa (nunca en
+   admin.ebonypanama.com). Claude levanta la app en la sesión, entra con Playwright y saca capturas de cada pantalla
+   en teléfono y escritorio. *La más simple.*
+2. **Enlace de acceso generado por el servidor** (magic link con la API de administración de Supabase) para esa cuenta
+   de prueba: no hace falta pantalla de contraseña, pero la sesión necesita la clave de servicio de Supabase como
+   credencial guardada (no en el código ni en el chat).
+3. **Datos:** decidir si el auditor ve la base real (sueldos, saldos) o una copia/rama de prueba de Supabase. Con la
+   real, darle a la cuenta de prueba solo lectura y solo los módulos necesarios.
+4. Revisar con `read_documentation` (red y credenciales del entorno) qué hosts y claves hacen falta para que la app
+   corra dentro de la sesión.
+
+Cuando esto funcione, el auditor agrega capturas a su informe (por pantalla, teléfono y escritorio) y lo visual deja
+de depender solo de las capturas de Carlos.
+
 ## Pasos cuando se retome (en este orden)
+0. Resolver el acceso visual a la app (sección «Pendiente nuevo»).
 1. Escribir la lista de verificación con gravedad (`UI-RULES.md` → checklist).
 2. Crear `AUDIT.md` (marcador) y la instrucción de análisis de impacto.
 3. Lanzar las sesiones por módulo (solo informe; cada una escribe `audits/AAAA-MM-DD-<modulo>.md`).
