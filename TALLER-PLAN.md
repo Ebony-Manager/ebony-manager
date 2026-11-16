@@ -2,6 +2,22 @@
 
 > Estado: **solo planeado, nada construido.** Acordado con Carlos el 15–16 nov 2026. Revisar antes de empezar la etapa 1.
 
+## Decisiones de estructura (16 nov)
+- **Una sola sección** (nombre por decidir: «Producción», «Taller» u otro) con **dos pestañas** sobre los mismos datos:
+  1. **Por proyecto** — el **recorrido** de cada mueble/plano en **secuencia**: diseño → aprobación → corte y canteo →
+     armado → pintura (si lleva) → instalación. Vista de gerente. Al abrir un mueble se ven sus trabajos. *(Llega en la etapa 3.)*
+  2. **Trabajos** — la cola por área (CNC, muestras de pintura…). *(Se construye en la etapa 1.)*
+- **Recorrido ≠ trabajos.** Las etapas del recorrido van una tras otra y mueven el mueble. Los trabajos (un corte de CNC,
+  una muestra) son **independientes**: tienen su propio estado y **no mueven ni frenan** el recorrido; pueden enlazarse a un
+  proyecto o mueble solo como referencia.
+- Las etapas con responsable (ej. armado repartido entre armadores) también aparecen en «Asignados a mí» de esa persona,
+  aunque sigan siendo pasos de la secuencia.
+- **No hay sección «Mis trabajos».** Lo de cada uno es un **filtro**: **Todos / Asignados a mí / Pedidos por mí**, más tipo,
+  responsable y proyecto. La app recuerda el último filtro de cada persona (el operario abre en «Asignados a mí»).
+- **Inicio por rol (proyecto aparte, más adelante):** el Dashboard pasa a ser la página de inicio de cada usuario según su rol
+  (sus trabajos pendientes y atrasados, alertas, aprobaciones esperando, gráficos de sus módulos). Ahí se juntan «lo mío» de
+  todas las áreas. Mientras tanto, el operario entra directo a la pestaña Trabajos con su filtro.
+
 ## Por qué
 Hoy el operario de la CNC baja los archivos de las diseñadoras desde una carpeta de Google Drive que usa todo el
 mundo con una sola cuenta; hace poco borraron una carpeta sin querer. Se quiere que los archivos se usen **solo desde
@@ -67,16 +83,15 @@ Implica:
   «Taller interno». **Nadie entra a Drive**: se sube, descarga y borra solo desde la app; borrar en la app borra en Drive
   (Drive los guarda 30 días en su papelera). Sin carpetas con permiso abierto: la app entra con su propia llave.
   No se usa el almacenamiento de Supabase (para no pagarlo).
-- **Tamaños reales (revisados el 15 nov):** DXF 80–180 KB; DWG de 30 KB a **10 MB**; SketchUp hasta 65 MB (el operario
-  no usaría SketchUp, solo AutoCAD; Carlos lo confirma).
-- **Problema técnico:** hoy la descarga pasa por el servidor de la app (límite ~4 MB). Subir grandes ya funciona (va
-  directo a Drive). Antes de construir, **probar con un DWG de 10 MB** dos salidas: enviar por partes a través de la app,
-  o enlace temporal que vence en minutos. Ninguna abre carpetas.
+- **Formato confirmado (16 nov): las diseñadoras le pasan al operario solo DXF** (80–180 KB). La descarga a través de la
+  app (límite ~4 MB) alcanza. Igual se muestra un aviso claro si alguien sube algo más pesado. (DWG de hasta 10 MB y
+  SketchUp de hasta 65 MB existen en Drive, pero no son de la CNC; si algún tipo de trabajo los necesita, resolver la
+  descarga grande entonces.)
 
 ## Etapas
-1. **Trabajos + tipo CNC + «Mis trabajos»** — crear (diseñadoras / jefe de taller), asignar al operario, archivos en
-   Drive, estados, fechas, avisos, tablero en el módulo **Taller** (todo visible + «solo lo mío»), trabajos en la ficha del
-   proyecto. Ya deja el espacio para colgarse de una orden de producción.
+1. **Sección nueva con la pestaña Trabajos + tipo CNC** — crear (diseñadoras / jefe de taller), asignar al operario,
+   DXF en Drive, estados, fechas, avisos, tablero y lista con filtros (Todos / Asignados a mí / Pedidos por mí, tipo,
+   responsable, proyecto), trabajos en la ficha del proyecto. Ya deja el espacio para colgarse de una orden de producción.
 2. **Muestras de pintura** — se crean desde el formulario de Jotform que ya llenan las chicas; asignadas al pintor (contratista).
 3. **Órdenes de producción** leídas desde Jotform (plano, despiece, aprobación de Brainer, fechas), enlazadas a ítems de
    la cotización, con el metraje.
@@ -87,9 +102,14 @@ Implica:
 ## Pendientes por verificar
 - [ ] ¿Jotform deja leer el **estado de aprobación** de Brainer (no solo el envío)? Si no, otra vía (aviso cuando cambia).
 - [ ] Cómo capturar el **metraje** como datos.
-- [ ] Descarga de **archivos grandes** (probar con DWG de 10 MB).
-- [ ] Qué formato abre el operario (Carlos lo averigua).
+- [x] Formato de la CNC: **DXF** (confirmado). Descarga grande no hace falta para la etapa 1.
+- [ ] Nombre de la sección («Producción», «Taller» u otro).
+- [ ] ¿El operario ya tiene usuario en la app? ¿Usa teléfono o computadora junto a la máquina? (avisos)
+- [ ] Datos de una orden de CNC además de título y archivos (¿material, espesor, láminas, piezas?).
+- [ ] ¿El operario sube algo de vuelta (archivo transformado, foto)?
+- [ ] ¿Estado «Con problema» (devolver a la diseñadora) o basta una nota?
+- [ ] Quién edita y borra: propuesta = quien lo creó, jefe de taller y admin; el operario solo cambia estado y agrega notas.
 - [ ] Estructura de carpetas de proyecto en Drive (dónde crear «CNC» y «Taller interno»).
 
 ## Nombre
-Módulo **«Taller»** (se puede cambiar después).
+Por decidir (ver «Decisiones de estructura»).
