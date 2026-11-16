@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   alegraAuthMode,
   alegraConfigured,
+  alegraSupportReport,
   checkAccess,
   listItems,
   listTaxes,
@@ -97,6 +98,17 @@ export async function syncDriveNamesAction(): Promise<TestResult> {
     return { ok: r.errors.length === 0, message: parts.join(" · ") };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "Error" };
+  }
+}
+
+/** Informe completo (consulta + respuesta, sin la clave) para mandarle al soporte de Alegra. Solo lectura. */
+export async function alegraSupportReportAction(): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  await requireAdmin();
+  if (!alegraConfigured()) return { ok: false, error: "Faltan ALEGRA_EMAIL y ALEGRA_TOKEN (o ALEGRA_JWT) en Vercel." };
+  try {
+    return { ok: true, text: await alegraSupportReport() };
+  } catch (err) {
+    return { ok: false, error: errText(err) };
   }
 }
 

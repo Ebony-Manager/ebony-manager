@@ -4003,6 +4003,10 @@ export const strings = {
     alegra_no_tax: { es: "Sin impuesto", en: "No tax" },
     alegra_choose: { es: "Elegir", en: "Choose" },
     alegra_change: { es: "Cambiar", en: "Change" },
+    alegra_support: { es: "Diagnóstico para soporte", en: "Support diagnostics" },
+    alegra_support_desc: { es: "Consulta y respuesta completas de cada recurso (la clave va oculta). Cópialo y pégalo en el correo a Alegra.", en: "Full request and response for each resource (the key is hidden). Copy it into your email to Alegra." },
+    alegra_support_copy: { es: "Copiar", en: "Copy" },
+    alegra_support_copied: { es: "Copiado", en: "Copied" },
     alegra_pick_item: { es: "Elige el producto o servicio", en: "Pick the product or service" },
     alegra_saved: { es: "Guardado", en: "Saved" },
     alegra_setup_hint: {

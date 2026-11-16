@@ -211,3 +211,48 @@ export async function checkAccess(): Promise<
   }
   return out;
 }
+
+/**
+ * Informe para el soporte de Alegra: por cada recurso que usa la app, la consulta completa (método, URL, headers con la
+ * clave OCULTA) y la respuesta completa (status, headers y body tal cual). Solo lectura (GET con limit=1).
+ */
+export async function alegraSupportReport(): Promise<string> {
+  const paths = ["/contacts", "/invoices", "/items", "/taxes", "/estimates", "/number-templates"];
+  const mode = alegraAuthMode();
+  const hiddenAuth = mode === "jwt" ? "Bearer <JWT Token oculto>" : "Basic <correo:token oculto>";
+  const out: unknown[] = [];
+  for (const path of paths) {
+    const url = new URL(`${BASE}${path}`);
+    url.searchParams.set("limit", "1");
+    const requestHeaders = { Authorization: hiddenAuth, Accept: "application/json" };
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: authHeader(), Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(20_000),
+      });
+      const raw = await res.text();
+      let body: unknown = raw;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        /* se deja como texto */
+      }
+      const headers: Record<string, string> = {};
+      res.headers.forEach((v, k) => {
+        if (k.toLowerCase() !== "set-cookie") headers[k] = v;
+      });
+      out.push({
+        request: { method: "GET", url: url.toString(), headers: requestHeaders, body: null },
+        response: { status: res.status, statusText: res.statusText, headers, body: typeof body === "string" ? body.slice(0, 4000) : body },
+      });
+    } catch (err) {
+      out.push({
+        request: { method: "GET", url: url.toString(), headers: requestHeaders, body: null },
+        response: { error: err instanceof Error ? err.message : String(err) },
+      });
+    }
+  }
+  return JSON.stringify({ fecha: new Date().toISOString(), autenticacion: mode === "jwt" ? "JWT Token (Bearer)" : "Correo + token (Basic)", pruebas: out }, null, 2);
+}

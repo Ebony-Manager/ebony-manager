@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EbonyMark } from "@/components/brand/ebony-logo";
 import {
   FeriadosLogo,
@@ -29,6 +30,7 @@ import { useLang } from "@/context/language-context";
 import { strings, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
+  alegraSupportReportAction,
   getAlegraOptionsAction,
   saveAlegraConfigAction,
   testAlegraAction,
@@ -346,6 +348,7 @@ export function ConexionesClient({ data }: { data: ConnectionsData }) {
             enabled={data.env.alegra}
             tc={tc}
           />
+          <AlegraSupportReport enabled={data.env.alegra} tc={tc} />
         </Card>
 
         <Card
@@ -537,6 +540,49 @@ function ErrorLine({
     <p className="rounded-md bg-[color-mix(in_oklab,var(--status-error)_10%,var(--card))] px-2.5 py-1.5 text-xs break-words text-[var(--status-error)]">
       {when(run.last_error_at!)} · {run.last_error}
     </p>
+  );
+}
+
+/** Informe completo para el soporte de Alegra (consulta + respuesta de cada recurso, sin la clave), listo para copiar. */
+function AlegraSupportReport({ enabled, tc }: { enabled: boolean; tc: (k: Tk) => string }) {
+  const [loading, setLoading] = React.useState(false);
+  const [text, setText] = React.useState<string | null>(null);
+
+  async function run() {
+    setLoading(true);
+    const res = await alegraSupportReportAction();
+    setLoading(false);
+    if (!res.ok) return void toast.error(res.error, { duration: 10000 });
+    setText(res.text);
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="ghost" className="self-start" disabled={!enabled || loading} onClick={() => void run()}>
+        {loading && <Loader2 className="size-3.5 animate-spin" />}
+        {tc("alegra_support")}
+      </Button>
+      <Dialog open={text !== null} onOpenChange={(o) => !o && setText(null)}>
+        <DialogContent className="max-w-[min(95vw,48rem)]">
+          <DialogHeader>
+            <DialogTitle>{tc("alegra_support")}</DialogTitle>
+            <DialogDescription>{tc("alegra_support_desc")}</DialogDescription>
+          </DialogHeader>
+          <textarea
+            readOnly
+            value={text ?? ""}
+            className="h-[55vh] w-full resize-none rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-foreground"
+          />
+          <DialogFooter>
+            <Button
+              onClick={() => navigator.clipboard.writeText(text ?? "").then(() => toast.success(tc("alegra_support_copied")))}
+            >
+              {tc("alegra_support_copy")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
