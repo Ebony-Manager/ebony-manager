@@ -3,9 +3,10 @@
 > Estado: **solo planeado, nada construido.** Acordado con Carlos el 15–16 nov 2026. Revisar antes de empezar la etapa 1.
 
 ## Decisiones de estructura (16 nov)
-- **Una sola sección** (nombre por decidir: «Producción», «Taller» u otro) con **dos pestañas** sobre los mismos datos:
-  1. **Por proyecto** — el **recorrido** de cada mueble/plano en **secuencia**: diseño → aprobación → corte y canteo →
-     armado → pintura (si lleva) → instalación. Vista de gerente. Al abrir un mueble se ven sus trabajos. *(Llega en la etapa 3.)*
+- **Módulo «Taller»**, con sus partes internas como hoy tiene Almacén (subsecciones / pestañas; la forma exacta se decide en diseño):
+  1. **Torre de control** — vista de gerente: **cada carril (fila) es un proyecto, cada tarjeta es un mueble/plano, cada
+     columna es una etapa** del recorrido en **secuencia** (diseño → aprobación → corte y canteo → armado → pintura si lleva →
+     instalación). Las tarjetas avanzan de columna. Al abrir un mueble se ven sus trabajos. *(Llega en la etapa 3.)*
   2. **Trabajos** — la cola por área (CNC, muestras de pintura…). *(Se construye en la etapa 1.)*
 - **Recorrido ≠ trabajos.** Las etapas del recorrido van una tras otra y mueven el mueble. Los trabajos (un corte de CNC,
   una muestra) son **independientes**: tienen su propio estado y **no mueven ni frenan** el recorrido; pueden enlazarse a un
@@ -103,13 +104,14 @@ Implica:
 - [ ] ¿Jotform deja leer el **estado de aprobación** de Brainer (no solo el envío)? Si no, otra vía (aviso cuando cambia).
 - [ ] Cómo capturar el **metraje** como datos.
 - [x] Formato de la CNC: **DXF** (confirmado). Descarga grande no hace falta para la etapa 1.
-- [ ] Nombre de la sección («Producción», «Taller» u otro).
-- [ ] ¿El operario ya tiene usuario en la app? ¿Usa teléfono o computadora junto a la máquina? (avisos)
-- [ ] Datos de una orden de CNC además de título y archivos (¿material, espesor, láminas, piezas?).
-- [ ] ¿El operario sube algo de vuelta (archivo transformado, foto)?
-- [ ] ¿Estado «Con problema» (devolver a la diseñadora) o basta una nota?
-- [ ] Quién edita y borra: propuesta = quien lo creó, jefe de taller y admin; el operario solo cambia estado y agrega notas.
+- [x] Nombre: **Taller**.
+- [x] El operario usa **computadora** (avisos en el navegador de esa computadora; aceptar notificaciones una vez; la lista también se actualiza sola).
+- [x] Datos de una orden de CNC: **proyecto (o interno), archivo(s) DXF, posiblemente el plano (PDF u otro), notas**; más responsable (el operario por defecto) y para cuándo.
+- [x] El operario **no sube nada** de vuelta: solo descarga.
+- [x] **Sin** estado «Con problema» por ahora.
+- [x] Editan y borran **todas las diseñadoras** (y quien tenga acceso a Taller): se cubren entre ellas. Borrar pide confirmación y manda los archivos a la papelera de Drive (30 días).
+- [ ] ¿El operario ya tiene usuario en la app? (si no, invitarlo desde Settings → Usuarios)
 - [ ] Estructura de carpetas de proyecto en Drive (dónde crear «CNC» y «Taller interno»).
 
 ## Nombre
-Por decidir (ver «Decisiones de estructura»).
+**Taller.**
