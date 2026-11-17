@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ChevronRight, Plus, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Plus, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { ListToolbar } from "@/components/shared/search-input";
@@ -16,7 +16,7 @@ import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
-import { PurchasePhoto, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
+import { PurchasePhoto, PurchaseQty, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
@@ -435,36 +435,51 @@ function PendingRow({
         // la izquierda (sobre el nombre) en vez de cortarse contra el borde.
         className="relative z-10 min-h-7 min-w-7 self-start justify-self-end"
       />
-      {/* Cantidad × precio por unidad = total de la línea. */}
-      <div className="col-start-2 col-end-5 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-20">
-            <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
-          </div>
-          <span className="text-xs text-muted-foreground">{unitName}</span>
+      {/* Cantidad × precio = total, en columnas fijas (iguales en todas las líneas): la medida va debajo de
+          cada caja, así las cajas y el total no se corren según lo largo del texto. */}
+      <div className="col-start-2 col-end-5 grid grid-cols-[4.5rem_auto_6.5rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:max-w-xl sm:grid-cols-[6rem_auto_7rem_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-1">
+          <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
+          <span className="text-xs text-muted-foreground">
+            {unitName}
+            {pack && ` = ${qtyWithUnit(r.qty, r.unit, lang)}`}
+          </span>
         </div>
-        {pack && <span className="text-xs text-muted-foreground">= {qtyWithUnit(r.qty, r.unit, lang)}</span>}
         {withPrice && (
           <>
-            <span className="text-xs text-muted-foreground">×</span>
-            <div className="w-24" title={pack ? ta("f_pack_price", { p: pack.label }) : ta("f_unit_price")}>
+            <span className="flex h-9 items-center text-xs text-muted-foreground">×</span>
+            <div className="flex min-w-0 flex-col gap-1">
               <MoneyInput
                 value={price}
                 onValueChange={setPrice}
                 onBlur={savePrice}
-                placeholder={last != null ? centsToText(last * per) : "0.00"}
+                placeholder="—"
                 aria-label={pack ? ta("f_pack_price", { p: pack.label }) : ta("f_unit_price")}
                 className={r.unitCostCents == null ? "border-warning/60" : undefined}
               />
+              {/* Qué precio va: el de UNA presentación (un galón), no el de todas. */}
+              <span className="truncate text-xs text-muted-foreground">
+                {pack ? ta("price_per_pack", { p: (pack.label || formatQty(pack.qty, lang)).toLowerCase() }) : ta("price_each")}
+              </span>
             </div>
-            {/* Para que quede claro qué precio va: el de UNA presentación (un galón), no el de todas. */}
-            <span className="text-xs text-muted-foreground">
-              {pack ? ta("price_per_pack", { p: (pack.label || formatQty(pack.qty, lang)).toLowerCase() }) : ta("price_each")}
-            </span>
-            <span className="ml-auto text-sm font-medium tabular-nums">{lineTotal != null ? formatCents(lineTotal) : "—"}</span>
+            <div className="flex min-w-0 flex-col items-end gap-1">
+              {lineTotal != null ? (
+                <span className="flex h-9 items-center text-sm font-medium tabular-nums">{formatCents(lineTotal)}</span>
+              ) : (
+                // Sin precio: lo dice con ícono y texto (el borde naranja no es la única señal).
+                <span className="flex h-9 items-center gap-1 whitespace-nowrap text-xs font-medium text-warning">
+                  <AlertTriangle className="size-3.5 shrink-0" />
+                  {ta("no_price")}
+                </span>
+              )}
+            </div>
             {last != null && r.unitCostCents == null && (
-              <button type="button" onClick={() => setPrice(centsToText(last * per))} className="basis-full text-left text-[11px] text-primary hover:underline">
-                {ta("last_price", { p: formatUnitCost(last * per) })}
+              <button
+                type="button"
+                onClick={() => setPrice(centsToText(last * per))}
+                className="col-span-2 col-start-3 justify-self-start text-left text-xs text-primary hover:underline"
+              >
+                {ta("last_price_use", { p: formatUnitCost(last * per) })}
               </button>
             )}
           </>
@@ -540,7 +555,9 @@ function RequestsTable({
                 </div>
                 </div>
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{purchaseQtyText(r.qty, r.unit, packOf(index, r.variantId), lang)}</td>
+              <td className="px-3 py-2.5 text-right">
+                <PurchaseQty qty={r.qty} unit={r.unit} pack={packOf(index, r.variantId)} lang={lang} className="inline-block max-w-none" />
+              </td>
               {showWho && <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{r.auto ? "—" : (r.createdByName ?? "—")}</td>}
               <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{formatDateCompact(lang, todayInPanama(new Date(r.createdAt)))}</td>
               <td className="px-3.5 py-2.5 text-right">
@@ -643,11 +660,7 @@ function InTransit({
                     <span className="block break-words">{requestName(l, index)}</span>
                     {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
                   </span>
-                  <span className="shrink-0 text-right tabular-nums">
-                    {l.receivedQty > 0
-                      ? ta("received_of", { a: formatQty(pack ? toPacks(l.receivedQty, pack) : l.receivedQty, lang), b: purchaseQtyText(l.qty, l.unit, pack, lang) })
-                      : purchaseQtyText(l.qty, l.unit, pack, lang)}
-                  </span>
+                  <PurchaseQty qty={l.qty} receivedQty={l.receivedQty > 0 ? l.receivedQty : undefined} unit={l.unit} pack={pack} lang={lang} className="shrink-0" />
                 </li>
               );
             })}

@@ -3,7 +3,7 @@
 import { RefreshCw, User } from "lucide-react";
 import type { OrderStatus, RequestStatus } from "@/types/almacen";
 import { StatusBadge as SharedStatusBadge } from "@/components/shared/status-badge";
-import { purchasePack, packText, type PurchasePack } from "@/lib/almacen/inventory";
+import { formatQty, purchasePack, packText, toPacks, type PurchasePack } from "@/lib/almacen/inventory";
 import { ItemThumb, qtyWithUnit, useTa, type VariantRef } from "../shared";
 
 /** El estado de una solicitud o pedido: ícono y tono del registro (lib/ui/status.ts). */
@@ -53,4 +53,37 @@ export function packOf(index: Map<string, VariantRef>, variantId: string | null)
 /** "2 × Rollo de 500 cm (56 unidades)", o "12 unidades" si se compra suelto. */
 export function purchaseQtyText(qty: number, unit: string | null, pack: PurchasePack | null, lang: "es" | "en"): string {
   return pack ? `${packText(qty, pack, lang)} (${qtyWithUnit(qty, unit, lang)})` : qtyWithUnit(qty, unit, lang);
+}
+
+/**
+ * La cantidad de una línea de compra, en dos renglones para que no aplaste al nombre: arriba lo pedido
+ * (o «recibido de pedido») en presentaciones —«2 × Rollo de 100 m»— y, si hay presentación, debajo y más
+ * tenue el total en la unidad del almacén —«200 metros»—. Puede partirse en renglones; nunca se corta.
+ */
+export function PurchaseQty({
+  qty,
+  receivedQty,
+  unit,
+  pack,
+  lang,
+  className,
+}: {
+  qty: number;
+  /** Si se pasa, muestra «recibido de pedido». */
+  receivedQty?: number;
+  unit: string | null;
+  pack: PurchasePack | null;
+  lang: "es" | "en";
+  className?: string;
+}) {
+  const { ta } = useTa();
+  const ordered = pack ? packText(qty, pack, lang) : qtyWithUnit(qty, unit, lang);
+  const main =
+    receivedQty != null ? ta("received_of", { a: formatQty(pack ? toPacks(receivedQty, pack) : receivedQty, lang), b: ordered }) : ordered;
+  return (
+    <span className={`max-w-[50%] text-right tabular-nums ${className ?? ""}`}>
+      <span className="block">{main}</span>
+      {pack && <span className="block text-xs text-muted-foreground">{qtyWithUnit(qty, unit, lang)}</span>}
+    </span>
+  );
 }

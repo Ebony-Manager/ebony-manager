@@ -14,14 +14,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatCents } from "@/lib/planilla/payroll-period";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { formatQty, formatUnitCost, parseQty, toPacks } from "@/lib/almacen/inventory";
+import { formatQty, formatUnitCost, parseQty } from "@/lib/almacen/inventory";
 import { Receipt } from "lucide-react";
 import { Field } from "../../contratistas/field";
 import { FormSection } from "@/components/shared/form-section";
 import { ICON } from "@/lib/ui/concepts";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, useTa, type VariantRef } from "../shared";
-import { PurchasePhoto, StatusBadge, packOf, purchaseQtyText } from "./common";
+import { PurchasePhoto, PurchaseQty, StatusBadge, packOf } from "./common";
 import { DELIVERY_ICON, DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
@@ -163,7 +163,7 @@ export function OrderDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && void requestClose()}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {ta("order_title")} · {supplier?.name ?? "—"}
@@ -206,35 +206,53 @@ export function OrderDialog({
               const pack = packOf(index, l.variantId);
               const per = pack?.qty ?? 1;
               return (
-                <li key={l.id} className="flex flex-col gap-2 border-b border-border px-3 py-2.5 text-sm last:border-0">
+                <li key={l.id} className="flex flex-col gap-3 border-b border-border px-3 py-3 text-sm last:border-0">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-3"><PurchasePhoto variantId={l.variantId} index={index} /><span className="min-w-0 break-words font-medium">{lineName(l)}</span></span>
-                      {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
+                    <span className="flex min-w-0 items-center gap-3">
+                      <PurchasePhoto variantId={l.variantId} index={index} />
+                      <span className="min-w-0">
+                        <span className="block break-words font-medium">{lineName(l)}</span>
+                        {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
+                      </span>
                     </span>
-                    <span className={`shrink-0 text-right text-xs tabular-nums ${done ? "text-success" : "text-muted-foreground"}`}>
-                      {ta("received_of", { a: formatQty(pack ? toPacks(l.receivedQty, pack) : l.receivedQty, lang), b: purchaseQtyText(l.qty, l.unit, pack, lang) })}
-                    </span>
+                    <PurchaseQty
+                      qty={l.qty}
+                      receivedQty={l.receivedQty}
+                      unit={l.unit}
+                      pack={pack}
+                      lang={lang}
+                      className={`shrink-0 text-xs ${done ? "text-success" : "text-muted-foreground"}`}
+                    />
                   </div>
-                  {(receiving || canCosts) && (
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                      {receiving && !done && (
-                        <Field className="w-32" label={ta("col_to_receive")} hint={pack ? `× ${pack.label || formatQty(pack.qty, lang)}` : undefined}>
+                  {/* Columnas fijas, iguales en todas las líneas: Recibir · Precio · Total. Títulos de una línea y la
+                      medida (× rollo, por rollo, c/u) debajo de la caja, así las cajas quedan alineadas. */}
+                  {((receiving && !done) || canCosts) && (
+                    <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_9rem_7rem]">
+                      {receiving && !done ? (
+                        <Field label={ta("col_to_receive")} hint={pack ? `× ${pack.label || formatQty(pack.qty, lang)}` : undefined}>
                           <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} />
                         </Field>
+                      ) : (
+                        <span className="hidden sm:block" />
                       )}
                       {canCosts && (
-                        <span className="flex flex-1 items-center justify-end gap-1.5">
-                          {canPurchase ? (
-                            <Field className="w-32" label={ta("f_unit_price")}>
+                        <>
+                          <Field
+                            className="sm:col-start-3"
+                            label={ta("f_price")}
+                            hint={pack ? ta("price_per_pack", { p: pack.label || formatQty(pack.qty, lang) }) : ta("price_each")}
+                          >
+                            {canPurchase ? (
                               <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} />
-                            </Field>
-                          ) : (
-                            <span className="tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
-                          )}
-                          <span className="text-xs text-muted-foreground">{pack ? ta("price_per_pack", { p: pack.label || formatQty(pack.qty, lang) }) : ta("price_each")}</span>
-                          <span className="min-w-20 text-right font-medium tabular-nums">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
-                        </span>
+                            ) : (
+                              <span className="flex h-9 items-center justify-end tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
+                            )}
+                          </Field>
+                          <div className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1.5">
+                            <span className="text-xs text-muted-foreground sm:text-right">{ta("f_total")}</span>
+                            <span className="text-right font-medium tabular-nums sm:flex sm:h-9 sm:items-center sm:justify-end">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
