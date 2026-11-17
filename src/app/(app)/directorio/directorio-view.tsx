@@ -105,6 +105,7 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
         />
         <Select value={rubro} onValueChange={(v) => setRubro(v as SupplierRubro | "all")}>
           <SelectTrigger className="h-9 w-full sm:w-52">
+            <ICON.category className="size-3.5 shrink-0 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -368,7 +369,7 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
                         <Field label={ta("c_name")} icon={ICON.client}>
                           <Input value={c.name} onChange={(e) => setContact(i, { name: e.target.value })} />
                         </Field>
-                        <Field label={ta("c_role")} icon={ICON.firm}>
+                        <Field label={ta("c_role")}>
                           <Input value={c.role} onChange={(e) => setContact(i, { role: e.target.value })} placeholder={ta("c_role_ph")} />
                         </Field>
                         <Field label={ta("f_whatsapp")} icon={ICON.phone} className="min-[480px]:col-span-2">

@@ -24,6 +24,8 @@ Falta, en tandas y con visto bueno de Carlos:
 1. ~~**Directorio**~~ — **hecho 17 nov**: formulario de proveedor con `useFormErrors` (nombre obligatorio con asterisco,
    error del servidor en aviso), aviso de descartar con `useFormBaseline`, contactos como tarjetas con campos titulados,
    íconos dentro de los campos, sin «opcional»; filtros Todos/Materiales/Servicios con ícono (`ICON.materials`, `ICON.service`).
+   Queda para un componente compartido (aparece en varias pantallas): encabezados de grupo de lista (`h2` en mayúsculas
+   hechos a mano) y chips de selección múltiple (rubros).
 2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
