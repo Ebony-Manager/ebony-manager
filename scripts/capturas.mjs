@@ -67,6 +67,8 @@ for (const [tag, viewport] of sizes) {
       await page.locator(sel).first().click();
       await page.waitForTimeout(800);
     }
+    // WAIT=<ms>: espera extra para pantallas que cargan sus datos después de abrir.
+    if (process.env.WAIT) await page.waitForTimeout(Number(process.env.WAIT));
     const file = `${outDir}/${route.replace(/\W+/g, "_")}${process.env.CLICK ? "-click" : ""}-${tag}.png`;
     await page.screenshot({ path: file, fullPage: !process.env.CLICK });
     console.log(tag, route, res?.status(), page.url(), "→", file);

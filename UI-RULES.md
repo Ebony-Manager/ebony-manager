@@ -21,6 +21,7 @@
 | Cerrar un diálogo con cosas escritas | `useDiscardGuard` (+ `useFormBaseline` cuando el formulario se llena al abrir: marca «cómo estaba» después de llenarse, así solo pregunta si hubo cambios) | `shared/discard-guard` |
 | El ícono de un concepto (proyecto, cliente, responsable, fecha…) | `ICON.x` | `lib/ui/concepts` |
 | Fecha u hora | `<Input type="date">` — nunca `<input>` crudo 🛡️ | `ui/input` |
+| Mostrar una fecha (no editarla) | `formatDateCompact` → «6-Nov-26», igual en todas las pantallas (`formatDate` hace lo mismo) | `lib/planilla/format` |
 | Elegir entre pocas opciones / filtros | `<SegmentedFilter>` (con ícono en cada opción si lo hay) | `shared/page-breadcrumb` |
 | "Mostrar inactivos / historial" | `<ShowToggle>` | `shared/page-header` |
 | Título de un grupo dentro de una lista (Ferretería, Herrajería…) | `<ListGroupHeader title count? icon?>`: texto normal (no mayúsculas), cantidad en pastilla; ícono solo genérico (Materiales/Servicios), nunca uno por grupo | `shared/list-group-header` |

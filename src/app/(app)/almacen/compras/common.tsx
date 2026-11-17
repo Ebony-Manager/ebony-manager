@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCw, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { OrderStatus, RequestStatus } from "@/types/almacen";
 import { StatusBadge as SharedStatusBadge } from "@/components/shared/status-badge";
 import { formatQty, purchasePack, packText, toPacks, type PurchasePack } from "@/lib/almacen/inventory";
@@ -81,7 +82,7 @@ export function PurchaseQty({
   const main =
     receivedQty != null ? ta("received_of", { a: formatQty(pack ? toPacks(receivedQty, pack) : receivedQty, lang), b: ordered }) : ordered;
   return (
-    <span className={`max-w-[50%] text-right tabular-nums ${className ?? ""}`}>
+    <span className={cn("max-w-[50%] text-right tabular-nums", className)}>
       <span className="block">{main}</span>
       {pack && <span className="block text-xs text-muted-foreground">{qtyWithUnit(qty, unit, lang)}</span>}
     </span>

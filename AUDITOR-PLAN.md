@@ -34,6 +34,12 @@ Falta, en tandas y con visto bueno de Carlos:
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
 6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
+8. ~~**Cabos sueltos de lo ya barrido (Almacén y Personal)**~~ — **hecho 17 nov** (Carlos lo pidió al ver Compras): revisión
+   con capturas de teléfono y computadora de cada pantalla y ventana de Almacén, y de Personal/Pagos. Arreglado: columnas
+   fijas en pedidos y «Por pedir», cantidades que aplastaban el nombre, selectores con hueco, encabezados tapados por botones
+   (compartido), notas largas de bloque (compartido), opciones de formulario que no cabían (SegmentedFilter `wrap`), fechas
+   en un solo formato («6-Nov-26»), títulos de tabla en mayúsculas, «1 días», etc. **Lección:** revisar por código no basta;
+   cada tanda se cierra con capturas de TODAS sus pantallas y ventanas (`scripts/capturas.mjs`, `TALL=1`, `CLICK=`).
 7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la

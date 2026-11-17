@@ -311,7 +311,8 @@ export function RegistroView({
   const yearOptions = Array.from(new Set([...Array.from({ length: 5 }, (_, i) => thisYear - 3 + i), period.year])).sort(
     (a, b) => a - b
   );
-  const th = "whitespace-nowrap px-3 py-[11px] text-[10.5px] font-semibold tracking-[0.04em] text-ink-900/60 uppercase";
+  // Títulos de columna como en el resto de las tablas (texto normal, tenue), no en MAYÚSCULAS.
+  const th = "whitespace-nowrap px-3 py-[11px] text-xs font-medium text-muted-foreground";
 
   return (
     <div className="flex flex-col gap-3">

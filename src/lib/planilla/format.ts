@@ -18,15 +18,13 @@ export function formatDateCompact(lang: Lang, iso: string): string {
   return `${day}-${monthShort(lang, month)}-${String(year).slice(-2).padStart(2, "0")}`;
 }
 
-/** Fecha `YYYY-MM-DD` -> texto local ("5 sep 2026" / "Sep 5, 2026"). */
+/**
+ * Fecha `YYYY-MM-DD` para mostrar. Una sola forma en toda la app (UI-RULES): la compacta, "5-Sep-26".
+ * Antes salía "5 sep 2026" en las fichas y "5-Sep-26" en las listas; se dejó este nombre para no tocar
+ * cada pantalla, pero ya no depende del idioma del navegador (toLocaleDateString).
+ */
 export function formatDate(lang: Lang, iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(lang === "en" ? "en-US" : "es-PA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateCompact(lang, iso);
 }
 
 /** "sep 2026" / "Sep 2026" a partir de un ISO date. */

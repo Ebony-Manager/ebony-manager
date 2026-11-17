@@ -20,8 +20,8 @@ export const PAGE_CLASS = "flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6";
 /**
  * Encabezado de pantalla: (en computadora) la ruta "Personal / Pagos"
  * chiquita arriba, el título, la explicación (solo en computadora) y la
- * acción principal a la derecha, en la misma línea del título también en
- * el celular. `back` pone un "← Volver a …" encima (fichas y subpantallas).
+ * acción principal a la derecha, en la misma línea del título; si en el
+ * celular no caben, los botones bajan a la fila siguiente (a la derecha). `back` pone un "← Volver a …" encima (fichas y subpantallas).
  */
 export function PageHeader({
   title,
@@ -58,7 +58,7 @@ export function PageHeader({
         </h1>
         {subtitle && <p className="hidden max-w-2xl text-sm text-muted-foreground sm:block">{subtitle}</p>}
       </div>
-      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+      {action && <div className="ml-auto flex shrink-0 items-center gap-2">{action}</div>}
     </div>
   );
 }

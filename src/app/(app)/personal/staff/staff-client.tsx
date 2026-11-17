@@ -380,10 +380,10 @@ function TeamList({
                   {/* Los contratistas no tienen puesto: va su oficio (Ebanista / Pintor). */}
                   {m.position ?? (m.kind === "contractor" ? tt(`group_${m.group}`) : "—")}
                 </div>
-                {/* En el celular la fecha de ingreso va en esta misma línea. */}
+                {/* En el celular la fecha de ingreso va en esta misma línea (sin «·»: si baja de renglón, no empieza con un punto). */}
                 {m.startDate && (
                   <div className="text-xs text-muted-foreground md:hidden">
-                    · {tt("col_since")} {formatDateCompact(lang, m.startDate)}
+                    {tt("col_since")} {formatDateCompact(lang, m.startDate)}
                   </div>
                 )}
               </div>
