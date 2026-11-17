@@ -706,8 +706,8 @@ function History({
       <ListToolbar>
         <SearchBox value={q} onChange={setQ} placeholder={ta("history_search")} />
         <SegmentedFilter value={status} onChange={setStatus} options={[
-          { value: "recibido", label: ta("st_recibido"), icon: STATUS.purchase_recibido.icon, iconClass: TONE_TEXT[STATUS.purchase_recibido.tone] },
           { value: "all", label: ta("origin_all"), icon: ICON.all },
+          { value: "recibido", label: ta("st_recibido"), icon: STATUS.purchase_recibido.icon, iconClass: TONE_TEXT[STATUS.purchase_recibido.tone] },
           { value: "cancelado", label: ta("st_cancelado"), icon: STATUS.purchase_cancelado.icon, iconClass: TONE_TEXT[STATUS.purchase_cancelado.tone] },
         ]} />
       </ListToolbar>

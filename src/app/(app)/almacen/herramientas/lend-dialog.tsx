@@ -149,7 +149,7 @@ export function LendDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={ta("dest_project")}>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div className="flex items-center gap-2 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
                 <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
                 {projectId && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setProjectId(null)}>

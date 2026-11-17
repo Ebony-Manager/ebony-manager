@@ -266,7 +266,7 @@ export function RequestDialog({
 
                   {supplierOptions.length > 0 && (
                     <Field label={ta("f_supplier")}>
-                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <div className="flex items-center gap-2 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
                         <Combo options={supplierOptions} value={l.supplierId} onChange={(id) => patch(l.key, { supplierId: id })} placeholder={ta("pick_supplier")} />
                         {l.supplierId && (
                           <Button type="button" variant="ghost" size="sm" onClick={() => patch(l.key, { supplierId: null })}>
@@ -287,7 +287,7 @@ export function RequestDialog({
 
           {projectOptions.length > 0 && (
             <Field label={ta("dest_project")}>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div className="flex items-center gap-2 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
                 <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
                 {projectId && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setProjectId(null)}>

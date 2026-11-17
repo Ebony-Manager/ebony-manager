@@ -10,8 +10,8 @@ import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { Field } from "../../contratistas/field";
 import { setRequestsSupplierAction } from "../actions";
-import { Combo, qtyWithUnit, useTa, type VariantRef } from "../shared";
-import { requestName } from "./common";
+import { Combo, useTa, type VariantRef } from "../shared";
+import { PurchaseQty, packOf, requestName } from "./common";
 
 /**
  * Elegir (o cambiar) el proveedor de solicitudes en Por pedir: pasan al grupo
@@ -102,7 +102,7 @@ export function SupplierPickDialog({
           {picked.map((r) => (
             <li key={r.id} className="flex justify-between gap-3">
               <span className="min-w-0 truncate">{requestName(r, index)}</span>
-              <span className="shrink-0 tabular-nums">{qtyWithUnit(r.qty, r.unit, lang)}</span>
+              <PurchaseQty qty={r.qty} unit={r.unit} pack={packOf(index, r.variantId)} lang={lang} className="shrink-0" />
             </li>
           ))}
         </ul>

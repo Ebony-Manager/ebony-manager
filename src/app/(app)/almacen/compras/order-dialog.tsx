@@ -248,9 +248,10 @@ export function OrderDialog({
                               <span className="flex h-9 items-center justify-end tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
                             )}
                           </Field>
-                          <div className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1.5">
-                            <span className="text-xs text-muted-foreground sm:text-right">{ta("f_total")}</span>
-                            <span className="text-right font-medium tabular-nums sm:flex sm:h-9 sm:items-center sm:justify-end">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
+                          {/* Total: en el teléfono, al lado del precio si no hay «Recibir»; si lo hay, en su propia fila. */}
+                          <div className={`flex min-w-0 flex-col gap-1.5 sm:col-span-1 ${receiving && !done ? "col-span-2" : ""}`}>
+                            <span className="text-right text-xs text-muted-foreground">{ta("f_total")}</span>
+                            <span className="flex h-9 items-center justify-end font-medium tabular-nums">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
                           </div>
                         </>
                       )}
