@@ -7,5 +7,6 @@
 |---|---|---|---|
 
 ## Notas sueltas vistas en capturas
-- 17 nov · Almacén → Salidas: las etiquetas dicen «Sin Stock» / «Bajo Stock» con «Stock» en mayúscula (`src/lib/i18n.ts`);
-  en español va en minúscula. Se ven bien y no se salen de la tarjeta. Arreglo pequeño, con visto bueno de Carlos.
+- ~~17 nov · Almacén → Salidas: «Sin Stock» / «Bajo Stock» con mayúscula~~ — **hecho 17 nov** (Carlos lo pidió): pasan a
+  «Sin stock» / «Bajo stock» en toda la app, y en Salidas la etiqueta va sobre la esquina de la foto para que el nombre y
+  «Hay: …» queden a la misma altura en toda la fila.

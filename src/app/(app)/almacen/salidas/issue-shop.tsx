@@ -199,25 +199,25 @@ function ProductCard({
   // cantidad y "Agregar" siempre al pie, alineados en toda la fila.
   return (
     <li className={`flex flex-col rounded-lg overflow-hidden border bg-card ${added ? "border-primary/40 ring-1 ring-primary/20" : "border-border"}`}>
-      <div className="flex h-28 items-center justify-center border-b border-border bg-white p-2 sm:h-36">
+      <div className="relative flex h-28 items-center justify-center border-b border-border bg-white p-2 sm:h-36">
         <ItemThumb path={item.photoPath} size="fill" className="size-full border-0" />
+        {/* El estado va sobre la foto: así el nombre y la existencia quedan a la misma altura en toda la fila. */}
+        {variant && status !== "ok" && (
+          <span className="absolute top-1.5 left-1.5 rounded-full bg-card shadow-sm">
+            {status === "sin" ? (
+              <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
+            ) : (
+              <StatusBadge status="stock_low">{ta("status_low")}</StatusBadge>
+            )}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
         <div>
           <p className="text-sm leading-tight font-semibold text-foreground">{item.name}</p>
-          {variant &&
-            (status === "sin" ? (
-              <div className="mt-1">
-                <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
-              </div>
-            ) : status === "bajo" ? (
-              <div className="mt-1 flex flex-col items-start gap-0.5">
-                <StatusBadge status="stock_low">{ta("status_low")}</StatusBadge>
-                <span className="text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</span>
-              </div>
-            ) : (
-              <p className="mt-0.5 text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</p>
-            ))}
+          {variant && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</p>
+          )}
         </div>
         {dims > 0 && (
           <div className="flex flex-col gap-1.5">

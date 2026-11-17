@@ -5,11 +5,17 @@
 //   ANON=<clave anon del conector de Supabase> AUDITOR_PW=<contraseña recién puesta> \
 //     node scripts/capturas.mjs <carpeta-salida> /almacen/salidas /directorio ...
 // Saca, por ruta, una captura de teléfono (390 px) y otra de escritorio (1440 px).
-import { createServerClient } from "@supabase/ssr";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+
+// Playwright viene instalado de forma global en la sesión (no está en package.json): `require` sí lo encuentra
+// por NODE_PATH; un `import` normal no.
+const require = createRequire(import.meta.url);
+const { createServerClient } = require("@supabase/ssr");
+const { chromium } = require("playwright");
 
 const SUPABASE_URL = "https://jdfkfbopecqvvyxherku.supabase.co";
-const APP = "https://admin.ebonypanama.com";
+// APP=http://localhost:3000 para mirar una versión local (next dev) antes de publicar.
+const APP = process.env.APP || "https://admin.ebonypanama.com";
 const [, , outDir, ...routes] = process.argv;
 if (!outDir || !routes.length || !process.env.ANON || !process.env.AUDITOR_PW) {
   console.error("Faltan argumentos: ANON, AUDITOR_PW, carpeta y al menos una ruta.");
@@ -37,7 +43,7 @@ const cookies = [...jar].map(([name, value]) => ({
   value,
   domain: new URL(APP).hostname,
   path: "/",
-  secure: true,
+  secure: APP.startsWith("https:"),
   sameSite: "Lax",
 }));
 
