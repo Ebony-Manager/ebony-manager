@@ -6,6 +6,11 @@
 > Independencia: después de cada tanda de barrido, la sesión pide la revisión a un **revisor aparte (ayudante temporal con
 > contexto limpio, no otra sesión)** que solo informa; así no se da por buena su propia obra.
 
+## Cambios nuevos de la sesión de desarrollo (17 nov)
+Cuando la sesión de desarrollo sube algo que **toca pantallas**, le manda un mensaje a esta sesión con qué cambió (commit y
+pantallas). Esta sesión **no lo revisa en el momento**: lo **anota en `audits/PENDIENTES.md`** y lo revisa el **miércoles**
+(o antes si Carlos lo pide). Los cambios solo de lógica, sin pantallas, no se avisan (igual los cubre el marcador).
+
 ## Barrido de diseño pendiente (traspasado desde la sesión de desarrollo, 17 nov)
 Ya hecho: Compras, Almacén, Contratistas, Personal/Planilla (formularios, filtros, íconos, fichas, vacíos, carga, vocabulario
 «Pendiente»). Componentes y patrones establecidos: `Field`, `FormSection`, `ProfileCard`, `EmptyState`, `LoadingBlock`,
