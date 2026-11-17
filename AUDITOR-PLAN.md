@@ -18,6 +18,14 @@ Ya hecho: Compras, Almacén, Contratistas, Personal/Planilla (formularios, filtr
 `useFormBaseline` (el aviso de descartar solo sale si hubo cambios), `FormDialog`. Guardia: `src/ui-consistency.test.ts`.
 
 Falta, en tandas y con visto bueno de Carlos:
+0. **Almacén (restos, primera tanda — revisión de código del 17 nov):**
+   - `compras/order-dialog.tsx:149` y `compras/order-message.tsx:119`: sin aviso de descartar ni `DialogFooter`
+     (si el del mensaje solo se lee/copia, marcarlo `ui-allow: sin-campos`).
+   - `resumen/almacen-summary-view.tsx:147`: `<h3>` hecho a mano → `FormSection`.
+   - `revision/initial-stock.tsx:41` y `revision/revision-suppliers.tsx:29`: `router.refresh()` → quitarlo si la
+     acción ya hace `revalidatePath`. **Revisión es temporal (Carlos, 17 nov): se quitará más adelante; no traducir sus textos.**
+   - `conteo/count-sheet.tsx`: **es la hoja para imprimir (Carlos, 17 nov)** → sus grises fijos son legítimos:
+     marcarlos `ui-allow: impresión` y bajar la línea base de colores en la guardia.
 1. **Directorio**: el formulario de proveedor aún usa `setError` → `useFormErrors`/`Field`; filtros sin ícono.
 2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
