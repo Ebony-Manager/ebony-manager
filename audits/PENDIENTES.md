@@ -5,7 +5,8 @@
 
 | Fecha aviso | Commit | Pantallas | Revisado |
 |---|---|---|---|
-| 17 nov | `78a0436` | Solo reglas: `UI-RULES.md` agrega «fotos de personas en listas» (`EmployeeAvatar`/`ContractorAvatar`, miniatura con `photoUrl(..., THUMB_WIDTH)`, ruta en la misma consulta). Sumar a la lista de verificación. Próximo pedido probable de Carlos: foto de quién tiene cada herramienta en Almacén → Herramientas (aplicar esta regla). | — |
+| 17 nov | `78a0436` | Solo reglas: `UI-RULES.md` agrega «fotos de personas en listas» (`EmployeeAvatar`/`ContractorAvatar`, miniatura con `photoUrl(..., THUMB_WIDTH)`, ruta en la misma consulta). Sumar a la lista de verificación. Próximo pedido probable de Carlos: foto de quién tiene cada herramienta en Almacén → Herramientas (aplicar esta regla). | Aplicado en Herramientas 17 nov |
+| 17 nov | `ac3a462` | **Taller etapa 1**: pantalla nueva `/taller` (`taller-view`, `work-order-dialog`, `work-order-detail`, `shared`), pestaña «Taller» en la ficha del proyecto (`project-work-orders`, `project-hub`, `page`), estados `work_*` en `lib/ui/status.ts`, permiso `taller` (ícono ya puesto en Usuarios: fábrica, el del menú). **Revisar primero:** usa fotos de `employee-photos`; Storage solo deja leerlas con Planilla, Documentos o (desde hoy) Almacén → quien solo tenga Taller vería la foto rota (mismo caso que Herramientas). Ver también si unificar `EmployeeAvatar`/`ContractorAvatar`. | — |
 
 ## Notas sueltas vistas en capturas
 - ~~17 nov · Almacén → Salidas: «Sin Stock» / «Bajo Stock» con mayúscula~~ — **hecho 17 nov** (Carlos lo pidió): pasan a
