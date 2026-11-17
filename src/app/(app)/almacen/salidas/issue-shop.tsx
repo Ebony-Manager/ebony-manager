@@ -203,7 +203,7 @@ function ProductCard({
         <ItemThumb path={item.photoPath} size="fill" className="size-full border-0" />
         {/* El estado va sobre la foto: así el nombre y la existencia quedan a la misma altura en toda la fila. */}
         {variant && status !== "ok" && (
-          <span className="absolute top-1.5 left-1.5 rounded-full bg-card shadow-sm">
+          <span className="absolute top-1.5 left-1.5 flex rounded-full bg-card shadow-sm">
             {status === "sin" ? (
               <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
             ) : (
