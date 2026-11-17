@@ -1,8 +1,25 @@
 # Plan: auditor de reglas (pendiente — retomar el miércoles 18 nov 2026)
 
-> **Dónde vive (17 nov):** en la sesión dedicada **«Auditor de diseño»**. Cada **miércoles a las 8:59 (hora de Panamá)**
-> le llega un aviso; la sesión **pregunta primero a Carlos si hay uso disponible** y solo arranca con su sí. La primera vez
-> hace la auditoría completa (pasos de abajo); después, solo lo que cambió desde el último commit auditado (`AUDIT.md`).
+> **Dónde vive (17 nov):** en **una sola sesión, «Diseño (barrido y auditor)»**, que **termina el barrido de diseño
+> pendiente** (lista abajo) y **audita** lo ya hecho y lo nuevo. Cada **miércoles a las 8:59 (Panamá)** le llega un aviso;
+> **pregunta primero a Carlos si hay uso disponible** y solo arranca con su sí. Carlos también le puede escribir cualquier día.
+> Independencia: después de cada tanda de barrido, la sesión pide la revisión a un **revisor aparte (ayudante temporal con
+> contexto limpio, no otra sesión)** que solo informa; así no se da por buena su propia obra.
+
+## Barrido de diseño pendiente (traspasado desde la sesión de desarrollo, 17 nov)
+Ya hecho: Compras, Almacén, Contratistas, Personal/Planilla (formularios, filtros, íconos, fichas, vacíos, carga, vocabulario
+«Pendiente»). Componentes y patrones establecidos: `Field`, `FormSection`, `ProfileCard`, `EmptyState`, `LoadingBlock`,
+`StatusBadge` + registro `STATUS`, `ICON`, `SegmentedFilter` con ícono, `ShowToggle`, `useFormErrors`, `useDiscardGuard` +
+`useFormBaseline` (el aviso de descartar solo sale si hubo cambios), `FormDialog`. Guardia: `src/ui-consistency.test.ts`.
+
+Falta, en tandas y con visto bueno de Carlos:
+1. **Directorio**: el formulario de proveedor aún usa `setError` → `useFormErrors`/`Field`; filtros sin ícono.
+2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
+3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
+4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
+5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
+6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 1, archivos con `setError` 3, cierres sin guardia 11, colores literales 8).
+7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la
 > sesión antes del reinicio del jueves 19 nov. Si el miércoles sobra uso, se hace; si no, se pasa al siguiente ciclo.
