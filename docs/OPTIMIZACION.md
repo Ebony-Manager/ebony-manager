@@ -16,6 +16,8 @@ Todo lo que haga la app más barata, más rápida o más estable:
 
 ## Reglas
 - Responder y reportar **en español**, en palabras simples (Carlos no es programador). Dar una estimación del efecto.
+- **Al terminar cada revisión, mandar notificación al teléfono** (`PushNotification`, una línea < 200 caracteres con lo
+  principal: tráfico vs. la vez anterior y si hay algo que Carlos deba aprobar). Lo pidió Carlos el 17 nov 2026.
 - **Cambios de datos o del cotizador: avisar antes** y esperar el sí. Mejoras de código claras y seguras (bucles, precargas,
   consultas duplicadas): se pueden proponer o hacer; si hay duda, proponer.
 - Antes de subir: `npx tsc --noEmit`, `npx eslint`, `npx vitest run` y `npx next build`. Seguir `CLAUDE.md` y `UI-RULES.md`.
