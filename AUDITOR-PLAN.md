@@ -41,7 +41,7 @@ quien escribió el código.
 2. **Primera auditoría completa, partida por módulos, en paralelo** (cada sesión solo informa, no toca código).
 3. **Informes:** pueden quedar en la sesión del auditor y también como archivo en el repositorio (`audits/`).
    El correo con resumen es opcional: solo se activa si Carlos lo pide.
-4. Los arreglos los hace la sesión de desarrollo con Carlos, después de leer cada informe (el auditor solo informa).
+4. Los arreglos los hace **esta misma sesión de diseño**, por tandas y con el visto bueno de Carlos, después de leer cada informe. La auditoría en sí solo informa (y cada tanda de barrido la revisa un revisor aparte con contexto limpio).
 
 ## Diseño
 
