@@ -5,6 +5,7 @@ import {
   Folder,
   FileSignature,
   Hammer,
+  HardHat,
   Hash,
   IdCard,
   Landmark,
@@ -92,6 +93,9 @@ export const ICON = {
   pintura: PaintBucket,
   /** Tipo de contratista: ebanista (pintor usa el de pintura). */
   ebanista: Hammer,
+  /** Directorio: proveedores de materiales y de servicios (técnicos, transporte, subcontratos). */
+  materials: Boxes,
+  service: HardHat,
   /** Agrupar o clasificar por categoría. */
   category: Tag,
   /** "¿Para quién?": quiénes intervienen (arquitecto y/o cliente). */

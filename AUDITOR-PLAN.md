@@ -21,12 +21,14 @@ Falta, en tandas y con visto bueno de Carlos:
 0. ~~**Almacén (restos)**~~ — **hecho 17 nov**: pedido con aviso de descartar; mensaje al proveedor marcado `ui-allow`;
    título del Resumen con `FormSection`; Revisión sin `router.refresh()` doble (es temporal: no se traduce); hoja de
    conteo marcada `ui-allow: impresión`; Salidas: «Sin stock» y «Bajo stock» con `StatusBadge` (ícono + tono).
-1. **Directorio**: el formulario de proveedor aún usa `setError` → `useFormErrors`/`Field`; filtros sin ícono.
+1. ~~**Directorio**~~ — **hecho 17 nov**: formulario de proveedor con `useFormErrors` (nombre obligatorio con asterisco,
+   error del servidor en aviso), aviso de descartar con `useFormBaseline`, contactos como tarjetas con campos titulados,
+   íconos dentro de los campos, sin «opcional»; filtros Todos/Materiales/Servicios con ícono (`ICON.materials`, `ICON.service`).
 2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
-6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 1, archivos con `setError` 3, cierres sin guardia 8, colores literales 3).
+6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 2, cierres sin guardia 7, colores literales 3).
 7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la

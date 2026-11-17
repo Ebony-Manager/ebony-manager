@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Mail, MapPin, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
 
 import { ALL_SUPPLIER_RUBROS, SUPPLIER_RUBROS, type Supplier, type SupplierContact, type SupplierKind, type SupplierRubro } from "@/types/almacen";
@@ -18,7 +18,11 @@ import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { PAGE_CLASS, ShowToggle } from "@/components/shared/page-header";
 import { mapsUrl, whatsappUrl } from "@/lib/almacen/inventory";
 import { cn } from "@/lib/utils";
-import { Field } from "../contratistas/field";
+import { Field } from "@/components/shared/field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { ICON } from "@/lib/ui/concepts";
 import { createSupplierAction, updateSupplierAction } from "../almacen/actions";
 import { EmptyBox, PageHeader, SearchBox, useTa } from "../almacen/shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
@@ -94,9 +98,9 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
             setRubro("all");
           }}
           options={[
-            { value: "all", label: ta("filter_all") },
-            { value: "materiales", label: ta("sk_materiales") },
-            { value: "servicio", label: ta("kind_services") },
+            { value: "all", label: ta("filter_all"), icon: ICON.all },
+            { value: "materiales", label: ta("sk_materiales"), icon: ICON.materials },
+            { value: "servicio", label: ta("kind_services"), icon: ICON.service },
           ]}
         />
         <Select value={rubro} onValueChange={(v) => setRubro(v as SupplierRubro | "all")}>
@@ -197,12 +201,12 @@ function SupplierRow({ supplier: s, onOpen }: { supplier: Supplier; onOpen: () =
         )}
         {maps && (
           <a href={maps} target="_blank" rel="noreferrer" className={iconLink} title={ta("open_maps")} aria-label={ta("open_maps")}>
-            <MapPin className="size-4" />
+            <ICON.location className="size-4" />
           </a>
         )}
         {s.email && (
           <a href={`mailto:${s.email}`} className={cn(iconLink, "hidden sm:flex")} title={s.email} aria-label={ta("f_email")}>
-            <Mail className="size-4" />
+            <ICON.email className="size-4" />
           </a>
         )}
       </span>
@@ -228,7 +232,9 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
     active: true,
   });
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"name">();
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify(form));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir. */
   React.useEffect(() => {
@@ -246,11 +252,16 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
       notes: current?.notes ?? "",
       active: current?.active ?? true,
     });
-    setError(null);
-  }, [supplier, current]);
+    reset();
+    setSaving(false);
+    markSeeded();
+  }, [supplier, current, reset, markSeeded]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (k === "name") clear("name");
+  };
   const setContact = (i: number, patch: Partial<SupplierContact>) =>
     setForm((f) => ({ ...f, contacts: f.contacts.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
   const toggleRubro = (r: SupplierRubro) =>
@@ -259,19 +270,22 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) return setError(ta("name_required"));
+    if (!validate([["name", !form.name.trim(), ta("name_required")]])) return;
     setSaving(true);
     const input = { ...form, kind: kindOf(form.rubros) };
     const res = current ? await updateSupplierAction(current.id, input) : await createSupplierAction(input);
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return void toast.error(res.error);
     toast.success(ta("saved"));
     onClose();
   }
 
   const rubroGroup = (k: SupplierKind, label: string) => (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        {React.createElement(k === "materiales" ? ICON.materials : ICON.service, { className: "size-3.5" })}
+        {label}
+      </span>
       <div className="flex flex-wrap gap-1.5">
         {SUPPLIER_RUBROS[k].map((r) => {
           const on = form.rubros.includes(r);
@@ -295,15 +309,15 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
   );
 
   return (
-    <Dialog open={!!supplier} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!supplier} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{readOnly ? ta("supplier_view_title") : current ? ta("supplier_edit_title") : ta("supplier_new_title")}</DialogTitle>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
           <fieldset disabled={readOnly} className="flex flex-col gap-4">
-            <Field label={ta("f_name")}>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
+            <Field label={ta("f_name")} icon={ICON.firm} required error={error("name")}>
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus={!current && !readOnly} />
             </Field>
             <Field label={ta("f_rubros")} hint={ta("f_rubros_hint")}>
               <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
@@ -314,68 +328,74 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
             <Field label={ta("f_specialty")}>
               <Input value={form.specialty} onChange={(e) => set("specialty", e.target.value)} placeholder={ta("f_specialty_ph")} />
             </Field>
-            <Field label={ta("f_contacts")} hint={ta("f_contacts_hint")}>
-              <div className="flex flex-col gap-2">
-                {form.contacts.map((c, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_1fr_28px] items-center gap-2 rounded-lg border border-border p-2 sm:grid-cols-[1fr_1fr_1fr_28px]">
-                    <Input className="h-9" value={c.name} onChange={(e) => setContact(i, { name: e.target.value })} placeholder={ta("c_name")} aria-label={ta("c_name")} />
-                    <Input className="h-9" value={c.role} onChange={(e) => setContact(i, { role: e.target.value })} placeholder={ta("c_role")} aria-label={ta("c_role")} />
-                    <Input
-                      className="col-span-2 h-9 sm:col-span-1"
-                      inputMode="tel"
-                      value={c.whatsapp}
-                      onChange={(e) => setContact(i, { whatsapp: e.target.value })}
-                      placeholder={`${ta("f_whatsapp")} 6000-0000`}
-                      aria-label={ta("f_whatsapp")}
-                    />
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        title={ta("remove_contact")}
-                        aria-label={ta("remove_contact")}
-                        onClick={() => setForm((f) => ({ ...f, contacts: f.contacts.filter((_, j) => j !== i) }))}
-                        className="row-start-1 flex size-7 items-center justify-center text-muted-foreground hover:text-destructive sm:row-start-auto"
-                        style={{ gridColumn: "-2 / -1" }}
-                      >
-                        <X className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {!readOnly && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="self-start"
-                    onClick={() => setForm((f) => ({ ...f, contacts: [...f.contacts, { name: "", role: "", whatsapp: "" }] }))}
-                  >
+
+            {/* Cada contacto es una tarjeta con sus campos titulados (UI-RULES): nada de cajas con el título adentro. */}
+            <FormSection
+              icon={ICON.people}
+              title={ta("f_contacts")}
+              action={
+                !readOnly && (
+                  <Button type="button" size="sm" variant="outline" onClick={() => set("contacts", [...form.contacts, { name: "", role: "", whatsapp: "" }])}>
                     <Plus className="size-3.5" />
                     {ta("add_contact")}
                   </Button>
-                )}
-              </div>
+                )
+              }
+            >
+              <p className="-mt-1 text-xs text-muted-foreground">{ta("f_contacts_hint")}</p>
+              {form.contacts.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {form.contacts.map((c, i) => (
+                    <li key={i} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {ta("contact_n", { n: i + 1 })}
+                          {i === 0 && ` · ${ta("contact_main")}`}
+                        </span>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            title={ta("remove_contact")}
+                            aria-label={ta("remove_contact")}
+                            onClick={() => set("contacts", form.contacts.filter((_, j) => j !== i))}
+                            className="flex size-7 shrink-0 items-center justify-center rounded text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="size-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+                        <Field label={ta("c_name")} icon={ICON.client}>
+                          <Input value={c.name} onChange={(e) => setContact(i, { name: e.target.value })} />
+                        </Field>
+                        <Field label={ta("c_role")} icon={ICON.firm}>
+                          <Input value={c.role} onChange={(e) => setContact(i, { role: e.target.value })} placeholder={ta("c_role_ph")} />
+                        </Field>
+                        <Field label={ta("f_whatsapp")} icon={ICON.phone} className="min-[480px]:col-span-2">
+                          <Input type="tel" inputMode="tel" value={c.whatsapp} onChange={(e) => setContact(i, { whatsapp: e.target.value })} placeholder="6000-0000" />
+                        </Field>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FormSection>
+
+            <Field label={ta("f_email")} icon={ICON.email}>
+              <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
             </Field>
-            <Field label={ta("f_email")}>
-              <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder={ta("optional")} />
-            </Field>
-            <Field label={ta("f_location")} hint={ta("f_location_hint")}>
+            <Field label={ta("f_location")} icon={ICON.location} hint={ta("f_location_hint")}>
               <Input inputMode="url" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={ta("f_location_ph")} />
             </Field>
             <Field label={ta("notes")}>
               <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
             </Field>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} />
-              {ta("active")}
-            </label>
+            {current && <ShowToggle checked={form.active} onChange={(v) => set("active", v)} label={ta("active")} />}
           </fieldset>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!readOnly && (
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+              <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
                 {ta("cancel")}
               </Button>
               <Button type="submit" disabled={saving}>
@@ -385,6 +405,7 @@ function SupplierDialog({ supplier, canEdit, onClose }: { supplier: Supplier | "
           )}
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

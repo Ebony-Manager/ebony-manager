@@ -58,8 +58,13 @@ for (const [tag, viewport] of sizes) {
   const page = await ctx.newPage();
   for (const route of routes) {
     const res = await page.goto(APP + route, { waitUntil: "networkidle", timeout: 60000 });
-    const file = `${outDir}/${route.replace(/\W+/g, "_")}-${tag}.png`;
-    await page.screenshot({ path: file, fullPage: true });
+    // CLICK=<selector de Playwright> abre algo antes de la captura (ej. un diálogo). Solo abrir: nunca Guardar.
+    if (process.env.CLICK) {
+      await page.locator(process.env.CLICK).first().click();
+      await page.waitForTimeout(800);
+    }
+    const file = `${outDir}/${route.replace(/\W+/g, "_")}${process.env.CLICK ? "-click" : ""}-${tag}.png`;
+    await page.screenshot({ path: file, fullPage: !process.env.CLICK });
     console.log(tag, route, res?.status(), page.url(), "→", file);
   }
   await ctx.close();
