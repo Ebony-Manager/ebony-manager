@@ -10,6 +10,7 @@ import { getClients } from "@/services/ventas";
 import { getProjectQuotes } from "@/services/cotizador";
 import { getProjectDeliveries, getUnassignedDeliveries } from "@/services/deliveries";
 import { getDesignerCandidates, getDesignerProjectQuotes, getProjectDesigners } from "@/services/project-designers";
+import { getTallerPeople, getTallerProjects, getWorkOrders, withProjectNames } from "@/services/taller";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -32,12 +33,13 @@ export default async function ProjectPage({
   const canContracts = hasModule(profile, "contratistas");
   const canInspections = hasModule(profile, "inspecciones");
   const canQuotes = hasModule(profile, "cotizacion");
+  const canTaller = hasModule(profile, "taller");
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
 
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes, taller] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -52,6 +54,11 @@ export default async function ProjectPage({
     getProjectDesigners(id).catch(() => []),
     designerView ? none([]) : getDesignerCandidates().catch(() => []),
     designerView ? getDesignerProjectQuotes(id).catch(() => []) : none([]),
+    canTaller
+      ? Promise.all([getWorkOrders({ projectId: id }), getTallerPeople(), getTallerProjects()])
+          .then(([orders, people, projects]) => ({ orders: withProjectNames(orders, projects), people, projects }))
+          .catch(() => null)
+      : none(null),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
@@ -78,6 +85,7 @@ export default async function ProjectPage({
       designers={designers}
       designerCandidates={designerCandidates}
       designerQuotes={designerQuotes}
+      taller={taller}
     />
   );
 }

@@ -20,6 +20,7 @@ import {
   CalendarDays,
   PlugZap,
   ClipboardCheck,
+  Factory,
   type LucideIcon,
 } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
@@ -64,6 +65,8 @@ export const RAIL_ITEMS: NavItem[] = [
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas", "diseno"] },
   // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
   { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
+  // Taller: trabajos (por ahora CNC) — ver TALLER-PLAN.md.
+  { href: "/taller", icon: Factory, label: strings.nav.taller, modules: ["taller"] },
   // Directorio de proveedores (materiales y servicios): de la empresa, no solo del Almacén.
   { href: "/directorio", icon: BookUser, label: strings.nav.directorio, anyModules: ["almacen", "directorio"] },
   // Cronograma y Gastos salen del menú hasta que se construyan (sus rutas siguen, en "Próximamente").
@@ -177,7 +180,7 @@ export function orderNavigation<T extends { key: string }>(entries: T[], device:
     : ["/dashboard", "/proyectos", "personal", "almacen"];
   const order = [
     ...primary.filter((key) => key !== "almacen" || hasModule(subject, "almacen")),
-    "/inspecciones", "/cotizacion/seguimiento", "/directorio", "almacen", "settings",
+    "/taller", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "almacen", "settings",
   ];
   const rank = (key: string) => { const index = order.indexOf(key); return index < 0 ? order.length : index; };
   return [...entries].sort((a, b) => rank(a.key) - rank(b.key));

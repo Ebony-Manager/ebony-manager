@@ -1,6 +1,6 @@
 # Plan: módulo Taller (trabajos, CNC y producción)
 
-> Estado: **solo planeado, nada construido.** Acordado con Carlos el 15–16 nov 2026. Revisar antes de empezar la etapa 1.
+> Estado (17 nov): **Etapa 1 construida** (sección Taller → Trabajos con el tipo CNC, archivos en Drive, avisos, pestaña Taller en la ficha del proyecto; permiso `taller`). Antes: Acordado con Carlos el 15–16 nov 2026. Revisar antes de empezar la etapa 1.
 
 ## Decisiones de estructura (16 nov)
 - **Módulo «Taller»**, con sus partes internas como hoy tiene Almacén (subsecciones / pestañas; la forma exacta se decide en diseño):

@@ -1,6 +1,7 @@
 import { getProfile } from "@/lib/auth/dal";
 import { hasModule, isDesignerView, type AppModule } from "@/lib/auth/modules";
 import { downloadFile, downloadThumbnail, getItem } from "@/lib/google/drive";
+import { isWorkOrderFile } from "@/services/taller";
 
 // Ver un archivo de Drive dentro de la app (imagen, PDF, video): la app lo
 // trae con su llave y lo pasa tal cual. `?thumb=1` = la miniatura.
@@ -11,9 +12,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const profile = await getProfile();
   const staff = !!profile && (["cotizacion", "proyectos", "contratistas"] as AppModule[]).some((m) => hasModule(profile, m));
   const designer = !!profile && isDesignerView(profile);
-  if (!staff && !designer) return new Response("Sin permiso", { status: 403 });
   const { id } = await params;
-  if (!staff) {
+  // Taller (operario de CNC, diseñadoras, jefe de taller): solo los archivos que pertenecen a un trabajo.
+  const tallerFile = !staff && !!profile && hasModule(profile, "taller") && /^[A-Za-z0-9_-]{10,100}$/.test(id) && (await isWorkOrderFile(id));
+  if (!staff && !designer && !tallerFile) return new Response("Sin permiso", { status: 403 });
+  if (!staff && !tallerFile) {
     if (!/^[A-Za-z0-9_-]{10,100}$/.test(id)) return new Response("Sin permiso", { status: 403 });
   }
   try {
@@ -33,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return new Response(file.body, {
       headers: {
         "Content-Type": item.mimeType,
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(item.name)}`,
+        "Content-Disposition": `${new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(item.name)}`,
         ...(item.size ? { "Content-Length": String(item.size) } : {}),
         "Cache-Control": "private, max-age=600",
       },

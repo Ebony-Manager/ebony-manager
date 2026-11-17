@@ -13,6 +13,8 @@ const NOTIFICATION_EMOJIS: Record<string, string> = {
   purchasing_received: "📥",
   inspection_created: "🔍",
   inspection_status: "✅",
+  taller_assigned: "🪚",
+  taller_done: "✅",
 };
 
 /** Prefix an icon by notification type for consistent inbox and push display. */

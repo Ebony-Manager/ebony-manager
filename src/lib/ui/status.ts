@@ -53,6 +53,11 @@ export const STATUS = {
   kind_contractor: { icon: Hammer, tone: "muted" },
   contractor_ebanista: { icon: Hammer, tone: "muted" },
   contractor_pintor: { icon: PaintBucket, tone: "muted" },
+  // Trabajos de Taller
+  work_por_hacer: { icon: Clock, tone: "muted" },
+  work_en_proceso: { icon: Hammer, tone: "info" },
+  work_listo: { icon: CircleCheck, tone: "ok" },
+  work_cancelado: { icon: CircleX, tone: "muted" },
   /** El filtro «Fuera de uso» junta reparación, dañada y perdida. */
   tool_out: { icon: Ban, tone: "muted" },
 } satisfies Record<string, StatusDef>;

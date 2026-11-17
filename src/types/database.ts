@@ -282,6 +282,7 @@ export type Database = {
           module: string | null
           push_sent_at: string | null
           seen_at: string | null
+          target_user_ids: string[] | null
           title: string
           type_key: string | null
         }
@@ -297,6 +298,7 @@ export type Database = {
           module?: string | null
           push_sent_at?: string | null
           seen_at?: string | null
+          target_user_ids?: string[] | null
           title: string
           type_key?: string | null
         }
@@ -312,6 +314,7 @@ export type Database = {
           module?: string | null
           push_sent_at?: string | null
           seen_at?: string | null
+          target_user_ids?: string[] | null
           title?: string
           type_key?: string | null
         }
@@ -3550,6 +3553,33 @@ export type Database = {
           { foreignKeyName: "user_notification_preferences_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
+      work_orders: {
+        Row: { assignee_employee_id: string | null; created_at: string; done_at: string | null; drive_folder_id: string | null; due_date: string | null; id: string; kind: string; notes: string | null; production_order_id: string | null; project_id: string | null; requested_by: string | null; started_at: string | null; status: string; title: string; updated_at: string }
+        Insert: { assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title: string; updated_at?: string }
+        Update: { assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "work_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+          { foreignKeyName: "work_orders_assignee_employee_id_fkey"; columns: ["assignee_employee_id"]; isOneToOne: false; referencedRelation: "payroll_employees"; referencedColumns: ["id"] },
+          { foreignKeyName: "work_orders_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
+      work_order_files: {
+        Row: { created_at: string; drive_file_id: string; id: string; mime_type: string | null; name: string; size_bytes: number | null; uploaded_by: string | null; work_order_id: string }
+        Insert: { created_at?: string; drive_file_id: string; id?: string; mime_type?: string | null; name: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id: string }
+        Update: { created_at?: string; drive_file_id?: string; id?: string; mime_type?: string | null; name?: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id?: string }
+        Relationships: [
+          { foreignKeyName: "work_order_files_work_order_id_fkey"; columns: ["work_order_id"]; isOneToOne: false; referencedRelation: "work_orders"; referencedColumns: ["id"] },
+        ]
+      }
+      work_order_events: {
+        Row: { actor_id: string | null; created_at: string; detail: string | null; from_status: string | null; id: number; kind: string; to_status: string | null; work_order_id: string }
+        Insert: { actor_id?: string | null; created_at?: string; detail?: string | null; from_status?: string | null; id?: number; kind: string; to_status?: string | null; work_order_id: string }
+        Update: { actor_id?: string | null; created_at?: string; detail?: string | null; from_status?: string | null; id?: number; kind?: string; to_status?: string | null; work_order_id?: string }
+        Relationships: [
+          { foreignKeyName: "work_order_events_work_order_id_fkey"; columns: ["work_order_id"]; isOneToOne: false; referencedRelation: "work_orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "work_order_events_actor_id_fkey"; columns: ["actor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3582,6 +3612,18 @@ export type Database = {
       assign_inspection_schedules: {
         Args: { p_ids: string[]; p_person_kind?: string | null; p_person_id?: string | null }
         Returns: number
+      }
+      taller_people: {
+        Args: Record<PropertyKey, never>
+        Returns: { employee_id: string; name: string; position: string | null; photo_path: string | null; user_id: string | null }[]
+      }
+      taller_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string; status: string }[]
+      }
+      taller_project_folder: {
+        Args: { p_project: string }
+        Returns: string | null
       }
       project_designers_list: {
         Args: { p_project: string }

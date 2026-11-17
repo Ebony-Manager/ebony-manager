@@ -32,6 +32,8 @@ export const APP_MODULES = [
   // Diseño: la diseñadora ve SOLO los proyectos donde está asignada, hace sus formularios y ve la
   // cotización del proyecto sin precios. No incluye Cotización (que sí tiene los precios).
   "diseno",
+  // Taller: trabajos del taller (por ahora cortes de CNC con sus DXF): ver, crear, editar, cambiar estado y borrar. Sin dinero.
+  "taller",
   // Accesos rápidos: botones a formularios de JotForm en el menú (solo enlaces, sin datos).
   "accesos",
   "form_autorizaciones",

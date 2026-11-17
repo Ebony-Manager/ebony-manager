@@ -13,6 +13,8 @@ import type { QuoteSummary } from "@/types/cotizador";
 import { QuoteRows } from "../../cotizacion/quote-rows";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { TallerPerson, TallerProject, WorkOrder } from "@/types/taller";
+import { ProjectWorkOrders } from "@/app/(app)/taller/project-work-orders";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -45,7 +47,7 @@ import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs, EmptyState } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos";
+type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -76,6 +78,7 @@ export function ProjectHub({
   designers = [],
   designerCandidates = [],
   designerQuotes = [],
+  taller = null,
 }: {
   project: Project;
   initialTab?: string;
@@ -105,6 +108,8 @@ export function ProjectHub({
   designerCandidates?: DesignerCandidate[];
   /** Las cotizaciones del proyecto sin montos (para la diseñadora). */
   designerQuotes?: DesignerQuoteSummary[];
+  /** Con Taller: los trabajos de este proyecto, y nombres/fotos/proyectos para crearlos. */
+  taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[] } | null;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -115,6 +120,7 @@ export function ProjectHub({
     { key: "cotizaciones", label: tt("tab_cotizaciones"), visible: canQuotes || designerView },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
+    { key: "taller", label: tt("tab_taller"), visible: !!taller },
     { key: "suministros", label: tt("tab_suministros"), visible: !designerView },
     { key: "pintura", label: tt("tab_pintura"), visible: true },
     { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled },
@@ -196,6 +202,7 @@ export function ProjectHub({
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
+      {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} orders={taller.orders} people={taller.people} projects={taller.projects} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (
