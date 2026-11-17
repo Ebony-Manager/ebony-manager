@@ -97,7 +97,7 @@ export function UsuariosClient({ users, candidates, myEmail }: { users: AppUser[
                       </div>
                     )}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 truncate text-sm font-medium text-ink-900">
+                      <div className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
                         <span className="truncate">{display}</span>
                         {me && <span className="shrink-0 text-xs font-normal text-muted-foreground">({tt("you")})</span>}
                       </div>
@@ -165,11 +165,15 @@ export function UsuariosClient({ users, candidates, myEmail }: { users: AppUser[
                     ) : u.modules.length === 0 ? (
                       <span className="text-xs text-muted-foreground">{tt("no_modules")}</span>
                     ) : (
-                      u.modules.map((m) => (
-                        <Badge key={m} variant="secondary" className="font-normal">
-                          {t(lang, MODULE_LABELS[m].label)}
-                        </Badge>
-                      ))
+                      u.modules.map((m) => {
+                        const Icon = MODULE_LABELS[m].icon;
+                        return (
+                          <Badge key={m} variant="secondary" className="font-normal">
+                            <Icon className="size-3" />
+                            {t(lang, MODULE_LABELS[m].label)}
+                          </Badge>
+                        );
+                      })
                     )}
                   </div>
 

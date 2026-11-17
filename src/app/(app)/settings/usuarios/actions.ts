@@ -15,6 +15,12 @@ import type { AppUserInput } from "@/types/usuarios";
 
 const PATH = "/settings/usuarios";
 
+/** Usuarios y la ficha de cada persona en Personal (ahí también se da y se quita el acceso). */
+function revalidateAccess() {
+  revalidatePath(PATH);
+  revalidatePath("/(app)/personal/staff/empleados/[id]", "page");
+}
+
 export type ActionResult = { ok: true } | { ok: false; error: string };
 export type InviteResult = { ok: true; emailSent: boolean; emailError?: string } | { ok: false; error: string };
 
@@ -39,7 +45,7 @@ export async function inviteUserAction(email: string, input: AppUserInput): Prom
   } catch (err) {
     return { ok: false, error: message(err) };
   }
-  revalidatePath(PATH);
+  revalidateAccess();
 
   // Si el correo falla, el usuario igual queda agregado (puede entrar con
   // Google, o se reenvía la invitación después).
@@ -48,7 +54,7 @@ export async function inviteUserAction(email: string, input: AppUserInput): Prom
   } catch (err) {
     return { ok: true, emailSent: false, emailError: message(err) };
   }
-  revalidatePath(PATH);
+  revalidateAccess();
   return { ok: true, emailSent: true };
 }
 
@@ -73,7 +79,7 @@ export async function updateUserAction(email: string, input: AppUserInput): Prom
   } catch (err) {
     return { ok: false, error: message(err) };
   }
-  revalidatePath(PATH);
+  revalidateAccess();
   return { ok: true };
 }
 export async function deleteUserAction(email: string): Promise<ActionResult> {
@@ -86,7 +92,7 @@ export async function deleteUserAction(email: string): Promise<ActionResult> {
   } catch (err) {
     return { ok: false, error: message(err) };
   }
-  revalidatePath(PATH);
+  revalidateAccess();
   return { ok: true };
 }
 // Las preferencias push personales se guardan desde Perfil, no desde Usuarios.

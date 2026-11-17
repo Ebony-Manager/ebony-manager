@@ -59,8 +59,9 @@ for (const [tag, viewport] of sizes) {
   for (const route of routes) {
     const res = await page.goto(APP + route, { waitUntil: "networkidle", timeout: 60000 });
     // CLICK=<selector de Playwright> abre algo antes de la captura (ej. un diálogo). Solo abrir: nunca Guardar.
-    if (process.env.CLICK) {
-      await page.locator(process.env.CLICK).first().click();
+    // Varios clics seguidos: separados por " ;; " (ej. abrir un formulario vacío y tocar Guardar para ver los errores).
+    for (const sel of (process.env.CLICK ?? "").split(" ;; ").filter(Boolean)) {
+      await page.locator(sel).first().click();
       await page.waitForTimeout(800);
     }
     const file = `${outDir}/${route.replace(/\W+/g, "_")}${process.env.CLICK ? "-click" : ""}-${tag}.png`;

@@ -26,11 +26,14 @@ Falta, en tandas y con visto bueno de Carlos:
    íconos dentro de los campos, sin «opcional»; filtros Todos/Materiales/Servicios con ícono (`ICON.materials`, `ICON.service`).
    Encabezados de grupo de lista: `ListGroupHeader` en Directorio y Salidas (Carlos: sin ícono por rubro, solo el genérico
    Materiales/Servicios). Queda para un componente compartido: chips de selección múltiple (rubros).
-2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
+2. ~~**Settings**~~ — **hecho 17 nov**: formulario de usuario con `useFormErrors` (nombre, apellido y correo con asterisco
+   y validación de formato), errores del servidor en aviso, aviso de descartar, bloques «Persona» y «Acceso», colores del
+   tema; quitar acceso con aviso de error; **íconos de permisos** (los del menú) en el formulario y en la lista. Ya no hay
+   `setError` en la app (guardia en 0). Las acciones refrescan Usuarios y la ficha de Personal (sin `router.refresh()` doble).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
-6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 2, cierres sin guardia 7, colores literales 3).
+6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
 7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la

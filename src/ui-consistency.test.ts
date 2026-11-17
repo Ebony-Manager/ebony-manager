@@ -78,7 +78,7 @@ describe("consistencia de la interfaz", () => {
 
   it("la validación es useFormErrors + <Field error>, no un mensaje rojo suelto al final — la deuda existente no puede crecer", () => {
     // Formularios que todavía usan setError(...) (el sistema viejo), por migrar tanda por tanda.
-    const BASELINE_FILES = 2;
+    const BASELINE_FILES = 0;
     const files = new Set(find((l, p) => p.startsWith("app/") && /\bsetError\(/.test(l)).map((x) => x.split(":")[0]));
     expect(files.size, fix("Usa useFormErrors (lib/ui/use-form-errors) y <Field error>. Archivos:", [...files])).toBeLessThanOrEqual(BASELINE_FILES);
   });

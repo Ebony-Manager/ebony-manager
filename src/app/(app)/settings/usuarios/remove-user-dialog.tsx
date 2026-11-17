@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { AlertTriangle } from "lucide-react";
 
@@ -31,30 +30,26 @@ export function RemoveUserDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
-  const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
   React.useEffect(() => {
     if (!open) return;
-    setError(null);
     setSubmitting(false);
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onConfirm() {
     setSubmitting(true);
-    setError(null);
     const res = await deleteUserAction(user.email);
     if (!res.ok) {
-      setError(res.error);
+      toast.error(res.error);
       setSubmitting(false);
       return;
     }
     toast.success(tt("removed"));
+    // La acción ya hace revalidatePath de Usuarios: sin router.refresh().
     onOpenChange(false);
-    router.refresh();
   }
 
   return (
@@ -71,8 +66,6 @@ export function RemoveUserDialog({
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
           {tt("del_desc")}
         </div>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>

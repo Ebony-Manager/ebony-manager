@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { ShieldCheck, User, UserPlus, Users } from "lucide-react";
+import { KeyRound, ShieldCheck, User, UserPlus, Users } from "lucide-react";
 
 import {
   Dialog,
@@ -15,9 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/shared/field";
+import { FormSection } from "@/components/shared/form-section";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ICON } from "@/lib/ui/concepts";
 import { splitName } from "@/lib/usuarios/split-name";
@@ -56,7 +57,6 @@ export function UserFormDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.usuarios) => t(lang, strings.usuarios[k]);
-  const router = useRouter();
   const isInvite = !user;
   /** A quién se puede elegir: los candidatos (y quien viene de su ficha). */
   const pool = React.useMemo(() => (prefill && !candidates.some((c) => c.id === prefill.id) ? [prefill, ...candidates] : candidates), [candidates, prefill]);
@@ -69,7 +69,10 @@ export function UserFormDialog({
   const [employeeId, setEmployeeId] = React.useState<string | null>(null);
   const [source, setSource] = React.useState<"staff" | "other">("staff");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { error, validate, clear, reset } = useFormErrors<"first" | "last" | "email">();
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify({ email, firstName, lastName, role, modules, note, employeeId, source }));
+  const close = React.useCallback(() => onOpenChange(false), [onOpenChange]);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, close);
   const picked = pool.find((c) => c.id === employeeId) ?? null;
 
   function pickCandidate(id: string) {
@@ -79,7 +82,12 @@ export function UserFormDialog({
     setEmployeeId(c.id);
     setFirstName(n.first);
     setLastName(n.last);
-    if (isInvite) setEmail(c.email ?? "");
+    clear("first");
+    clear("last");
+    if (isInvite) {
+      setEmail(c.email ?? "");
+      clear("email");
+    }
   }
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset al abrir. */
@@ -94,8 +102,9 @@ export function UserFormDialog({
     setRole(user?.role ?? "vendedor");
     setModules(user?.modules ?? []);
     setNote(user?.note ?? "");
-    setError(null);
+    reset();
     setSubmitting(false);
+    markSeeded();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir o cambiar de usuario.
   }, [open, user]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -116,14 +125,23 @@ export function UserFormDialog({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const mail = email.trim();
+    if (
+      !validate([
+        ["first", !firstName.trim(), tt("first_name_required")],
+        ["last", !lastName.trim(), tt("last_name_required")],
+        ["email", isInvite && !mail, tt("email_required")],
+        ["email", isInvite && !!mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail), tt("email_invalid")],
+      ])
+    )
+      return;
     setSubmitting(true);
-    setError(null);
     const input = { firstName, lastName, role, modules, note, employeeId: isInvite && source === "other" ? null : employeeId };
 
     if (isInvite) {
       const res = await inviteUserAction(email, input);
       if (!res.ok) {
-        setError(res.error);
+        toast.error(res.error);
         setSubmitting(false);
         return;
       }
@@ -132,27 +150,28 @@ export function UserFormDialog({
     } else {
       const res = await updateUserAction(user.email, input);
       if (!res.ok) {
-        setError(res.error);
+        toast.error(res.error);
         setSubmitting(false);
         return;
       }
       toast.success(tt("saved"));
     }
+    // La acción ya hace revalidatePath de Usuarios: sin router.refresh() (armaría la pantalla dos veces).
     onOpenChange(false);
-    router.refresh();
   }
 
   const isAdminRole = role === "admin";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isInvite ? tt("dlg_invite_title") : `${tt("dlg_edit_title")} ${user.fullName || user.email}`}</DialogTitle>
           <DialogDescription>{isInvite ? tt("dlg_invite_desc") : user.email}</DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
+          <FormSection icon={ICON.owner} title={tt("sec_person")}>
           {isInvite && !prefill && pool.some((c) => c.active) && (
             <div className="flex flex-col gap-3">
               <SegmentedFilter
@@ -196,53 +215,50 @@ export function UserFormDialog({
             </p>
           )}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-first-name" className="text-xs text-muted-foreground">
-                {tt("field_first_name")}
-              </Label>
+          <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+            <Field label={tt("field_first_name")} required error={error("first")}>
               <Input
-                id="user-first-name"
                 autoComplete="off"
-                required
                 autoFocus={isInvite}
                 value={firstName}
-                onChange={(ev) => setFirstName(ev.target.value)}
+                onChange={(ev) => {
+                  setFirstName(ev.target.value);
+                  clear("first");
+                }}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-last-name" className="text-xs text-muted-foreground">
-                {tt("field_last_name")}
-              </Label>
+            </Field>
+            <Field label={tt("field_last_name")} required error={error("last")}>
               <Input
-                id="user-last-name"
                 autoComplete="off"
-                required
                 value={lastName}
-                onChange={(ev) => setLastName(ev.target.value)}
+                onChange={(ev) => {
+                  setLastName(ev.target.value);
+                  clear("last");
+                }}
               />
-            </div>
+            </Field>
           </div>
 
           {isInvite && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="invite-email" className="text-xs text-muted-foreground">
-                {tt("field_email")}
-              </Label>
+            <Field
+              label={tt("field_email")}
+              icon={ICON.email}
+              required
+              error={error("email")}
+              hint={picked?.email && email.trim().toLowerCase() === picked.email.toLowerCase() ? tt("email_from_staff") : undefined}
+            >
               <Input
-                id="invite-email"
                 type="email"
                 inputMode="email"
                 autoComplete="off"
-                required
                 value={email}
-                onChange={(ev) => setEmail(ev.target.value)}
+                onChange={(ev) => {
+                  setEmail(ev.target.value);
+                  clear("email");
+                }}
                 placeholder="nombre@correo.com"
               />
-              {picked?.email && email.trim().toLowerCase() === picked.email.toLowerCase() && (
-                <p className="text-xs text-muted-foreground">{tt("email_from_staff")}</p>
-              )}
-            </div>
+            </Field>
           )}
 
           {!isInvite && (
@@ -272,8 +288,11 @@ export function UserFormDialog({
             </Field>
           )}
 
+          </FormSection>
+
+          <FormSection icon={KeyRound} title={tt("sec_access")}>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">{tt("field_role")}</span>
+            <span className="text-sm font-medium text-foreground">{tt("field_role")}</span>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {(
                 [
@@ -292,10 +311,10 @@ export function UserFormDialog({
                     onClick={() => setRole(value)}
                     className={cn(
                       "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                      active ? "border-walnut bg-walnut-tint" : "border-border hover:bg-ink-900/5"
+                      active ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"
                     )}
                   >
-                    <Icon className={cn("mt-0.5 size-4 shrink-0", active ? "text-walnut" : "text-muted-foreground")} />
+                    <Icon className={cn("mt-0.5 size-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
                     <span>
                       <span className="block font-medium text-foreground">{label}</span>
                       <span className="block text-xs text-muted-foreground">{hint}</span>
@@ -307,7 +326,7 @@ export function UserFormDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">{tt("field_modules")}</span>
+            <span className="text-sm font-medium text-foreground">{tt("field_modules")}</span>
             <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
               {APP_MODULES.map((m) => {
                 const parent = MODULE_PARENT[m];
@@ -315,6 +334,7 @@ export function UserFormDialog({
                 // El admin tiene todo, salvo los permisos a elección (Accesos rápidos): esos se marcan igual.
                 const locked = isAdminRole && !isOptInModule(m);
                 const checked = locked || modules.includes(m);
+                const Icon = MODULE_LABELS[m].icon;
                 return (
                   <label
                     key={m}
@@ -322,7 +342,7 @@ export function UserFormDialog({
                       "flex items-start gap-2.5 px-3 py-2 text-sm",
                       depth === 1 && "pl-8",
                       depth >= 2 && "pl-14",
-                      locked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-ink-900/5"
+                      locked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
                     )}
                   >
                     <input
@@ -332,6 +352,7 @@ export function UserFormDialog({
                       checked={checked}
                       onChange={(ev) => toggleModule(m, ev.target.checked)}
                     />
+                    <Icon className={cn("mt-0.5 size-4 shrink-0", checked ? "text-primary" : "text-muted-foreground")} />
                     <span>
                       <span className="block font-medium text-foreground">{t(lang, MODULE_LABELS[m].label)}</span>
                       <span className="block text-xs text-muted-foreground">
@@ -346,28 +367,23 @@ export function UserFormDialog({
             <p className="text-xs text-muted-foreground">{tt("dashboard_note")}</p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="user-note" className="text-xs text-muted-foreground">
-              {tt("field_note")}
-            </Label>
-            <Input id="user-note" value={note} onChange={(ev) => setNote(ev.target.value)} placeholder={tt("note_placeholder")} />
-          </div>
+          </FormSection>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Field label={tt("field_note")}>
+            <Input value={note} onChange={(ev) => setNote(ev.target.value)} placeholder={tt("note_placeholder")} />
+          </Field>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={submitting}>
               {tt("cancel")}
             </Button>
-            <Button
-              type="submit"
-              disabled={submitting || !firstName.trim() || !lastName.trim() || (isInvite && !email.trim())}
-            >
+            <Button type="submit" disabled={submitting}>
               {submitting ? (isInvite ? tt("sending") : tt("saving")) : isInvite ? tt("send_invite") : tt("save")}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }
