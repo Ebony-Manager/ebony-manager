@@ -220,7 +220,8 @@ export function ProjectHub({
         />
       )}
 
-      <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => router.refresh()} />
+      {/* Las acciones ya revalidan la ficha: un router.refresh() extra la volvía a armar entera (doble consulta). */}
+      <ProjectFormDialog project={project} open={editing} onOpenChange={setEditing} onSaved={() => undefined} />
       <DeleteProjectDialog
         project={project}
         open={deleting}
@@ -241,8 +242,7 @@ export function ProjectHub({
           defaultProjectId={project.id}
           projects={projects}
           laborRates={laborRates}
-          onSaved={() => router.refresh()}
-          onProjectsChanged={() => router.refresh()}
+          onSaved={() => undefined}
         />
       )}
     </div>

@@ -168,6 +168,7 @@ function mapProject(r: ProjectRow): Project {
   return {
     id: r.id,
     name: r.name,
+    driveFolderId: r.drive_folder_id ?? null,
     clientName: r.client_name,
     designerId: r.designer_id,
     clientId: r.client_id,

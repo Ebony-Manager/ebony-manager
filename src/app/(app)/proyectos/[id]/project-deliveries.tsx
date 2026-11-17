@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ExternalLink, FileText, FolderOpen, Image as ImageIcon, Plus } from "lucide-react";
 
 import type { Project } from "@/types/contractors";
@@ -41,7 +40,6 @@ export function ProjectDeliveries({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
-  const router = useRouter();
   const [opening, setOpening] = React.useState(false);
   const [completing, setCompleting] = React.useState(false);
 
@@ -66,7 +64,6 @@ export function ProjectDeliveries({
     try {
       await updateProjectAction(project.id, { status: "COMPLETED" });
       toast.success(tt("acta_marked"));
-      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -78,7 +75,6 @@ export function ProjectDeliveries({
     const res = await assignDeliveryAction(id, project.id);
     if (!res.ok) return toast.error(res.error);
     toast.success(tt("acta_assigned"));
-    router.refresh();
   };
 
   const isActa = kind === "entrega";

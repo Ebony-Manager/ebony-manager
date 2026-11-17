@@ -21,6 +21,8 @@ export type ProjectStatus = "ACTIVE" | "COMPLETED";
 export interface Project {
   id: string;
   name: string;
+  /** Carpeta del proyecto en Google Drive (null = sin carpeta). */
+  driveFolderId?: string | null;
   /** Texto que se muestra en listas: "Firma · Cliente final" (se arma al guardar). */
   clientName: string | null;
   /** Arquitecto/diseñador y cliente final (Clientes de Ventas), como en la oportunidad. */

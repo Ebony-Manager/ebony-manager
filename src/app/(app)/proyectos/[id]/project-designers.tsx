@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Palette, Plus, X } from "lucide-react";
 
@@ -32,7 +31,6 @@ export function ProjectDesigners({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
-  const router = useRouter();
   const [adding, setAdding] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
@@ -46,7 +44,6 @@ export function ProjectDesigners({
     if (!res.ok) return void toast.error(res.error);
     toast.success(tt("dz_added"));
     setAdding(false);
-    router.refresh();
   }
 
   async function remove(employeeId: string) {
@@ -55,7 +52,6 @@ export function ProjectDesigners({
     setBusy(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(tt("dz_removed"));
-    router.refresh();
   }
 
   return (
