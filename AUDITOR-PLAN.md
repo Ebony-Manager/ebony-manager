@@ -18,20 +18,15 @@ Ya hecho: Compras, Almacén, Contratistas, Personal/Planilla (formularios, filtr
 `useFormBaseline` (el aviso de descartar solo sale si hubo cambios), `FormDialog`. Guardia: `src/ui-consistency.test.ts`.
 
 Falta, en tandas y con visto bueno de Carlos:
-0. **Almacén (restos, primera tanda — revisión de código del 17 nov):**
-   - `compras/order-dialog.tsx:149` y `compras/order-message.tsx:119`: sin aviso de descartar ni `DialogFooter`
-     (si el del mensaje solo se lee/copia, marcarlo `ui-allow: sin-campos`).
-   - `resumen/almacen-summary-view.tsx:147`: `<h3>` hecho a mano → `FormSection`.
-   - `revision/initial-stock.tsx:41` y `revision/revision-suppliers.tsx:29`: `router.refresh()` → quitarlo si la
-     acción ya hace `revalidatePath`. **Revisión es temporal (Carlos, 17 nov): se quitará más adelante; no traducir sus textos.**
-   - `conteo/count-sheet.tsx`: **es la hoja para imprimir (Carlos, 17 nov)** → sus grises fijos son legítimos:
-     marcarlos `ui-allow: impresión` y bajar la línea base de colores en la guardia.
+0. ~~**Almacén (restos)**~~ — **hecho 17 nov**: pedido con aviso de descartar; mensaje al proveedor marcado `ui-allow`;
+   título del Resumen con `FormSection`; Revisión sin `router.refresh()` doble (es temporal: no se traduce); hoja de
+   conteo marcada `ui-allow: impresión`; Salidas: «Sin stock» y «Bajo stock» con `StatusBadge` (ícono + tono).
 1. **Directorio**: el formulario de proveedor aún usa `setError` → `useFormErrors`/`Field`; filtros sin ícono.
 2. **Settings**: `user-form-dialog` y `remove-user-dialog` usan `setError`; **íconos de permisos en Settings → Usuarios** (prometido).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
-6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 1, archivos con `setError` 3, cierres sin guardia 11, colores literales 8).
+6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 1, archivos con `setError` 3, cierres sin guardia 8, colores literales 3).
 7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la

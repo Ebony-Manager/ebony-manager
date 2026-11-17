@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpFromLine, Boxes, CircleDollarSign, Folder, Packag
 
 import type { InventoryItem, InventoryMovement, InventoryPerson, PurchaseOrder, Supplier } from "@/types/almacen";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { FormSection } from "@/components/shared/form-section";
 import { MonthBars } from "@/components/shared/month-bars";
 import { RankList } from "@/components/shared/rank-list";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -143,15 +144,12 @@ export function AlmacenSummaryView({
             />
           </div>
 
-          <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:p-4">
-            <h3 className="text-sm font-semibold">
-              {ta("sum_chart_issues")} · {year}
-            </h3>
+          <FormSection icon={ArrowUpFromLine} title={`${ta("sum_chart_issues")} · ${year}`} className="gap-2 rounded-lg border border-border bg-card p-3 sm:p-4">
             <MonthBars values={monthly} format={(n) => String(n)} lang={lang} selected={scope === "month" ? month : null} onSelect={(m) => {
               setScope("month");
               setMonth(m);
             }} />
-          </section>
+          </FormSection>
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <RankList

@@ -9,6 +9,7 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { IssueShop } from "./issue-shop";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 type Project = { id: string; name: string; active: boolean };
 
@@ -129,7 +130,11 @@ export function IssuesView({
                                   </span>
                                   <span className="tabular-nums">
                                     {qtyWithUnit(l.qty, ref?.item.unit, lang)}
-                                    {l.stockAfter < 0 && <span className="ml-2 text-xs text-warning">({ta("status_out")})</span>}
+                                    {l.stockAfter < 0 && (
+                                      <span className="ml-2">
+                                        <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
+                                      </span>
+                                    )}
                                   </span>
                                 </li>
                               );

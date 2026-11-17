@@ -24,6 +24,7 @@ import { PendingReturnsList, usePendingReturns } from "./pending-returns";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { EmptyState } from "@/components/shared/page-header";
+import { StatusBadge } from "@/components/shared/status-badge";
 
 type Project = { id: string; name: string; active: boolean };
 interface CartLine {
@@ -192,7 +193,6 @@ function ProductCard({
   }
 
   const status = variant ? stockStatus(variant) : "ok";
-  const tone = status === "sin" ? "text-destructive" : status === "bajo" ? "text-warning" : "text-muted-foreground";
   const added = inCart.length > 0;
 
   // Tarjeta: foto, nombre y existencia arriba; menús de variante en el medio;
@@ -205,11 +205,18 @@ function ProductCard({
       <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
         <div>
           <p className="text-sm leading-tight font-semibold text-foreground">{item.name}</p>
-          {variant && (
-            <p className={`mt-0.5 text-xs ${tone}`}>
-              {status === "sin" ? ta("status_out") : `${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}
-            </p>
-          )}
+          {variant &&
+            (status === "sin" ? (
+              <div className="mt-1">
+                <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
+              </div>
+            ) : status === "bajo" ? (
+              <div className="mt-1">
+                <StatusBadge status="stock_low">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</StatusBadge>
+              </div>
+            ) : (
+              <p className="mt-0.5 text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</p>
+            ))}
         </div>
         {dims > 0 && (
           <div className="flex flex-col gap-1.5">

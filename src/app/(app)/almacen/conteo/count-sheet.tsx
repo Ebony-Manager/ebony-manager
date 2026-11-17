@@ -39,6 +39,7 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
 
   const rows = groups.reduce((n, g) => n + g.items.reduce((m, i) => m + i.variants.filter((v) => v.active).length, 0), 0);
   const today = new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "long", year: "numeric" });
+  // ui-allow: impresión — la hoja se imprime en papel blanco: grises fijos, sin modo oscuro.
   const cell = "border border-neutral-300 px-2 py-1.5 align-middle";
 
   return (
@@ -83,6 +84,7 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
       <article className="rounded-lg border border-border bg-white p-4 text-black sm:p-6 print:rounded-none print:border-0 print:p-0">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b-2 border-black pb-2">
           <div>
+            {/* ui-allow: impresión */}
             <p className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">Ebony Custom Woodwork</p>
             <h1 className="text-lg font-bold">{ta("count_sheet_title")}</h1>
             <p className="text-xs text-neutral-600">
@@ -104,6 +106,7 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
             <h2 className="mb-1.5 text-sm font-bold uppercase break-after-avoid">{g.name}</h2>
             <table className="w-full table-fixed border-collapse text-[12px]">
               <thead>
+                {/* ui-allow: impresión */}
                 <tr className="bg-neutral-100 text-left">
                   <th className={`${cell} w-[60px]`}>{ta("count_col_photo")}</th>
                   <th className={`${cell} w-[26%]`}>{ta("col_product")}</th>
@@ -142,6 +145,7 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
           </section>
         ))}
 
+        {/* ui-allow: impresión */}
         <p className="mt-2 text-[11px] text-neutral-600">{ta("count_footer")}</p>
       </article>
     </div>

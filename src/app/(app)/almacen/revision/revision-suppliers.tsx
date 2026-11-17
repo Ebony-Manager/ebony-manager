@@ -2,14 +2,12 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import type { InventoryItem, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { assignItemSupplierAction } from "../actions";
 import { Combo } from "../shared";
 
 export function RevisionSuppliers({ item, suppliers, canEdit }: { item: InventoryItem; suppliers: Supplier[]; canEdit: boolean }) {
-  const router = useRouter();
   const [selected, setSelected] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const saving = React.useRef(false);
@@ -25,8 +23,7 @@ export function RevisionSuppliers({ item, suppliers, canEdit }: { item: Inventor
     try {
       const result = await assignItemSupplierAction(item.id, selected, asPrimary);
       if (!result.ok) return toast.error(result.error);
-      setSelected(null);
-      router.refresh();
+      setSelected(null); // la acción ya revalida /almacen: no hace falta router.refresh()
       toast.success(`${item.name}: proveedor guardado`);
     } catch {
       toast.error("No se pudo confirmar el guardado del proveedor. Recarga para comprobarlo.");

@@ -4,7 +4,6 @@ import * as React from "react";
 import { Save } from "lucide-react";
 import { initialStockLines } from "@/lib/almacen/initial-stock";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { formatQty } from "@/lib/almacen/inventory";
 import { registerAdjustmentAction } from "../actions";
@@ -20,7 +19,6 @@ export function InitialStock({ enabled, children }: { enabled: boolean; children
   const [values, setValues] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
   const submitting = React.useRef(false);
-  const router = useRouter();
   const entries = Object.entries(values).filter(([, value]) => value.trim() !== "");
 
   async function save() {
@@ -37,8 +35,7 @@ export function InitialStock({ enabled, children }: { enabled: boolean; children
     try {
       const result = await registerAdjustmentAction("inicial", "Carga inicial desde revisión del catálogo", true, lines);
       if (!result.ok) return toast.error(result.error);
-      setValues({});
-      router.refresh();
+      setValues({}); // la acción ya revalida /almacen: no hace falta router.refresh()
       toast.success(`Carga inicial guardada: ${lines.length} variantes.`);
     } catch {
       toast.error("No se pudo confirmar el guardado. Revisa el inventario antes de volver a intentarlo.");

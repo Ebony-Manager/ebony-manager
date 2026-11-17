@@ -116,6 +116,7 @@ export function OrderMessageDialog({
 }) {
   const { ta } = useTa();
   return (
+    // ui-allow: mensaje-generado — el texto se arma solo con el pedido; se manda o copia, no se guarda.
     <Dialog open={!!draft} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
         <DialogHeader>

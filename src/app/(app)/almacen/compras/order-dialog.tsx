@@ -7,6 +7,7 @@ import type { OrderDelivery, PurchaseOrder, Supplier } from "@/types/almacen";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,10 +70,15 @@ export function OrderDialog({
   const [prices, setPrices] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
 
+  // Aviso de descartar: solo si se escribió algo (cantidades, fecha, factura o precios) sin guardarlo.
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([receivedOn, receive, invoiceRef, prices]));
+  const { requestClose, dialog } = useDiscardGuard(isDirty, onClose);
+
   const orderId = order?.id;
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir otro pedido. */
   React.useEffect(() => {
     if (!order) return;
+    markSeeded();
     setReceivedOn(todayInPanama(new Date()));
     setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round(((l.qty - l.receivedQty) / perOf(l.variantId)) * 100) / 100) : ""])));
     setInvoiceRef(order.invoiceRef ?? "");
@@ -119,8 +125,10 @@ export function OrderDialog({
     setBusy(true);
     const res = await receivePurchaseOrderAction(order!.id, receivedOn || null, lines);
     setBusy(false);
-    if (res.ok) toast.success(ta("received_saved"));
-    else toast.error(res.error);
+    if (res.ok) {
+      toast.success(ta("received_saved"));
+      markSeeded(); // lo guardado ya no cuenta como cambio
+    } else toast.error(res.error);
   }
 
   async function doInvoice() {
@@ -131,8 +139,10 @@ export function OrderDialog({
     setBusy(true);
     const res = await saveOrderInvoiceAction(order!.id, invoiceRef || null, costs);
     setBusy(false);
-    if (res.ok) toast.success(ta("invoice_saved"));
-    else toast.error(res.error);
+    if (res.ok) {
+      toast.success(ta("invoice_saved"));
+      markSeeded();
+    } else toast.error(res.error);
   }
 
   async function doCancel() {
@@ -146,7 +156,7 @@ export function OrderDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
@@ -267,6 +277,7 @@ export function OrderDialog({
             <ConfirmButton label={ta("cancel_order")} confirmLabel={ta("cancel_order_confirm")} onConfirm={() => void doCancel()} disabled={busy} />
           </div>
         )}
+        {dialog}
       </DialogContent>
     </Dialog>
   );
