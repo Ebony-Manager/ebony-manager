@@ -69,7 +69,7 @@ export function UserFormDialog({
   const [employeeId, setEmployeeId] = React.useState<string | null>(null);
   const [source, setSource] = React.useState<"staff" | "other">("staff");
   const [submitting, setSubmitting] = React.useState(false);
-  const { error, validate, clear, reset } = useFormErrors<"first" | "last" | "email">();
+  const { error, validate, clear, reset } = useFormErrors<"staff" | "first" | "last" | "email">();
   const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify({ email, firstName, lastName, role, modules, note, employeeId, source }));
   const close = React.useCallback(() => onOpenChange(false), [onOpenChange]);
   const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, close);
@@ -80,6 +80,7 @@ export function UserFormDialog({
     if (!c) return;
     const n = splitName(c.name);
     setEmployeeId(c.id);
+    clear("staff");
     setFirstName(n.first);
     setLastName(n.last);
     clear("first");
@@ -126,10 +127,13 @@ export function UserFormDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const mail = email.trim();
+    // «De Personal» sin elegir a nadie: lo que falta es la persona (el nombre y el apellido salen de ahí).
+    const noStaffPicked = isInvite && !prefill && source === "staff" && pool.some((c) => c.active) && !employeeId;
     if (
       !validate([
-        ["first", !firstName.trim(), tt("first_name_required")],
-        ["last", !lastName.trim(), tt("last_name_required")],
+        ["staff", noStaffPicked, tt("staff_required")],
+        ["first", !noStaffPicked && !firstName.trim(), tt("first_name_required")],
+        ["last", !noStaffPicked && !lastName.trim(), tt("last_name_required")],
         ["email", isInvite && !mail, tt("email_required")],
         ["email", isInvite && !!mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail), tt("email_invalid")],
       ])
@@ -187,7 +191,7 @@ export function UserFormDialog({
                 ]}
               />
               {source === "staff" && (
-                <Field label={tt("field_staff")} icon={ICON.owner} hint={picked && !picked.email ? tt("staff_no_email") : undefined}>
+                <Field label={tt("field_staff")} icon={ICON.owner} required error={error("staff")} hint={picked && !picked.email ? tt("staff_no_email") : undefined}>
                   <Select value={employeeId ?? ""} onValueChange={pickCandidate}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tt("staff_pick")} />

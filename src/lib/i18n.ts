@@ -2886,6 +2886,7 @@ export const strings = {
     last_name_required: { es: "Falta el apellido.", en: "Last name is required." },
     email_required: { es: "Falta el correo.", en: "Email is required." },
     email_invalid: { es: "El correo no es válido.", en: "That email isn't valid." },
+    staff_required: { es: "Elige a la persona de Personal.", en: "Pick the person from Staff." },
     sec_person: { es: "Persona", en: "Person" },
     sec_access: { es: "Acceso", en: "Access" },
     note_placeholder: { es: "Ej. Jefa de taller", en: "e.g. Workshop lead" },
