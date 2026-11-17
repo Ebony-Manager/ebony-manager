@@ -20,6 +20,7 @@ import { mapsUrl, whatsappUrl } from "@/lib/almacen/inventory";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/shared/field";
 import { FormSection } from "@/components/shared/form-section";
+import { ListGroupHeader } from "@/components/shared/list-group-header";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
@@ -124,10 +125,12 @@ export function DirectorioView({ suppliers, canEdit }: { suppliers: Supplier[]; 
         <EmptyBox>{suppliers.length === 0 ? ta("suppliers_empty") : ta("no_results")}</EmptyBox>
       ) : (
         groups.map((g) => (
-          <section key={g.key} className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {g.key === NONE ? ta("ru_none") : ta(`ru_${g.key as SupplierRubro}`)} <span className="font-normal">({g.items.length})</span>
-            </h2>
+          <section key={g.key} className="flex flex-col gap-3">
+            <ListGroupHeader
+              title={g.key === NONE ? ta("ru_none") : ta(`ru_${g.key as SupplierRubro}`)}
+              count={g.items.length}
+              icon={g.key === NONE ? undefined : SUPPLIER_RUBROS.servicio.includes(g.key as SupplierRubro) ? ICON.service : ICON.materials}
+            />
             <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
               {g.items.map((s) => (
                 <SupplierRow key={s.id} supplier={s} onOpen={() => setEditing(s)} />

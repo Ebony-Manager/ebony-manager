@@ -23,6 +23,7 @@
 | Fecha u hora | `<Input type="date">` — nunca `<input>` crudo 🛡️ | `ui/input` |
 | Elegir entre pocas opciones / filtros | `<SegmentedFilter>` (con ícono en cada opción si lo hay) | `shared/page-breadcrumb` |
 | "Mostrar inactivos / historial" | `<ShowToggle>` | `shared/page-header` |
+| Título de un grupo dentro de una lista (Ferretería, Herrajería…) | `<ListGroupHeader title count? icon?>`: texto normal (no mayúsculas), cantidad en pastilla; ícono solo genérico (Materiales/Servicios), nunca uno por grupo | `shared/list-group-header` |
 | Encabezado de página, "volver", pestañas | `PageHeader`, `BackLink`, `SubTabs` | `shared/page-header` |
 | Tarjeta de cifra | `<KpiCard>` | `shared/kpi-card` |
 | Borrar / cancelar / acción destructiva | `<ConfirmButton>` (dos toques, rojo) — nunca `window.confirm` 🛡️ | `shared/confirm-button` |

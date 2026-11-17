@@ -25,6 +25,7 @@ import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIn
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { EmptyState } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { ListGroupHeader } from "@/components/shared/list-group-header";
 
 type Project = { id: string; name: string; active: boolean };
 interface CartLine {
@@ -101,8 +102,8 @@ export function IssueShop({
           <EmptyBox>{items.length === 0 ? ta("stock_empty") : ta("no_results")}</EmptyBox>
         ) : (
           groups.map((g) => (
-            <div key={g.category.id || "none"} className="flex flex-col">
-              <h2 className="mb-3 border-b border-border pb-1.5 text-sm font-semibold text-foreground">{g.category.name}</h2>
+            <div key={g.category.id || "none"} className="flex flex-col gap-3">
+              <ListGroupHeader title={g.category.name} count={g.items.length} />
               <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3">
                 {g.items.map((item) => (
                   <ProductCard
