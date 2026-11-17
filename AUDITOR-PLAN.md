@@ -93,6 +93,13 @@ Partir de `UI-RULES.md` y convertirlo en checklist con gravedad (seguridad/permi
 - **Red:** hace falta el entorno **«ebony-manager»** (ya creado: deja pasar `jdfkfbopecqvvyxherku.supabase.co` y
   `admin.ebonypanama.com`, e instala dependencias al arrancar). La sesión de diseño del 17 nov no se pudo mover a él
   (fue creada por otra sesión): las capturas funcionan en una sesión nueva abierta en ese entorno.
+- **Probado y funcionando (17 nov, sesión «Diseño (barrido y auditor)» nueva):** el script `scripts/capturas.mjs` hace
+  todo (entra, pasa la cookie `sb-jdfkfbopecqvvyxherku-auth-token` a Playwright y saca teléfono + escritorio por ruta):
+  `ANON=<clave anon> AUDITOR_PW=<la recién puesta> node scripts/capturas.mjs <carpeta> /almacen/salidas …`.
+  La contraseña se guarda solo en un archivo temporal del scratchpad y se borra al terminar. Las capturas van al
+  scratchpad, no al repositorio.
+- **Ojo:** el campo de fecha nativo sale como el navegador quiere (en Chromium de prueba, «11/17/2026»); es el mismo
+  problema del punto 5 del barrido.
 - Para ver una versión antes de publicar: `next dev` con `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   (claves públicas; se leen con el conector de Supabase) y la misma cuenta.
 
