@@ -86,7 +86,7 @@ export function IssuesView({
                 <th className="px-3 py-2 text-left font-medium">{ta("date")}</th>
                 <th className="px-3 py-2 text-left font-medium">{ta("col_recipient")}</th>
                 <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{ta("col_destination")}</th>
-                <th className="px-3 py-2 text-left font-medium">{ta("col_items")}</th>
+                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{ta("col_items")}</th>
                 <th className="hidden px-3.5 py-2 text-left font-medium sm:table-cell">{ta("by")}</th>
               </tr>
             </thead>
@@ -95,6 +95,7 @@ export function IssuesView({
                 const person = personName.get(i.employeeId ?? i.contractorId ?? "");
                 const isOpen = open === i.id;
                 const short = i.lines.some((l) => l.stockAfter < 0);
+                const items = i.lines.length === 1 ? (index.get(i.lines[0].variantId)?.name ?? ta("one_product")) : ta("n_products", { n: i.lines.length });
                 return (
                   <React.Fragment key={i.id}>
                     <tr onClick={() => setOpen(isOpen ? null : i.id)} className="cursor-pointer border-b border-border hover:bg-muted/30">
@@ -103,14 +104,17 @@ export function IssuesView({
                       <td className="px-3 py-2.5">
                         <span className="block font-semibold text-foreground">{person?.name ?? "—"}</span>
                         <span className="block text-xs text-muted-foreground">{person ? ta(person.kind === "empleado" ? "employee" : "contractor") : ""}</span>
+                        {/* Celular: lo que salió va debajo del nombre (en una columna aparte no cabe). */}
+                        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-foreground sm:hidden">
+                          {short && <AlertTriangle className="size-3.5 shrink-0 text-warning" />}
+                          <span className="min-w-0 break-words">{items}</span>
+                        </span>
                       </td>
                       <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">{destination(i)}</td>
-                      <td className="max-w-0 px-3 py-2.5">
+                      <td className="hidden max-w-0 px-3 py-2.5 sm:table-cell">
                         <span className="flex items-center gap-1.5">
                           {short && <AlertTriangle className="size-3.5 shrink-0 text-warning" />}
-                          <span className="truncate">
-                            {i.lines.length === 1 ? (index.get(i.lines[0].variantId)?.name ?? ta("one_product")) : ta("n_products", { n: i.lines.length })}
-                          </span>
+                          <span className="truncate">{items}</span>
                         </span>
                       </td>
                       <td className="hidden px-3.5 py-2.5 text-muted-foreground sm:table-cell">{i.createdByName ?? "—"}</td>

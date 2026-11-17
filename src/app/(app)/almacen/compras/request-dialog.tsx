@@ -181,7 +181,7 @@ export function RequestDialog({
               const n = parseQty(l.qty);
               return (
                 <li key={l.key} className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                  <div className="flex items-end gap-2">
+                  <div className="flex items-start gap-2">
                     <Field
                       className="min-w-0 flex-1"
                       label={mode === "catalog" ? ta("f_product") : ta("f_what")}
@@ -216,7 +216,7 @@ export function RequestDialog({
                       <button
                         type="button"
                         onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
-                        className="mb-0.5 flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                        className="mt-[22px] flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                         aria-label={ta("remove")}
                         title={ta("remove")}
                       >

@@ -63,7 +63,7 @@ export function PendingReturnsList({ items, onReturned }: { items: PendingReturn
                   {[
                     p.kind === "envase" ? `${ta("pending_container")} · ${qtyWithUnit(p.qty, p.unit, lang)}` : ta("pending_tool"),
                     `${ta("col_since").toLowerCase()} ${formatDateCompact(lang, p.since)}`,
-                    p.overdue && late > 0 ? ta("days_late", { n: late }) : null,
+                    p.overdue && late > 0 ? (late === 1 ? ta("day_late") : ta("days_late", { n: late })) : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}

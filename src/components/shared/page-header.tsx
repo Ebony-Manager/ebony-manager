@@ -46,8 +46,10 @@ export function PageHeader({
   const path = breadcrumbFor(usePathname(), lang);
   const showCrumbs = crumbs && !back && path.length > 1;
   return (
-    <div className={cn("flex items-start justify-between gap-3", className)}>
-      <div className="min-w-0 flex-1">
+    // flex-wrap + un ancho mínimo para el título: si los botones no caben al lado, bajan a la fila
+    // siguiente en vez de taparlo («Inventa…» en el teléfono).
+    <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
+      <div className="min-w-0 flex-1 basis-40">
         {back && <BackLink href={back.href} label={back.label} className="mb-1" />}
         {showCrumbs && <p className="mb-0.5 hidden text-xs text-muted-foreground md:block">{path.slice(0, -1).join(" / ")}</p>}
         <h1 className="flex flex-wrap items-center gap-x-2 text-xl font-semibold text-foreground">

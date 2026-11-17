@@ -389,7 +389,8 @@ export function ItemDialog({
                 const cents = priceCents(v.price);
                 return (
                   <div key={v.key} className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                    <div className="flex items-end gap-2">
+                    {/* La ✕ se alinea con la caja (no con la línea «Hay: …» de abajo): arriba + el alto del título. */}
+                    <div className="flex items-start gap-2">
                       <Field
                         className="min-w-0 flex-1"
                         label={ta("variant_col")}
@@ -408,7 +409,7 @@ export function ItemDialog({
                           aria-label={ta("variant_remove")}
                           disabled={activeVariants.length === 1}
                           onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))}
-                          className="mb-1 flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-30"
+                          className="mt-[24px] flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-30"
                         >
                           <X className="size-4" />
                         </button>

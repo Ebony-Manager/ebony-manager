@@ -81,7 +81,8 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
       </div>
 
       {/* La hoja (en pantalla, como vista previa; al imprimir, sola). */}
-      <article className="rounded-lg border border-border bg-white p-4 text-black sm:p-6 print:rounded-none print:border-0 print:p-0">
+      {/* En el teléfono la hoja no cabe: se desplaza de lado a su ancho real (sin apretar columnas); al imprimir, normal. */}
+      <article className="overflow-x-auto rounded-lg border border-border bg-white p-4 text-black sm:p-6 print:overflow-visible print:rounded-none print:border-0 print:p-0">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b-2 border-black pb-2">
           <div>
             {/* ui-allow: impresión */}
@@ -104,7 +105,7 @@ export function CountSheet({ items, categories }: { items: InventoryItem[]; cate
         {groups.map((g) => (
           <section key={g.id} className="mb-5 break-inside-avoid-page">
             <h2 className="mb-1.5 text-sm font-bold uppercase break-after-avoid">{g.name}</h2>
-            <table className="w-full table-fixed border-collapse text-[12px]">
+            <table className="w-full min-w-[640px] table-fixed border-collapse text-[12px] print:min-w-0">
               <thead>
                 {/* ui-allow: impresión */}
                 <tr className="bg-neutral-100 text-left">

@@ -60,7 +60,7 @@ export function useDueText() {
   const { ta, lang } = useTa();
   return (dueOn: string, today: string) => {
     const d = daysBetween(today, dueOn);
-    const rel = d === 0 ? ta("due_today") : d < 0 ? ta("days_late", { n: -d }) : null;
+    const rel = d === 0 ? ta("due_today") : d < 0 ? (d === -1 ? ta("day_late") : ta("days_late", { n: -d })) : null;
     return rel ? `${formatDateCompact(lang, dueOn)} · ${rel}` : formatDateCompact(lang, dueOn);
   };
 }

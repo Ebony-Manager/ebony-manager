@@ -330,7 +330,7 @@ export function ToolDialog({
                       <span className="flex flex-wrap items-center justify-between gap-2">
                         <span className="font-medium">{holderName(l, people)}</span>
                         <span className="text-xs tabular-nums text-muted-foreground">
-                          {formatDateCompact(lang, l.lentOn)} → {l.returnedOn ? formatDateCompact(lang, l.returnedOn) : "…"}
+                          {formatDateCompact(lang, l.lentOn)} → {l.returnedOn ? formatDateCompact(lang, l.returnedOn) : ta("not_returned_yet")}
                         </span>
                       </span>
                       <span className="text-xs text-muted-foreground">

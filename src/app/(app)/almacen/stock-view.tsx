@@ -100,9 +100,9 @@ export function StockView({
               </Button>
             )}
             {canEdit && (
-              <Button size="sm" onClick={() => setEditing("new")}>
+              <Button size="sm" onClick={() => setEditing("new")} aria-label={ta("new_item")} title={ta("new_item")}>
                 <Plus className="size-3.5" />
-                {ta("new_item")}
+                <span className="hidden sm:inline">{ta("new_item")}</span>
               </Button>
             )}
           </>

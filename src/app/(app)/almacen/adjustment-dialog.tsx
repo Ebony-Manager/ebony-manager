@@ -127,7 +127,7 @@ export function AdjustmentDialog({
             title={ta("col_items")}
             action={
               <Select value="" onValueChange={addCategory}>
-                <SelectTrigger className="h-8 w-auto">
+                <SelectTrigger className="h-8 w-auto text-xs font-medium">
                   <SelectValue placeholder={ta("add_category")} />
                 </SelectTrigger>
                 <SelectContent>

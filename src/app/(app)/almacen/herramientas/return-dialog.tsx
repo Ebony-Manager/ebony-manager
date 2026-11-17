@@ -69,13 +69,13 @@ export function ReturnDialog({
           <DialogTitle>{ta("return_title")}</DialogTitle>
           {loan && (
             <DialogDescription>
-              {tool ? toolName(tool) : "—"} · {holderName(loan, people)} · {ta("col_since").toLowerCase()} {formatDateCompact(lang, loan.lentOn)}
+              {tool ? toolName(tool) : "—"} · {holderName(loan, people)} · <span className="whitespace-nowrap">{ta("col_since").toLowerCase()} {formatDateCompact(lang, loan.lentOn)}</span>
             </DialogDescription>
           )}
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <Field label={ta("return_condition")}>
-            <SegmentedFilter value={condition} onChange={setCondition} options={CONDITIONS.map((c) => ({ value: c, label: ta(`cond_${c}`), icon: STATUS[COND_STATUS[c]].icon, iconClass: TONE_TEXT[STATUS[COND_STATUS[c]].tone] }))} />
+            <SegmentedFilter wrap value={condition} onChange={setCondition} options={CONDITIONS.map((c) => ({ value: c, label: ta(`cond_${c}`), icon: STATUS[COND_STATUS[c]].icon, iconClass: TONE_TEXT[STATUS[COND_STATUS[c]].tone] }))} />
           </Field>
           <Field label={ta("date")} icon={ICON.date}>
             <Input type="date" max={todayInPanama()} min={loan?.lentOn} value={date} onChange={(e) => setDate(e.target.value)} />

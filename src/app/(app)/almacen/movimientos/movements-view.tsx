@@ -128,8 +128,8 @@ export function MovementsView({
               <li key={m.id} className="flex items-center gap-3 px-3 py-2.5 sm:px-3.5">
                 <ItemThumb path={ref?.item.photoPath ?? null} size={36} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{ref?.name ?? "—"}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="break-words text-sm font-medium text-foreground">{ref?.name ?? "—"}</p>
+                  <p className="break-words text-xs text-muted-foreground">
                     <KindIcon kind={m.kind} />
                     <span className="font-medium">{kindLabel(m.kind)}</span> · {detail(m)}
                   </p>
@@ -138,7 +138,7 @@ export function MovementsView({
                     {m.createdByName && ` · ${m.createdByName}`}
                   </p>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="max-w-[40%] shrink-0 text-right">
                   <p className={`text-sm font-semibold tabular-nums ${m.qty < 0 ? "text-destructive" : "text-success"}`}>
                     {m.qty > 0 ? "+" : ""}
                     {formatQty(m.qty, lang)}

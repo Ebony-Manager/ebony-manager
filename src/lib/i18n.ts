@@ -3842,6 +3842,8 @@ export const strings = {
     tool_lent_by: { es: "Prestó {p}", en: "Lent by {p}" },
     days_ago: { es: "hace {n} días", en: "{n} days ago" },
     days_late: { es: "{n} días tarde", en: "{n} days late" },
+    day_late: { es: "1 día tarde", en: "1 day late" },
+    not_returned_yet: { es: "sin devolver", en: "not returned yet" },
     due_today: { es: "vence hoy", en: "due today" },
     today: { es: "hoy", en: "today" },
     // Por devolver (Nueva salida)

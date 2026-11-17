@@ -31,14 +31,17 @@ export function FormSection({
   className?: string;
   children: React.ReactNode;
 }) {
+  const longNote = (note?.length ?? 0) > 40;
   return (
     <section className={cn("flex flex-col gap-3", quiet && "rounded-xl bg-muted/50 p-3.5", className)}>
       <h3 className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-semibold text-foreground">
         <Icon className={cn("size-4 shrink-0", quiet ? "text-muted-foreground" : "text-primary")} />
         {title}
-        {note && <span className="min-w-0 text-xs font-normal text-muted-foreground">· {note}</span>}
+        {note && !longNote && <span className="min-w-0 text-xs font-normal text-muted-foreground">· {note}</span>}
         {action && <span className="ml-auto">{action}</span>}
       </h3>
+      {/* Una aclaración larga no cabe al lado del título: va debajo, como una línea normal. */}
+      {note && longNote && <p className="-mt-1.5 text-xs text-muted-foreground">{note}</p>}
       {error && (
         <p role="alert" className="-mt-1.5 flex items-center gap-1 text-xs text-destructive">
           <CircleAlert className="size-3.5 shrink-0" />

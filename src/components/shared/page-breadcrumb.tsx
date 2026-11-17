@@ -41,12 +41,15 @@ export function SegmentedFilter<T extends string>({
   options,
   onChange,
   fill = false,
+  wrap = false,
   className,
 }: {
   value: T;
   options: { value: T; label: string; icon?: LucideIcon; /** Tono del ícono (un estado: `TONE_TEXT[STATUS.x.tone]`). */ iconClass?: string }[];
   onChange: (value: T) => void;
   fill?: boolean;
+  /** En un formulario todas las opciones deben verse: si no caben, pasan a otra fila (dos por fila) en vez de desplazarse de lado. */
+  wrap?: boolean;
   className?: string;
 }) {
   return (
@@ -55,6 +58,7 @@ export function SegmentedFilter<T extends string>({
       className={cn(
         "flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         fill && "w-full sm:w-auto",
+        wrap && "w-full flex-wrap overflow-visible sm:w-auto",
         className,
       )}
     >
@@ -67,6 +71,7 @@ export function SegmentedFilter<T extends string>({
           className={cn(
             "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-[13px] py-1.5 text-[12.5px] whitespace-nowrap transition-colors",
             fill && "flex-1 sm:flex-none",
+            wrap && "flex-1 basis-[calc(50%-2px)] sm:basis-auto sm:flex-none",
             value === o.value ? "bg-card font-semibold text-foreground shadow-sm" : "font-medium text-muted-foreground hover:text-foreground",
           )}
         >
