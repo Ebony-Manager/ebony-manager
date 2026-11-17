@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { Field } from "../../contratistas/field";
 import { assignSchedulesAction, setScheduleNoteAction } from "../actions";
 import { useTi, type InspeccionesKey } from "../shared";
@@ -113,6 +114,8 @@ export function AssignDialog({
   const [person, setPerson] = React.useState(NONE);
   const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([person, note]));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
   React.useEffect(() => {
@@ -128,6 +131,7 @@ export function AssignDialog({
     const notes = [...new Set(request.schedules.map((s) => s.note ?? ""))];
     setNote(notes.length === 1 ? notes[0] : "");
     setSaving(false);
+    markSeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -156,7 +160,7 @@ export function AssignDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -164,7 +168,7 @@ export function AssignDialog({
           </DialogTitle>
           <DialogDescription>
             {request?.title} ·{" "}
-            {ti("sch_assign_hint", { n: request?.schedules.length ?? 0 })}
+            {ti((request?.schedules.length ?? 0) === 1 ? "sch_assign_hint_1" : "sch_assign_hint", { n: request?.schedules.length ?? 0 })}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -196,7 +200,7 @@ export function AssignDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => void requestClose()}>
             {ti("cancel")}
           </Button>
           <Button onClick={() => void save()} disabled={saving}>
@@ -204,6 +208,7 @@ export function AssignDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

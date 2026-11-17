@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, ChevronRight, ClipboardCheck, Plus } from "lucide-react";
 
 import type { InspectionOverview, InspectionProject, InspectionProjectCard, RecentInspection } from "@/types/inspections";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -74,7 +74,8 @@ export function InspectionsHome({ projects, overview }: { projects: InspectionPr
             {cards.length === 0 ? (
               <EmptyState className="py-6">{ti("nothing_pending")}</EmptyState>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
+              // grid-cols-1, no la columna automática: con ella un texto largo ensanchaba la tarjeta y la pantalla se corría de lado en el teléfono.
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {cards.map((c) => (
                   <ProjectCard key={c.projectId} card={c} project={byId.get(c.projectId)} />
                 ))}
@@ -125,9 +126,9 @@ function ProjectCard({ card, project }: { card: InspectionProjectCard; project: 
         )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {card.pending > 0 ? (
-            <Badge variant="warning">{card.pending === 1 ? ti("pending_1") : ti("pending_n", { n: card.pending })}</Badge>
+            <StatusBadge status="insp_pendiente">{card.pending === 1 ? ti("pending_1") : ti("pending_n", { n: card.pending })}</StatusBadge>
           ) : (
-            <Badge variant="success">{ti("all_resolved")}</Badge>
+            <StatusBadge status="insp_resuelto">{ti("all_resolved")}</StatusBadge>
           )}
           <span>
             {ti("last_visit", { date: formatDateCompact(lang, card.lastVisit) })} · {card.visits === 1 ? ti("visits_1") : ti("visits_n", { n: card.visits })}
@@ -155,9 +156,9 @@ function RecentRow({ visit, project }: { visit: RecentInspection; project: Inspe
           </p>
         </div>
         {visit.pending > 0 ? (
-          <Badge variant="warning">{visit.pending === 1 ? ti("pending_1") : ti("pending_n", { n: visit.pending })}</Badge>
+          <StatusBadge status="insp_pendiente">{visit.pending === 1 ? ti("pending_1") : ti("pending_n", { n: visit.pending })}</StatusBadge>
         ) : visit.items > 0 ? (
-          <Badge variant="success">{ti("all_resolved")}</Badge>
+          <StatusBadge status="insp_resuelto">{ti("all_resolved")}</StatusBadge>
         ) : null}
       </Link>
     </li>
@@ -197,7 +198,7 @@ function ProjectPicker({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos */}
       <DialogContent className="max-w-md gap-3 p-0 sm:p-0">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>{ti("pick_title")}</DialogTitle>

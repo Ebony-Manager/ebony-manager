@@ -54,6 +54,9 @@ export const STATUS = {
   contractor_ebanista: { icon: Hammer, tone: "muted" },
   contractor_pintor: { icon: PaintBucket, tone: "muted" },
   // Trabajos de Taller
+  // Inspecciones: un detalle (o una obra/visita con detalles) pendiente o ya resuelto
+  insp_pendiente: { icon: Clock, tone: "warn" },
+  insp_resuelto: { icon: CircleCheck, tone: "ok" },
   work_por_hacer: { icon: Clock, tone: "muted" },
   work_en_proceso: { icon: Hammer, tone: "info" },
   work_listo: { icon: CircleCheck, tone: "ok" },

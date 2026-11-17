@@ -7,7 +7,9 @@ import { Camera, Combine, Loader2, Plus, Trash2, X } from "lucide-react";
 import type { InspectionPainter } from "@/types/inspections";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/shared/field";
+import { useDiscardGuard } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { Textarea } from "@/components/ui/textarea";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { addInspectionItemsAction } from "./actions";
@@ -69,6 +71,10 @@ export function BatchDialog({
   const [drafts, setDrafts] = React.useState<Draft[]>([]);
   const [reading, setReading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const { error, validate, clear, reset: resetErrors } = useFormErrors<string>();
+  // Avisa antes de cerrar si ya se tomaron fotos o se escribió algo.
+  const isDirty = React.useCallback(() => drafts.length > 0 || !!area.trim(), [drafts.length, area]);
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   const clearDrafts = React.useCallback(() => {
     setDrafts((ds) => {
@@ -82,7 +88,8 @@ export function BatchDialog({
     if (!open) return;
     setArea("");
     clearDrafts();
-  }, [open, clearDrafts]);
+    resetErrors();
+  }, [open, clearDrafts, resetErrors]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const lastMeta = (ds: Draft[]) => (ds.length ? { ...ds[ds.length - 1].meta } : EMPTY_META);
@@ -145,8 +152,16 @@ export function BatchDialog({
 
   async function save(nextArea: boolean) {
     if (!inspectionId || drafts.length === 0) return;
-    if (drafts.some((d) => !d.comment.trim() && d.photos.length === 0)) return toast.error(ti("need_content"));
-    if (drafts.some((d) => d.meta.kind === "pintura" && !d.meta.painterId)) return toast.error(ti("need_painter"));
+    // Cada detalle marca lo suyo en su propio campo (todos a la vez).
+    if (
+      !validate(
+        drafts.flatMap((d) => [
+          [`content-${d.key}`, !d.comment.trim() && d.photos.length === 0, ti("need_content")] as const,
+          [`painter-${d.key}`, d.meta.kind === "pintura" && !d.meta.painterId, ti("need_painter_one")] as const,
+        ]),
+      )
+    )
+      return;
     setSaving(true);
     const uploaded: string[] = [];
     try {
@@ -177,17 +192,16 @@ export function BatchDialog({
   const busy = saving || reading;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !saving && void requestClose()}>
       <DialogContent className="max-h-[94dvh] max-w-xl gap-3 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ti("batch_title")}</DialogTitle>
           <DialogDescription>{ti("batch_hint")}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>{ti("area_for_all")}</Label>
+        <Field label={ti("area_for_all")}>
           <AreaPicker projectId={projectId} value={area} onChange={setArea} areas={areas} onCreated={onAreaCreated} />
-        </div>
+        </Field>
 
         {drafts.length === 0 ? (
           <button
@@ -244,9 +258,31 @@ export function BatchDialog({
                     <Plus className="size-4" />
                   </button>
                 </div>
-                <PieceInput size="sm" value={d.piece} onChange={(piece) => patch(d.key, { piece })} pieces={pieces} />
-                <Textarea rows={2} value={d.comment} onChange={(e) => patch(d.key, { comment: e.target.value })} placeholder={ti("f_comment_ph")} className="text-sm" />
-                <DetailFields size="sm" value={d.meta} onChange={(meta) => patch(d.key, { meta })} painters={painters} />
+                <Field label={ti("f_piece")}>
+                  <PieceInput size="sm" value={d.piece} onChange={(piece) => patch(d.key, { piece })} pieces={pieces} />
+                </Field>
+                <Field label={ti("f_comment")} error={error(`content-${d.key}`)}>
+                  <Textarea
+                    rows={2}
+                    value={d.comment}
+                    onChange={(e) => {
+                      patch(d.key, { comment: e.target.value });
+                      clear(`content-${d.key}`);
+                    }}
+                    placeholder={ti("f_comment_ph")}
+                    className="text-sm"
+                  />
+                </Field>
+                <DetailFields
+                  size="sm"
+                  value={d.meta}
+                  onChange={(meta) => {
+                    patch(d.key, { meta });
+                    clear(`painter-${d.key}`);
+                  }}
+                  painters={painters}
+                  painterError={error(`painter-${d.key}`)}
+                />
               </li>
             ))}
           </ol>
@@ -281,6 +317,7 @@ export function BatchDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

@@ -219,7 +219,7 @@ export function PlanDialog({
           date: formatDateCompact(lang, todayInPanama()),
         }),
         summary: [
-          ti("sch_plan_count", { n: plan.length }),
+          ti((plan.length) === 1 ? "items_1" : "items_n", { n: plan.length }),
           `${ti("sch_plan_sign")}: ____________________________________________`,
         ].join("\n"),
         page: ti("pdf_page"),
@@ -266,7 +266,7 @@ export function PlanDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos (solo filtros del plan; no hay nada que se pierda) */}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{ti("sch_plan_title")}</DialogTitle>
@@ -352,7 +352,7 @@ export function PlanDialog({
             <p className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-foreground">
               <span className="font-semibold">
                 {plan.length
-                  ? ti("sch_plan_count", { n: plan.length })
+                  ? ti((plan.length) === 1 ? "items_1" : "items_n", { n: plan.length })
                   : ti("sch_plan_empty")}
               </span>
               {handles.length > 0 && (

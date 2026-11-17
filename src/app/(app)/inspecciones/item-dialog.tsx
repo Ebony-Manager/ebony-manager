@@ -7,7 +7,9 @@ import { Camera, Loader2, X } from "lucide-react";
 import { INSPECTION_PHOTOS_BUCKET, type InspectionItem, type InspectionPainter } from "@/types/inspections";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/shared/field";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { Textarea } from "@/components/ui/textarea";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { createClient } from "@/lib/supabase/client";
@@ -83,6 +85,9 @@ export function ItemDialog({
   const [removed, setRemoved] = React.useState<string[]>([]);
   const [reading, setReading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const { error, validate, clear, reset: resetErrors } = useFormErrors<"content" | "painter">();
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([area, piece, comment, meta, photos.length, removed]));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   const reset = React.useCallback((it: InspectionItem | null) => {
     setArea(it?.area ?? "");
@@ -98,8 +103,11 @@ export function ItemDialog({
 
   /* eslint-disable react-hooks/set-state-in-effect -- el formulario se llena al abrir */
   React.useEffect(() => {
-    if (open) reset(item);
-  }, [open, item, reset]);
+    if (!open) return;
+    reset(item);
+    resetErrors();
+    markSeeded();
+  }, [open, item, reset, resetErrors, markSeeded]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const existing = (item?.photos ?? []).filter((p) => !removed.includes(p.id));
@@ -116,6 +124,7 @@ export function ItemDialog({
         next.push({ key: crypto.randomUUID(), blob, preview: URL.createObjectURL(blob) });
       }
       setPhotos((ps) => [...ps, ...next]);
+      clear("content");
     } catch {
       toast.error(ti("error"));
     } finally {
@@ -125,14 +134,13 @@ export function ItemDialog({
 
   async function save() {
     if (!item) return;
-    if (!comment.trim() && photos.length === 0 && existing.length === 0) {
-      toast.error(ti("need_content"));
+    if (
+      !validate([
+        ["content", !comment.trim() && photos.length === 0 && existing.length === 0, ti("need_content")],
+        ["painter", meta.kind === "pintura" && !meta.painterId, ti("need_painter_one")],
+      ])
+    )
       return;
-    }
-    if (meta.kind === "pintura" && !meta.painterId) {
-      toast.error(ti("need_painter"));
-      return;
-    }
     setSaving(true);
     let uploaded: string[] = [];
     try {
@@ -152,7 +160,7 @@ export function ItemDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !saving && void requestClose()}>
       <DialogContent className="max-h-[92dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{ti("item_edit")}</DialogTitle>
@@ -165,8 +173,7 @@ export function ItemDialog({
             void save();
           }}
         >
-          <div className="flex flex-col gap-2">
-            <Label>{ti("f_photos")}</Label>
+          <Field label={ti("f_photos")}>
             <div className="flex flex-wrap gap-2">
               {existing.map((p) => (
                 <Thumb key={p.id} url={p.thumb ?? p.url} after={p.kind === "despues"} onRemove={() => setRemoved((r) => [...r, p.id])} />
@@ -193,26 +200,38 @@ export function ItemDialog({
               </button>
             </div>
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onFiles} />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>{ti("f_area")}</Label>
+          <Field label={ti("f_area")}>
             <AreaPicker projectId={projectId} value={area} onChange={setArea} areas={areas} onCreated={onAreaCreated} />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="insp-piece">
-              {ti("f_piece")} <span className="font-normal text-muted-foreground">({ti("optional")})</span>
-            </Label>
+          <Field label={ti("f_piece")}>
             <PieceInput id="insp-piece" value={piece} onChange={setPiece} pieces={pieces} />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="insp-comment">{ti("f_comment")}</Label>
-            <Textarea id="insp-comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={ti("f_comment_ph")} />
-          </div>
+          {/* «Al menos una foto o un comentario»: el mensaje va aquí, en el campo, no en un aviso. */}
+          <Field label={ti("f_comment")} error={error("content")}>
+            <Textarea
+              rows={3}
+              value={comment}
+              onChange={(e) => {
+                setComment(e.target.value);
+                clear("content");
+              }}
+              placeholder={ti("f_comment_ph")}
+            />
+          </Field>
 
-          <DetailFields value={meta} onChange={setMeta} painters={painters} />
+          <DetailFields
+            value={meta}
+            onChange={(m) => {
+              setMeta(m);
+              clear("painter");
+            }}
+            painters={painters}
+            painterError={error("painter")}
+          />
 
           <DialogFooter className="gap-2">
             {saving && (
@@ -221,12 +240,16 @@ export function ItemDialog({
                 {ti("uploading")}
               </span>
             )}
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
+              {ti("cancel")}
+            </Button>
             <Button type="submit" disabled={saving || reading}>
               {ti("save")}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

@@ -76,6 +76,12 @@ describe("consistencia de la interfaz", () => {
     expect(bad.length, fix("Lo obligatorio lleva asterisco (<Field required>); lo opcional no se marca. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });
 
+  it("ningún texto de la app dice «(opcional)»: lo opcional no se marca", () => {
+    const text = readFileSync(join(SRC, "lib/i18n.ts"), "utf8");
+    const bad = text.split("\n").map((l, i) => `lib/i18n.ts:${i + 1}: ${l.trim()}`).filter((l) => /\((opcional|optional)\)/i.test(l));
+    expect(bad, fix("Quita «(opcional)» del texto (UI-RULES §2). Líneas:", bad)).toEqual([]);
+  });
+
   it("la validación es useFormErrors + <Field error>, no un mensaje rojo suelto al final — la deuda existente no puede crecer", () => {
     // Formularios que todavía usan setError(...) (el sistema viejo), por migrar tanda por tanda.
     const BASELINE_FILES = 0;
@@ -84,7 +90,7 @@ describe("consistencia de la interfaz", () => {
   });
 
   it("los formularios en diálogo avisan antes de descartar cambios (useDiscardGuard) — la deuda existente no puede crecer", () => {
-    const BASELINE = 7;
+    const BASELINE = 2;
     const bad = find((l) => l.includes("onOpenChange={(o) => !o && onClose()}"));
     expect(bad.length, fix("Usa useDiscardGuard (components/shared/discard-guard); si el diálogo no tiene nada que escribir, marca `ui-allow: sin-campos`. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });

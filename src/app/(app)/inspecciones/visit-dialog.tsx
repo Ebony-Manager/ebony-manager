@@ -7,7 +7,9 @@ import type { Inspection } from "@/types/inspections";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/shared/field";
+import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
+import { ICON } from "@/lib/ui/concepts";
 import { Textarea } from "@/components/ui/textarea";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { createInspectionAction, updateInspectionAction } from "./actions";
@@ -34,13 +36,16 @@ export function VisitDialog({
   const [date, setDate] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([date, notes]));
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   /* eslint-disable react-hooks/set-state-in-effect -- el formulario se llena al abrir */
   React.useEffect(() => {
     if (!open) return;
     setDate(visit?.visitedOn ?? todayInPanama());
     setNotes(visit?.notes ?? "");
-  }, [open, visit]);
+    markSeeded();
+  }, [open, visit, markSeeded]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onSubmit(e: React.FormEvent) {
@@ -61,22 +66,20 @@ export function VisitDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={(o) => !o && !saving && void requestClose()}>
+      <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{visit ? ti("edit_visit") : ti("new_visit")}</DialogTitle>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="visit-date">{ti("f_date")}</Label>
-            <Input id="visit-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="w-44" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="visit-notes">{ti("f_notes")}</Label>
-            <Textarea id="visit-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ti("f_notes_ph")} />
-          </div>
+          <Field label={ti("f_date")} icon={ICON.date} required className="w-48">
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </Field>
+          <Field label={ti("f_notes")}>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ti("f_notes_ph")} />
+          </Field>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+            <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
               {ti("cancel")}
             </Button>
             <Button type="submit" disabled={saving || !date}>
@@ -85,6 +88,7 @@ export function VisitDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {discardDialog}
     </Dialog>
   );
 }

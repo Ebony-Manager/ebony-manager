@@ -1,5 +1,8 @@
 "use client";
 
+import { Shapes, type LucideIcon } from "lucide-react";
+import { Field } from "@/components/shared/field";
+import { ICON } from "@/lib/ui/concepts";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -19,6 +22,8 @@ export interface DetailMeta {
 export const EMPTY_META: DetailMeta = { kind: null, painterId: null, responsible: "ebony", thirdParty: null };
 
 export const KIND_KEY: Record<InspectionKind, InspeccionesKey> = { pintura: "kind_pintura", carpinteria: "kind_carpinteria", otro: "kind_otro" };
+/** El ícono de cada tipo (el mismo en los filtros de toda Inspecciones). */
+export const KIND_ICON: Record<InspectionKind, LucideIcon> = { pintura: ICON.pintura, carpinteria: ICON.ebanista, otro: Shapes };
 
 /** Botones de a uno (más rápidos que un desplegable en el celular). */
 function Choice<T extends string>({ value, options, onChange, size = "md" }: { value: T | null; options: { value: T; label: string }[]; onChange: (v: T) => void; size?: "sm" | "md" }) {
@@ -49,25 +54,25 @@ export function DetailFields({
   onChange,
   painters,
   size = "md",
+  painterError,
 }: {
   value: DetailMeta;
   onChange: (v: DetailMeta) => void;
   painters: InspectionPainter[];
   size?: "sm" | "md";
+  /** «Elige el pintor»: se marca en el campo (no en un aviso). */
+  painterError?: string;
 }) {
   const { ti } = useTi();
   const set = (patch: Partial<DetailMeta>) => onChange({ ...value, ...patch });
   const active = painters.filter((p) => p.active || p.id === value.painterId);
-  const label = size === "sm" ? "text-[11px] font-medium text-muted-foreground" : "text-sm font-medium";
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex flex-col gap-1">
-        <span className={label}>{ti("f_kind")}</span>
+      <Field label={ti("f_kind")}>
         <Choice size={size} value={value.kind} onChange={(kind) => set({ kind })} options={(["pintura", "carpinteria", "otro"] as const).map((k) => ({ value: k, label: ti(KIND_KEY[k]) }))} />
-      </div>
+      </Field>
       {value.kind === "pintura" && (
-        <div className="flex flex-col gap-1">
-          <span className={label}>{ti("f_painter")}</span>
+        <Field label={ti("f_painter")} required error={painterError}>
           <Select value={value.painterId ?? ""} onValueChange={(painterId) => set({ painterId })}>
             <SelectTrigger className={cn("w-full", size === "sm" ? "h-8 text-xs" : "h-9")}>
               <SelectValue placeholder={ti("pick_painter")} />
@@ -80,10 +85,9 @@ export function DetailFields({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
       )}
-      <div className="flex flex-col gap-1">
-        <span className={label}>{ti("f_responsible")}</span>
+      <Field label={ti("f_responsible")}>
         <Choice
           size={size}
           value={value.responsible}
@@ -93,15 +97,17 @@ export function DetailFields({
             { value: "tercero", label: ti("resp_tercero") },
           ]}
         />
-        {value.responsible === "tercero" && (
+      </Field>
+      {value.responsible === "tercero" && (
+        <Field label={ti("f_third_party")}>
           <Input
             value={value.thirdParty ?? ""}
             onChange={(e) => set({ thirdParty: e.target.value })}
             placeholder={ti("third_party_ph")}
             className={size === "sm" ? "h-8 text-xs" : "h-9"}
           />
-        )}
-      </div>
+        </Field>
+      )}
     </div>
   );
 }

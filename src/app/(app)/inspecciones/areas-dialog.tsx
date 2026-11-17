@@ -181,7 +181,7 @@ export function AreasDialog({
                           {a.name}
                         </span>
                         <span className="block text-xs text-muted-foreground">
-                          {ti("sch_n_items", { n: a.items })}
+                          {ti((a.items) === 1 ? "items_1" : "items_n", { n: a.items })}
                         </span>
                       </span>
                       <Button

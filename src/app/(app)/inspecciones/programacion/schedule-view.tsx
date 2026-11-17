@@ -53,7 +53,8 @@ import {
   planItemsAction,
   unplanItemsAction,
 } from "../actions";
-import { KIND_KEY } from "../detail-fields";
+import { KIND_ICON, KIND_KEY } from "../detail-fields";
+import { ICON } from "@/lib/ui/concepts";
 import { InspeccionesTabs, SCHEDULE_PATH, useTi } from "../shared";
 import { AssignDialog, type AssignRequest } from "./assign-dialog";
 import { BlockCard, BlockDetailDialog, Tray, type Pick } from "./board";
@@ -543,10 +544,10 @@ export function ScheduleView({
           value={kind}
           onChange={setKind}
           options={[
-            { value: "todos", label: ti("sch_kind_all") },
-            { value: "pintura", label: ti(KIND_KEY.pintura) },
-            { value: "carpinteria", label: ti(KIND_KEY.carpinteria) },
-            { value: "otro", label: ti(KIND_KEY.otro) },
+            { value: "todos", label: ti("sch_kind_all"), icon: ICON.all },
+            { value: "pintura", label: ti(KIND_KEY.pintura), icon: KIND_ICON.pintura },
+            { value: "carpinteria", label: ti(KIND_KEY.carpinteria), icon: KIND_ICON.carpinteria },
+            { value: "otro", label: ti(KIND_KEY.otro), icon: KIND_ICON.otro },
           ]}
         />
         {unassigned.length > 0 && (
@@ -706,7 +707,7 @@ export function ScheduleView({
             <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
               {ti("sch_picked", { label: pick.label })} ·{" "}
               <span className="text-muted-foreground">
-                {ti("sch_n_items", { n: pick.itemIds.length })}
+                {ti((pick.itemIds.length) === 1 ? "items_1" : "items_n", { n: pick.itemIds.length })}
               </span>
             </p>
             {pick.scheduled && (

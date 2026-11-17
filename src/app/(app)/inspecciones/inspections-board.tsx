@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { CalendarClock, Camera, Check, CheckSquare, ChevronLeft, ChevronRight, FileDown, ImageOff, MapPinned, Pencil, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 import type { Inspection, InspectionArea, InspectionItem, InspectionPainter, InspectionPhoto } from "@/types/inspections";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,6 +24,7 @@ import { addInspectionPhotosAction, deleteInspectionAction, deleteInspectionItem
 import { BatchDialog } from "./batch-dialog";
 import { AreasDialog } from "./areas-dialog";
 import { DetailTags, KIND_KEY, useDetailLine } from "./detail-fields";
+import { ICON } from "@/lib/ui/concepts";
 import type { InspectionPdfGroup } from "./inspection-pdf";
 import { ItemDialog, PHOTO_MAX_SIDE, discardUploaded, uploadInspectionPhotos } from "./item-dialog";
 import { PdfDialog } from "./pdf-dialog";
@@ -168,15 +169,17 @@ export function InspectionsBoard({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* En el teléfono el selector va en su fila (con íconos no cabe al lado de los botones). */}
           <SegmentedFilter
+            fill
             className="min-w-0"
             value={groupBy}
             onChange={setGroupBy}
             options={[
-              { value: "visita", label: ti("g_visit_short") },
-              { value: "area", label: ti("g_area_short") },
-              { value: "junto", label: ti("g_all_short") },
+              { value: "visita", label: ti("g_visit_short"), icon: ICON.date },
+              { value: "area", label: ti("g_area_short"), icon: MapPinned },
+              { value: "junto", label: ti("g_all_short"), icon: ICON.all },
             ]}
           />
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -229,9 +232,9 @@ export function InspectionsBoard({
                   <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
                     {groupTitle(g)}
                     {pending > 0 ? (
-                      <Badge variant="warning">{pending === 1 ? ti("pending_1") : ti("pending_n", { n: pending })}</Badge>
+                      <StatusBadge status="insp_pendiente">{pending === 1 ? ti("pending_1") : ti("pending_n", { n: pending })}</StatusBadge>
                     ) : v.items.length > 0 ? (
-                      <Badge variant="success">{ti("status_resuelto")}</Badge>
+                      <StatusBadge status="insp_resuelto">{ti("status_resuelto")}</StatusBadge>
                     ) : null}
                   </h3>
                   <p className="text-xs text-muted-foreground">{[v.createdByName ? ti("by", { name: v.createdByName }) : null, v.notes].filter(Boolean).join(" · ")}</p>
@@ -470,7 +473,7 @@ function FiltersButton({
 function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </div>
   );
@@ -592,10 +595,9 @@ function ItemCard({
       )}
       <div className="relative">
         <PhotoCarousel photos={item.photos} onOpen={(i) => onOpenPhoto(item.photos, i)} onEmpty={() => onEdit(item)} dimmed={resolved} />
-        <Badge variant={resolved ? "success" : "warning"} className="pointer-events-none absolute top-1.5 left-1.5 gap-1 bg-card/90 shadow-sm backdrop-blur">
-          {resolved && <Check className="size-3" />}
-          {resolved ? ti("status_resuelto") : ti("status_pendiente")}
-        </Badge>
+        <span className="pointer-events-none absolute top-1.5 left-1.5 rounded-full bg-card shadow-sm">
+          <StatusBadge status={resolved ? "insp_resuelto" : "insp_pendiente"}>{resolved ? ti("status_resuelto") : ti("status_pendiente")}</StatusBadge>
+        </span>
         <div className="absolute top-1 right-1 rounded-md bg-card/85 shadow-sm backdrop-blur">
           <RowMenu
             label={ti("item_menu")}

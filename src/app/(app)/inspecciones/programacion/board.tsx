@@ -248,7 +248,7 @@ export function Tray({
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
                     {ti("sch_whole_project")} ·{" "}
-                    {ti("sch_n_items", { n: projectItems.length })}
+                    {ti((projectItems.length) === 1 ? "items_1" : "items_n", { n: projectItems.length })}
                   </span>
                 </span>
                 <ExpandButton open={pOpen} onClick={() => toggle(pKey)} />
@@ -643,7 +643,7 @@ export function BlockCard({
         <span className="block text-[15px] leading-snug font-semibold break-words text-foreground">{areaName}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
           <span>
-            {ti("sch_n_items", { n: block.schedules.length })}
+            {ti((block.schedules.length) === 1 ? "items_1" : "items_n", { n: block.schedules.length })}
             {done > 0 && state !== "hecho" && ` · ${ti("sch_done_of", { done, n: block.schedules.length })}`}
           </span>
           {state !== "programado" && (
@@ -811,14 +811,14 @@ export function BlockDetailDialog({
   const first = block ? items.get(block.schedules[0].itemId) : undefined;
   return (
     <>
-      <Dialog open={block !== null} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={block !== null} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos */}
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{block?.area ?? ti("no_area")}</DialogTitle>
             <DialogDescription>
               {first?.projectName}
               {first?.location ? ` · ${first.location}` : ""} ·{" "}
-              {ti("sch_n_items", { n: block?.schedules.length ?? 0 })}
+              {ti((block?.schedules.length ?? 0) === 1 ? "items_1" : "items_n", { n: block?.schedules.length ?? 0 })}
             </DialogDescription>
           </DialogHeader>
           <ol className="flex flex-col gap-3">

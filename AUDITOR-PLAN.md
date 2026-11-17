@@ -30,7 +30,12 @@ Falta, en tandas y con visto bueno de Carlos:
    y validación de formato), errores del servidor en aviso, aviso de descartar, bloques «Persona» y «Acceso», colores del
    tema; quitar acceso con aviso de error; **íconos de permisos** (los del menú) en el formulario y en la lista. Ya no hay
    `setError` en la app (guardia en 0). Las acciones refrescan Usuarios y la ficha de Personal (sin `router.refresh()` doble).
-3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
+3. ~~**Inspecciones**~~ — **hecho 17 nov** (con capturas de todas sus pantallas y ventanas): la lista ya no se corre de lado
+   en el teléfono; «N pendientes» / «Resuelto» con `StatusBadge` (`insp_pendiente`, `insp_resuelto`); Nueva visita, Editar
+   detalle y Agregar detalles con `Field`, errores en el campo (no en aviso) y aviso de descartar; Cancelar en Editar
+   detalle; «1 detalle / N detalles» (no «detalle(s)»); filtros con ícono (`KIND_ICON`); títulos de filtro sin MAYÚSCULAS.
+   Toda la app: sin «(opcional)» en los textos (regla nueva en la guardia). Guardia de cierres sin aviso: 7 → 2.
+   **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. ~~Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026»)~~ — **descartado 17 nov por Carlos**: los campos de fecha se quedan como los muestra el teléfono o el navegador; no es un problema. No volver a proponerlo.
 6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
