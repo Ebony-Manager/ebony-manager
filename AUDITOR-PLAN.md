@@ -81,6 +81,21 @@ Partir de `UI-RULES.md` y convertirlo en checklist con gravedad (seguridad/permi
 - Puede señalar cosas que no son problema: por eso cada hallazgo debe traer archivo y línea, y el auditor no cambia código.
 - Cada sesión consume uso; por eso se parte por módulo y no se repite lo ya auditado.
 
+## Acceso visual (resuelto 17 nov, decisión de Carlos)
+- **Cuenta:** `auditor@ebonypanama.com`, **admin** (Carlos aprobó que vea todos los datos para revisar bien). Creada
+  directo en la base (lista de permitidos + usuario de correo ya confirmado). El correo no existe: no recibe nada.
+- **Sin contraseña guardada:** cada vez que se use, ponerle una nueva al azar con el conector de Supabase
+  (`update auth.users set encrypted_password = extensions.crypt('<al azar>', extensions.gen_salt('bf')) where email = 'auditor@ebonypanama.com'`)
+  y no anotarla en ningún lado.
+- **Entrar:** con `@supabase/ssr` (`createServerClient` con un frasco de cookies en memoria) hacer
+  `auth.signInWithPassword`, pasar esas cookies (`sb-jdfkfbopecqvvyxherku-auth-token…`) al contexto de Playwright y abrir
+  las rutas. Capturas a 390 px (teléfono) y escritorio. **Solo mirar: no guardar nada con esta cuenta.**
+- **Red:** hace falta el entorno **«ebony-manager»** (ya creado: deja pasar `jdfkfbopecqvvyxherku.supabase.co` y
+  `admin.ebonypanama.com`, e instala dependencias al arrancar). La sesión de diseño del 17 nov no se pudo mover a él
+  (fue creada por otra sesión): las capturas funcionan en una sesión nueva abierta en ese entorno.
+- Para ver una versión antes de publicar: `next dev` con `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  (claves públicas; se leen con el conector de Supabase) y la misma cuenta.
+
 ## Pendiente nuevo (15 nov): que Claude pueda VER la app, no solo leer el código
 Carlos pidió resolver esto: revisar solo por código limita mucho (no se ven cortes de texto, saltos, cómo queda en
 el teléfono). Hoy no se puede porque la app solo deja entrar con Google, y eso no se puede automatizar en un navegador
