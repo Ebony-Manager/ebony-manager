@@ -126,6 +126,8 @@ export interface InventoryPerson {
   name: string;
   active: boolean;
   contractorType: string | null;
+  /** Ruta de la foto de perfil (bucket employee-photos o contractor-photos según `kind`). */
+  photoPath: string | null;
 }
 
 export interface MovementLine {

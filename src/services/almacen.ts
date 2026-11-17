@@ -395,6 +395,7 @@ export async function getInventoryPeople(): Promise<InventoryPerson[]> {
       name: p.name,
       active: p.active,
       contractorType: p.contractor_type,
+      photoPath: p.photo_path,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }

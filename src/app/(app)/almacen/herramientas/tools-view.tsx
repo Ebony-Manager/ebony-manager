@@ -14,7 +14,7 @@ import { formatDateCompact } from "@/lib/planilla/format";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { compareTools, matchesToolFilter, openLoans, shownStatus, toolName, type ToolFilter } from "@/lib/almacen/tools";
 import { EmptyBox, ItemThumb, PageHeader, SearchBox, useTa } from "../shared";
-import { ToolStatusBadge, holderName, useDueText, type Project } from "./common";
+import { ToolHolder, ToolStatusBadge, holderName, useDueText, type Project } from "./common";
 import { ICON } from "@/lib/ui/concepts";
 import { STATUS, TONE_TEXT, type StatusKey } from "@/lib/ui/status";
 
@@ -90,7 +90,7 @@ export function ToolsView({
 
   const available = tools.filter((t) => t.active && t.status === "disponible");
   const hasInactive = tools.some((t) => !t.active);
-  const holder = (loan: ToolLoan) => [holderName(loan, personById), loan.projectId ? projectName.get(loan.projectId) : null].filter(Boolean).join(" · ");
+  const loanProject = (loan: ToolLoan) => (loan.projectId ? (projectName.get(loan.projectId) ?? null) : null);
 
   /** Prestar (disponible) o Devolver (prestada): el botón de cada fila. */
   const rowAction = (r: (typeof rows)[number], className?: string) =>
@@ -185,26 +185,30 @@ export function ToolsView({
                   tabIndex={0}
                   onClick={() => setEditing(r.tool)}
                   onKeyDown={(e) => e.key === "Enter" && setEditing(r.tool)}
-                  className={`flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3.5 py-3 text-left ${r.tool.active ? "" : "opacity-60"}`}
+                  className={`flex w-full flex-col gap-2.5 rounded-lg border border-border bg-card px-3.5 py-3 text-left ${r.tool.active ? "" : "opacity-60"}`}
                 >
-                  <ItemThumb path={r.tool.photoPath} size={48} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-semibold text-foreground">{toolName(r.tool)}</span>
-                      <ToolStatusBadge status={r.status} />
+                  <span className="flex items-center gap-3">
+                    <ItemThumb path={r.tool.photoPath} size={48} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-semibold text-foreground">{toolName(r.tool)}</span>
+                        <ToolStatusBadge status={r.status} />
+                      </span>
+                      {!r.loan && (
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{[ta(`tool_cat_${r.tool.category}`), r.tool.brand].filter(Boolean).join(" · ")}</span>
+                      )}
                     </span>
-                    {r.loan ? (
-                      <>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{holder(r.loan)}</span>
-                        <span className={`block text-xs ${r.status === "vencida" ? "font-medium text-destructive" : "text-muted-foreground"}`}>
-                          {formatDateCompact(lang, r.loan.lentOn)} → {dueText(r.loan.dueOn, today)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="mt-0.5 block text-xs text-muted-foreground">{[ta(`tool_cat_${r.tool.category}`), r.tool.brand].filter(Boolean).join(" · ")}</span>
-                    )}
+                    {rowAction(r, "shrink-0")}
                   </span>
-                  {rowAction(r, "shrink-0 self-center")}
+                  {/* Quién la tiene: fila propia y a todo el ancho, para que el nombre y el proyecto no se corten. */}
+                  {r.loan && (
+                    <span className="flex flex-col gap-1 border-t border-border pt-2.5 text-sm">
+                      <ToolHolder loan={r.loan} people={personById} projectName={loanProject(r.loan)} />
+                      <span className={`text-xs ${r.status === "vencida" ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                        {formatDateCompact(lang, r.loan.lentOn)} → {dueText(r.loan.dueOn, today)}
+                      </span>
+                    </span>
+                  )}
                 </div>
               </li>
             ))}
@@ -243,7 +247,9 @@ export function ToolsView({
                     <td className="px-3 py-2.5">
                       <ToolStatusBadge status={r.status} />
                     </td>
-                    <td className="px-3 py-2.5">{r.loan ? holder(r.loan) : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="max-w-[260px] px-3 py-2">
+                      {r.loan ? <ToolHolder loan={r.loan} people={personById} projectName={loanProject(r.loan)} /> : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{r.loan ? formatDateCompact(lang, r.loan.lentOn) : "—"}</td>
                     <td className={`whitespace-nowrap px-3 py-2.5 ${r.status === "vencida" ? "font-medium text-destructive" : "text-muted-foreground"}`}>
                       {r.loan ? dueText(r.loan.dueOn, today) : "—"}

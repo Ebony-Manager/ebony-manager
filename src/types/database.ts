@@ -3751,6 +3751,7 @@ export type Database = {
           name: string
           active: boolean
           contractor_type: string | null
+          photo_path: string | null
         }[]
       }
       close_contractor_pay_period: {
