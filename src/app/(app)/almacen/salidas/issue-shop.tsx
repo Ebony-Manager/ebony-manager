@@ -211,8 +211,9 @@ function ProductCard({
                 <StatusBadge status="stock_out">{ta("status_out")}</StatusBadge>
               </div>
             ) : status === "bajo" ? (
-              <div className="mt-1">
-                <StatusBadge status="stock_low">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</StatusBadge>
+              <div className="mt-1 flex flex-col items-start gap-0.5">
+                <StatusBadge status="stock_low">{ta("status_low")}</StatusBadge>
+                <span className="text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</span>
               </div>
             ) : (
               <p className="mt-0.5 text-xs text-muted-foreground">{`${ta("stock_now")}: ${qtyWithUnit(variant.stockQty, item.unit, lang)}`}</p>

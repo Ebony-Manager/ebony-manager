@@ -70,15 +70,19 @@ export function OrderDialog({
   const [prices, setPrices] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
 
-  // Aviso de descartar: solo si se escribió algo (cantidades, fecha, factura o precios) sin guardarlo.
-  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([receivedOn, receive, invoiceRef, prices]));
+  // Aviso de descartar: solo si se escribió algo sin guardarlo. Recepción y factura se guardan por
+  // separado, así que cada una lleva su propia «cómo estaba»: guardar una no borra el aviso de la otra.
+  const { isDirty: receiveDirty, markSeeded: markReceiveSeeded } = useFormBaseline(() => JSON.stringify([receivedOn, receive]));
+  const { isDirty: invoiceFormDirty, markSeeded: markInvoiceSeeded } = useFormBaseline(() => JSON.stringify([invoiceRef, prices]));
+  const isDirty = React.useCallback(() => receiveDirty() || invoiceFormDirty(), [receiveDirty, invoiceFormDirty]);
   const { requestClose, dialog } = useDiscardGuard(isDirty, onClose);
 
   const orderId = order?.id;
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir otro pedido. */
   React.useEffect(() => {
     if (!order) return;
-    markSeeded();
+    markReceiveSeeded();
+    markInvoiceSeeded();
     setReceivedOn(todayInPanama(new Date()));
     setReceive(Object.fromEntries(order.lines.map((l) => [l.id, l.qty > l.receivedQty ? String(Math.round(((l.qty - l.receivedQty) / perOf(l.variantId)) * 100) / 100) : ""])));
     setInvoiceRef(order.invoiceRef ?? "");
@@ -119,6 +123,8 @@ export function OrderDialog({
 
   async function doReceive() {
     const lines = order!.lines
+      // Una línea ya completa no se muestra, pero su campo puede guardar lo escrito antes: no se vuelve a mandar.
+      .filter((l) => l.receivedQty < l.qty)
       .map((l) => ({ lineId: l.id, qty: Math.round((parseQty(receive[l.id] ?? "") ?? 0) * perOf(l.variantId) * 100) / 100 }))
       .filter((l) => l.qty > 0);
     if (lines.length === 0) return toast.error(ta("nothing_to_receive"));
@@ -127,7 +133,7 @@ export function OrderDialog({
     setBusy(false);
     if (res.ok) {
       toast.success(ta("received_saved"));
-      markSeeded(); // lo guardado ya no cuenta como cambio
+      markReceiveSeeded(); // lo recibido ya no cuenta como cambio (la factura sigue igual)
     } else toast.error(res.error);
   }
 
@@ -141,7 +147,7 @@ export function OrderDialog({
     setBusy(false);
     if (res.ok) {
       toast.success(ta("invoice_saved"));
-      markSeeded();
+      markInvoiceSeeded();
     } else toast.error(res.error);
   }
 
