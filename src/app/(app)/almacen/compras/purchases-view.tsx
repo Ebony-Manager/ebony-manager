@@ -405,7 +405,9 @@ function PendingRow({
   const lineTotal = r.unitCostCents != null ? Math.round(r.unitCostCents * r.qty) : null;
 
   return (
-    <li className="grid grid-cols-[24px_48px_minmax(0,1fr)_28px] gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0">
+    // Computadora: las cajas van en la misma fila del producto, a la derecha (menos alto, sin espacio muerto).
+    // Teléfono: debajo del nombre, porque al lado no caben.
+    <li className="grid grid-cols-[24px_48px_minmax(0,1fr)_28px] items-start gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0 sm:grid-cols-[24px_48px_minmax(0,1fr)_auto_28px] sm:gap-x-3">
       <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} className="mt-1" />
       <PurchasePhoto variantId={r.variantId} index={index} />
       <div className="min-w-0">
@@ -433,11 +435,11 @@ function PendingRow({
         onConfirm={() => cancelRequest(r.id, ta)}
         // Pegado a la derecha: al pedir confirmación la pastilla crece hacia
         // la izquierda (sobre el nombre) en vez de cortarse contra el borde.
-        className="relative z-10 min-h-7 min-w-7 self-start justify-self-end"
+        className="relative z-10 col-start-4 row-start-1 min-h-7 min-w-7 self-start justify-self-end sm:col-start-5"
       />
       {/* Cantidad × precio = total, en columnas fijas (iguales en todas las líneas): la medida va debajo de
           cada caja, así las cajas y el total no se corren según lo largo del texto. */}
-      <div className="col-start-2 col-end-5 grid grid-cols-[4.5rem_auto_6.5rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:max-w-xl sm:grid-cols-[6rem_auto_7rem_minmax(0,1fr)]">
+      <div className="col-start-2 col-end-5 grid grid-cols-[4.5rem_auto_6.5rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:col-start-4 sm:col-end-5 sm:row-start-1 sm:grid-cols-[5.5rem_auto_7rem_6.5rem]">
         <div className="flex min-w-0 flex-col gap-1">
           <QtyInput value={qty} onChange={setQty} onBlur={saveQty} aria-label={ta("qty")} />
           <span className="text-xs text-muted-foreground">

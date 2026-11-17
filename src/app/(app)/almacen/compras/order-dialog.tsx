@@ -120,6 +120,16 @@ export function OrderDialog({
       return next !== l.totalCents;
     });
   const nothingReceived = order.lines.every((l) => l.receivedQty === 0);
+  // Columnas de la derecha (computadora): Recibir solo mientras se puede recibir; Precio y Total con Compras o Costos.
+  const hasCols = receiving || canCosts;
+  const smCols =
+    receiving && canCosts
+      ? "sm:grid-cols-[minmax(0,1fr)_7rem_7.5rem_6rem]"
+      : canCosts
+        ? "sm:grid-cols-[minmax(0,1fr)_7.5rem_6rem]"
+        : receiving
+          ? "sm:grid-cols-[minmax(0,1fr)_7rem]"
+          : "";
 
   async function doReceive() {
     const lines = order!.lines
@@ -163,7 +173,7 @@ export function OrderDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && void requestClose()}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto lg:max-w-3xl" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {ta("order_title")} · {supplier?.name ?? "—"}
@@ -200,58 +210,76 @@ export function OrderDialog({
             Almacén ahora y (con Compras o Costos) su precio; abajo, la factura. */}
         <section className="flex flex-col gap-3">
           <ul className="flex flex-col rounded-lg border border-border">
+            {/* Computadora: una fila por producto (nombre a la izquierda; Recibir · Precio · Total a la derecha, en
+                columnas fijas) y los títulos una sola vez arriba. Teléfono: las cajas debajo del nombre, con su título. */}
+            {hasCols && (
+              <li className={`hidden gap-3 border-b border-border px-3 py-2 text-xs text-muted-foreground sm:grid ${smCols}`}>
+                <span />
+                {receiving && <span>{ta("col_to_receive")}</span>}
+                {canCosts && (
+                  <>
+                    <span>{ta("f_price")}</span>
+                    <span className="text-right">{ta("f_total")}</span>
+                  </>
+                )}
+              </li>
+            )}
             {order.lines.map((l) => {
               const unit = unitPrice(l.id);
               const done = l.receivedQty >= l.qty;
               const pack = packOf(index, l.variantId);
               const per = pack?.qty ?? 1;
+              const showReceive = receiving && !done;
               return (
-                <li key={l.id} className="flex flex-col gap-3 border-b border-border px-3 py-3 text-sm last:border-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex min-w-0 items-center gap-3">
-                      <PurchasePhoto variantId={l.variantId} index={index} />
-                      <span className="min-w-0">
-                        <span className="block break-words font-medium">{lineName(l)}</span>
-                        {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
-                      </span>
+                <li key={l.id} className={`grid items-start gap-3 border-b border-border px-3 py-3 text-sm last:border-0 ${smCols}`}>
+                  <span className="flex min-w-0 items-start gap-3">
+                    <PurchasePhoto variantId={l.variantId} index={index} />
+                    <span className="min-w-0">
+                      <span className="block break-words font-medium">{lineName(l)}</span>
+                      {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
+                      <PurchaseQty
+                        qty={l.qty}
+                        receivedQty={l.receivedQty}
+                        unit={l.unit}
+                        pack={pack}
+                        lang={lang}
+                        className={`mt-0.5 block max-w-none text-left text-xs ${done ? "text-success" : "text-muted-foreground"}`}
+                      />
                     </span>
-                    <PurchaseQty
-                      qty={l.qty}
-                      receivedQty={l.receivedQty}
-                      unit={l.unit}
-                      pack={pack}
-                      lang={lang}
-                      className={`shrink-0 text-xs ${done ? "text-success" : "text-muted-foreground"}`}
-                    />
-                  </div>
-                  {/* Columnas fijas, iguales en todas las líneas: Recibir · Precio · Total. Títulos de una línea y la
-                      medida (× rollo, por rollo, c/u) debajo de la caja, así las cajas quedan alineadas. */}
-                  {((receiving && !done) || canCosts) && (
-                    <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_9rem_7rem]">
-                      {receiving && !done ? (
-                        <Field label={ta("col_to_receive")} hint={pack ? `× ${pack.label || formatQty(pack.qty, lang)}` : undefined}>
-                          <QtyInput value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} />
-                        </Field>
-                      ) : (
-                        <span className="hidden sm:block" />
-                      )}
+                  </span>
+                  {hasCols && (
+                    <div className="grid grid-cols-2 items-start gap-3 sm:contents">
+                      {receiving &&
+                        (showReceive ? (
+                          <div className="flex min-w-0 flex-col gap-1.5">
+                            <span className="text-xs text-muted-foreground sm:hidden">{ta("col_to_receive")}</span>
+                            <QtyInput aria-label={ta("col_to_receive")} value={receive[l.id] ?? ""} onChange={(v) => setReceive((r) => ({ ...r, [l.id]: v }))} />
+                            {pack && <span className="text-xs text-muted-foreground">× {pack.label || formatQty(pack.qty, lang)}</span>}
+                          </div>
+                        ) : (
+                          <span className="hidden sm:block" />
+                        ))}
                       {canCosts && (
                         <>
-                          <Field
-                            className="sm:col-start-3"
-                            label={ta("f_price")}
-                            hint={pack ? ta("price_per_pack", { p: pack.label || formatQty(pack.qty, lang) }) : ta("price_each")}
-                          >
+                          <div className="flex min-w-0 flex-col gap-1.5">
+                            <span className="text-xs text-muted-foreground sm:hidden">{ta("f_price")}</span>
                             {canPurchase ? (
-                              <MoneyInput value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} />
+                              <MoneyInput aria-label={ta("f_price")} value={prices[l.id] ?? ""} onValueChange={(v) => setPrices((p) => ({ ...p, [l.id]: v }))} />
                             ) : (
                               <span className="flex h-9 items-center justify-end tabular-nums">{unit != null ? formatUnitCost(unit * per) : "—"}</span>
                             )}
-                          </Field>
+                            <span className="text-xs text-muted-foreground">
+                              {pack ? ta("price_per_pack", { p: pack.label || formatQty(pack.qty, lang) }) : ta("price_each")}
+                            </span>
+                          </div>
                           {/* Total: en el teléfono, al lado del precio si no hay «Recibir»; si lo hay, en su propia fila. */}
-                          <div className={`flex min-w-0 flex-col gap-1.5 sm:col-span-1 ${receiving && !done ? "col-span-2" : ""}`}>
-                            <span className="text-right text-xs text-muted-foreground">{ta("f_total")}</span>
-                            <span className="flex h-9 items-center justify-end font-medium tabular-nums">{unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}</span>
+                          <div
+                            className={`flex min-w-0 gap-1.5 sm:col-span-1 sm:flex-col ${showReceive ? "col-span-2 items-center justify-between border-t border-border pt-2 sm:border-0 sm:pt-0" : "flex-col"}`}
+                          >
+                            <span className={`text-xs text-muted-foreground sm:hidden ${showReceive ? "" : "text-right"}`}>{ta("f_total")}</span>
+                            <span className={`flex items-center justify-end font-medium tabular-nums sm:h-9 ${showReceive ? "" : "h-9"}`}>
+                              {unit != null ? formatCents(Math.round(unit * l.qty)) : "—"}
+                            </span>
                           </div>
                         </>
                       )}
