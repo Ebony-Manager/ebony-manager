@@ -5,6 +5,7 @@
 
 | Fecha aviso | Commit | Pantallas | Revisado |
 |---|---|---|---|
+| 17 nov | `78a0436` | Solo reglas: `UI-RULES.md` agrega «fotos de personas en listas» (`EmployeeAvatar`/`ContractorAvatar`, miniatura con `photoUrl(..., THUMB_WIDTH)`, ruta en la misma consulta). Sumar a la lista de verificación. Próximo pedido probable de Carlos: foto de quién tiene cada herramienta en Almacén → Herramientas (aplicar esta regla). | — |
 
 ## Notas sueltas vistas en capturas
 - ~~17 nov · Almacén → Salidas: «Sin Stock» / «Bajo Stock» con mayúscula~~ — **hecho 17 nov** (Carlos lo pidió): pasan a
