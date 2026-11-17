@@ -1,5 +1,5 @@
 import { requireModule } from "@/lib/auth/dal";
-import { hasAnyModule, hasModule } from "@/lib/auth/modules";
+import { hasModule } from "@/lib/auth/modules";
 import { getInventoryPeople, getTools, getWarehouseProjects } from "@/services/almacen";
 import { ToolsView } from "./tools-view";
 
@@ -12,18 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function HerramientasPage() {
   const profile = await requireModule("almacen");
   const [{ tools, loans }, people, projects] = await Promise.all([getTools(), getInventoryPeople(), getWarehouseProjects()]);
-  // La foto de perfil solo se muestra a quien Storage deja leerla (mismas reglas que los buckets):
-  // empleados con Planilla o Documentos; contratistas con Contratistas o Documentos. Los demás ven la inicial.
-  const seesEmployeePhotos = hasAnyModule(profile, ["planilla", "documentos"]);
-  const seesContractorPhotos = hasAnyModule(profile, ["contratistas", "documentos"]);
-  const shownPeople = people.map((p) =>
-    (p.kind === "empleado" ? seesEmployeePhotos : seesContractorPhotos) ? p : { ...p, photoPath: null },
-  );
+  // Las fotos de perfil (quién tiene cada herramienta) las puede leer quien tiene Almacén:
+  // regla de Storage en 20261117130000_fotos_personal_almacen.sql.
   return (
     <ToolsView
       tools={tools}
       loans={loans}
-      people={shownPeople}
+      people={people}
       projects={projects}
       canEdit={hasModule(profile, "almacen_ajustes") || hasModule(profile, "almacen_compras") || hasModule(profile, "almacen_herramientas")}
       canChangeStatus={hasModule(profile, "almacen_ajustes") || hasModule(profile, "almacen_compras")}
