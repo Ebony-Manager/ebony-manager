@@ -32,7 +32,7 @@ Falta, en tandas y con visto bueno de Carlos:
    `setError` en la app (guardia en 0). Las acciones refrescan Usuarios y la ficha de Personal (sin `router.refresh()` doble).
 3. **Inspecciones**, **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
-5. Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026») → mostrarla en el idioma de la app.
+5. ~~Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026»)~~ — **descartado 17 nov por Carlos**: los campos de fecha se quedan como los muestra el teléfono o el navegador; no es un problema. No volver a proponerlo.
 6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
 8. ~~**Cabos sueltos de lo ya barrido (Almacén y Personal)**~~ — **hecho 17 nov** (Carlos lo pidió al ver Compras): revisión
    con capturas de teléfono y computadora de cada pantalla y ventana de Almacén, y de Personal/Pagos. Arreglado: columnas
@@ -151,6 +151,6 @@ Preguntas abiertas: ¿correo con resumen o solo la sesión? ¿Tarea diaria condi
 - Barrido de consistencia: Directorio (el formulario de proveedor aún usa `setError`), Settings (`user-form-dialog`, `remove-user-dialog`
   usan `setError`; íconos de permisos en Usuarios), Inspecciones, Proyectos, Cotización; filtros sin ícono que queden.
 - `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección (decidir qué token usar).
-- Fecha del formulario de contrato sale en inglés («Nov 13, 2026») según el idioma del iPhone: mostrarla en el idioma de la app.
+- ~~Fecha del formulario de contrato en inglés según el iPhone~~ — descartado por Carlos (17 nov).
 - Encabezado del teléfono (rediseño en pausa) y selector de etapas de Compras (decisión pendiente).
 - Contrato en $0.00 duplicado («Panelado puerta de baño y closet», Wilson Castro): lo revisa Carlos, no se borra desde acá.
