@@ -17,6 +17,7 @@
 | Un grupo de campos o un bloque de una ficha, con ícono y título | `<FormSection icon title note? action? quiet?>` 🛡️ | `shared/form-section` |
 | Un estado (sin stock, bajo stock, pendiente…) | `<StatusBadge status>` y, en el filtro, el mismo ícono y tono (`STATUS`, `TONE_TEXT`) | `shared/status-badge`, `lib/ui/status` |
 | Validar un formulario | `useFormErrors` + `<Field error>` | `lib/ui/use-form-errors` |
+| Foto de una persona (empleado, contratista) en una lista o ficha | `EmployeeAvatar` / `ContractorAvatar` con `photoUrl(bucket, ruta, THUMB_WIDTH)`: dirección fija en miniatura que el navegador guarda; sin foto, la inicial | `lib/photo-url` |
 | Cerrar un diálogo con cosas escritas | `useDiscardGuard` (+ `useFormBaseline` cuando el formulario se llena al abrir: marca «cómo estaba» después de llenarse, así solo pregunta si hubo cambios) | `shared/discard-guard` |
 | El ícono de un concepto (proyecto, cliente, responsable, fecha…) | `ICON.x` | `lib/ui/concepts` |
 | Fecha u hora | `<Input type="date">` — nunca `<input>` crudo 🛡️ | `ui/input` |
@@ -53,6 +54,7 @@
 - **Un mensaje, una redacción**: cortos y concretos ("Falta el nombre.", "Elige el motivo de pérdida.").
 - **Cambios sin guardar**: al cerrar un diálogo con cosas escritas (tocar afuera, Cancelar, Esc) se pregunta "¿Descartar los cambios?" (`useDiscardGuard`). Al guardar bien se cierra sin preguntar. **Si no se cambió nada, no pregunta**: cuando el formulario se llena con datos al abrir, usar `useFormBaseline` (nunca anotar «cómo estaba» en el mismo efecto que lo llena, porque ve el estado viejo).
 - **Vocabulario de dinero (contratos y pagos)**: **Acordado** (valor), **Abonado** (pagado), **Pendiente** (acordado − abonado; nunca «Falta»), **Descuentos**, **Saldo** (pendiente − descuentos; negativo = le debe a Ebony, sin etiqueta extra), **A pagar** (lo que sale en esta quincena).
+- **Fotos sin gastar de más**: la ruta de la foto se trae **en la misma consulta** de la lista (un join, ej. `contractors(name, photo_path)`), nunca una consulta por persona; se muestra con `photoUrl(…, THUMB_WIDTH)` (dirección fija y en caché, no una URL firmada por fila), y solo la miniatura en listas (la foto completa, solo en la ficha).
 - **Refrescar después de guardar**: si la acción del servidor ya hace `revalidatePath` de la pantalla, **no** llamar además `router.refresh()` (arma la pantalla dos veces y duplica las consultas).
 
 ## 4. Protocolo para toda pantalla nueva o cambiada
