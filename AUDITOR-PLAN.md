@@ -1,5 +1,9 @@
 # Plan: auditor de reglas (pendiente — retomar el miércoles 18 nov 2026)
 
+> **Dónde vive (17 nov):** en la sesión dedicada **«Auditor de diseño»**. Cada **miércoles a las 8:59 (hora de Panamá)**
+> le llega un aviso; la sesión **pregunta primero a Carlos si hay uso disponible** y solo arranca con su sí. La primera vez
+> hace la auditoría completa (pasos de abajo); después, solo lo que cambió desde el último commit auditado (`AUDIT.md`).
+
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la
 > sesión antes del reinicio del jueves 19 nov. Si el miércoles sobra uso, se hace; si no, se pasa al siguiente ciclo.
 
