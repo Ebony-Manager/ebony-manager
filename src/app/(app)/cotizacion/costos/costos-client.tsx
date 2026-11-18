@@ -23,6 +23,10 @@ import {
 } from "@/types/cotizador";
 import { createCatalogItemAction, updateCatalogItemAction, updateCostInputAction } from "../actions";
 import { NumField } from "../num-field";
+import { Field } from "@/components/shared/field";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { PAGE_CLASS, PageHeader, ShowToggle } from "@/components/shared/page-header";
 
 const CATEGORIES = [...EBONY_CATEGORIES.filter((c) => c !== "libre"), ...SUB_CATEGORIES] as CatalogCategory[];
@@ -99,8 +103,12 @@ export function CostosClient({
     return key in strings.cotizador ? tt(key) : i.label;
   };
 
+  const [addBusy, setAddBusy] = React.useState(false);
+  const { error, validate, clear } = useFormErrors<"name">();
+
   async function onAdd() {
-    if (!draft.name.trim()) return;
+    if (!validate([["name", !draft.name.trim(), tt("cost_name_required")]])) return;
+    setAddBusy(true);
     try {
       const created = await createCatalogItemAction({
         name: draft.name.trim(),
@@ -117,6 +125,8 @@ export function CostosClient({
       toast.success(tt("cost_item_added"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setAddBusy(false);
     }
   }
 
@@ -125,8 +135,7 @@ export function CostosClient({
   const parts = currentRecipe ? recipeParts(currentRecipe, ins) : null;
 
   const panel = "overflow-hidden rounded-lg border border-border bg-card";
-  const panelTitle = "border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
-  const formInput = "h-8 min-w-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:border-ring";
+  const panelTitle = "border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground";
 
   const inputList = (kind: CostInput["kind"]) =>
     inputs
@@ -168,47 +177,64 @@ export function CostosClient({
       <ShowToggle className="-mt-2 self-end" checked={showInactive} onChange={setShowInactive} label={tt("cost_show_inactive")} />
 
       {adding && (
-        <div className={cn(panel, "flex flex-wrap items-end gap-2.5 p-3.5")}>
-          <label className="flex min-w-0 flex-[2_1_220px] flex-col gap-1 text-[11px] font-medium text-foreground/80">
-            {tt("cost_col_item")}
-            <input autoFocus className={formInput} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.currentTarget.value })} />
-          </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
-            {tt("cost_col_category")}
-            <select className={formInput} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.currentTarget.value as CatalogCategory })}>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {tt(`cat_${c}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
-            {tt("cost_col_finish")}
-            <select className={formInput} value={draft.finish} onChange={(e) => setDraft({ ...draft, finish: e.currentTarget.value as Finish | "" })}>
-              <option value="">—</option>
-              {(["aglomerado", "blanco", "pintado", "chapilla"] as const).map((f) => (
-                <option key={f} value={f}>
-                  {tt(`finish_${f}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
-            {tt("cost_col_unit")}
-            <select className={formInput} value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.currentTarget.value as Unit })}>
-              {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
-                <option key={u} value={u}>
-                  {UNIT_LABEL[u]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-foreground/80">
-            {tt("cost_col_quote_price")}
-            <NumField value={draft.price} onChange={(n) => setDraft({ ...draft, price: n })} prefix="$" inputWidth={64} className="h-8" />
-          </label>
-          <Button size="sm" onClick={onAdd} disabled={!draft.name.trim()}>
+        <div className={cn(panel, "flex flex-wrap items-start gap-2.5 p-3.5 [&>button]:mt-[22px]")}>
+          <Field label={tt("cost_col_item")} required error={error("name")} className="flex-[2_1_220px]">
+            <Input
+              autoFocus
+              value={draft.name}
+              onChange={(e) => {
+                setDraft({ ...draft, name: e.currentTarget.value });
+                clear("name");
+              }}
+            />
+          </Field>
+          <Field label={tt("cost_col_category")} className="flex-[1_1_140px]">
+            <Select value={draft.category} onValueChange={(v) => setDraft({ ...draft, category: v as CatalogCategory })}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {tt(`cat_${c}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={tt("cost_col_finish")} className="flex-[1_1_140px]">
+            <Select value={draft.finish || "none"} onValueChange={(v) => setDraft({ ...draft, finish: v === "none" ? "" : (v as Finish) })}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {(["aglomerado", "blanco", "pintado", "chapilla"] as const).map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {tt(`finish_${f}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={tt("cost_col_unit")} className="flex-[0_1_110px]">
+            <Select value={draft.unit} onValueChange={(v) => setDraft({ ...draft, unit: v as Unit })}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(UNIT_LABEL) as Unit[]).map((u) => (
+                  <SelectItem key={u} value={u}>
+                    {UNIT_LABEL[u]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={tt("cost_col_quote_price")} className="flex-[0_1_130px]">
+            <NumField value={draft.price} onChange={(n) => setDraft({ ...draft, price: n })} prefix="$" inputWidth={64} className="h-9 justify-between" aria-label={tt("cost_col_quote_price")} />
+          </Field>
+          <Button size="sm" className="h-9" onClick={onAdd} disabled={addBusy}>
             {tt("cost_add_confirm")}
           </Button>
         </div>
@@ -218,7 +244,7 @@ export function CostosClient({
         <div className={cn(panel, "overflow-x-auto")}>
           <table className="w-full min-w-[620px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
+              <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="px-3 py-2 text-left font-semibold">{tt("cost_col_item")}</th>
                 <th className="px-3 py-2 text-left font-semibold">{tt("cost_col_unit")}</th>
                 <th className="px-3 py-2 text-right font-semibold">{tt("cost_col_calc")}</th>

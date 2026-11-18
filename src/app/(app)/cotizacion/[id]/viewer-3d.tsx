@@ -93,7 +93,7 @@ export function Viewer3D({
   return (
     <div className="rounded-lg overflow-hidden border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-        <h2 className="text-[11px] font-semibold tracking-[0.08em] text-primary uppercase">{tt("viewer_title")}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{tt("viewer_title")}</h2>
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <span>{tt("viewer_paint")}</span>
           {PAINTS.map((p) => (

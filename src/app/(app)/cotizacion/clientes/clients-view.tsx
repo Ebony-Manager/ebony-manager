@@ -99,7 +99,12 @@ export function ClientsView({ clients, opportunities, projects, quotes }: { clie
                     <span className="text-xs text-muted-foreground">{[c.company, c.phone, c.contacts.map((k) => k.name).join(", ")].filter(Boolean).join(" · ")}</span>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    {stats.opportunities.length} {tv("cli_opps").toLowerCase()} · {tv("cli_approved")} {formatMoney(stats.approved)}
+                    {[
+                      stats.opportunities.length === 1 ? tv("cli_quotes_1") : tv("cli_quotes_n").replace("{n}", String(stats.opportunities.length)),
+                      stats.approved ? `${tv("cli_approved")} ${formatMoney(stats.approved)}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </span>
                 </button>
               </li>

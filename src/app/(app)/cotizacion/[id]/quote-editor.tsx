@@ -17,6 +17,8 @@ import {
   syncDraftPrices,
 } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
+import { formatDateCompact } from "@/lib/planilla/format";
+import { Field } from "@/components/shared/field";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
@@ -462,19 +464,14 @@ export function QuoteEditor({
 
   const statusLabel = (s: QuoteStatus) => tt(`status_${s}`);
   const canStatus = isPersisted && !statusBusy && !conflict;
-  const shortDate = (iso: string) =>
-    new Date(`${iso}T12:00:00`).toLocaleDateString(
-      lang === "en" ? "en-US" : "es-PA",
-      { day: "numeric", month: "short" },
-    );
-  const panelTitle =
-    "text-[11px] font-semibold tracking-[0.08em] text-primary uppercase";
+  const shortDate = (iso: string) => formatDateCompact(lang, iso);
+  const panelTitle = "text-sm font-semibold text-foreground";
   const money = "text-right tabular-nums";
 
   const nameCell = (s: Pick<QuoteSection, "location" | "name">) => (
     <span className="flex min-w-0 items-baseline gap-1.5">
       {s.location && (
-        <span className="text-[10px] tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="text-xs text-muted-foreground">
           {s.location}
         </span>
       )}
@@ -1050,8 +1047,8 @@ export function QuoteEditor({
                 </fieldset>
               </div>
 
-            <label className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5">
-              <span className={panelTitle}>{tt("f_notes")}</span>
+            <div className="rounded-lg border border-border bg-card p-3.5">
+              <Field label={tt("f_notes")}>
               <Textarea
                 disabled={locked}
                 value={quote.notes}
@@ -1059,7 +1056,8 @@ export function QuoteEditor({
                 placeholder={tt("f_notes_ph")}
                 rows={3}
               />
-            </label>
+              </Field>
+            </div>
             </aside>
           </div>
         </div>

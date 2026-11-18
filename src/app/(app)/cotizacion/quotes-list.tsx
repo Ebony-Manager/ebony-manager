@@ -5,7 +5,7 @@ import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BellRing, Copy, FileText, List, Plus, Trash2 } from "lucide-react";
+import { BellRing, Calculator, Copy, FileText, List, Plus, Trash2 } from "lucide-react";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import toast from "react-hot-toast";
 
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/cotizador/pricing";
 import { quoteWho } from "@/lib/cotizador/owner";
 import { useLang } from "@/context/language-context";
+import { formatDateCompact } from "@/lib/planilla/format";
 import { t, strings } from "@/lib/i18n";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "@/types/cotizador";
 import { deleteQuoteAction, duplicateQuoteAction } from "./actions";
@@ -90,7 +91,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
         {tt("follow_up_due")}
       </span>
     ) : null;
-  const date = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "2-digit", month: "short", year: "numeric" });
+  const date = (iso: string) => formatDateCompact(lang, iso);
 
   return (
     <div className={PAGE_CLASS}>
@@ -100,8 +101,11 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
         action={
           <>
             {canEditCosts && (
-              <Button size="sm" variant="ghost" asChild>
-                <Link href="/cotizacion/costos">{tt("costs_link")}</Link>
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/cotizacion/costos">
+                  <Calculator className="size-3.5" />
+                  {tt("costs_link")}
+                </Link>
               </Button>
             )}
             <Button size="sm" onClick={onNew} disabled={busy === "new"}>

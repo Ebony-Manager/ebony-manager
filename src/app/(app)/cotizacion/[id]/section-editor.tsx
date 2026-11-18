@@ -19,6 +19,7 @@ import { NumField } from "../num-field";
 import { LineRow } from "./line-row";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/shared/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { locationKey } from "@/lib/cotizador/items";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -178,7 +179,7 @@ export function SectionEditor({
     return (
       <section key={key} className={cn("rounded-lg overflow-hidden border", st.rule, st.body)}>
         <button type="button" aria-expanded={open[key]} onClick={() => onToggle(key)} className={cn("flex w-full items-center justify-between gap-3 px-3 py-2 text-left", st.head)}>
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em] uppercase">
+          <span className="flex items-center gap-1.5 text-xs font-semibold">
             <ChevronRight className={cn("size-3.5 transition-transform", open[key] && "rotate-90")} />
             {title}
           </span>
@@ -215,7 +216,6 @@ export function SectionEditor({
     </button>
   );
 
-  const fieldLabel = "flex min-w-0 flex-col gap-1.5 text-xs font-medium text-foreground/80";
   const direct = section.priceMode === "direct";
   // Al pasar a precio directo, arranca con el precio que tenía calculado (por unidad).
   const setMode = (mode: ItemPriceMode) =>
@@ -232,21 +232,17 @@ export function SectionEditor({
           { value: "direct", label: tt("mode_direct") },
         ]}
       />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_110px_minmax(0,150px)]">
-        <div className={fieldLabel}>
-          <label htmlFor={`loc-${section.id}`}>{tt("sec_location")}</label>
-          <LocationInput id={`loc-${section.id}`} value={section.location} options={locations} placeholder={tt("sec_location_ph")} onChange={(v) => patch({ location: v })} />
-        </div>
-        <label className={fieldLabel}>
-          {tt("sec_name")}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_110px_minmax(0,150px)]">
+        <Field label={tt("sec_location")}>
+          <LocationInput value={section.location} options={locations} placeholder={tt("sec_location_ph")} onChange={(v) => patch({ location: v })} />
+        </Field>
+        <Field label={tt("sec_name")}>
           <Input value={section.name} placeholder={tt("sec_name_ph")} onChange={(e) => patch({ name: e.currentTarget.value })} />
-        </label>
-        <label className={fieldLabel}>
-          {tt("sec_qty")}
+        </Field>
+        <Field label={tt("sec_qty")}>
           <NumField value={section.qty} onChange={(n) => patch({ qty: n > 0 ? n : 1 })} suffix="u" inputWidth={40} className="h-9 justify-between" aria-label={tt("sec_qty")} />
-        </label>
-        <div className={fieldLabel}>
-          <span>{tt("sec_kind")}</span>
+        </Field>
+        <Field label={tt("sec_kind")}>
           <Select value={section.kind} onValueChange={(v) => patch({ kind: v })}>
             <SelectTrigger className="w-full" aria-label={tt("sec_kind")}>
               <SelectValue />
@@ -261,19 +257,17 @@ export function SectionEditor({
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <label className={cn(fieldLabel, "col-span-2 md:col-span-4")}>
-          {tt("sec_description")}
+        </Field>
+        <Field label={tt("sec_description")} className="min-[480px]:col-span-2 md:col-span-4">
           <AutoTextarea value={section.description} onChange={(v) => patch({ description: v })} placeholder={tt("sec_description_ph")} />
-        </label>
+        </Field>
       </div>
       {extra}
 
       {direct ? (
         <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <label className={fieldLabel}>
-              {tt("direct_price")}
+            <Field label={tt("direct_price")}>
               <NumField
                 value={section.directPrice}
                 onChange={(n) => patch({ directPrice: n > 0 ? n : 0 })}
@@ -282,7 +276,7 @@ export function SectionEditor({
                 className="h-9 justify-between"
                 aria-label={tt("direct_price")}
               />
-            </label>
+            </Field>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">
                 {tt("direct_total")}
@@ -376,7 +370,7 @@ export function SectionEditor({
  * Ubicación: se escribe libre, pero al escribir se ofrecen las que ya están
  * en la cotización ("Rec #8"), para no tener la misma escrita de dos formas.
  */
-function LocationInput({ id, value, options, placeholder, onChange }: { id: string; value: string; options: string[]; placeholder: string; onChange: (v: string) => void }) {
+function LocationInput({ id, value, options, placeholder, onChange }: { id?: string; value: string; options: string[]; placeholder: string; onChange: (v: string) => void }) {
   const [open, setOpen] = React.useState(false);
   const key = locationKey(value);
   const shown = options.filter((o) => locationKey(o) !== key && (!key || locationKey(o).includes(key))).slice(0, 8);

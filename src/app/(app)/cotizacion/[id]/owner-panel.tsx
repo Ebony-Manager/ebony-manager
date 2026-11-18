@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/shared/field";
 import {
   Popover,
   PopoverContent,
@@ -189,10 +190,10 @@ export function OwnerPanel({
   return (
     <section className="flex basis-full flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           {tt("own_title")}
           {hasOwner && (
-            <button type="button" onClick={() => setOpen(false)} className="rounded-md px-1.5 py-0.5 text-[11px] font-medium tracking-normal text-primary normal-case hover:bg-muted">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-md px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-muted">
               {tt("own_done")}
             </button>
           )}
@@ -309,8 +310,7 @@ export function OwnerPanel({
         )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {tt("own_firm")}
+          <Field label={tt("own_firm")}>
             <ClientPicker
               clients={clients}
               kind="arquitecto"
@@ -334,9 +334,8 @@ export function OwnerPanel({
                 anyLabel={tv("contact_any")}
               />
             )}
-          </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {tt("own_end_client")}
+          </Field>
+          <Field label={tt("own_end_client")}>
             <ClientPicker
               clients={clients}
               kind="cliente"
@@ -346,9 +345,8 @@ export function OwnerPanel({
               onCreate={async (name) => setNewClient({ name, kind: "cliente" })}
               placeholder={tv("pick_client")}
             />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
-            {tt("own_reference")}
+          </Field>
+          <Field label={tt("own_reference")} className="sm:col-span-2">
             <Input
               value={quote.projectName}
               placeholder={tt("own_reference_ph")}
@@ -358,7 +356,7 @@ export function OwnerPanel({
                 })
               }
             />
-          </label>
+          </Field>
         </div>
       )}
 

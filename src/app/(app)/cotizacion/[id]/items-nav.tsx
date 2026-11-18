@@ -76,11 +76,11 @@ export function ItemsPanel({ sections, currentId, onSelect, locked, onAdd, onDup
                     return next;
                   })
                 }
-                className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase hover:bg-muted/50"
+                className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs font-semibold text-muted-foreground hover:bg-muted/50"
               >
                 <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", !isClosed && "rotate-90")} />
                 <span className="min-w-0 flex-1 truncate">{g.label || tt("sec_no_location")}</span>
-                <span className="font-normal tabular-nums normal-case">{formatMoney(g.total)}</span>
+                <span className="font-normal tabular-nums">{formatMoney(g.total)}</span>
               </button>
               {!isClosed && (
                 <ul className="flex flex-col gap-0.5 pl-1.5">
@@ -197,7 +197,7 @@ export function ItemTabs(props: ItemsNavProps) {
                 active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card",
               )}
             >
-              <span className={cn("truncate text-[10px] tracking-[0.08em] uppercase", active ? "text-primary-foreground/70" : "text-muted-foreground")}>{s.location || tt("sec_no_location")}</span>
+              <span className={cn("truncate text-[11px]", active ? "text-primary-foreground/70" : "text-muted-foreground")}>{s.location || tt("sec_no_location")}</span>
               <span className="truncate text-sm leading-tight font-semibold">
                 {s.name || tt("sec_unnamed")}
                 {qtyLabel(s) && <span className="ml-1 font-normal">{qtyLabel(s)}</span>}
