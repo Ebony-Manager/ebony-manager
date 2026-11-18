@@ -1,4 +1,5 @@
-// Run from any directory: node scripts/generate-icons.mjs
+// Run from any directory: ICON_THEME=light node scripts/generate-icons.mjs   (Carlos eligió la versión blanca, 18 nov 2026)
+// El favicon.ico (16/32/48) sale de iconSvg(tamaño, THEMES.light, 0.7), uno por tamaño.
 // Íconos de la app (iPhone, Android, pestaña del navegador), hechos desde cero y nítidos: la «n» de Ebony
 // (el isotipo del logo, mismas proporciones que src/components/brand/ebony-logo.tsx) se vuelve a dibujar
 // para CADA tamaño con sus bordes rectos en píxeles enteros, así no quedan columnas grises (lo borroso).
@@ -30,7 +31,7 @@ export function iconSvg(size, { bg, fg }, fill = 0.56, radius = 0) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const theme = THEMES[process.env.ICON_THEME ?? "dark"];
+  const theme = THEMES[process.env.ICON_THEME ?? "light"];
   const png = (size, fill = 0.56) => sharp(Buffer.from(iconSvg(size, theme, fill))).png({ compressionLevel: 9 }).toBuffer();
   const root = new URL("../", import.meta.url);
   await mkdir(new URL("public/icons/", root), { recursive: true });

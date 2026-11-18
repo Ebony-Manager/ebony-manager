@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 /**
  * Manifiesto de la app instalable (PWA): con esto "Agregar a pantalla de
  * inicio" la abre a pantalla completa, sin la barra del navegador, con su
- * ícono y nombre. Los íconos salen de src/app/icon.svg (public/icons/).
+ * ícono y nombre. Los íconos los genera scripts/generate-icons.mjs (ICON_THEME=light).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -21,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
