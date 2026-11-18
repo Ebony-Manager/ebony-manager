@@ -51,7 +51,7 @@ export function PageHeader({
     <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
       <div className="min-w-0 flex-1 basis-40">
         {back && <BackLink href={back.href} label={back.label} className="mb-1" />}
-        {showCrumbs && <p className="mb-0.5 hidden text-xs text-muted-foreground md:block">{path.slice(0, -1).join(" / ")}</p>}
+        {showCrumbs && <p className="mb-0.5 hidden text-xs text-muted-foreground lg:block">{path.slice(0, -1).join(" / ")}</p>}
         <h1 className="flex flex-wrap items-center gap-x-2 text-xl font-semibold text-foreground">
           {title}
           {meta && <span className="text-sm font-normal text-muted-foreground">{meta}</span>}

@@ -71,13 +71,13 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={onClose} />}
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={onClose} />}
 
       <div
         className={`
           fixed top-0 left-0 h-full z-30 flex print:hidden
           transition-transform duration-200 ease-in-out
-          md:relative md:translate-x-0 md:z-auto
+          lg:relative lg:translate-x-0 lg:z-auto
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -87,7 +87,7 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
             onClick={onClose}
             aria-label={t(lang, strings.nav.close_menu)}
             title={t(lang, strings.nav.close_menu)}
-            className="md:hidden absolute top-1.5 right-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground"
+            className="lg:hidden absolute top-1.5 right-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground"
           >
             <X size={14} />
           </button>

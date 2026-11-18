@@ -51,10 +51,17 @@ const browser = await chromium.launch();
 // La app se desplaza por dentro (no la página), así que «página completa» no baja: TALL=1 usa una
 // ventana muy alta para ver la pantalla entera de una vez.
 const tall = !!process.env.TALL;
-const sizes = [
-  ["tel", { width: 390, height: tall ? 3200 : 844 }],
-  ["esc", { width: 1440, height: tall ? 2400 : 900 }],
-];
+// SIZES="tab:768x1024,tabh:1024x768" cambia los tamaños (ej. tablet vertical y acostada).
+const sizes = process.env.SIZES
+  ? process.env.SIZES.split(",").map((x) => {
+      const [tag, dim] = x.split(":");
+      const [width, height] = dim.split("x").map(Number);
+      return [tag, { width, height }];
+    })
+  : [
+      ["tel", { width: 390, height: tall ? 3200 : 844 }],
+      ["esc", { width: 1440, height: tall ? 2400 : 900 }],
+    ];
 for (const [tag, viewport] of sizes) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: "es-PA" });
   await ctx.addCookies(cookies);

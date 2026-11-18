@@ -44,7 +44,7 @@ function dismissedRecently(): boolean {
 /** Qué mostrar: nada si ya es app instalada, en computadora o si se dijo "Ahora no" hace poco. */
 function currentMode(): Mode {
   const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
-  if (standalone || window.matchMedia("(min-width: 768px)").matches || dismissedRecently()) return "hidden";
+  if (standalone || window.matchMedia("(min-width: 1024px)").matches || dismissedRecently()) return "hidden";
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
   if (ios) return "ios";
@@ -54,7 +54,7 @@ function currentMode(): Mode {
 
 function subscribe(onChange: () => void) {
   window.addEventListener(CHANGE, onChange);
-  const mq = window.matchMedia("(min-width: 768px)");
+  const mq = window.matchMedia("(min-width: 1024px)");
   mq.addEventListener("change", onChange);
   return () => {
     window.removeEventListener(CHANGE, onChange);

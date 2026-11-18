@@ -14,7 +14,7 @@ import { syncPushSubscription } from "@/lib/notifications/push-sync";
 /**
  * Client chrome for the protected area. Desktop: the rail on the left, no
  * top bar — the profile/language/sign-out menu lives at the bottom of the
- * rail (user-menu.tsx). Mobile (< md): a top bar with the section (and its
+ * rail (user-menu.tsx). Phone and portrait tablet (< lg, 1024px): a top bar with the section (and its
  * tabs), a bottom tab bar with the modules, and "Más" opens the whole menu
  * (with names) plus the profile preferences as a bottom sheet. The content scrolls inside <PullToRefresh> (pull down to
  * refresh). The auth gate itself lives in the (app) server layout.

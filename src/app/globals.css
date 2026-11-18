@@ -450,7 +450,7 @@ input[type="number"] {
 
 /* =============================================================================
    CELULAR / APP INSTALADA
-   - --mobile-nav-h: alto de la barra de navegación de abajo (solo < md).
+   - --mobile-nav-h: alto de la barra de navegación de abajo (solo < lg: teléfono y tablet vertical).
      --app-bottom: lo que ocupa esa barra más la zona de gestos del teléfono;
      lo usan las barras fijas de abajo (ej. el carrito de Salidas) para
      quedar encima de ella.
@@ -463,7 +463,7 @@ input[type="number"] {
   --mobile-nav-h: 0px;
   --app-bottom: 0px;
 }
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   :root {
     --mobile-nav-h: 3.5rem;
     --app-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
@@ -523,9 +523,9 @@ a,
   }
 }
 
-/* En el celular la barra de arriba ya dice la sección y sus pestañas: la
+/* En el celular y la tablet vertical la barra de arriba ya dice la sección y sus pestañas: la
    ruta "Personal / Staff" de cada pantalla sobra y se oculta. */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   main nav[aria-label="breadcrumb"] {
     display: none;
   }

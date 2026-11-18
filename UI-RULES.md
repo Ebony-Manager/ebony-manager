@@ -44,7 +44,7 @@
 - **Estados con ícono y tono, definidos una sola vez** (`lib/ui/status.ts`). La etiqueta de una fila y la opción del filtro del mismo estado usan el mismo ícono y tono; el color nunca es la única señal.
 - **Las acciones de un bloque van en su encabezado** (`action=` de `FormSection`), no sueltas debajo.
 - **Lo secundario o ya lleno por defecto** va en un `FormSection quiet` (fondo tenue) para que lo principal resalte.
-- **Web y celular iguales**: se prueba en 390 px de ancho además de escritorio. Las cuadrículas de formulario llevan `min-w-0` en cada celda (ya lo trae `Field`).
+- **Web y celular iguales**: se prueba en 390 px de ancho además de escritorio. Teléfono y **tablet vertical (< 1024 px)** usan la forma de app (barras arriba y abajo, «Más»); desde 1024 px (tablet acostada, computadora), el menú de la izquierda. El cambio de forma usa `lg:`, no `md:`. Las cuadrículas de formulario llevan `min-w-0` en cada celda (ya lo trae `Field`).
 - **Textos en `src/lib/i18n.ts`**, siempre en español e inglés.
 
 ## 3. Validación de formularios

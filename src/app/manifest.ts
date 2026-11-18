@@ -14,7 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
+    // Sin bloquear: la tablet (y el teléfono) giran; acostada, la tablet usa la forma de computadora.
+    orientation: "any",
     lang: "es",
     background_color: "#fdfdff",
     theme_color: "#fdfdff",
