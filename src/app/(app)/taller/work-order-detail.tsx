@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Ban, CheckCircle2, Download, FileText, History, Paperclip, Pencil, Play, RotateCcw, X } from "lucide-react";
+import { Ban, CheckCircle2, Download, FileText, History, Palette, Paperclip, Pencil, Play, RotateCcw, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,10 @@ import { EmptyState } from "@/components/shared/page-header";
 import { FormSection } from "@/components/shared/form-section";
 import { LoadingBlock } from "@/components/shared/loading-block";
 import { formatDateCompact } from "@/lib/planilla/format";
-import { WORK_ORDER_FILE_MAX, type TallerPerson, type WorkOrder, type WorkOrderEvent, type WorkOrderStatus } from "@/types/taller";
+import { WORK_ORDER_FILE_MAX, type TallerPainter, type TallerPerson, type VeneerType, type WorkOrder, type WorkOrderEvent, type WorkOrderStatus } from "@/types/taller";
 import { deleteWorkOrderAction, getWorkOrderEventsAction, removeWorkOrderFileAction, setWorkOrderStatusAction } from "./actions";
-import { PersonAvatar, WorkStatusBadge, formatSize, isOverdue, statusLabel, uploadWorkOrderFiles, useTt } from "./shared";
+import { SampleSection, sampleReady } from "./sample-section";
+import { PainterAvatar, PersonAvatar, WorkStatusBadge, formatSize, isOverdue, statusLabel, uploadWorkOrderFiles, useTt } from "./shared";
 
 /**
  * La ficha de un trabajo: de qué es, quién lo hace y para cuándo, sus archivos para descargar, el botón grande del
@@ -22,11 +23,15 @@ import { PersonAvatar, WorkStatusBadge, formatSize, isOverdue, statusLabel, uplo
 export function WorkOrderDetail({
   order,
   people,
+  painters = [],
+  veneers = [],
   onClose,
   onEdit,
 }: {
   order: WorkOrder | null;
   people: TallerPerson[];
+  painters?: TallerPainter[];
+  veneers?: VeneerType[];
   onClose: () => void;
   onEdit: (order: WorkOrder) => void;
 }) {
@@ -35,7 +40,7 @@ export function WorkOrderDetail({
   const [events, setEvents] = React.useState<WorkOrderEvent[] | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const orderId = order?.id ?? null;
-  const updatedKey = order ? `${order.status}:${order.files.length}:${order.title}` : "";
+  const updatedKey = order ? `${order.status}:${order.files.length}:${order.title}:${order.assigneeContractorId}` : "";
 
   // El historial se pide al abrir (y cuando el trabajo cambia), no con la lista.
   React.useEffect(() => {
@@ -50,7 +55,12 @@ export function WorkOrderDetail({
   }, [orderId, updatedKey]);
 
   if (!order) return null;
+  const isSample = order.kind === "muestra";
   const person = people.find((p) => p.employeeId === order.assigneeId);
+  const painter = painters.find((p) => p.contractorId === order.assigneeContractorId);
+  const ownFiles = order.files.filter((f) => !f.sampleId);
+  // Una muestra solo se marca lista con su foto terminada (y el código oficial si es de paleta).
+  const blocked = isSample && order.status === "en_proceso" && !sampleReady(order);
   const nameOfUser = (userId: string | null) => (userId ? people.find((p) => p.userId === userId)?.name : undefined) ?? tt("someone");
   const late = isOverdue(order);
 
@@ -127,21 +137,33 @@ export function WorkOrderDetail({
 
         <div className="flex flex-wrap items-center gap-2">
           <WorkStatusBadge status={order.status} tt={tt} />
-          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{tt("kind_cnc")}</span>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{isSample ? tt("kind_muestra") : tt("kind_cnc")}</span>
           {late && <span className="text-xs font-medium text-destructive">{tt("overdue")}</span>}
         </div>
 
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <Info label={tt("f_project")} value={order.projectName ?? tt("internal")} />
-          <Info
-            label={tt("f_assignee")}
-            value={
-              <span className="flex items-center gap-1.5">
-                <PersonAvatar person={person} />
-                {person?.name ?? tt("no_assignee")}
-              </span>
-            }
-          />
+          {isSample ? (
+            <Info
+              label={tt("f_painter")}
+              value={
+                <span className="flex items-center gap-1.5">
+                  <PainterAvatar painter={painter} />
+                  {painter?.name ?? tt("no_painter")}
+                </span>
+              }
+            />
+          ) : (
+            <Info
+              label={tt("f_assignee")}
+              value={
+                <span className="flex items-center gap-1.5">
+                  <PersonAvatar person={person} />
+                  {person?.name ?? tt("no_assignee")}
+                </span>
+              }
+            />
+          )}
           <Info label={tt("f_due")} value={order.dueDate ? formatDateCompact(lang, order.dueDate) : "—"} />
           <Info label={tt("requested_by")} value={nameOfUser(order.requestedBy)} />
           {order.startedAt && <Info label={tt("started")} value={when(order.startedAt)} />}
@@ -151,10 +173,17 @@ export function WorkOrderDetail({
         {order.notes && <p className="whitespace-pre-wrap rounded-lg bg-muted/40 p-3 text-sm text-foreground">{order.notes}</p>}
 
         {order.status !== "cancelado" && (
-          <Button size="lg" className="w-full" disabled={busy} onClick={() => void setStatus(next.to)} variant={order.status === "listo" ? "outline" : "default"}>
+          <Button size="lg" className="w-full" disabled={busy || blocked} onClick={() => void setStatus(next.to)} variant={order.status === "listo" ? "outline" : "default"}>
             <next.icon className="size-4" />
             {next.label}
           </Button>
+        )}
+        {blocked && <p className="-mt-2 text-center text-xs text-muted-foreground">{tt("finish_blocked")}</p>}
+
+        {isSample && (
+          <FormSection icon={Palette} title={tt("samples")}>
+            <SampleSection order={order} veneers={veneers} tt={tt} busy={busy} setBusy={setBusy} />
+          </FormSection>
         )}
 
         <FormSection
@@ -179,11 +208,11 @@ export function WorkOrderDetail({
             </>
           }
         >
-          {order.files.length === 0 ? (
+          {ownFiles.length === 0 ? (
             <EmptyState>{tt("no_files")}</EmptyState>
           ) : (
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-              {order.files.map((f) => (
+              {ownFiles.map((f) => (
                 <li key={f.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate">{f.name}</span>

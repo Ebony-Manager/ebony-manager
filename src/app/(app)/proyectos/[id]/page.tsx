@@ -10,7 +10,7 @@ import { getClients } from "@/services/ventas";
 import { getProjectQuotes } from "@/services/cotizador";
 import { getProjectDeliveries, getUnassignedDeliveries } from "@/services/deliveries";
 import { getDesignerCandidates, getDesignerProjectQuotes, getProjectDesigners } from "@/services/project-designers";
-import { getTallerPeople, getTallerProjects, getWorkOrders, withProjectNames } from "@/services/taller";
+import { getTallerPainters, getTallerPeople, getTallerProjects, getVeneerTypes, getWorkOrders, withProjectNames } from "@/services/taller";
 import { ProjectHub } from "./project-hub";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
@@ -55,8 +55,8 @@ export default async function ProjectPage({
     designerView ? none([]) : getDesignerCandidates().catch(() => []),
     designerView ? getDesignerProjectQuotes(id).catch(() => []) : none([]),
     canTaller
-      ? Promise.all([getWorkOrders({ projectId: id }), getTallerPeople(), getTallerProjects()])
-          .then(([orders, people, projects]) => ({ orders: withProjectNames(orders, projects), people, projects }))
+      ? Promise.all([getWorkOrders({ projectId: id }), getTallerPeople(), getTallerProjects(), getTallerPainters(), getVeneerTypes()])
+          .then(([orders, people, projects, painters, veneers]) => ({ orders: withProjectNames(orders, projects), people, projects, painters, veneers }))
           .catch(() => null)
       : none(null),
   ]);

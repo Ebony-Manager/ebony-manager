@@ -16,7 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { ProfileCard } from "@/components/shared/profile-card";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ICON } from "@/lib/ui/concepts";
-import type { TallerPerson, TallerProject, WorkOrder } from "@/types/taller";
+import type { TallerPainter, TallerPerson, TallerProject, VeneerType, WorkOrder } from "@/types/taller";
 import { ProjectWorkOrders } from "@/app/(app)/taller/project-work-orders";
 import {
   DropdownMenu,
@@ -111,7 +111,7 @@ export function ProjectHub({
   /** Las cotizaciones del proyecto sin montos (para la diseñadora). */
   designerQuotes?: DesignerQuoteSummary[];
   /** Con Taller: los trabajos de este proyecto, y nombres/fotos/proyectos para crearlos. */
-  taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[] } | null;
+  taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[]; painters: TallerPainter[]; veneers: VeneerType[] } | null;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
@@ -204,7 +204,7 @@ export function ProjectHub({
         <ContractsSection contracts={contracts} onOpen={setContractEditing} onAdd={() => setContractAdding(true)} />
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
-      {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} orders={taller.orders} people={taller.people} projects={taller.projects} />}
+      {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} {...taller} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (

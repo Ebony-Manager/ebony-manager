@@ -3553,10 +3553,28 @@ export type Database = {
           { foreignKeyName: "user_notification_preferences_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
+      paint_samples: {
+        Row: { created_at: string; id: string; kind: string; name: string; official_code: string | null; sort_order: number; updated_at: string; veneer_type_id: string | null; work_order_id: string }
+        Insert: { created_at?: string; id?: string; kind: string; name: string; official_code?: string | null; sort_order?: number; updated_at?: string; veneer_type_id?: string | null; work_order_id: string }
+        Update: { created_at?: string; id?: string; kind?: string; name?: string; official_code?: string | null; sort_order?: number; updated_at?: string; veneer_type_id?: string | null; work_order_id?: string }
+        Relationships: []
+      }
+      veneer_types: {
+        Row: { active: boolean; created_at: string; id: string; name: string; sort_order: number }
+        Insert: { active?: boolean; created_at?: string; id?: string; name: string; sort_order?: number }
+        Update: { active?: boolean; created_at?: string; id?: string; name?: string; sort_order?: number }
+        Relationships: []
+      }
+      sample_painters: {
+        Row: { active: boolean; contractor_id: string; last_turn_at: string | null; sort_order: number }
+        Insert: { active?: boolean; contractor_id: string; last_turn_at?: string | null; sort_order?: number }
+        Update: { active?: boolean; contractor_id?: string; last_turn_at?: string | null; sort_order?: number }
+        Relationships: []
+      }
       work_orders: {
-        Row: { assignee_employee_id: string | null; created_at: string; done_at: string | null; drive_folder_id: string | null; due_date: string | null; id: string; kind: string; notes: string | null; production_order_id: string | null; project_id: string | null; requested_by: string | null; started_at: string | null; status: string; title: string; updated_at: string }
-        Insert: { assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title: string; updated_at?: string }
-        Update: { assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title?: string; updated_at?: string }
+        Row: { assignee_contractor_id: string | null; assignee_employee_id: string | null; created_at: string; done_at: string | null; drive_folder_id: string | null; due_date: string | null; id: string; kind: string; notes: string | null; production_order_id: string | null; project_id: string | null; requested_by: string | null; started_at: string | null; status: string; title: string; updated_at: string }
+        Insert: { assignee_contractor_id?: string | null; assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title: string; updated_at?: string }
+        Update: { assignee_contractor_id?: string | null; assignee_employee_id?: string | null; created_at?: string; done_at?: string | null; drive_folder_id?: string | null; due_date?: string | null; id?: string; kind?: string; notes?: string | null; production_order_id?: string | null; project_id?: string | null; requested_by?: string | null; started_at?: string | null; status?: string; title?: string; updated_at?: string }
         Relationships: [
           { foreignKeyName: "work_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
           { foreignKeyName: "work_orders_assignee_employee_id_fkey"; columns: ["assignee_employee_id"]; isOneToOne: false; referencedRelation: "payroll_employees"; referencedColumns: ["id"] },
@@ -3564,9 +3582,9 @@ export type Database = {
         ]
       }
       work_order_files: {
-        Row: { created_at: string; drive_file_id: string; id: string; mime_type: string | null; name: string; size_bytes: number | null; uploaded_by: string | null; work_order_id: string }
-        Insert: { created_at?: string; drive_file_id: string; id?: string; mime_type?: string | null; name: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id: string }
-        Update: { created_at?: string; drive_file_id?: string; id?: string; mime_type?: string | null; name?: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id?: string }
+        Row: { role: string; sample_id: string | null; created_at: string; drive_file_id: string; id: string; mime_type: string | null; name: string; size_bytes: number | null; uploaded_by: string | null; work_order_id: string }
+        Insert: { role?: string; sample_id?: string | null; created_at?: string; drive_file_id: string; id?: string; mime_type?: string | null; name: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id: string }
+        Update: { role?: string; sample_id?: string | null; created_at?: string; drive_file_id?: string; id?: string; mime_type?: string | null; name?: string; size_bytes?: number | null; uploaded_by?: string | null; work_order_id?: string }
         Relationships: [
           { foreignKeyName: "work_order_files_work_order_id_fkey"; columns: ["work_order_id"]; isOneToOne: false; referencedRelation: "work_orders"; referencedColumns: ["id"] },
         ]
@@ -3612,6 +3630,14 @@ export type Database = {
       assign_inspection_schedules: {
         Args: { p_ids: string[]; p_person_kind?: string | null; p_person_id?: string | null }
         Returns: number
+      }
+      taller_painters: {
+        Args: Record<PropertyKey, never>
+        Returns: { contractor_id: string; name: string; photo_path: string | null; has_email: boolean; in_turn: boolean; turn_rank: number | null }[]
+      }
+      taller_contact_emails: {
+        Args: { p_contractor: string | null; p_user: string | null }
+        Returns: { contractor_email: string | null; contractor_name: string | null; user_email: string | null; user_name: string | null }[]
       }
       taller_people: {
         Args: Record<PropertyKey, never>
