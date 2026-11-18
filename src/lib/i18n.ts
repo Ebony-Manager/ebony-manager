@@ -2641,6 +2641,10 @@ export const strings = {
   // Proyectos: la "madre" de todo lo de una obra (hoy sus contratos).
   proyectos: {
     col_designers: { es: "Diseñadoras", en: "Designers" },
+    sort_name: { es: "Nombre (A–Z)", en: "Name (A–Z)" },
+    sort_recent: { es: "Más recientes", en: "Newest first" },
+    sort_designer: { es: "Por diseñadora", en: "By designer" },
+    no_designer: { es: "Sin diseñadora", en: "No designer" },
     scope_all: { es: "Todos los proyectos", en: "All projects" },
     scope_mine: { es: "Mis proyectos", en: "My projects" },
     dz_title: { es: "Diseñadoras", en: "Designers" },
