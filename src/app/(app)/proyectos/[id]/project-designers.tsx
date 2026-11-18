@@ -7,6 +7,7 @@ import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProfileCard } from "@/components/shared/profile-card";
+import { EmptyState } from "@/components/shared/page-header";
 import { ICON } from "@/lib/ui/concepts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
@@ -62,7 +63,7 @@ export function ProjectDesigners({
       subtitle={canEdit ? tt("dz_hint") : undefined}
       action={
         canEdit && !adding && options.length > 0 ? (
-          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+          <Button size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-3.5" />
             {tt("dz_add")}
           </Button>
@@ -71,7 +72,7 @@ export function ProjectDesigners({
     >
 
       {designers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{tt("dz_none")}</p>
+        <EmptyState>{tt("dz_none")}</EmptyState>
       ) : (
         <ul className="flex flex-wrap gap-2">
           {designers.map((d) => (

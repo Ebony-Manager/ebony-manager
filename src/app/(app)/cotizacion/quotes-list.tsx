@@ -127,10 +127,7 @@ export function QuotesList({ initialQuotes, canEditCosts }: { initialQuotes: Quo
       </ListToolbar>
 
       {quotes.length === 0 ? (
-        <EmptyState className="py-14">
-          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
-            <FileText className="size-6 text-primary" />
-          </div>
+        <EmptyState size="page" icon={FileText}>
           <div>
             <p className="font-semibold text-foreground">{tt("empty_title")}</p>
             <p>{tt("empty_body")}</p>

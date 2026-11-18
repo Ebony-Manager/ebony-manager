@@ -3,7 +3,7 @@
 import Link from "next/link";
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { breadcrumbFor } from "@/components/layout/nav-items";
@@ -131,7 +131,18 @@ export function Stepper({
  * centro y, si hace falta, un botón debajo. `size="page"` para cuando es toda
  * la vista (una lista, una pestaña); por defecto, el de un bloque o diálogo.
  */
-export function EmptyState({ children, size = "block", className }: { children: React.ReactNode; size?: "block" | "page"; className?: string }) {
+export function EmptyState({
+  children,
+  size = "block",
+  icon: Icon,
+  className,
+}: {
+  children: React.ReactNode;
+  size?: "block" | "page";
+  /** Ícono grande en un círculo, arriba del texto (para el vacío de toda una vista). */
+  icon?: LucideIcon;
+  className?: string;
+}) {
   return (
     <div
       className={cn(
@@ -140,6 +151,11 @@ export function EmptyState({ children, size = "block", className }: { children: 
         className,
       )}
     >
+      {Icon && (
+        <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+          <Icon className="size-6 text-primary" />
+        </div>
+      )}
       {children}
     </div>
   );

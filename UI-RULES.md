@@ -10,7 +10,7 @@
 
 | Necesito… | Uso | Dónde |
 |---|---|---|
-| "Todavía no hay nada" / "no hay resultados" / "no se pudo cargar" | `<EmptyState>` (`size="page"` si es toda la vista) 🛡️ | `shared/page-header` |
+| "Todavía no hay nada" / "no hay resultados" / "no se pudo cargar" | `<EmptyState>` (`size="page"` si es toda la vista; `icon` pone el ícono grande en un círculo, para el vacío de toda una lista) 🛡️ | `shared/page-header` |
 | "Cargando…" mientras llegan los datos | `<LoadingBlock variant="lines\|cards\|table">` (`size="page"` si es toda la vista): barras grises con la forma de lo que va a aparecer, nunca un texto suelto 🛡️ | `shared/loading-block` |
 | Un campo con su título | `<Field label required? error? icon? hint?>` — el único 🛡️ | `shared/field` |
 | Un bloque de una ficha de lectura (empleado, contratista): tarjeta con ícono, título, línea de apoyo y la acción a la derecha | `<ProfileCard icon title subtitle? action?>` — todos los bloques de una ficha lo usan; la acción principal es el botón relleno y las secundarias, de borde | `shared/profile-card` |

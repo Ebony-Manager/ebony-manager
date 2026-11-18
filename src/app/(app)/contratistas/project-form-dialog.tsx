@@ -27,6 +27,7 @@ import { Field } from "./field";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 
 /** "12.5" → 12.5 ; vacío o no-número o negativo → null. */
 function parseMt2(value: string): number | null {
@@ -210,8 +211,15 @@ export function ProjectFormDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ACTIVE">{tt("proj_status_active")}</SelectItem>
-                    <SelectItem value="COMPLETED">{tt("proj_status_completed")}</SelectItem>
+                    {(["ACTIVE", "COMPLETED"] as const).map((v) => {
+                      const st = STATUS[v === "ACTIVE" ? "project_active" : "project_completed"];
+                      return (
+                        <SelectItem key={v} value={v}>
+                          <st.icon className={TONE_TEXT[st.tone]} />
+                          {tt(v === "ACTIVE" ? "proj_status_active" : "proj_status_completed")}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </Field>

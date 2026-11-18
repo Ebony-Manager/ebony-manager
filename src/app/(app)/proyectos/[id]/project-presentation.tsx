@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { DriveFiles } from "@/components/shared/drive-files";
 import { LoadingBlock } from "@/components/shared/loading-block";
+import { EmptyState } from "@/components/shared/page-header";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ensureShopPresentationFolderAction } from "../../drive-actions";
@@ -41,7 +42,7 @@ export function ProjectPresentation({ projectId, driveEnabled }: { projectId: st
         <LoadingBlock variant="cards" rows={2} />
       ) : (
         <>
-          {folder?.error && <p className="text-xs text-destructive">{folder.error}</p>}
+          {folder?.error && <EmptyState>{folder.error}</EmptyState>}
           <DriveFiles enabled={driveEnabled} folderId={folder?.id ?? null} onCreate={create} />
         </>
       )}

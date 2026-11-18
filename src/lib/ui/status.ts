@@ -1,4 +1,4 @@
-import { Ban, Briefcase, CalendarX, CircleDashed, CirclePause, Flag, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Ban, Briefcase, CalendarX, CircleDashed, CircleDot, CirclePause, Flag, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -62,7 +62,7 @@ export const STATUS = {
   work_listo: { icon: CircleCheck, tone: "ok" },
   work_cancelado: { icon: CircleX, tone: "muted" },
   /** Proyectos: en curso o terminado. */
-  project_active: { icon: Hammer, tone: "info" },
+  project_active: { icon: CircleDot, tone: "info" },
   project_completed: { icon: CircleCheck, tone: "muted" },
   /** El filtro «Fuera de uso» junta reparación, dañada y perdida. */
   tool_out: { icon: Ban, tone: "muted" },

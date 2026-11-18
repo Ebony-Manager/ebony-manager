@@ -2779,6 +2779,7 @@ export const strings = {
     show_completed: { es: "Mostrar terminados ({n})", en: "Show completed ({n})" },
     see_contracts: { es: "Ver contratos", en: "See contracts" },
     contracts_active: { es: "{n} activos", en: "{n} active" },
+    contracts_active_1: { es: "1 activo", en: "1 active" },
     add_contract: { es: "Nuevo contrato", en: "New contract" },
   },
 

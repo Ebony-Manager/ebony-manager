@@ -108,10 +108,7 @@ export function ProjectsList({
       </ListToolbar>
 
       {projects.length === 0 ? (
-        <EmptyState size="page">
-          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
-            <Folder className="size-6 text-primary" />
-          </div>
+        <EmptyState size="page" icon={Folder}>
           <p className="font-semibold text-foreground">{tt("empty")}</p>
           {canCreate && (
             <Button size="sm" onClick={() => setAdding(true)}>

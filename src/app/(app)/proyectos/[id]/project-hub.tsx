@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banknote, ChevronRight, Hourglass, Info, MoreHorizontal, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { Banknote, ChevronRight, Handshake, Hourglass, Info, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { Inspection, InspectionPainter } from "@/types/inspections";
@@ -335,18 +335,18 @@ function Overview({
           }
         >
           {contracts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tt("no_contracts")}</p>
+            <EmptyState>{tt("no_contracts")}</EmptyState>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                 <KpiCard
                   icon={ICON.contract}
                   tone="primary"
                   label={tt("kpi_contracts")}
                   value={String(contracts.length)}
-                  sublabel={tt("contracts_active").replace("{n}", String(totals.active))}
+                  sublabel={totals.active === 1 ? tt("contracts_active_1") : tt("contracts_active").replace("{n}", String(totals.active))}
                 />
-                <KpiCard icon={Receipt} label={tt("kpi_value")} value={formatCents(totals.value)} />
+                <KpiCard icon={Handshake} label={tt("kpi_value")} value={formatCents(totals.value)} />
                 <KpiCard icon={Banknote} tone="positive" label={tt("kpi_paid")} value={formatCents(totals.paid)} />
                 <KpiCard
                   icon={Hourglass}
@@ -392,11 +392,11 @@ function ContractsSection({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.proyectos) => t(lang, strings.proyectos[k]);
-  const [showCompleted, setShowCompleted] = React.useState(false);
-
   const sorted = React.useMemo(() => sortContracts(contracts), [contracts]);
   const active = sorted.filter((c) => c.status === "ACTIVE");
   const completed = sorted.filter((c) => c.status !== "ACTIVE");
+  // Si ya no queda ninguno activo, los terminados se ven de entrada (si no, la pestaña quedaría vacía).
+  const [showCompleted, setShowCompleted] = React.useState(active.length === 0);
 
   return (
     <div className="flex flex-col gap-3">
