@@ -17,7 +17,7 @@
 | Un grupo de campos o un bloque de una ficha, con ícono y título | `<FormSection icon title note? action? quiet?>` 🛡️ | `shared/form-section` |
 | Un estado (sin stock, bajo stock, pendiente…) | `<StatusBadge status>` y, en el filtro, el mismo ícono y tono (`STATUS`, `TONE_TEXT`) | `shared/status-badge`, `lib/ui/status` |
 | Validar un formulario | `useFormErrors` + `<Field error>` | `lib/ui/use-form-errors` |
-| Foto de una persona (empleado, contratista) en una lista o ficha | `EmployeeAvatar` / `ContractorAvatar` con `photoUrl(bucket, ruta, THUMB_WIDTH)`: dirección fija en miniatura que el navegador guarda; sin foto, la inicial | `lib/photo-url` |
+| Foto de una persona (empleado, contratista) en una lista o ficha | `PersonAvatar` (o `EmployeeAvatar` / `ContractorAvatar`, que lo usan) con `photoUrl(bucket, ruta, THUMB_WIDTH)`: dirección fija en miniatura que el navegador guarda; sin foto, la inicial en azul sobre azul clarito, igual para todos | `lib/photo-url` |
 | Cerrar un diálogo con cosas escritas | `useDiscardGuard` (+ `useFormBaseline` cuando el formulario se llena al abrir: marca «cómo estaba» después de llenarse, así solo pregunta si hubo cambios) | `shared/discard-guard` |
 | El ícono de un concepto (proyecto, cliente, responsable, fecha…) | `ICON.x` | `lib/ui/concepts` |
 | Fecha u hora | `<Input type="date">` — nunca `<input>` crudo 🛡️ | `ui/input` |

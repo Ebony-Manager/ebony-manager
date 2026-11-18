@@ -1,45 +1,20 @@
 "use client";
 
-import { employeeAccentColor } from "@/lib/planilla/payroll-colors";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import { useEmployeePhoto } from "./employee-photos-context";
 
-/** Círculo del empleado: su FOTO si ya se subió una, y si no la inicial en
- *  su color de identidad (por `sortOrder`, igual en todas las vistas).
- *  Portado de Atlas. */
+/** Círculo del empleado: el mismo de toda la app (`PersonAvatar`), con la foto que trae el contexto de
+ *  Planilla. `sortOrder` se conserva en la firma para no tocar las pantallas que lo pasan. */
 export function EmployeeAvatar({
   name,
   employeeId,
-  sortOrder,
   size = "sm",
 }: {
   name: string;
   employeeId: string;
-  sortOrder: number;
+  sortOrder?: number;
   size?: "sm" | "md" | "lg" | "xl";
 }) {
   const photoUrl = useEmployeePhoto(employeeId);
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  const dims = size === "xl" ? "size-24 text-3xl" : size === "lg" ? "size-16 text-2xl" : size === "md" ? "size-10 text-sm" : "size-7 text-[11px]";
-  if (photoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal de Supabase Storage; next/image no aplica.
-      <img
-        data-employee-id={employeeId}
-        src={photoUrl}
-        alt={name}
-        title={name}
-        className={`${dims} shrink-0 rounded-full object-cover`}
-      />
-    );
-  }
-  return (
-    <div
-      data-employee-id={employeeId}
-      title={name}
-      className={`flex ${dims} shrink-0 items-center justify-center rounded-full font-semibold text-white`}
-      style={{ backgroundColor: employeeAccentColor(sortOrder) }}
-    >
-      {initial}
-    </div>
-  );
+  return <PersonAvatar name={name} photoUrl={photoUrl} size={size} />;
 }
