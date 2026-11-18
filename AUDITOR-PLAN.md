@@ -35,7 +35,13 @@ Falta, en tandas y con visto bueno de Carlos:
    detalle y Agregar detalles con `Field`, errores en el campo (no en aviso) y aviso de descartar; Cancelar en Editar
    detalle; «1 detalle / N detalles» (no «detalle(s)»); filtros con ícono (`KIND_ICON`); títulos de filtro sin MAYÚSCULAS.
    Toda la app: sin «(opcional)» en los textos (regla nueva en la guardia). Guardia de cierres sin aviso: 7 → 2.
-   **Proyectos** y **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
+3b. ~~**Proyectos**~~ — **hecho 18 nov** (con capturas): estado Activo/Terminado con `StatusBadge` (`project_active`,
+   `project_completed`) en la lista, la ficha y el filtro (con ícono); columna Proyecto más ancha (ya no se corta el nombre);
+   vacío con colores del tema; ficha con `ProfileCard` (Información general sin «Estado» repetido, Contratos con `KpiCard`,
+   Diseñadoras) y «Mostrar terminados» con `ShowToggle`; actas: «1 foto», fechas «13-Nov-26»; Presentación carga con
+   `LoadingBlock`; formulario de proyecto: estado solo al editar, junto a Ubicación. **Queda para la sesión de desarrollo**
+   (es de Contratistas): en la pestaña Contratos del proyecto cada contrato repite el nombre del proyecto debajo.
+   **Cotización**: barrido completo (formularios, filtros con ícono, estados, vacíos, carga, diálogos con aviso de descartar).
 4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
 5. ~~Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026»)~~ — **descartado 17 nov por Carlos**: los campos de fecha se quedan como los muestra el teléfono o el navegador; no es un problema. No volver a proponerlo.
 6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).

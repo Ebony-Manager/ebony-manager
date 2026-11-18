@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Palette, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ProfileCard } from "@/components/shared/profile-card";
+import { ICON } from "@/lib/ui/concepts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -55,20 +56,19 @@ export function ProjectDesigners({
   }
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Palette className="size-4 text-muted-foreground" />
-          {tt("dz_title")}
-        </h2>
-        {canEdit && !adding && options.length > 0 && (
-          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAdding(true)}>
+    <ProfileCard
+      icon={ICON.designer}
+      title={tt("dz_title")}
+      subtitle={canEdit ? tt("dz_hint") : undefined}
+      action={
+        canEdit && !adding && options.length > 0 ? (
+          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
             <Plus className="size-3.5" />
             {tt("dz_add")}
           </Button>
-        )}
-      </div>
-      {canEdit && <p className="-mt-1 text-xs text-muted-foreground">{tt("dz_hint")}</p>}
+        ) : undefined
+      }
+    >
 
       {designers.length === 0 ? (
         <p className="text-sm text-muted-foreground">{tt("dz_none")}</p>
@@ -112,11 +112,11 @@ export function ProjectDesigners({
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
-            <X className="size-3.5" />
+          <Button size="icon" variant="ghost" className="size-9 shrink-0" onClick={() => setAdding(false)} aria-label={tt("dz_cancel")} title={tt("dz_cancel")}>
+            <X className="size-4" />
           </Button>
         </div>
       )}
-    </Card>
+    </ProfileCard>
   );
 }

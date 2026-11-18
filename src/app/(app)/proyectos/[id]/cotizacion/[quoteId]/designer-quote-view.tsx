@@ -2,7 +2,7 @@
 
 import { EyeOff } from "lucide-react";
 
-import { BackLink, PAGE_CLASS } from "@/components/shared/page-header";
+import { BackLink, EmptyState, PAGE_CLASS } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Card } from "@/components/ui/card";
 import { usePageTitle } from "@/components/shared/page-title";
@@ -53,7 +53,7 @@ export function DesignerQuoteView({ projectId, quote }: { projectId: string; quo
       </p>
 
       {quote.sections.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{tt("dq_no_items")}</p>
+        <EmptyState>{tt("dq_no_items")}</EmptyState>
       ) : (
         <ul className="flex flex-col gap-3">
           {quote.sections.map((s) => (

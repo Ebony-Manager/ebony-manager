@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Banknote, ChevronRight, Hourglass, Info, MoreHorizontal, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { Inspection, InspectionPainter } from "@/types/inspections";
@@ -12,10 +12,12 @@ import type { ProjectSupplyLine } from "@/types/almacen";
 import type { QuoteSummary } from "@/types/cotizador";
 import { QuoteRows } from "../../cotizacion/quote-rows";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { ProfileCard } from "@/components/shared/profile-card";
+import { KpiCard } from "@/components/shared/kpi-card";
+import { ICON } from "@/lib/ui/concepts";
 import type { TallerPerson, TallerProject, WorkOrder } from "@/types/taller";
 import { ProjectWorkOrders } from "@/app/(app)/taller/project-work-orders";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +47,7 @@ import { DriveFiles } from "@/components/shared/drive-files";
 import { usePageTitle } from "@/components/shared/page-title";
 import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
-import { BackLink, PAGE_CLASS, SubTabs, EmptyState } from "@/components/shared/page-header";
+import { BackLink, PAGE_CLASS, SubTabs, EmptyState, ShowToggle } from "@/components/shared/page-header";
 
 type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
 
@@ -172,9 +174,9 @@ export function ProjectHub({
         <div className="min-w-0">
           <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-foreground">
             {project.name}
-            <Badge variant={isActive ? "secondary" : "outline"}>
+            <StatusBadge status={isActive ? "project_active" : "project_completed"}>
               {isActive ? tt("status_active") : tt("status_completed")}
-            </Badge>
+            </StatusBadge>
           </h1>
           <p className="text-sm text-muted-foreground">
             {[project.location, project.clientName].filter(Boolean).join(" · ") || tt("no_location")}
@@ -301,9 +303,8 @@ function Overview({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-foreground">{tt("info_title")}</h2>
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
+      <ProfileCard icon={Info} title={tt("info_title")}>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm lg:grid-cols-4">
           <Item label={tt("f_location")} value={project.location || tt("none")} />
           {project.designerId || project.clientId ? (
             <>
@@ -313,42 +314,46 @@ function Overview({
           ) : (
             <Item label={tt("f_client")} value={project.clientName || tt("none")} />
           )}
-          <Item
-            label={tt("f_status")}
-            value={project.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}
-          />
           <Item label={tt("f_created")} value={formatDateCompact(lang, todayInPanama(new Date(project.createdAt)))} />
-          <div className="col-span-2 sm:col-span-4">
-            <Item label={tt("f_notes")} value={project.notes || tt("none")} />
-          </div>
+          {project.notes && (
+            <div className="col-span-2 lg:col-span-4">
+              <Item label={tt("f_notes")} value={project.notes} />
+            </div>
+          )}
         </dl>
-      </Card>
+      </ProfileCard>
 
       {canContracts && (
-        <Card className="p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">{tt("money_title")}</h2>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onOpenContracts}>
-              {tt("tab_contratos")}
+        <ProfileCard
+          icon={ICON.contract}
+          title={tt("money_title")}
+          action={
+            <Button size="sm" variant="outline" onClick={onOpenContracts}>
+              {tt("see_contracts")}
               <ChevronRight className="size-3.5" />
             </Button>
-          </div>
+          }
+        >
           {contracts.length === 0 ? (
             <p className="text-sm text-muted-foreground">{tt("no_contracts")}</p>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <Stat
+                <KpiCard
+                  icon={ICON.contract}
+                  tone="primary"
                   label={tt("kpi_contracts")}
-                  value={tt("contracts_count").replace("{active}", String(totals.active)).replace("{total}", String(contracts.length))}
+                  value={String(contracts.length)}
+                  sublabel={tt("contracts_active").replace("{n}", String(totals.active))}
                 />
-                <Stat label={tt("kpi_value")} value={formatCents(totals.value)} />
-                <Stat label={tt("kpi_paid")} value={formatCents(totals.paid)} />
-                <Stat
+                <KpiCard icon={Receipt} label={tt("kpi_value")} value={formatCents(totals.value)} />
+                <KpiCard icon={Banknote} tone="positive" label={tt("kpi_paid")} value={formatCents(totals.paid)} />
+                <KpiCard
+                  icon={Hourglass}
+                  tone={totals.pending > 0 ? "warning" : "neutral"}
                   label={tt("kpi_pending")}
                   value={formatCents(totals.pending)}
-                  sub={totals.retained > 0 ? `${tt("kpi_retained")} ${formatCents(totals.retained)}` : undefined}
-                  strong
+                  sublabel={totals.retained > 0 ? `${tt("kpi_retained")} ${formatCents(totals.retained)}` : undefined}
                 />
               </div>
               <div>
@@ -369,7 +374,7 @@ function Overview({
               </div>
             </div>
           )}
-        </Card>
+        </ProfileCard>
       )}
     </div>
   );
@@ -408,14 +413,12 @@ function ContractsSection({
           {active.length > 0 && <ContractsTable contracts={active} onOpen={onOpen} showContractor />}
           {completed.length > 0 && (
             <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCompleted((v) => !v)}
-                className="flex items-center gap-1.5 self-start text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                {showCompleted ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                {tt("completed_section")} ({completed.length})
-              </button>
+              <ShowToggle
+                checked={showCompleted}
+                onChange={setShowCompleted}
+                label={tt("show_completed").replace("{n}", String(completed.length))}
+                className="self-start"
+              />
               {showCompleted && <ContractsTable contracts={completed} onOpen={onOpen} showContractor />}
             </div>
           )}
@@ -430,16 +433,6 @@ function Item({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex flex-col gap-0.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="whitespace-pre-wrap text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub, strong = false }: { label: string; value: string; sub?: string; strong?: boolean }) {
-  return (
-    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`tabular-nums text-foreground ${strong ? "font-semibold" : ""}`}>{value}</p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }

@@ -8,7 +8,9 @@ import { Folder, Plus } from "lucide-react";
 
 import type { ContractorContract, Project } from "@/types/contractors";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { STATUS, TONE_TEXT } from "@/lib/ui/status";
+import { ICON } from "@/lib/ui/concepts";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
@@ -88,9 +90,9 @@ export function ProjectsList({
           value={status}
           onChange={setStatus}
           options={[
-            { value: "active", label: tt("filter_active") },
-            { value: "completed", label: tt("filter_completed") },
-            { value: "all", label: tt("filter_all") },
+            { value: "active", label: tt("filter_active"), icon: STATUS.project_active.icon, iconClass: TONE_TEXT[STATUS.project_active.tone] },
+            { value: "completed", label: tt("filter_completed"), icon: STATUS.project_completed.icon, iconClass: TONE_TEXT[STATUS.project_completed.tone] },
+            { value: "all", label: tt("filter_all"), icon: ICON.all },
           ]}
         />
         {mineIds && (
@@ -98,17 +100,17 @@ export function ProjectsList({
             value={scope}
             onChange={setScope}
             options={[
-              { value: "all", label: tt("scope_all") },
-              { value: "mine", label: tt("scope_mine") },
+              { value: "all", label: tt("scope_all"), icon: ICON.all },
+              { value: "mine", label: tt("scope_mine"), icon: ICON.designer },
             ]}
           />
         )}
       </ListToolbar>
 
       {projects.length === 0 ? (
-        <EmptyState className="py-14">
-          <div className="flex size-14 items-center justify-center rounded-full bg-cream-100">
-            <Folder className="size-6 text-walnut" />
+        <EmptyState size="page">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <Folder className="size-6 text-primary" />
           </div>
           <p className="font-semibold text-foreground">{tt("empty")}</p>
           {canCreate && (
@@ -122,14 +124,14 @@ export function ProjectsList({
         <EmptyState>{tt("no_results")}</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <table className="w-full border-collapse text-sm sm:min-w-[720px]">
+          <table className="w-full table-fixed border-collapse text-sm sm:min-w-[720px]">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="px-3.5 py-2 text-left font-medium">{tt("col_project")}</th>
+                <th className="px-3.5 py-2 text-left font-medium sm:w-[42%]">{tt("col_project")}</th>
                 <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{tt("col_designers")}</th>
-                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">{tt("col_created")}</th>
-                {canContracts && <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{tt("col_contracts")}</th>}
-                <th className="px-3.5 py-2 text-right font-medium">{tt("col_status")}</th>
+                <th className="hidden w-28 px-3 py-2 text-left font-medium sm:table-cell">{tt("col_created")}</th>
+                {canContracts && <th className="hidden w-24 px-3 py-2 text-right font-medium sm:table-cell">{tt("col_contracts")}</th>}
+                <th className="w-32 px-3.5 py-2 text-right font-medium">{tt("col_status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -143,7 +145,7 @@ export function ProjectsList({
                     <span className="block truncate font-semibold text-foreground">{p.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{p.location || tt("no_location")}</span>
                   </td>
-                  <td className="hidden max-w-[220px] px-3 py-2.5 text-foreground sm:table-cell">
+                  <td className="hidden px-3 py-2.5 text-foreground sm:table-cell">
                     <span className="block truncate">{designerNames[p.id]?.join(", ") || <span className="text-muted-foreground">—</span>}</span>
                   </td>
                   <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">
@@ -153,9 +155,9 @@ export function ProjectsList({
                     <td className="hidden px-3 py-2.5 text-right tabular-nums text-foreground sm:table-cell">{contractCount.get(p.id) ?? 0}</td>
                   )}
                   <td className="px-3.5 py-2.5 text-right">
-                    <Badge variant={p.status === "ACTIVE" ? "secondary" : "outline"}>
+                    <StatusBadge status={p.status === "ACTIVE" ? "project_active" : "project_completed"}>
                       {p.status === "ACTIVE" ? tt("status_active") : tt("status_completed")}
-                    </Badge>
+                    </StatusBadge>
                   </td>
                 </tr>
               ))}

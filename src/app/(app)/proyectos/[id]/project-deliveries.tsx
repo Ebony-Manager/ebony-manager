@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { AlertTriangle, CheckCircle2, ExternalLink, FileText, FolderOpen, Image as ImageIcon, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, FileText, FolderOpen, Image as ImageIcon, Inbox, Plus } from "lucide-react";
 
 import type { Project } from "@/types/contractors";
 import type { ProjectDelivery } from "@/types/deliveries";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { EmptyState } from "@/components/shared/page-header";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
@@ -119,13 +120,11 @@ export function ProjectDeliveries({
       )}
 
       {!readOnly && unassigned.length > 0 && (
-        <Card className="flex flex-col gap-3 p-4">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              {isActa ? tt("acta_unassigned_title") : tt("auth_unassigned_title")} ({unassigned.length})
-            </h2>
-            <p className="text-xs text-muted-foreground">{tt("acta_unassigned_body")}</p>
-          </div>
+        <ProfileCard
+          icon={Inbox}
+          title={`${isActa ? tt("acta_unassigned_title") : tt("auth_unassigned_title")} (${unassigned.length})`}
+          subtitle={tt("acta_unassigned_body")}
+        >
           <ul className="flex flex-col gap-2">
             {unassigned.map((d) => (
               <li key={d.id} className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -143,7 +142,7 @@ export function ProjectDeliveries({
               </li>
             ))}
           </ul>
-        </Card>
+        </ProfileCard>
       )}
     </div>
   );
@@ -199,7 +198,7 @@ function DeliveryCard({ delivery: d, readOnly = false }: { delivery: ProjectDeli
           {Object.entries(d.details).map(([k, v]) => (
             <div key={k} className="flex gap-1">
               <dt className="text-muted-foreground">{k}:</dt>
-              <dd className="text-foreground">{v}</dd>
+              <dd className="text-foreground">{/^\d{4}-\d{2}-\d{2}$/.test(v) ? formatDateCompact(lang, v) : v}</dd>
             </div>
           ))}
         </dl>
@@ -214,7 +213,7 @@ function DeliveryCard({ delivery: d, readOnly = false }: { delivery: ProjectDeli
         {d.photoCount > 0 && (
           <span className="inline-flex items-center gap-1">
             <ImageIcon className="size-3.5" />
-            {tt("acta_photos").replace("{n}", String(d.photoCount))}
+            {d.photoCount === 1 ? tt("acta_photos_1") : tt("acta_photos").replace("{n}", String(d.photoCount))}
           </span>
         )}
         {!d.pdfFileId && !d.filesError && <span>{tt("acta_pdf_missing")}</span>}

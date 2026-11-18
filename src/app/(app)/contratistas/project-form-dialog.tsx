@@ -161,7 +161,7 @@ export function ProjectFormDialog({
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{project ? tt("proj_dlg_edit_title") : tt("proj_dlg_add_title")}</DialogTitle>
-          <DialogDescription>{tt("projects_subtitle")}</DialogDescription>
+          <DialogDescription>{tt("proj_dlg_desc")}</DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
@@ -197,21 +197,26 @@ export function ProjectFormDialog({
                 placeholder={tt("proj_pick_client")}
               />
             </Field>
-            <Field label={tt("proj_f_status")}>
-              <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">{tt("proj_status_active")}</SelectItem>
-                  <SelectItem value="COMPLETED">{tt("proj_status_completed")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
           </div>
-          <Field label={tt("proj_f_location")} icon={ICON.location}>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
-          </Field>
+          {/* Un proyecto nuevo siempre empieza activo: el estado solo se cambia al editar. */}
+          <div className={project ? "grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : "contents"}>
+            <Field label={tt("proj_f_location")} icon={ICON.location}>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
+            </Field>
+            {project && (
+              <Field label={tt("proj_f_status")}>
+                <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">{tt("proj_status_active")}</SelectItem>
+                    <SelectItem value="COMPLETED">{tt("proj_status_completed")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+          </div>
           <Field label={tt("proj_f_notes")}>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>

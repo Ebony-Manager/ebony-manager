@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
 
 import { DriveFiles } from "@/components/shared/drive-files";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { ensureShopPresentationFolderAction } from "../../drive-actions";
@@ -38,10 +38,7 @@ export function ProjectPresentation({ projectId, driveEnabled }: { projectId: st
     <div className="flex flex-col gap-3">
       <p className="max-w-2xl text-xs text-muted-foreground">{tt("presentation_hint")}</p>
       {driveEnabled && folder === null ? (
-        <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          {tt("presentation_loading")}
-        </p>
+        <LoadingBlock variant="cards" rows={2} />
       ) : (
         <>
           {folder?.error && <p className="text-xs text-destructive">{folder.error}</p>}

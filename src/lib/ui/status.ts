@@ -61,6 +61,9 @@ export const STATUS = {
   work_en_proceso: { icon: Hammer, tone: "info" },
   work_listo: { icon: CircleCheck, tone: "ok" },
   work_cancelado: { icon: CircleX, tone: "muted" },
+  /** Proyectos: en curso o terminado. */
+  project_active: { icon: Hammer, tone: "info" },
+  project_completed: { icon: CircleCheck, tone: "muted" },
   /** El filtro «Fuera de uso» junta reparación, dañada y perdida. */
   tool_out: { icon: Ban, tone: "muted" },
 } satisfies Record<string, StatusDef>;
