@@ -214,7 +214,14 @@ export function BatchDialog({
             {ti("add_photos")}
             <span className="text-xs font-normal text-muted-foreground">{ti("batch_empty")}</span>
           </button>
-        ) : (
+        ) : null}
+        {drafts.length === 0 && (
+          <Button type="button" variant="outline" onClick={() => setDrafts([newDraft(lastMeta([]))])} disabled={busy}>
+            <Plus className="size-4" />
+            {ti("add_without_photo")}
+          </Button>
+        )}
+        {drafts.length === 0 ? null : (
           <ol className="flex flex-col gap-3">
             {drafts.map((d, i) => (
               <li key={d.key} className="flex flex-col gap-2.5 rounded-lg border border-border p-3">

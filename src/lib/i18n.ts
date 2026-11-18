@@ -3193,8 +3193,8 @@ export const strings = {
     select_none: { es: "Ninguno", en: "None" },
     batch_title: { es: "Agregar detalles", en: "Add items" },
     batch_hint: {
-      es: "Cada foto es un detalle. Si dos fotos son del mismo detalle, toca «Unir con el anterior».",
-      en: "Each photo is one item. If two photos are the same item, tap “Merge with previous”.",
+      es: "Cada foto es un detalle. Si dos fotos son del mismo detalle, toca «Unir con el anterior». La foto es opcional: un detalle puede ir solo con su comentario.",
+      en: "Each photo is one item. If two photos are the same item, tap “Merge with previous”. The photo is optional: an item can be just its comment.",
     },
     area_for_all: { es: "Área (para todos)", en: "Area (for all)" },
     add_photos: { es: "Tomar o elegir fotos", en: "Take or pick photos" },
