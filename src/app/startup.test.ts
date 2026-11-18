@@ -32,6 +32,8 @@ it("streams the brand before the session resolves, then replaces it with the app
     expect(html).toContain('aria-label="Cargando Ebony"');
     expect(html).not.toContain("APP_READY");
     expect(html.slice(0, html.indexOf("</head>"))).toContain("440x956@3-portrait-light.png");
+    // Sin este meta (nombre viejo) el iPhone ignora las imágenes de inicio.
+    expect(html.slice(0, html.indexOf("</head>"))).toContain('name="apple-mobile-web-app-capable" content="yes"');
     resolveUser(null);
     await finished;
     expect(html).toContain("APP_READY");

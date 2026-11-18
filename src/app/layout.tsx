@@ -92,6 +92,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        {/* Next 16 solo escribe «mobile-web-app-capable»; el iPhone necesita este nombre viejo para usar
+            las imágenes de inicio (apple-touch-startup-image). Sin él, las ignora. */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         {appleStartupImages.map(({ url, media }) => (
           <link key={url} rel="apple-touch-startup-image" href={url} media={media} />
         ))}
