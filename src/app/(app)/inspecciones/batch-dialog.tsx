@@ -320,7 +320,7 @@ export function BatchDialog({
             {ti("save_next_area")}
           </Button>
           <Button type="button" disabled={busy || drafts.length === 0} onClick={() => void save(false)}>
-            {drafts.length === 1 ? ti("save_1") : ti("save_n", { n: drafts.length })}
+            {drafts.length === 0 ? ti("save") : drafts.length === 1 ? ti("save_1") : ti("save_n", { n: drafts.length })}
           </Button>
         </DialogFooter>
       </DialogContent>
