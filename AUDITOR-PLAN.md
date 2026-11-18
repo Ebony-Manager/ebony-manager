@@ -55,6 +55,8 @@ Falta, en tandas y con visto bueno de Carlos:
    (compartido), notas largas de bloque (compartido), opciones de formulario que no cabían (SegmentedFilter `wrap`), fechas
    en un solo formato («6-Nov-26»), títulos de tabla en mayúsculas, «1 días», etc. **Lección:** revisar por código no basta;
    cada tanda se cierra con capturas de TODAS sus pantallas y ventanas (`scripts/capturas.mjs`, `TALL=1`, `CLICK=`).
+9. ~~Logo aplastado en el iPad acostado al abrir la app~~ — **descartado 18 nov por Carlos («deja así»)**: es una falla del
+   iPad (usa la imagen de inicio vertical y la estira; WebKit bug 241799), sin arreglo de nuestro lado. No volver a proponerlo.
 7. **En pausa por decisión de Carlos** (no tocar sin que lo pida): rediseño del encabezado del teléfono; selector de etapas de Compras.
 
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la
