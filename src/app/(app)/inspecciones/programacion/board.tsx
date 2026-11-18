@@ -811,7 +811,8 @@ export function BlockDetailDialog({
   const first = block ? items.get(block.schedules[0].itemId) : undefined;
   return (
     <>
-      <Dialog open={block !== null} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos */}
+      {/* ui-allow: sin-campos */}
+      <Dialog open={block !== null} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{block?.area ?? ti("no_area")}</DialogTitle>

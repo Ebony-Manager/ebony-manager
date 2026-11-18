@@ -266,7 +266,8 @@ export function PlanDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos (solo filtros del plan; no hay nada que se pierda) */}
+    // ui-allow: sin-campos (solo filtros del plan; no hay nada que se pierda)
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{ti("sch_plan_title")}</DialogTitle>

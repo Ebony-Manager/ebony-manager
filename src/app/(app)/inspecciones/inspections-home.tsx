@@ -198,7 +198,8 @@ function ProjectPicker({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos */}
+    // ui-allow: sin-campos
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md gap-3 p-0 sm:p-0">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>{ti("pick_title")}</DialogTitle>

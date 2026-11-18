@@ -86,7 +86,7 @@ export function ItemDialog({
   const [reading, setReading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset: resetErrors } = useFormErrors<"content" | "painter">();
-  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([area, piece, comment, meta, photos.length, removed]));
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([area, piece, comment, meta, photos.map((p) => p.key), removed]));
   const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, onClose);
 
   const reset = React.useCallback((it: InspectionItem | null) => {

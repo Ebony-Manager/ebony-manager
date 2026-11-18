@@ -77,7 +77,8 @@ export function PdfDialog({
   }
 
   return (
-    <Dialog open={!!draft} onOpenChange={(o) => !o && onClose()}> {/* ui-allow: sin-campos */}
+    // ui-allow: sin-campos
+    <Dialog open={!!draft} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{ti("pdf_title")}</DialogTitle>
