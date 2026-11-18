@@ -128,6 +128,7 @@ export function Viewer3D({
           ))}
         </div>
         {isCorner && (
+          // ui-allow: control en línea de la barra del visor (no es un formulario).
           <label className="flex items-center gap-1.5">
             {tt("viewer_corner_at")}
             <NumField value={section.cornerAt ?? 0} onChange={(n) => onShape("L", n)} suffix="m" inputWidth={40} aria-label={tt("viewer_corner_at")} />
@@ -138,6 +139,7 @@ export function Viewer3D({
         </button>
       </div>
 
+      {/* ui-allow: fondo del lienzo 3D (el color de la escena, igual en claro y oscuro). */}
       <div className="relative bg-[#efe9df]">
         {failed ? (
           <p className="px-4 py-12 text-center text-sm text-muted-foreground">{tt("viewer_failed")}</p>

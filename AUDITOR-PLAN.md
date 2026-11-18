@@ -40,7 +40,7 @@ Falta, en tandas y con visto bueno de Carlos:
    vacío con colores del tema; ficha con `ProfileCard` (Información general sin «Estado» repetido, Contratos con `KpiCard`,
    Diseñadoras) y «Mostrar terminados» con `ShowToggle`; actas: «1 foto», fechas «13-Nov-26»; Presentación carga con
    `LoadingBlock`; formulario de proyecto: estado solo al editar, junto a Ubicación. **Queda para la sesión de desarrollo**
-   (es de Contratistas): en la pestaña Contratos del proyecto cada contrato repite el nombre del proyecto debajo.
+   (es de Contratistas): en la pestaña Contratos del proyecto cada contrato repite el nombre del proyecto debajo → **hecho 18 nov** (Carlos: lo de diseño es de esta sesión; `ContractsTable showProject={false}`).
 3c. ~~**Cotización**~~ — **hecho 18 nov** (con capturas; los diálogos ya estaban con las piezas compartidas): fechas
    «17-Nov-26» en la lista y en el editor; títulos sin MAYÚSCULAS (editor, lista de ítems, quién, 3D, Costos); campos del
    ítem, del panel «para quién» y de Notas con `Field`; en el teléfono los campos del ítem van uno por fila; Costos →

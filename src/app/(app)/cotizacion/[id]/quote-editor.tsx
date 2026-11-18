@@ -18,7 +18,6 @@ import {
 } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { formatDateCompact } from "@/lib/planilla/format";
-import { Field } from "@/components/shared/field";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import {
@@ -601,7 +600,7 @@ export function QuoteEditor({
         </div>
 
         <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground tabular-nums">
+          <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground tabular-nums">
             {quote.number || tt("number_pending")}
             <StatusBadge status={`quote_${quote.status}`}>{statusLabel(quote.status)}</StatusBadge>
             {quote.status === "APROBADA" && alegraEnabled && <AlegraChip quoteId={quote.id} initial={alegra} justApproved={justApproved} />}
@@ -1047,16 +1046,16 @@ export function QuoteEditor({
                 </fieldset>
               </div>
 
-            <div className="rounded-lg border border-border bg-card p-3.5">
-              <Field label={tt("f_notes")}>
+            <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5">
+              <h2 id="quote-notes-title" className={panelTitle}>{tt("f_notes")}</h2>
               <Textarea
+                aria-labelledby="quote-notes-title"
                 disabled={locked}
                 value={quote.notes}
                 onChange={(e) => setHeader({ notes: e.currentTarget.value })}
                 placeholder={tt("f_notes_ph")}
                 rows={3}
               />
-              </Field>
             </div>
             </aside>
           </div>

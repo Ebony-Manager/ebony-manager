@@ -397,6 +397,12 @@ function ContractsSection({
   const completed = sorted.filter((c) => c.status !== "ACTIVE");
   // Si ya no queda ninguno activo, los terminados se ven de entrada (si no, la pestaña quedaría vacía).
   const [showCompleted, setShowCompleted] = React.useState(active.length === 0);
+  // Si se termina el último activo con la ficha abierta, los terminados se muestran solos.
+  const noneActive = active.length === 0;
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- solo abre; nunca pisa lo que la persona eligió mientras hay activos.
+    if (noneActive) setShowCompleted(true);
+  }, [noneActive]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -410,7 +416,7 @@ function ContractsSection({
         <EmptyState>{tt("no_contracts")}</EmptyState>
       ) : (
         <>
-          {active.length > 0 && <ContractsTable contracts={active} onOpen={onOpen} showContractor />}
+          {active.length > 0 && <ContractsTable contracts={active} onOpen={onOpen} showContractor showProject={false} />}
           {completed.length > 0 && (
             <div className="flex flex-col gap-3">
               <ShowToggle
@@ -419,7 +425,7 @@ function ContractsSection({
                 label={tt("show_completed").replace("{n}", String(completed.length))}
                 className="self-start"
               />
-              {showCompleted && <ContractsTable contracts={completed} onOpen={onOpen} showContractor />}
+              {showCompleted && <ContractsTable contracts={completed} onOpen={onOpen} showContractor showProject={false} />}
             </div>
           )}
         </>

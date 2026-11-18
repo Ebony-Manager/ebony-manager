@@ -104,7 +104,7 @@ export function CostosClient({
   };
 
   const [addBusy, setAddBusy] = React.useState(false);
-  const { error, validate, clear } = useFormErrors<"name">();
+  const { error, validate, clear, reset } = useFormErrors<"name">();
 
   async function onAdd() {
     if (!validate([["name", !draft.name.trim(), tt("cost_name_required")]])) return;
@@ -168,7 +168,13 @@ export function CostosClient({
         title={tt("cost_title")}
         subtitle={tt("cost_subtitle")}
         action={
-          <Button size="sm" onClick={() => setAdding((v) => !v)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setAdding((v) => !v);
+              reset();
+            }}
+          >
             <Plus className="size-3.5" />
             {tt("cost_add_item")}
           </Button>
@@ -177,7 +183,7 @@ export function CostosClient({
       <ShowToggle className="-mt-2 self-end" checked={showInactive} onChange={setShowInactive} label={tt("cost_show_inactive")} />
 
       {adding && (
-        <div className={cn(panel, "flex flex-wrap items-start gap-2.5 p-3.5 [&>button]:mt-[22px]")}>
+        <div className={cn(panel, "flex flex-wrap items-end gap-2.5 p-3.5")}>
           <Field label={tt("cost_col_item")} required error={error("name")} className="flex-[2_1_220px]">
             <Input
               autoFocus

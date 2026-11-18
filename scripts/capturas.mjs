@@ -64,7 +64,9 @@ for (const [tag, viewport] of sizes) {
     // CLICK=<selector de Playwright> abre algo antes de la captura (ej. un diálogo). Solo abrir: nunca Guardar.
     // Varios clics seguidos: separados por " ;; " (ej. abrir un formulario vacío y tocar Guardar para ver los errores).
     for (const sel of (process.env.CLICK ?? "").split(" ;; ").filter(Boolean)) {
-      await page.locator(sel).first().click();
+      // DISPATCH=1: el clic se manda directo al elemento (sirve si algo lo tapa, ej. el botón «N» de next dev).
+      if (process.env.DISPATCH) await page.locator(sel).first().dispatchEvent("click");
+      else await page.locator(sel).first().click();
       await page.waitForTimeout(800);
     }
     // WAIT=<ms>: espera extra para pantallas que cargan sus datos después de abrir.

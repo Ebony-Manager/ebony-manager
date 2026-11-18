@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Briefcase,
   Check,
   ChevronDown,
   Folder,
@@ -14,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/shared/field";
+import { ICON } from "@/lib/ui/concepts";
 import {
   Popover,
   PopoverContent,
@@ -274,7 +274,7 @@ export function OwnerPanel({
               value={[nameOf(quote.designerId), contactName]
                 .filter(Boolean)
                 .join(" · ")}
-              icon={Briefcase}
+              icon={ICON.firm}
             />
             <Who
               label={tt("own_end_client")}
@@ -285,12 +285,12 @@ export function OwnerPanel({
         )
       ) : mode === "project" ? (
         quote.projectId && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <dl className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Who
                 label={tt("own_firm")}
                 value={nameOf(quote.designerId)}
-                icon={Briefcase}
+                icon={ICON.firm}
               />
               {firmContacts.length > 0 && (
                 <ContactSelect
@@ -306,7 +306,7 @@ export function OwnerPanel({
               value={nameOf(quote.clientId)}
               icon={User}
             />
-          </div>
+          </dl>
         )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -326,15 +326,17 @@ export function OwnerPanel({
               }
               placeholder={tv("pick_designer")}
             />
-            {firmContacts.length > 0 && (
+          </Field>
+          {firmContacts.length > 0 && (
+            <Field label={tt("own_contact")} className="sm:order-last">
               <ContactSelect
                 contacts={firmContacts}
                 value={quote.designerContactId}
                 onChange={(id) => setPeople({ designerContactId: id })}
                 anyLabel={tv("contact_any")}
               />
-            )}
-          </Field>
+            </Field>
+          )}
           <Field label={tt("own_end_client")}>
             <ClientPicker
               clients={clients}
@@ -428,7 +430,7 @@ function ContactSelect({
       value={value ?? "__firm"}
       onValueChange={(v) => onChange(v === "__firm" ? null : v)}
     >
-      <SelectTrigger className="w-full">
+      <SelectTrigger className="w-full" aria-label={anyLabel}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

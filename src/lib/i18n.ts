@@ -113,6 +113,7 @@ export const strings = {
     menu: { es: "Menú", en: "Menu" },
     // Última pestaña de la barra de abajo en el celular: abre el menú completo.
     more: { es: "Más", en: "More" },
+    close_menu: { es: "Cerrar menú", en: "Close menu" },
     close: { es: "Cerrar", en: "Close" },
     loading: { es: "Cargando", en: "Loading" },
     // Franja para instalar la app en el celular (install-banner.tsx).
@@ -2195,6 +2196,7 @@ export const strings = {
     own_pick_project: { es: "Elegir proyecto…", en: "Pick project…" },
     own_not_listed: { es: "¿No está? Créala en Seguimiento", en: "Not listed? Create it in Follow-up" },
     own_firm: { es: "Arquitecto / diseñador", en: "Architect / designer" },
+    own_contact: { es: "Contacto", en: "Contact" },
     own_end_client: { es: "Cliente final", en: "End client" },
     own_reference: { es: "Referencia", en: "Reference" },
     own_reference_ph: { es: "Ej. Reparación de puerta, Apto 12B", en: "E.g. Door repair, Apt 12B" },

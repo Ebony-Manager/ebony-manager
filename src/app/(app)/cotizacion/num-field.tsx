@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useField } from "@/components/shared/field";
 
 function show(n: number): string {
   if (!Number.isFinite(n)) return "0";
@@ -46,17 +47,24 @@ export function NumField({
   // Mientras se escribe se conserva el texto tal cual ("4." o "4,1"); al
   // salir se vuelve a mostrar el número guardado.
   const [text, setText] = React.useState<string | null>(null);
+  // Dentro de un <Field>: el título apunta a esta casilla y el error la marca en rojo.
+  const field = useField();
+  const bad = !!field?.invalid;
 
   return (
     <span
       className={cn(
         "inline-flex h-7 items-center gap-[3px] whitespace-nowrap",
         locked ? "" : "rounded-md border border-input bg-card px-2 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+        bad && "border-destructive",
         className
       )}
     >
       {prefix && <span className="text-[11px] text-muted-foreground">{prefix}</span>}
       <input
+        id={field?.id}
+        aria-invalid={bad || undefined}
+        aria-describedby={field?.describedBy}
         {...aria}
         type="text"
         inputMode="decimal"

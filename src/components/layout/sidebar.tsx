@@ -85,6 +85,8 @@ export function Sidebar({ isOpen, onClose, pending }: { isOpen: boolean; onClose
         <aside className="relative w-[68px] h-full flex flex-col items-center shrink-0 bg-sidebar border-r border-sidebar-border py-4">
           <button
             onClick={onClose}
+            aria-label={t(lang, strings.nav.close_menu)}
+            title={t(lang, strings.nav.close_menu)}
             className="md:hidden absolute top-1.5 right-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground"
           >
             <X size={14} />

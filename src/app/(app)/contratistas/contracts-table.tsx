@@ -40,10 +40,13 @@ export function ContractsTable({
   contracts,
   onOpen,
   showContractor = false,
+  showProject = true,
 }: {
   contracts: ContractorContract[];
   onOpen: (c: ContractorContract) => void;
   showContractor?: boolean;
+  /** false dentro de la ficha del proyecto: ahí el nombre del proyecto sobra en cada fila. */
+  showProject?: boolean;
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
@@ -64,7 +67,7 @@ export function ContractsTable({
               <div className="min-w-0 flex-1">
                 {showContractor && <p className="truncate text-sm font-semibold text-foreground">{c.contractorName}</p>}
                 <p className={`truncate text-sm ${muted ? "text-muted-foreground" : showContractor ? "text-foreground" : "font-medium text-foreground"}`}>{c.name}</p>
-                {c.projectName !== c.name && <p className="truncate text-xs text-muted-foreground">{c.projectName}</p>}
+                {showProject && c.projectName !== c.name && <p className="truncate text-xs text-muted-foreground">{c.projectName}</p>}
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-[11px] text-muted-foreground">{pending < 0 ? tt("ct_overpaid") : tt("ct_col_pending")}</p>
@@ -107,7 +110,7 @@ export function ContractsTable({
               >
                 <td className="px-3 py-2">
                   <span className={muted ? "text-muted-foreground" : "font-medium text-foreground"}>{c.name}</span>
-                  {c.projectName !== c.name && <span className="block text-xs text-muted-foreground">{c.projectName}</span>}
+                  {showProject && c.projectName !== c.name && <span className="block text-xs text-muted-foreground">{c.projectName}</span>}
                 </td>
                 {showContractor && (
                   <td className="px-3 py-2">

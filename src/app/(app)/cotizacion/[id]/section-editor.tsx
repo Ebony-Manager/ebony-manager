@@ -19,7 +19,7 @@ import { NumField } from "../num-field";
 import { LineRow } from "./line-row";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { Input } from "@/components/ui/input";
-import { Field } from "@/components/shared/field";
+import { Field, useField } from "@/components/shared/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { locationKey } from "@/lib/cotizador/items";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -63,6 +63,7 @@ const EBONY_ADDERS: CatalogCategory[] = ["revestimientos", "modulos", "tablillas
 /** Área de texto que crece con su contenido: nunca corta la descripción. */
 function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
+  const field = useField();
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -71,6 +72,9 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
   }, [value]);
   return (
     <textarea
+      id={field?.id}
+      aria-invalid={field?.invalid || undefined}
+      aria-describedby={field?.describedBy}
       {...rest}
       ref={ref}
       rows={2}
