@@ -746,6 +746,7 @@ function LogoPicker({ initial, td }: { initial: LogoFile | null; td: TFn }) {
           ) : (
             <div className="flex flex-col gap-1 text-black">
               <EbonyLogo variant="wordmark" tone="black" height={28} />
+              {/* ui-allow: muestra del documento impreso (sobre blanco), no un color de la app. */}
               <span className="text-[9px] tracking-[0.2em] text-neutral-600">custom woodwork</span>
             </div>
           )}

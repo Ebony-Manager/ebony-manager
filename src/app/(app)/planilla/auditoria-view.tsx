@@ -541,7 +541,7 @@ export function AuditoriaView({
                             className={`px-1.5 ${d.lineRow} text-right tabular-nums ${
                               isPreview
                                 ? colOccurred(i)
-                                  ? "italic text-sky-700/55 dark:text-sky-300/60"
+                                  ? "italic text-primary/60"
                                   : "italic text-muted-foreground/60"
                                 : g.key === "prestaciones" && value !== 0
                                   ? "text-black dark:text-white"

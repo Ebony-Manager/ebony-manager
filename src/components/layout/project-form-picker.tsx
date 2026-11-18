@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LoadingBlock } from "@/components/shared/loading-block";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -55,6 +56,7 @@ export function ProjectFormPicker({ kind, title, onClose }: { kind: DeliveryKind
   };
 
   return (
+    // ui-allow: sin-campos (solo se elige un proyecto de la lista).
     <Dialog open={kind !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="gap-3 p-4 sm:max-w-md">
         <DialogHeader>
@@ -63,10 +65,7 @@ export function ProjectFormPicker({ kind, title, onClose }: { kind: DeliveryKind
         </DialogHeader>
         <p className="text-sm font-medium text-foreground">{tn("form_pick_project")}</p>
         {projects === null ? (
-          <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {tn("form_pick_loading")}
-          </p>
+          <LoadingBlock variant="lines" rows={4} />
         ) : (
           <Command className="rounded-md border border-border">
             <CommandInput placeholder={tn("form_pick_search")} />

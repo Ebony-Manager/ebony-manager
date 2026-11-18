@@ -90,7 +90,7 @@ describe("consistencia de la interfaz", () => {
   });
 
   it("los formularios en diálogo avisan antes de descartar cambios (useDiscardGuard) — la deuda existente no puede crecer", () => {
-    const BASELINE = 2;
+    const BASELINE = 0;
     const bad = find((l) => l.includes("onOpenChange={(o) => !o && onClose()}"));
     expect(bad.length, fix("Usa useDiscardGuard (components/shared/discard-guard); si el diálogo no tiene nada que escribir, marca `ui-allow: sin-campos`. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });
@@ -98,7 +98,7 @@ describe("consistencia de la interfaz", () => {
   it("colores: del tema (bg-primary, text-muted-foreground…), no de la paleta de Tailwind — la deuda existente no puede crecer", () => {
     // Deuda anotada al crear la guardia. Si baja, bájala acá; si sube, la prueba falla.
     // (Los #hex de logos de marca, correos, PDF y el visor 3D son legítimos: no se revisan.)
-    const BASELINE = 3;
+    const BASELINE = 0;
     const palette = find((l) => /\b(bg|text|border|ring|fill|stroke)-(red|blue|green|amber|yellow|gray|slate|zinc|neutral|emerald|orange|rose|sky|indigo|purple|pink)-\d{2,3}\b/.test(l));
     expect(palette.length, fix("Hay más colores de paleta Tailwind que antes: usa tokens del tema. Líneas:", palette)).toBeLessThanOrEqual(BASELINE);
   });

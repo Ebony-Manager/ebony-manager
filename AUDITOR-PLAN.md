@@ -46,9 +46,9 @@ Falta, en tandas y con visto bueno de Carlos:
    ítem, del panel «para quién» y de Notas con `Field`; en el teléfono los campos del ítem van uno por fila; Costos →
    Agregar renglón con `Field`, error en el campo y el botón no se desactiva; Clientes: «1 cotización» y sin «Aprobado
    $0.00». La vista para el cliente y el PDF quedan como documento (fechas dd/mm/aaaa, a propósito).
-4. `planilla/auditoria-view.tsx`: un color azul literal en las celdas de proyección → decidir el token con Carlos.
+4. ~~`planilla/auditoria-view.tsx`: color azul literal~~ — **hecho 18 nov**: `text-primary/60` (el azul del tema).
 5. ~~Fecha del formulario de contrato sale en inglés en el iPhone («Nov 13, 2026»)~~ — **descartado 17 nov por Carlos**: los campos de fecha se quedan como los muestra el teléfono o el navegador; no es un problema. No volver a proponerlo.
-6. Bajar a 0 las líneas base de la guardia (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
+6. ~~Bajar a 0 las líneas base de la guardia~~ — **hecho 18 nov: todas en 0**. Antes (hoy: «opcional» 0, archivos con `setError` 0, cierres sin guardia 7, colores literales 3).
 8. ~~**Cabos sueltos de lo ya barrido (Almacén y Personal)**~~ — **hecho 17 nov** (Carlos lo pidió al ver Compras): revisión
    con capturas de teléfono y computadora de cada pantalla y ventana de Almacén, y de Personal/Pagos. Arreglado: columnas
    fijas en pedidos y «Por pedir», cantidades que aplastaban el nombre, selectores con hueco, encabezados tapados por botones

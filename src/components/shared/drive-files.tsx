@@ -340,6 +340,7 @@ function PreviewDialog({ item, onClose }: { item: DriveItem | null; onClose: () 
             ? "video"
             : "other";
   return (
+    // ui-allow: sin-campos (solo ver el archivo).
     <Dialog open={item !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="flex max-h-[94vh] max-w-4xl flex-col gap-3">
         <DialogHeader>

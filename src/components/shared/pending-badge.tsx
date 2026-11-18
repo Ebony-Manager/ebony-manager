@@ -12,7 +12,7 @@ export function PendingBadge({ count, className, title }: { count: number; class
       title={title}
       aria-label={title ? `${count} ${title}` : String(count)}
       className={cn(
-        "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10.5px] leading-none font-semibold text-white tabular-nums",
+        "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-destructive px-1 text-[10.5px] leading-none font-semibold text-destructive-foreground tabular-nums",
         className
       )}
     >
