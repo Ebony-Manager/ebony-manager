@@ -235,6 +235,8 @@ export async function approveOpportunity(id: string, projectName: string | null,
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("approve_opportunity", { p_id: id, p_project_name: projectName, p_project_id: projectId, p_quote_ids: quoteIds, p_designer_ids: designerIds });
   fail(error);
+  // Proyecto nuevo: las diseñadoras asignadas usan su turno (si falla, la aprobación ya quedó; solo no avanza el turno).
+  if (!projectId && designerIds.length > 0) await supabase.rpc("designer_turns_taken", { p_employee_ids: designerIds });
   return data as string;
 }
 

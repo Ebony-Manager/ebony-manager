@@ -2480,6 +2480,7 @@ export const strings = {
     f_designers_hint: { es: "Quienes llevarán el diseño de este proyecto.", en: "Who will handle this project's design." },
     designers_add: { es: "Agregar diseñadora", en: "Add designer" },
     designers_none: { es: "Sin diseñadoras asignadas", en: "No designers assigned" },
+    designers_turn: { es: "Le toca", en: "Next in turn" },
     designers_remove: { es: "Quitar", en: "Remove" },
     f_amount: { es: "Monto", en: "Amount" },
     f_amount_hint_quote: { es: "Sale de la cotización vigente.", en: "Comes from the current quote." },

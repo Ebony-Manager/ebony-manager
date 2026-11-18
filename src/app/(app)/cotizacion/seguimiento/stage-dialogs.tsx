@@ -214,13 +214,25 @@ export function ApproveDialog({
     setMode(startMode);
     setName(startName);
     setProjectId(startProject);
-    setDesignerIds(opportunity.designerEmployeeIds);
-    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: startProject, picked: startPicked, designerIds: opportunity.designerEmployeeIds });
+    // Proyecto nuevo sin diseñadora elegida: viene marcada la que le toca (turno); se puede cambiar.
+    const turn = designerCandidates.find((c) => c.turnRank === 1)?.id;
+    const startDesigners = opportunity.designerEmployeeIds.length > 0 ? opportunity.designerEmployeeIds : startMode === "new" && turn ? [turn] : [];
+    setDesignerIds(startDesigners);
+    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: startProject, picked: startPicked, designerIds: startDesigners });
     setSaving(false);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // La diseñadora del turno es para proyectos nuevos: al pasar a «proyecto existente» se quita si era la sugerida
+  // (sin tocar), y vuelve si se regresa a «nuevo» sin haber elegido a nadie.
+  const changeMode = (next: "new" | "existing") => {
+    const turn = designerCandidates.find((c) => c.turnRank === 1)?.id;
+    if (turn && next === "existing" && designerIds.length === 1 && designerIds[0] === turn) setDesignerIds([]);
+    if (turn && next === "new" && designerIds.length === 0) setDesignerIds([turn]);
+    setMode(next);
+  };
 
   async function approve() {
     if (!opportunity) return;
@@ -261,7 +273,7 @@ export function ApproveDialog({
             <SegmentedFilter
               fill
               value={mode}
-              onChange={setMode}
+              onChange={changeMode}
               options={[
                 { value: "new", label: tv("approve_new_project") },
                 { value: "existing", label: tv("approve_existing") },
@@ -306,7 +318,7 @@ export function ApproveDialog({
               value={designerIds}
               onChange={setDesignerIds}
               candidates={designerCandidates}
-              labels={{ add: tv("designers_add"), none: tv("designers_none"), remove: tv("designers_remove") }}
+              labels={{ add: tv("designers_add"), none: tv("designers_none"), remove: tv("designers_remove"), turn: tv("designers_turn") }}
             />
           </Field>
           {open_.length > 0 && (

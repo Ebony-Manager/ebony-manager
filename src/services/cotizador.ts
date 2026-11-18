@@ -544,6 +544,9 @@ export async function setQuoteStatus(id: string, status: QuoteStatus, input: Set
     p_designer_ids: input.designerIds ?? null,
   });
   if (error) throw new Error(error.message);
+  // Aprobada con proyecto nuevo: las diseñadoras asignadas usan su turno (si falla, la aprobación ya quedó).
+  if (status === "APROBADA" && !input.projectId && input.designerIds?.length)
+    await supabase.rpc("designer_turns_taken", { p_employee_ids: input.designerIds });
   const { data, error: readError } = await supabase.from("quotes").select("status, sent_on, closed_on, follow_up_on, project_id, updated_at").eq("id", id).single();
   if (readError) throw new Error(readError.message);
   return {

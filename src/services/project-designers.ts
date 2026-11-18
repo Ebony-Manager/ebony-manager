@@ -19,7 +19,7 @@ export async function getDesignerCandidates(): Promise<DesignerCandidate[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("designer_candidates");
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => ({ id: r.id, name: r.name, position: r.position, hasAccess: r.has_access }));
+  return (data ?? []).map((r) => ({ id: r.id, name: r.name, position: r.position, hasAccess: r.has_access, turnRank: r.turn_rank ?? null }));
 }
 
 export async function addProjectDesigner(projectId: string, employeeId: string): Promise<void> {

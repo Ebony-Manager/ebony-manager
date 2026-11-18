@@ -15,6 +15,8 @@ export interface DesignerCandidate {
   name: string;
   position: string | null;
   hasAccess: boolean;
+  /** Lugar en el turno de diseñadoras (1 = le toca el próximo proyecto); null = no está en el turno. */
+  turnRank: number | null;
 }
 
 /** Una cotización del proyecto, tal como la ve una diseñadora: sin ningún monto. */

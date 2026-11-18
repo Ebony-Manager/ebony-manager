@@ -3635,7 +3635,11 @@ export type Database = {
       }
       designer_candidates: {
         Args: Record<string, never>
-        Returns: { id: string; name: string; position: string | null; has_access: boolean }[]
+        Returns: { id: string; name: string; position: string | null; has_access: boolean; turn_rank: number | null }[]
+      }
+      designer_turns_taken: {
+        Args: { p_employee_ids: string[] }
+        Returns: undefined
       }
       designer_project_quotes: {
         Args: { p_project: string }

@@ -18,10 +18,12 @@ export function DesignerPick({
   value: string[];
   onChange: (ids: string[]) => void;
   candidates: DesignerCandidate[];
-  labels: { add: string; none: string; remove: string };
+  /** `turn`: etiqueta para la diseñadora a quien le toca el próximo proyecto (turno). */
+  labels: { add: string; none: string; remove: string; turn?: string };
 }) {
   const options = candidates.filter((c) => !value.includes(c.id));
   const nameOf = (id: string) => candidates.find((c) => c.id === id)?.name ?? "—";
+  const isTurn = (id: string) => candidates.find((c) => c.id === id)?.turnRank === 1;
 
   return (
     <div className="flex flex-col gap-2">
@@ -30,6 +32,7 @@ export function DesignerPick({
           {value.map((id) => (
             <li key={id} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-sm">
               <span className="font-medium text-foreground">{nameOf(id)}</span>
+              {labels.turn && isTurn(id) && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{labels.turn}</span>}
               <button
                 type="button"
                 onClick={() => onChange(value.filter((x) => x !== id))}
@@ -55,6 +58,7 @@ export function DesignerPick({
               <SelectItem key={c.id} value={c.id}>
                 {c.name}
                 {c.position ? ` · ${c.position}` : ""}
+                {labels.turn && c.turnRank === 1 ? ` · ${labels.turn}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
