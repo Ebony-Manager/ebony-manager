@@ -573,6 +573,8 @@ a,
     position: relative;
     display: flex;
     width: var(--splash-w);
+    /* Sube la mitad de la barra de la hora (ver CHROME_TOP_SCRIPT): así coincide con la imagen nativa. */
+    transform: translateY(calc(var(--chrome-top, 0px) / -2));
   }
   .startup-splash-logo {
     width: 100%;

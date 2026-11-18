@@ -7,7 +7,7 @@ import { getUser, getProfile } from "@/lib/auth/dal";
 import type { EbonyUser } from "@/context/auth-context";
 import type { AppModule, AppRole } from "@/lib/auth/dal";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
-import { appleStartupImages } from "@/lib/pwa";
+import { CHROME_TOP_SCRIPT, appleStartupImages } from "@/lib/pwa";
 import "./globals.css";
 
 // Tipografías del tema (tweakcn): Inter para toda la interfaz, Merriweather
@@ -99,6 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link key={url} rel="apple-touch-startup-image" href={url} media={media} />
         ))}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CHROME_TOP_SCRIPT }} />
       </head>
       <body className="min-h-full font-sans">
         <Suspense fallback={<StartupSplash />}>

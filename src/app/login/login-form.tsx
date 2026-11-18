@@ -21,7 +21,8 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <main style={stage} className="relative min-h-dvh overflow-hidden bg-background text-foreground">
       {/* El logo: centro exacto de la pantalla, como en la pantalla de inicio. */}
-      <div className="absolute top-1/2 left-1/2 w-[var(--splash-w)] -translate-x-1/2 -translate-y-1/2">
+      {/* Sube la mitad de la barra de la hora del iPhone (--chrome-top), como la pantalla de inicio. */}
+      <div className="absolute top-[calc(50%-var(--chrome-top,0px)/2)] left-1/2 w-[var(--splash-w)] -translate-x-1/2 -translate-y-1/2">
         <h1 className="sr-only">Ebony Manager</h1>
         <svg viewBox={WORDMARK_VIEWBOX} aria-hidden="true" className="block h-[calc(var(--splash-w)*208/730)] w-full">
           <path d={WORDMARK_PATH} fill="currentColor" />
