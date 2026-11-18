@@ -115,3 +115,14 @@ Implica:
 
 ## Nombre
 **Taller.**
+
+## Etapa 2 · Muestras de pintura (18 nov, publicada)
+
+- Reemplaza el formulario de Jotform «Solicitud Muestra Pintura». Una solicitud = trabajo `muestra` con varias muestras
+  (nombre, tipo SW/BM/Chapilla/Otro, tipo de chapilla, fotos de referencia). Pintor por turno (contratista), aviso por
+  correo, fecha al sábado (dom–mié → ese sábado; jue–sáb → el siguiente), editable.
+- Lista solo con foto terminada de cada muestra y código oficial si es SW/BM (la base lo exige).
+- **Dónde vive**: Taller queda solo con el tablero. *Historial de colores* = `/taller/colores` (botón en el encabezado);
+  los colores de un proyecto salen en su pestaña Taller. *Configuración* (pintores del turno y tipos de chapilla) =
+  Settings → Formularios (solo admin), con atajo «Configurar» dentro de la solicitud. Settings → Formularios es el
+  lugar para la configuración de los próximos formularios.

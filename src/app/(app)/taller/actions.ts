@@ -27,7 +27,14 @@ async function run<T>(fn: () => Promise<T>): Promise<Result<T>> {
 /** La pantalla de Taller y, si aplica, la ficha del proyecto (sin refrescar en la pantalla además: ver UI-RULES). */
 function revalidate(projectIds: (string | null | undefined)[] = []) {
   revalidatePath("/taller");
+  revalidatePath("/taller/colores");
   for (const id of new Set(projectIds)) if (id) revalidatePath(projectPath(id));
+}
+
+/** La configuración del formulario de muestras: Settings → Formularios y donde se usa (Taller). */
+function revalidateConfig() {
+  revalidatePath("/settings/formularios");
+  revalidatePath("/taller");
 }
 
 /** Manda los avisos al teléfono que dejó la base (asignado / listo). Si falla, el aviso queda en la campana igual. */
@@ -242,7 +249,7 @@ export async function setPainterInTurnAction(contractorId: string, inTurn: boole
     await taller.setPainterInTurn(contractorId, inTurn);
     return null;
   });
-  if (res.ok) revalidate();
+  if (res.ok) revalidateConfig();
   return res;
 }
 
@@ -253,7 +260,7 @@ export async function addVeneerTypeAction(name: string): Promise<Result> {
     await taller.addVeneerType(name);
     return null;
   });
-  if (res.ok) revalidate();
+  if (res.ok) revalidateConfig();
   return res;
 }
 
@@ -263,6 +270,6 @@ export async function setVeneerTypeActiveAction(id: string, active: boolean): Pr
     await taller.setVeneerTypeActive(id, active);
     return null;
   });
-  if (res.ok) revalidate();
+  if (res.ok) revalidateConfig();
   return res;
 }

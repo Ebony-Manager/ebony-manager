@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ImagePlus, Palette, Plus, Trash2, X } from "lucide-react";
+import { ImagePlus, Palette, Plus, Settings2, Trash2, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { SearchPicker } from "@/app/(app)/contratistas/search-picker";
 import { PAINT_SAMPLE_KINDS, type PaintSampleKind, type TallerPainter, type TallerProject, type VeneerType, type WorkOrder } from "@/types/taller";
 import { saveSampleRequestAction } from "./actions";
 import { uploadWorkOrderFiles, useTt } from "./shared";
+import { PaintersView } from "./painters-view";
 
 interface Line {
   key: string;
@@ -46,6 +47,7 @@ export function SampleRequestDialog({
   veneers,
   projects,
   defaultProjectId,
+  canConfigure = false,
   onSaved,
 }: {
   open: boolean;
@@ -55,6 +57,8 @@ export function SampleRequestDialog({
   veneers: VeneerType[];
   projects: TallerProject[];
   defaultProjectId?: string | null;
+  /** Admin: atajo a la configuración del formulario (pintores del turno y chapillas), la misma de Settings → Formularios. */
+  canConfigure?: boolean;
   onSaved?: (id: string) => void;
 }) {
   const { tt } = useTt();
@@ -64,18 +68,25 @@ export function SampleRequestDialog({
   const [notes, setNotes] = React.useState("");
   const [lines, setLines] = React.useState<Line[]>([newLine()]);
   const [saving, setSaving] = React.useState(false);
+  const [configOpen, setConfigOpen] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"project" | "samples">();
 
   const snapshot = () =>
     JSON.stringify([projectId, contractorId, dueDate, notes, lines.map((l) => [l.name, l.kind, l.veneerTypeId, l.photos.length])]);
   const { isDirty, markSeeded } = useFormBaseline(snapshot);
 
+  // Los pintores cambian si se configura el formulario con la solicitud abierta: eso no debe borrar lo escrito.
+  const paintersRef = React.useRef(painters);
+  React.useEffect(() => {
+    paintersRef.current = painters;
+  }, [painters]);
+
   /* eslint-disable react-hooks/set-state-in-effect -- (re)siembra al abrir. */
   React.useEffect(() => {
     if (!open) return;
     reset();
     setProjectId(order ? order.projectId : (defaultProjectId ?? null));
-    setContractorId(order ? order.assigneeContractorId : (painters.find((p) => p.turnRank === 1)?.contractorId ?? null));
+    setContractorId(order ? order.assigneeContractorId : (paintersRef.current.find((p) => p.turnRank === 1)?.contractorId ?? null));
     setDueDate(order ? (order.dueDate ?? "") : nextSampleSaturday(todayInPanama()));
     setNotes(order?.notes ?? "");
     setLines(
@@ -84,7 +95,9 @@ export function SampleRequestDialog({
         : [newLine()],
     );
     markSeeded();
-  }, [open, order, defaultProjectId, painters, reset, markSeeded]);
+    // Solo al abrir o al cambiar de solicitud: un refresco de la pantalla no debe borrar lo escrito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, order?.id, defaultProjectId, reset, markSeeded]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const { requestClose, dialog: discardDialog } = useDiscardGuard(isDirty, () => onOpenChange(false));
@@ -140,7 +153,15 @@ export function SampleRequestDialog({
       <DialogContent className="max-h-[90vh] max-w-[min(95vw,40rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{order ? order.title : tt("new_sample_title")}</DialogTitle>
-          <DialogDescription>{tt("kind_muestra")}</DialogDescription>
+          <div className="flex items-center justify-between gap-2">
+            <DialogDescription>{tt("kind_muestra")}</DialogDescription>
+            {canConfigure && (
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setConfigOpen(true)}>
+                <Settings2 className="size-3.5" />
+                {tt("configure")}
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
@@ -251,6 +272,18 @@ export function SampleRequestDialog({
         </form>
       </DialogContent>
       {discardDialog}
+      {canConfigure && (
+        // ui-allow: sin-campos (cada cambio se guarda al tocarlo; no hay nada que descartar)
+        <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+          <DialogContent className="max-h-[90vh] max-w-[min(95vw,52rem)] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{tt("configure_samples_title")}</DialogTitle>
+              <DialogDescription>{tt("form_samples_note")}</DialogDescription>
+            </DialogHeader>
+            <PaintersView painters={painters} veneers={veneers} />
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

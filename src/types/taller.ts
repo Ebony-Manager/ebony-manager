@@ -106,8 +106,10 @@ export interface TallerData {
   meUserId: string;
   painters: TallerPainter[];
   veneers: VeneerType[];
-  /** Todas las muestras de pintura (el control de colores no se limita a lo reciente). */
-  colorOrders: WorkOrder[];
+  /** Un trabajo viejo abierto por enlace (ej. desde el historial de colores) que ya no está en el tablero. */
+  extraOrders: WorkOrder[];
+  /** Admin: ve el atajo a la configuración de formularios. */
+  isAdmin: boolean;
 }
 
 /** Hasta este tamaño un archivo se descarga a través de la app (límite del servidor). Los DXF pesan ~80–180 KB. */

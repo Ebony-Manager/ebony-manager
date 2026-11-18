@@ -1,28 +1,4 @@
-import {
-  Handshake,
-  Folder,
-  BarChart2,
-  CalendarCheck,
-  Wallet,
-  Layers,
-  UserCog,
-  Users,
-  Settings,
-  Contact,
-  Warehouse,
-  Wrench,
-  Boxes,
-  PackageMinus,
-  ShoppingCart,
-  BookUser,
-  Bell,
-  FileText,
-  CalendarDays,
-  PlugZap,
-  ClipboardCheck,
-  Factory,
-  type LucideIcon,
-} from "lucide-react";
+import { BarChart2, Bell, BookUser, Boxes, CalendarCheck, CalendarDays, ClipboardCheck, ClipboardList, Contact, Factory, FileText, Folder, Handshake, Layers, PackageMinus, PlugZap, Settings, ShoppingCart, UserCog, Users, Wallet, Warehouse, Wrench, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -138,6 +114,7 @@ export const SETTINGS_PANEL: NavPanel = {
   items: [
     { href: "/settings/usuarios", icon: UserCog, label: strings.nav.usuarios, adminOnly: true },
     { href: "/settings/notificaciones", icon: Bell, label: strings.nav.notificaciones, adminOnly: true },
+    { href: "/settings/formularios", icon: ClipboardList, label: strings.nav.formularios, adminOnly: true },
     { href: "/settings/cotizaciones", icon: FileText, label: strings.nav.cotizaciones_settings, adminOnly: true },
     { href: "/settings/feriados", icon: CalendarDays, label: strings.nav.feriados, adminOnly: true },
     { href: "/settings/conexiones", icon: PlugZap, label: strings.nav.conexiones, adminOnly: true },

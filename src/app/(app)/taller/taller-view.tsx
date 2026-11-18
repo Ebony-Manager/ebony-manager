@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChevronDown, Cpu, Factory, Inbox, Palette, Plus, UserCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EmptyState, PAGE_CLASS, PageHeader, ShowToggle, SubTabs } from "@/components/shared/page-header";
+import { EmptyState, PAGE_CLASS, PageHeader, ShowToggle } from "@/components/shared/page-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { ICON } from "@/lib/ui/concepts";
@@ -16,11 +17,7 @@ import { WorkOrderCard, statusLabel, useTt } from "./shared";
 import { WorkOrderDialog } from "./work-order-dialog";
 import { WorkOrderDetail } from "./work-order-detail";
 import { SampleRequestDialog } from "./sample-request-dialog";
-import { ColorsList } from "./colors-view";
-import { PaintersView } from "./painters-view";
 
-type View = "trabajos" | "colores" | "pintores";
-const VIEWS: readonly View[] = ["trabajos", "colores", "pintores"];
 
 type Scope = "all" | "mine" | "requested";
 const SCOPE_KEY = "taller.scope";
@@ -48,10 +45,9 @@ function saveScope(v: Scope) {
  * Taller → Trabajos: la cola de trabajos de todas las áreas (por ahora CNC). Lo de cada uno es un filtro (Todos /
  * Asignados a mí / Pedidos por mí); la app recuerda el último. Tablero por estado; en el teléfono, una columna a la vez.
  */
-export function TallerView({ data, initialOpenId, initialView }: { data: TallerData; initialOpenId?: string | null; initialView?: string }) {
+export function TallerView({ data, initialOpenId }: { data: TallerData; initialOpenId?: string | null }) {
   const { tt } = useTt();
   const router = useRouter();
-  const [view, setView] = React.useState<View>(VIEWS.includes(initialView as View) ? (initialView as View) : "trabajos");
   const [typeFilter, setTypeFilter] = React.useState<"all" | WorkOrderKind>("all");
   const [scope, setScope] = React.useState<Scope>("all");
   const [personFilter, setPersonFilter] = React.useState("all");
@@ -88,13 +84,6 @@ export function TallerView({ data, initialOpenId, initialView }: { data: TallerD
   const peopleById = React.useMemo(() => new Map(data.people.map((p) => [p.employeeId, p])), [data.people]);
   const paintersById = React.useMemo(() => new Map(data.painters.map((p) => [p.contractorId, p])), [data.painters]);
 
-  const changeView = (v: View) => {
-    setView(v);
-    const url = new URL(window.location.href);
-    if (v === "trabajos") url.searchParams.delete("vista");
-    else url.searchParams.set("vista", v);
-    window.history.replaceState(null, "", url);
-  };
 
   const filtered = data.orders.filter((o) => {
     if (scope === "mine" && (!data.meEmployeeId || o.assigneeId !== data.meEmployeeId)) return false;
@@ -113,7 +102,7 @@ export function TallerView({ data, initialOpenId, initialView }: { data: TallerD
   ];
   const hasSamples = data.orders.some((o) => o.kind === "muestra");
   const projectOptions = data.projects.filter((p) => data.orders.some((o) => o.projectId === p.id));
-  const openOrder = data.orders.find((o) => o.id === openId) ?? data.colorOrders.find((o) => o.id === openId) ?? null;
+  const openOrder = data.orders.find((o) => o.id === openId) ?? data.extraOrders.find((o) => o.id === openId) ?? null;
 
   const column = (s: WorkOrderStatus) => {
     const list = s === "listo" && showCancelled ? [...byStatus("listo"), ...cancelled] : byStatus(s);
@@ -146,6 +135,13 @@ export function TallerView({ data, initialOpenId, initialView }: { data: TallerD
         title={tt("title")}
         subtitle={tt("subtitle")}
         action={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+            <Link href="/taller/colores">
+              <Palette className="size-4" />
+              {tt("colors_button")}
+            </Link>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button>
@@ -165,113 +161,97 @@ export function TallerView({ data, initialOpenId, initialView }: { data: TallerD
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         }
       />
 
-      <SubTabs
-        value={view}
-        onChange={changeView}
-        tabs={[
-          { value: "trabajos" as const, label: tt("tab_trabajos") },
-          { value: "colores" as const, label: tt("tab_colores") },
-          { value: "pintores" as const, label: tt("tab_pintores") },
-        ]}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <SegmentedFilter
+          fill
+          value={scope}
+          onChange={(v) => {
+            setScope(v);
+            saveScope(v);
+          }}
+          options={[
+            { value: "all" as const, label: tt("scope_all"), icon: Factory },
+            { value: "mine" as const, label: tt("scope_mine"), icon: UserCheck },
+            { value: "requested" as const, label: tt("scope_requested"), icon: Inbox },
+          ]}
+        />
+        <Select value={personFilter} onValueChange={setPersonFilter}>
+          <SelectTrigger className="h-9 w-full min-w-44 sm:w-auto">
+            <ICON.owner className="size-3.5 shrink-0 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{tt("all_people")}</SelectItem>
+            {assigneeOptions.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasSamples && (
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | WorkOrderKind)}>
+            <SelectTrigger className="h-9 w-full min-w-36 sm:w-auto">
+              <Factory className="size-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{tt("type_all")}</SelectItem>
+              <SelectItem value="cnc">{tt("kind_cnc")}</SelectItem>
+              <SelectItem value="muestra">{tt("kind_muestra")}</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <Select value={projectFilter} onValueChange={setProjectFilter}>
+          <SelectTrigger className="h-9 w-full min-w-44 sm:w-auto">
+            <ICON.project className="size-3.5 shrink-0 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{tt("all_projects")}</SelectItem>
+            <SelectItem value="internal">{tt("internal")}</SelectItem>
+            {projectOptions.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {cancelled.length > 0 && (
+          <ShowToggle checked={showCancelled} onChange={setShowCancelled} label={`${tt("show_cancelled")} (${cancelled.length})`} />
+        )}
+      </div>
 
-      {view === "colores" && <ColorsList orders={data.colorOrders} painters={data.painters} veneers={data.veneers} onOpen={setOpenId} />}
-      {view === "pintores" && <PaintersView painters={data.painters} veneers={data.veneers} />}
-
-      {view === "trabajos" && (
+      {data.orders.length === 0 ? (
+        <EmptyState size="page">
+          <Factory className="size-6" />
+          <p>{tt("empty")}</p>
+        </EmptyState>
+      ) : filtered.length === 0 ? (
+        <EmptyState size="page">{tt("no_results")}</EmptyState>
+      ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Teléfono: una columna a la vez. */}
+          <div className="flex flex-col gap-3 md:hidden">
             <SegmentedFilter
               fill
-              value={scope}
-              onChange={(v) => {
-                setScope(v);
-                saveScope(v);
-              }}
-              options={[
-                { value: "all" as const, label: tt("scope_all"), icon: Factory },
-                { value: "mine" as const, label: tt("scope_mine"), icon: UserCheck },
-                { value: "requested" as const, label: tt("scope_requested"), icon: Inbox },
-              ]}
+              value={mobileColumn}
+              onChange={setMobileColumn}
+              options={COLUMNS.map((s) => ({
+                value: s,
+                label: `${statusLabel(tt, s)} (${byStatus(s).length})`,
+                icon: STATUS[`work_${s}`].icon,
+                iconClass: TONE_TEXT[STATUS[`work_${s}`].tone],
+              }))}
             />
-            <Select value={personFilter} onValueChange={setPersonFilter}>
-              <SelectTrigger className="h-9 w-full min-w-44 sm:w-auto">
-                <ICON.owner className="size-3.5 shrink-0 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{tt("all_people")}</SelectItem>
-                {assigneeOptions.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {hasSamples && (
-              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | WorkOrderKind)}>
-                <SelectTrigger className="h-9 w-full min-w-36 sm:w-auto">
-                  <Factory className="size-3.5 shrink-0 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tt("type_all")}</SelectItem>
-                  <SelectItem value="cnc">{tt("kind_cnc")}</SelectItem>
-                  <SelectItem value="muestra">{tt("kind_muestra")}</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="h-9 w-full min-w-44 sm:w-auto">
-                <ICON.project className="size-3.5 shrink-0 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{tt("all_projects")}</SelectItem>
-                <SelectItem value="internal">{tt("internal")}</SelectItem>
-                {projectOptions.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {cancelled.length > 0 && (
-              <ShowToggle checked={showCancelled} onChange={setShowCancelled} label={`${tt("show_cancelled")} (${cancelled.length})`} />
-            )}
+            {column(mobileColumn)}
           </div>
-
-          {data.orders.length === 0 ? (
-            <EmptyState size="page">
-              <Factory className="size-6" />
-              <p>{tt("empty")}</p>
-            </EmptyState>
-          ) : filtered.length === 0 ? (
-            <EmptyState size="page">{tt("no_results")}</EmptyState>
-          ) : (
-            <>
-              {/* Teléfono: una columna a la vez. */}
-              <div className="flex flex-col gap-3 md:hidden">
-                <SegmentedFilter
-                  fill
-                  value={mobileColumn}
-                  onChange={setMobileColumn}
-                  options={COLUMNS.map((s) => ({
-                    value: s,
-                    label: `${statusLabel(tt, s)} (${byStatus(s).length})`,
-                    icon: STATUS[`work_${s}`].icon,
-                    iconClass: TONE_TEXT[STATUS[`work_${s}`].tone],
-                  }))}
-                />
-                {column(mobileColumn)}
-              </div>
-              {/* Computadora: el tablero completo. */}
-              <div className="hidden gap-4 md:grid md:grid-cols-3">{COLUMNS.map(column)}</div>
-            </>
-          )}
+          {/* Computadora: el tablero completo. */}
+          <div className="hidden gap-4 md:grid md:grid-cols-3">{COLUMNS.map(column)}</div>
         </>
       )}
 
@@ -311,6 +291,7 @@ export function TallerView({ data, initialOpenId, initialView }: { data: TallerD
         painters={data.painters}
         veneers={data.veneers}
         projects={data.projects}
+        canConfigure={data.isAdmin}
         onSaved={(id) => setOpenId(id)}
       />
     </div>
