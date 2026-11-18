@@ -549,8 +549,10 @@ a,
 
 /* Pantalla de inicio (app instalada) mientras el servidor arma la sesión. Las imágenes nativas del
    iPhone (scripts/generate-splash.mjs) usan EXACTAMENTE estas medidas: logo de min(200px, 50vw) de ancho
-   con su centro en el centro de la pantalla; «MANAGER» de 0.044 × ese ancho de alto, 0.07 × debajo.
-   Si se cambia algo aquí, se cambia allá y se vuelven a generar las imágenes. Colores fijos (no del tema):
+   con su centro en el centro de la pantalla; «MANAGER» de 0.044 × ese ancho de alto, 0.07 × debajo; la
+   rayita de 0.6 × ese ancho, 0.48 × debajo del logo (la imagen la muestra quieta; aquí se mueve). El login
+   (src/app/login) pone el logo en el mismo lugar, para que no se sienta como otra página.
+   Si se cambia algo aquí, se cambia allá y se vuelven a generar las imágenes. Colores = los del tema (fondo, texto, tenue), escritos fijos:
    iOS los elige por el modo del teléfono, igual que las imágenes. */
 .startup-splash {
   display: none;
@@ -564,8 +566,8 @@ a,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fcfcfd;
-    color: #030605;
+    background: #fdfdff;
+    color: #0d0d12;
   }
   .startup-splash-brand {
     position: relative;
@@ -583,18 +585,18 @@ a,
     height: calc(var(--splash-w) * 0.044);
     width: auto;
     transform: translateX(-50%);
-    color: #6b6f76;
+    color: #62627a;
   }
-  /* Una rayita que se mueve mientras carga (solo aquí: la imagen nativa no se mueve). */
+  /* La rayita de carga: medida desde el logo (no desde abajo), así coincide con la imagen nativa. */
   .startup-splash-bar {
     position: absolute;
-    bottom: calc(72px + env(safe-area-inset-bottom));
+    top: calc(100% + var(--splash-w) * 0.48);
     left: 50%;
-    width: 120px;
+    width: calc(var(--splash-w) * 0.6);
     height: 3px;
     overflow: hidden;
     border-radius: 3px;
-    background: #e9eaee;
+    background: #e2e2ee;
     transform: translateX(-50%);
   }
   .startup-splash-bar span {
@@ -623,13 +625,13 @@ a,
 }
 @media (display-mode: standalone) and (prefers-color-scheme: dark) {
   .startup-splash {
-    background: #141618;
-    color: #fcfcfd;
+    background: #090a0b;
+    color: #f1f3f9;
   }
   .startup-splash-sub {
-    color: #9aa0a6;
+    color: #a1abb5;
   }
   .startup-splash-bar {
-    background: #2a2d31;
+    background: #1a1d23;
   }
 }

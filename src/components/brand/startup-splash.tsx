@@ -19,9 +19,9 @@ export function StartupSplash() {
         <svg className="startup-splash-sub" viewBox={art.viewBox} aria-hidden="true">
           <path d={art.path} fill="currentColor" />
         </svg>
-      </div>
-      <div className="startup-splash-bar" aria-hidden="true">
-        <span />
+        <div className="startup-splash-bar" aria-hidden="true">
+          <span />
+        </div>
       </div>
     </div>
   );
