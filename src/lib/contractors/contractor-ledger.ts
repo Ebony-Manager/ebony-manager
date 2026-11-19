@@ -35,6 +35,24 @@ export const CONTRACTOR_LEDGER_CATEGORIES: ContractorLedgerCategory[] = [
   "otro",
 ];
 
+/** Lo que se registra desde "Agregar movimiento" (la pantalla y el MCP).
+ *  Préstamo, adelanto, herramienta, daño, InDrive y otros descuentos van por
+ *  Préstamos y descuentos (con cuotas); el pago, por "Registrar pago"
+ *  (repartido entre contratos). */
+export const NEW_ENTRY_CATEGORIES: ContractorLedgerCategory[] = ["trabajo", "extra", "bono", "material", "gasto_operativo", "ajuste"];
+
+/** Categorías que son parte del VALOR de un contrato (se enganchan a él). */
+export const VALUE_CATEGORIES: ReadonlySet<ContractorLedgerCategory> = new Set(["trabajo", "extra", "bono", "ajuste"]);
+
+/** Lo que baja el saldo y se puede abonar a un contrato al registrarlo
+ *  (salvo un material que Ebony asume: ese no mueve nada). */
+export const ALLOCATABLE_CATEGORIES: ReadonlySet<ContractorLedgerCategory> = new Set(["material", "gasto_operativo"]);
+
+/** Un trabajo nuevo siempre va a un contrato (el proyecto sale de él). */
+export function contractRequiredForNew(category: ContractorLedgerCategory): boolean {
+  return category === "trabajo";
+}
+
 /** Categorías cuya dirección es fija. `ajuste` NO está: ahí el usuario
  *  elige a mano si suma o resta. */
 const FIXED_DIRECTION: Partial<Record<ContractorLedgerCategory, ContractorLedgerDirection>> = {

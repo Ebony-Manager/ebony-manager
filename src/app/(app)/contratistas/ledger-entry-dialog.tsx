@@ -26,7 +26,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents } from "@/lib/planilla/payroll-period";
-import { directionForCategory, isMaterialCategory } from "@/lib/contractors/contractor-ledger";
+import {
+  ALLOCATABLE_CATEGORIES,
+  NEW_ENTRY_CATEGORIES,
+  VALUE_CATEGORIES,
+  contractRequiredForNew,
+  directionForCategory,
+  isMaterialCategory,
+} from "@/lib/contractors/contractor-ledger";
 import { contractPendingCents, sortContracts } from "@/lib/contractors/contracts";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { useLang } from "@/context/language-context";
@@ -48,16 +55,6 @@ import {
   workDraftToInput,
   type WorkDraft,
 } from "./work-editor";
-
-/** Lo que se registra desde acá. Préstamo, adelanto, herramienta, daño,
- *  InDrive y otros descuentos van por Préstamos y descuentos (con cuotas);
- *  el pago, por "Registrar pago" (repartido entre contratos). */
-const NEW_ENTRY_CATEGORIES: ContractorLedgerCategory[] = ["trabajo", "extra", "bono", "material", "gasto_operativo", "ajuste"];
-
-/** Categorías que son parte del VALOR de un contrato. */
-const VALUE_CATEGORIES = new Set<ContractorLedgerCategory>(["trabajo", "extra", "bono", "ajuste"]);
-/** Lo que baja el saldo y se puede abonar a un contrato desde acá. */
-const ALLOCATABLE_CATEGORIES = new Set<ContractorLedgerCategory>(["material", "gasto_operativo"]);
 
 /**
  * Crear o editar un movimiento del estado de cuenta de un contratista.
@@ -194,7 +191,7 @@ export function LedgerEntryDialog({
   const isWorkCategory = category === "trabajo";
   const isValue = VALUE_CATEGORIES.has(category);
   const isAllocatable = ALLOCATABLE_CATEGORIES.has(category) && !ebonyAbsorbs;
-  const contractRequired = isWorkCategory && !entry;
+  const contractRequired = contractRequiredForNew(category) && !entry;
 
   const categories = entry && !NEW_ENTRY_CATEGORIES.includes(entry.category)
     ? [...NEW_ENTRY_CATEGORIES, entry.category]

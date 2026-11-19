@@ -5,12 +5,22 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { hasModule } from "@/lib/auth/modules";
-import { todayInPanama } from "@/lib/contractors/contractor-loans";
-import { contractPayableCents, paymentPreview, unallocatedSources } from "@/lib/contractors/contracts";
+import { isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import {
+  ALLOCATABLE_CATEGORIES,
+  NEW_ENTRY_CATEGORIES,
+  VALUE_CATEGORIES,
+  contractRequiredForNew,
+  contractorBalanceCents,
+  directionForCategory,
+  isMaterialCategory,
+  lineAmountCents,
+} from "@/lib/contractors/contractor-ledger";
+import { contractPayableCents, contractPendingCents, paymentPreview, unallocatedSources } from "@/lib/contractors/contracts";
 import { recordRun } from "@/lib/integrations/record";
 import { createClient } from "@/lib/supabase/server";
 import * as contractors from "@/services/contractors";
-import type { LaborRate } from "@/types/contractors";
+import type { ContractorLedgerCategory, LaborRate } from "@/types/contractors";
 import type { McpUser } from "./auth";
 
 /**
@@ -74,6 +84,15 @@ function resolveRate(rates: LaborRate[], piece: { tarifa_id?: string; descripcio
     `"${piece.descripcion}" coincide con varias tarifas: ${list.map((r) => `${r.descripcion} [${r.fase ?? "-"}, ${r.unidad}] (id ${r.id})`).join("; ")}. Usa tarifa_id.`
   );
 }
+
+const CATEGORY_LABEL: Record<string, string> = {
+  trabajo: "Trabajo",
+  extra: "Extra",
+  bono: "Bono",
+  material: "Material",
+  gasto_operativo: "Gasto operativo",
+  ajuste: "Ajuste",
+};
 
 const pieceSchema = z.object({
   tarifa_id: z.string().optional().describe("Id de la tarifa (de tarifas_mano_de_obra). Preferido."),
@@ -267,6 +286,154 @@ export function registerContractorWriteTools(server: McpServer, user: McpUser) {
         const res = await contractors.registerContractorPayment({ contractorId: c.id, date: fecha, lines, looseCents: loose, notes: plan.notas });
         await note("registrar_abono", true, `${c.name} · abono $${usd(total).toFixed(2)} · efectivo $${usd(res.cashCents).toFixed(2)}`);
         return ok({ estado: "REGISTRADO", contratista: c.name, fecha, total_abonado: usd(total), descontado_de_a_cuenta: usd(res.deductedCents), efectivo_entregado: usd(res.cashCents) });
+      })
+  );
+
+  server.registerTool(
+    "registrar_movimiento",
+    {
+      title: "Registrar movimiento en el estado de cuenta (con vista previa)",
+      description:
+        "Agrega un movimiento al estado de cuenta de un contratista, igual que 'Agregar movimiento' en la app. Tipos: material y gasto_operativo RESTAN (se le descuentan); extra, bono y trabajo SUMAN (se le deben); ajuste suma o resta según `direccion` (obligatoria solo en ajuste). Un trabajo va siempre a un contrato; un extra, bono o ajuste puede ir a un contrato (sube su valor); un material o gasto puede abonarse a un contrato (cubre parte de lo que falta pagarle). Un material que Ebony asume (`ebony_asume`) queda anotado pero no le resta. Préstamos, adelantos, herramientas, daños e InDrive NO van aquí (en la app van por Préstamos y descuentos, con cuotas); los pagos van con registrar_abono. SIEMPRE en dos pasos: primero sin `confirmar` (vista previa con el saldo antes y después y codigo_confirmacion; no guarda nada); solo si la persona aprueba, vuelve a llamar con los MISMOS datos, `confirmar: true` y el código.",
+      inputSchema: {
+        contratista: z.string().describe("Nombre o id del contratista"),
+        tipo: z.enum(NEW_ENTRY_CATEGORIES as [ContractorLedgerCategory, ...ContractorLedgerCategory[]]).describe("trabajo, extra, bono, material, gasto_operativo o ajuste"),
+        monto: z.number().positive().optional().describe("Monto en dólares (o usa m2 + costo_por_m2)"),
+        m2: z.number().positive().optional().describe("Metros cuadrados, si se calcula por área (junto con costo_por_m2)"),
+        costo_por_m2: z.number().positive().optional().describe("Dólares por m², si se calcula por área"),
+        direccion: z.enum(["suma", "resta"]).optional().describe("Solo para ajuste: 'suma' (Ebony le debe más) o 'resta' (le debe menos)"),
+        contrato_id: z
+          .string()
+          .optional()
+          .describe("Id del contrato (herramienta contratos). Trabajo/extra/bono/ajuste: el contrato al que pertenece (obligatorio en trabajo). Material/gasto: el contrato al que se abona."),
+        ebony_asume: z.boolean().optional().describe("Solo material: true si Ebony asume el costo (queda anotado pero no le resta)"),
+        fecha: z.string().optional().describe("YYYY-MM-DD; por defecto hoy"),
+        descripcion: z.string().optional().describe("Qué es (ej. '2 láminas de MDF')"),
+        cliente: z.string().optional().describe("Cliente u obra, como nota libre"),
+        notas: z.string().optional(),
+        confirmar: z.boolean().optional(),
+        codigo_confirmacion: z.string().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (args) =>
+      run("registrar_movimiento", async () => {
+        const fecha = args.fecha ?? todayInPanama();
+        if (!ISO.test(fecha)) return fail("La fecha debe ser YYYY-MM-DD.");
+        const category = args.tipo;
+        const label = CATEGORY_LABEL[category] ?? category;
+
+        // Dirección: la fija la categoría; solo el ajuste la pregunta.
+        const fixed = directionForCategory(category);
+        if (fixed && args.direccion) return fail(`Un ${label.toLowerCase()} siempre ${fixed === "a_favor" ? "suma" : "resta"}: no se indica direccion.`);
+        if (!fixed && !args.direccion) return fail("En un ajuste indica la direccion: 'suma' o 'resta'. Pregúntale a la persona.");
+        const direction = fixed ?? (args.direccion === "suma" ? "a_favor" : "reduce");
+
+        // Monto: fijo, o m² × costo/m² (la misma regla que la pantalla).
+        const byArea = args.m2 !== undefined || args.costo_por_m2 !== undefined;
+        if (byArea && (args.m2 === undefined || args.costo_por_m2 === undefined)) return fail("Por área se necesitan m2 y costo_por_m2 (los dos).");
+        if (byArea === (args.monto !== undefined)) return fail("Indica el monto, o m2 y costo_por_m2 (uno de los dos).");
+        const mt2 = byArea ? args.m2! : null;
+        const costPerMt2Cents = byArea ? cents(args.costo_por_m2!) : null;
+        const amount = lineAmountCents({ mt2, costPerMt2Cents, flatAmountCents: byArea ? 0 : cents(args.monto!) });
+        if (amount <= 0) return fail("El monto quedaría en $0.");
+
+        const absorbs = args.ebony_asume ?? false;
+        if (absorbs && !isMaterialCategory(category)) return fail("'Ebony asume' solo aplica a material.");
+
+        const isValue = VALUE_CATEGORIES.has(category);
+        const isAllocatable = ALLOCATABLE_CATEGORIES.has(category) && !absorbs;
+        if (contractRequiredForNew(category) && !args.contrato_id)
+          return fail("Un trabajo va siempre a un contrato: indica contrato_id (herramienta contratos) o crea el contrato con crear_contrato.");
+        if (args.contrato_id && !isValue && !isAllocatable)
+          return fail("Un material que Ebony asume no se abona a ningún contrato (no mueve el saldo): quita contrato_id.");
+
+        const c = await resolveContractor(args.contratista);
+        const [contracts, ledger] = await Promise.all([contractors.getContracts({ contractorId: c.id }), contractors.getContractorLedger(c.id)]);
+        const k = args.contrato_id ? contracts.find((x) => x.id === args.contrato_id) : undefined;
+        if (args.contrato_id && !k) return fail(`El contrato ${args.contrato_id} no es de ${c.name}. Usa la herramienta contratos.`);
+
+        const today = todayInPanama();
+        const before = contractorBalanceCents(ledger.filter((e) => !isScheduled(e, today)));
+        const effect = absorbs ? 0 : direction === "a_favor" ? amount : -amount;
+        const counts = fecha <= today;
+
+        const plan = {
+          contractorId: c.id,
+          category,
+          direction,
+          fecha,
+          amount,
+          mt2,
+          costPerMt2Cents,
+          absorbs,
+          contractId: isValue ? (k?.id ?? null) : null,
+          allocateToContractId: isAllocatable ? (k?.id ?? null) : null,
+          descripcion: args.descripcion?.trim() || null,
+          cliente: args.cliente?.trim() || null,
+          notas: args.notas?.trim() || null,
+        };
+        const code = confirmationCode(user.id, "registrar_movimiento", plan);
+
+        if (!args.confirmar) {
+          const contractLine = !k
+            ? null
+            : isValue
+              ? `Es parte del contrato "${k.name}" (${k.projectName}): su valor sube $${usd(amount).toFixed(2)}.`
+              : `Se abona al contrato "${k.name}" (${k.projectName}) hasta lo que le falte por pagar ($${usd(Math.max(0, contractPendingCents(k))).toFixed(2)}); lo que no quepa queda a cuenta.`;
+          return ok({
+            estado: "VISTA PREVIA — no se ha guardado nada",
+            contratista: c.name,
+            tipo: label,
+            fecha,
+            monto: usd(amount),
+            ...(byArea ? { calculo: `${mt2} m² × $${usd(costPerMt2Cents!).toFixed(2)}` } : {}),
+            efecto: absorbs
+              ? "Ebony asume el material: queda anotado pero NO le resta."
+              : direction === "a_favor"
+                ? `Suma: Ebony le debe $${usd(amount).toFixed(2)} más.`
+                : `Resta: se le descuentan $${usd(amount).toFixed(2)}.`,
+            contrato: contractLine,
+            saldo_hoy: usd(before),
+            saldo_despues: counts ? usd(before + effect) : usd(before),
+            ...(counts ? {} : { aviso: `La fecha es futura: no cuenta en el saldo hasta el ${fecha}.` }),
+            descripcion: plan.descripcion,
+            cliente: plan.cliente,
+            notas: plan.notas,
+            nota_saldo: "saldo positivo = Ebony le debe al contratista; negativo = el contratista le debe a Ebony.",
+            codigo_confirmacion: code,
+            siguiente_paso: "Muestra esto a la persona. Si lo aprueba, llama de nuevo con los mismos datos, confirmar: true y este codigo_confirmacion.",
+          });
+        }
+        if (args.codigo_confirmacion !== code)
+          return fail("El código no coincide con estos datos (cambió algo desde la vista previa). Vuelve a pedir la vista previa y confírmala.");
+        const entry = await contractors.createLedgerEntry({
+          contractorId: c.id,
+          projectId: null,
+          contractId: plan.contractId,
+          entryDate: fecha,
+          category,
+          direction,
+          mt2,
+          costPerMt2Cents,
+          amountCents: amount,
+          ebonyAbsorbsMaterial: absorbs,
+          clientText: plan.cliente,
+          description: plan.descripcion,
+          notes: plan.notas,
+          items: [],
+          ...(isAllocatable ? { allocateToContractId: plan.allocateToContractId } : {}),
+        });
+        await note("registrar_movimiento", true, `${c.name} · ${label} · $${usd(amount).toFixed(2)}`);
+        return ok({
+          estado: "REGISTRADO",
+          movimiento_id: entry.id,
+          contratista: c.name,
+          tipo: label,
+          fecha,
+          monto: usd(amount),
+          saldo_despues: counts ? usd(before + effect) : usd(before),
+        });
       })
   );
 }
