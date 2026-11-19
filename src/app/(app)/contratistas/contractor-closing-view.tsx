@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, HandCoins, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 
-import type { ContractorContract } from "@/types/contractors";
 import type { ContractorClosingData } from "@/services/contractors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,15 +22,9 @@ import {
 import { formatCents, monthLabel, nextPeriod, previousPeriod } from "@/lib/planilla/payroll-period";
 import { formatDate } from "@/lib/planilla/format";
 import { PaymentBreakdown } from "./payment-breakdown";
-import {
-  contractPayableCents,
-  contractSublabel,
-  looseCredits,
-  paymentPreview,
-  sortContracts,
-  unallocatedSources,
-} from "@/lib/contractors/contracts";
+import { contractSublabel } from "@/lib/contractors/contracts";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
+import { closingRows, closingTotals, type ClosingRow } from "@/lib/contractors/closing";
 import { THUMB_WIDTH, photoUrl } from "@/lib/photo-url";
 import { ContractorAvatar } from "./contractor-avatar";
 import { contractorProfilePath } from "@/lib/personal/paths";
@@ -68,20 +61,7 @@ function currentQuincena(): PeriodSel {
   return { year: y, month: m, half: d <= 15 ? 1 : 2 };
 }
 
-interface RowData {
-  id: string;
-  name: string;
-  photoPath: string | null;
-  contracts: { contract: ContractorContract; pending: number }[];
-  loosePending: number;
-  onAccount: ReturnType<typeof unallocatedSources<ContractorClosingData["entries"][number]>>;
-  onAccountCents: number;
-  abonosCents: number;
-  deductedCents: number;
-  cashCents: number;
-  over: boolean;
-  paid: { abonosCents: number; deductedCents: number; cashCents: number } | null;
-}
+type RowData = ClosingRow<ContractorClosingData["entries"][number]>;
 
 /**
  * Personal → Pagos → Contratistas → Cierre: la Quincena de los
@@ -128,56 +108,12 @@ export function ContractorClosingView({
 
   const paid = data?.period?.status === "paid";
 
-  const rows = React.useMemo<RowData[]>(() => {
-    if (!data) return [];
-    const byContractor = <T extends { contractorId: string }>(list: T[], id: string) => list.filter((x) => x.contractorId === id);
-    const out: RowData[] = [];
-    for (const c of data.contractors) {
-      const entries = byContractor(data.entries, c.id);
-      const allocations = byContractor(data.allocations, c.id);
-      const lineContracts = new Set(data.lines.filter((l) => l.contractorId === c.id).map((l) => l.contractId));
-      const contracts = sortContracts(data.contracts.filter((k) => k.contractorId === c.id))
-        .map((contract) => ({ contract, pending: contractPayableCents(contract) }))
-        .filter(({ contract, pending }) => pending > 0 || lineContracts.has(contract.id));
-      const loosePending = looseCredits(entries, allocations).reduce((s, r) => s + r.remainingCents, 0);
-      const onAccount = unallocatedSources(entries, allocations, data.payDate);
-      const onAccountCents = onAccount.reduce((s, r) => s + r.remainingCents, 0);
-      const result = data.results.find((r) => r.contractorId === c.id) ?? null;
-      const hasLines = lineContracts.size > 0;
-      if (paid ? !result : c.status !== "ACTIVE" && !hasLines) continue;
-      // Sin contratos por pagar, solo entra si lo acreditado sin contrato supera lo que debe (lo que está a cuenta):
-      // un «abono a deuda» de alguien que todavía debe no es algo que haya que pagarle (saldos viejos de la migración).
-      if (!paid && contracts.length === 0 && loosePending <= onAccountCents && !hasLines) continue;
-
-      const amount = (contractId: string | null) => toCents(inputs[lineKey(c.id, contractId)] ?? "");
-      const abonosCents = contracts.reduce((s, x) => s + amount(x.contract.id), 0) + amount(null);
-      const over = contracts.some((x) => amount(x.contract.id) > x.pending) || amount(null) > loosePending;
-      const preview = paymentPreview(abonosCents, onAccountCents);
-      out.push({
-        id: c.id,
-        name: c.name,
-        photoPath: c.photoPath,
-        contracts,
-        loosePending,
-        onAccount,
-        onAccountCents,
-        abonosCents,
-        deductedCents: preview.deductedCents,
-        cashCents: preview.cashCents,
-        over,
-        paid: result,
-      });
-    }
-    return out;
-  }, [data, inputs, paid]);
-
-  const totals = rows.reduce(
-    (s, r) => {
-      const src = r.paid ?? r;
-      return { abonos: s.abonos + src.abonosCents, deducted: s.deducted + src.deductedCents, cash: s.cash + src.cashCents };
-    },
-    { abonos: 0, deducted: 0, cash: 0 }
+  const rows = React.useMemo<RowData[]>(
+    () => (data ? closingRows(data, paid, (contractorId, contractId) => toCents(inputs[lineKey(contractorId, contractId)] ?? "")) : []),
+    [data, inputs, paid]
   );
+
+  const totals = closingTotals(rows);
   const anyOver = rows.some((r) => r.over);
   const toPay = rows.filter((r) => (r.paid?.cashCents ?? r.cashCents) > 0);
 

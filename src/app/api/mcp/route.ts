@@ -5,6 +5,7 @@ import { appOrigin, bearerToken, verifyMcpToken } from "@/lib/mcp/auth";
 import { registerContractorTools } from "@/lib/mcp/contractors-tools";
 import { registerContractorWriteTools } from "@/lib/mcp/contractors-write-tools";
 import { registerAlmacenTools } from "@/lib/mcp/almacen-tools";
+import { registerContractorClosingTools } from "@/lib/mcp/contractors-closing-tools";
 import { registerOperacionesTools } from "@/lib/mcp/operaciones-tools";
 import { registerPersonalTools } from "@/lib/mcp/personal-tools";
 import { registerVentasTools } from "@/lib/mcp/ventas-tools";
@@ -25,7 +26,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const INSTRUCTIONS =
-  "Ebony Manager es el sistema interno de Ebony Custom Woodwork (ebanistería en Panamá). Con esta conexión se CONSULTA: Contratistas (saldos, estados de cuenta, contratos, abonos, préstamos, tarifas), Ventas y Cotizaciones (seguimiento, cotizaciones y su detalle), Taller (trabajos de CNC y muestras), Inspecciones de obra (detalles pendientes), Almacén (inventario, lo que hay por devolver, solicitudes de compra) y Personal (empleados, planilla de la quincena, obligaciones, préstamos de empleados, ponchadas y solicitudes de dinero). Lo que se puede REGISTRAR: en Contratistas, crear contratos (por ejemplo, desde una foto o plano con medidas), registrar abonos, agregar movimientos al estado de cuenta (material, gastos, extras, bonos, ajustes) y préstamos o descuentos en cuotas; en Ventas, agregar una nota de seguimiento a una oportunidad. Lo demás (editar, borrar, aprobar, pagar planillas) se hace en la app. Cada herramienta exige el permiso de su módulo: si dice que no hay permiso, explícalo; no lo intentes por otro lado. Antes de explicar saldos o contratos, lee la herramienta guia_contratistas. Responde en español, con montos en dólares y fechas concretas; no inventes datos. Para crear o registrar algo, SIEMPRE muestra primero la vista previa y espera a que la persona diga que sí antes de confirmar; si las medidas de una imagen no se leen bien o falta algo, pregunta en vez de suponer.";
+  "Ebony Manager es el sistema interno de Ebony Custom Woodwork (ebanistería en Panamá). Con esta conexión se CONSULTA: Contratistas (saldos, estados de cuenta, contratos, abonos, préstamos, tarifas), Ventas y Cotizaciones (seguimiento, cotizaciones y su detalle), Taller (trabajos de CNC y muestras), Inspecciones de obra (detalles pendientes), Almacén (inventario, lo que hay por devolver, solicitudes de compra) y Personal (empleados, planilla de la quincena, obligaciones, préstamos de empleados, ponchadas y solicitudes de dinero). Lo que se puede REGISTRAR: en Contratistas, crear contratos (por ejemplo, desde una foto o plano con medidas), registrar abonos, agregar movimientos al estado de cuenta (material, gastos, extras, bonos, ajustes), préstamos o descuentos en cuotas, y preparar y marcar pagada la quincena de contratistas; en Ventas, agregar una nota de seguimiento a una oportunidad. Lo demás (editar, borrar, reabrir quincenas, aprobar cotizaciones, pagar la planilla de empleados) se hace en la app. Cada herramienta exige el permiso de su módulo: si dice que no hay permiso, explícalo; no lo intentes por otro lado. Antes de explicar saldos o contratos, lee la herramienta guia_contratistas. Responde en español, con montos en dólares y fechas concretas; no inventes datos. Para crear o registrar algo, SIEMPRE muestra primero la vista previa y espera a que la persona diga que sí antes de confirmar; si las medidas de una imagen no se leen bien o falta algo, pregunta en vez de suponer.";
 
 function unauthorized(request: Request, reason: string): Response {
   const metadata = `${appOrigin(request)}/.well-known/oauth-protected-resource/api/mcp`;
@@ -48,6 +49,7 @@ async function handle(request: Request): Promise<Response> {
     const server = new McpServer({ name: "ebony-manager", title: "Ebony Manager", version: "1.0.0" }, { instructions: INSTRUCTIONS });
     registerContractorTools(server, user);
     registerContractorWriteTools(server, user);
+    registerContractorClosingTools(server, user);
     registerVentasTools(server, user);
     registerOperacionesTools(server, user);
     registerAlmacenTools(server, user);

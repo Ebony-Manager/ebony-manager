@@ -58,6 +58,11 @@ Los contratistas se pagan por **quincena** (el 15 y el último día del mes).
 - Al marcarla **pagada**, por cada contratista se registra su pago a la fecha de pago, aplicando primero lo que está a cuenta y el resto en efectivo.
 - **Reabrir** la quincena deshace exactamente esos pagos y abonos y la deja en borrador.
 
+Por esta conexión, en tres pasos (igual que la pantalla de Cierre):
+1. **quincena_contratistas**: muestra por contratista cuánto se le puede pagar de cada contrato, lo que se le descuenta (lo que está a cuenta hasta el día de pago) y el borrador. No cambia nada.
+2. **preparar_quincena_contratistas**: pone o quita (monto 0) abonos en el borrador. No mueve dinero. Si la persona dice "págale todo", usa lo que se puede pagar de cada contrato; si no está claro cuánto, pregunta.
+3. **pagar_quincena_contratistas**: la marca pagada. Esto sí mueve el dinero de la app. Muestra la lista de efectivo por contratista y el total, y confirma solo con un "sí" claro a esa lista. Reabrir una quincena pagada solo se hace en la app.
+
 ## 5. Préstamos y descuentos en cuotas
 
 Un préstamo (también adelanto, herramienta, daño, InDrive u otro) se registra con su **monto**, **interés** si tiene y **cuotas** con fecha. Cada cuota es un movimiento que baja el saldo en su fecha; las cuotas futuras no cuentan todavía. Del préstamo se ve: lo prestado, lo ya descontado (cuotas vencidas), lo pendiente y la próxima cuota.
@@ -76,7 +81,7 @@ Al inactivar o liquidar a un contratista se puede **cerrar su saldo**: se repart
 - Para "¿por qué tiene ese saldo?": separa lo ganado (trabajo/extra/bono), lo entregado (pagos/adelantos) y los descuentos (cuotas, material, daños), y cuadra.
 - Para un contrato: valor, abonado, pendiente, retenido (si es pintor) y qué se puede pagar hoy.
 - Si algo no cuadra o no tienes el dato, dilo. No inventes movimientos.
-- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono), **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste) y **registrar un préstamo o descuento en cuotas** (registrar_descuento: préstamo, adelanto, herramienta, daño, InDrive u otro), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (cierres de quincena, editar, cancelar o borrar) se hace en la app.
+- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono), **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste), **registrar un préstamo o descuento en cuotas** (registrar_descuento: préstamo, adelanto, herramienta, daño, InDrive u otro) y preparar y marcar pagada la **quincena** (ver la sección 4), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (reabrir quincenas, editar, cancelar o borrar) se hace en la app.
 
 ## Crear un contrato desde una foto o un plano
 
