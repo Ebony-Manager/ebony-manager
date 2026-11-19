@@ -7,6 +7,81 @@
  * saldo. Puro, sin Supabase.
  */
 import type { Period } from "@/lib/planilla/payroll-period";
+import {
+  computeLoanInterestCents,
+  computeLoanSchedule,
+  defaultLoanStartPeriod,
+  isSingleInstallment,
+  type LoanInterestInput,
+} from "@/lib/planilla/payroll-loans";
+import type { LoanCategory, LoanPaymentMethod } from "@/types/planilla";
+
+/** Lo que se le puede financiar/descontar a un contratista (el descuento a
+ *  terceros es solo de empleados). */
+export const CONTRACTOR_LOAN_CATEGORIES = ["prestamo", "adelanto", "herramienta", "dano", "indrive", "otro"] as const;
+
+export const CONTRACTOR_LOAN_LABEL: Record<LoanCategory, string> = {
+  prestamo: "Préstamo",
+  adelanto: "Adelanto",
+  herramienta: "Herramienta",
+  dano: "Daño",
+  indrive: "InDrive",
+  otro: "Otro descuento",
+  tercero: "Descuento a terceros",
+};
+
+export interface ContractorLoanPlanInput {
+  category: LoanCategory;
+  principalCents: number;
+  paymentMethod?: LoanPaymentMethod;
+  requestDate: string;
+  numInstallments: number;
+  startPeriod?: Period;
+  installmentAmountsCents?: number[];
+  interest?: LoanInterestInput | null;
+}
+
+export interface ContractorLoanPlan {
+  paymentMethod: LoanPaymentMethod;
+  numInstallments: number;
+  startPeriod: Period;
+  interestCents: number;
+  /** Cada cuota con la fecha en que entra al estado de cuenta. */
+  installments: { period: Period; date: string; amountCents: number; description: string }[];
+}
+
+/** Cómo queda un préstamo/descuento de contratista: cuotas, fechas e
+ *  interés. Lo usan el servicio al guardarlo y el MCP para la vista
+ *  previa, así los dos calculan igual. Lanza si la entrada no sirve. */
+export function planContractorLoan(input: ContractorLoanPlanInput): ContractorLoanPlan {
+  if (input.category === "tercero") throw new Error("El descuento a terceros es solo para empleados");
+  if (!(input.principalCents > 0)) throw new Error("El monto debe ser mayor que cero");
+  const paymentMethod = input.paymentMethod ?? "cuota_fija";
+  const numInstallments = isSingleInstallment(input.category) ? 1 : input.numInstallments;
+  const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
+  if (!startPeriod) throw new Error("Fecha de solicitud inválida");
+  const interestCents = computeLoanInterestCents(input.principalCents, numInstallments, input.interest);
+  const schedule = computeLoanSchedule(
+    input.principalCents + interestCents,
+    numInstallments,
+    startPeriod,
+    paymentMethod,
+    input.installmentAmountsCents
+  );
+  const label = CONTRACTOR_LOAN_LABEL[input.category];
+  return {
+    paymentMethod,
+    numInstallments,
+    startPeriod,
+    interestCents,
+    installments: schedule.map((cuota, i) => ({
+      period: cuota.period,
+      date: installmentDate(cuota.period, input.requestDate),
+      amountCents: cuota.amountCents,
+      description: numInstallments > 1 ? `${label} · cuota ${i + 1} de ${numInstallments}` : label,
+    })),
+  };
+}
 
 /** Hoy en Panamá, "YYYY-MM-DD" (el servidor corre en UTC). */
 export function todayInPanama(now: Date = new Date()): string {

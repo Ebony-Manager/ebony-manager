@@ -4,13 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { signedPhotoUrls } from "./photos";
 import { selectAllRows } from "@/lib/supabase/select-all";
 import type { DashboardContractor, DashboardEntry } from "@/lib/contractors/dashboard";
-import { installmentDate, isScheduled, periodOfDate, todayInPanama } from "@/lib/contractors/contractor-loans";
+import { CONTRACTOR_LOAN_LABEL, installmentDate, isScheduled, periodOfDate, planContractorLoan, todayInPanama } from "@/lib/contractors/contractor-loans";
 import { contractRetentionCents, looseCredits, unallocatedSources, type RetentionRule } from "@/lib/contractors/contracts";
 import {
-  computeLoanInterestCents,
-  computeLoanSchedule,
-  defaultLoanStartPeriod,
-  isSingleInstallment,
   reflowLoanSchedule,
   type LoanInterestInput,
   type PendingInstallment,
@@ -1418,33 +1414,10 @@ export interface ContractorLoanInput {
   notes?: string | null;
 }
 
-const LOAN_LABEL: Record<LoanCategory, string> = {
-  prestamo: "Préstamo",
-  adelanto: "Adelanto",
-  herramienta: "Herramienta",
-  dano: "Daño",
-  indrive: "InDrive",
-  otro: "Otro descuento",
-  tercero: "Descuento a terceros",
-};
-
 export async function createContractorLoan(input: ContractorLoanInput): Promise<void> {
-  // Descuento a terceros: por ahora solo para empleados.
-  if (input.category === "tercero") throw new Error("El descuento a terceros es solo para empleados");
-  if (!(input.principalCents > 0)) throw new Error("El monto debe ser mayor que cero");
+  // Cuotas, fechas e interés: el mismo cálculo que la vista previa del MCP.
+  const { paymentMethod, numInstallments, startPeriod, interestCents, installments } = planContractorLoan(input);
   const supabase = await createClient();
-  const paymentMethod = input.paymentMethod ?? "cuota_fija";
-  const numInstallments = isSingleInstallment(input.category) ? 1 : input.numInstallments;
-  const startPeriod = input.startPeriod ?? defaultLoanStartPeriod(input.category, input.requestDate);
-  if (!startPeriod) throw new Error("Fecha de solicitud inválida");
-  const interestCents = computeLoanInterestCents(input.principalCents, numInstallments, input.interest);
-  const schedule = computeLoanSchedule(
-    input.principalCents + interestCents,
-    numInstallments,
-    startPeriod,
-    paymentMethod,
-    input.installmentAmountsCents
-  );
 
   const { data: loan, error } = await supabase
     .from("contractor_loans")
@@ -1468,16 +1441,15 @@ export async function createContractorLoan(input: ContractorLoanInput): Promise<
     .single();
   if (error) throw new Error(error.message);
 
-  const label = LOAN_LABEL[input.category];
   const { error: e2 } = await supabase.from("contractor_ledger_entries").insert(
-    schedule.map((cuota, i) => ({
+    installments.map((cuota, i) => ({
       contractor_id: input.contractorId,
       loan_id: loan.id,
-      entry_date: installmentDate(cuota.period, input.requestDate),
+      entry_date: cuota.date,
       category: input.category,
       direction: "reduce",
       amount_cents: cuota.amountCents,
-      description: numInstallments > 1 ? `${label} · cuota ${i + 1} de ${numInstallments}` : label,
+      description: cuota.description,
       notes: i === 0 ? (input.notes ?? null) : null,
     }))
   );
@@ -1570,7 +1542,7 @@ export async function adjustContractorInstallment(input: {
   }
   const added = reflowed.filter((r) => !r.ledgerEntryId);
   if (added.length > 0) {
-    const label = LOAN_LABEL[loan.category as LoanCategory] ?? "Cuota";
+    const label = CONTRACTOR_LOAN_LABEL[loan.category as LoanCategory] ?? "Cuota";
     const { error } = await supabase.from("contractor_ledger_entries").insert(
       added.map((r) => ({
         contractor_id: loan.contractor_id,

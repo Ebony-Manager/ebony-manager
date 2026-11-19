@@ -5,7 +5,14 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { hasModule } from "@/lib/auth/modules";
-import { isScheduled, todayInPanama } from "@/lib/contractors/contractor-loans";
+import {
+  CONTRACTOR_LOAN_CATEGORIES,
+  CONTRACTOR_LOAN_LABEL,
+  isScheduled,
+  planContractorLoan,
+  todayInPanama,
+} from "@/lib/contractors/contractor-loans";
+import { isSingleInstallment, type LoanInterestInput } from "@/lib/planilla/payroll-loans";
 import {
   ALLOCATABLE_CATEGORIES,
   NEW_ENTRY_CATEGORIES,
@@ -355,8 +362,9 @@ export function registerContractorWriteTools(server: McpServer, user: McpUser) {
 
         const today = todayInPanama();
         const before = contractorBalanceCents(ledger.filter((e) => !isScheduled(e, today)));
+        // Un movimiento suelto cuenta en el saldo de una vez, tenga la fecha que
+        // tenga (solo las cuotas de préstamos esperan a su fecha).
         const effect = absorbs ? 0 : direction === "a_favor" ? amount : -amount;
-        const counts = fecha <= today;
 
         const plan = {
           contractorId: c.id,
@@ -395,8 +403,7 @@ export function registerContractorWriteTools(server: McpServer, user: McpUser) {
                 : `Resta: se le descuentan $${usd(amount).toFixed(2)}.`,
             contrato: contractLine,
             saldo_hoy: usd(before),
-            saldo_despues: counts ? usd(before + effect) : usd(before),
-            ...(counts ? {} : { aviso: `La fecha es futura: no cuenta en el saldo hasta el ${fecha}.` }),
+            saldo_despues: usd(before + effect),
             descripcion: plan.descripcion,
             cliente: plan.cliente,
             notas: plan.notas,
@@ -432,8 +439,121 @@ export function registerContractorWriteTools(server: McpServer, user: McpUser) {
           tipo: label,
           fecha,
           monto: usd(amount),
-          saldo_despues: counts ? usd(before + effect) : usd(before),
+          saldo_despues: usd(before + effect),
         });
+      })
+  );
+
+  server.registerTool(
+    "registrar_descuento",
+    {
+      title: "Registrar préstamo o descuento en cuotas a un contratista (con vista previa)",
+      description:
+        "Registra un préstamo, adelanto, herramienta, daño, InDrive u otro descuento a un contratista, como 'Préstamos y descuentos' en la app: el monto (más interés, si lo hay) se parte en cuotas, una por quincena, y cada cuota le resta en su fecha (las futuras todavía no cuentan en el saldo). Adelanto e InDrive van siempre en una sola cuota, en la quincena de la fecha. Préstamo y los demás empiezan por defecto la quincena siguiente a la fecha. SIEMPRE en dos pasos: primero sin `confirmar` (vista previa con cada cuota y codigo_confirmacion; no guarda nada); solo si la persona aprueba, vuelve a llamar con los MISMOS datos, `confirmar: true` y el código.",
+      inputSchema: {
+        contratista: z.string().describe("Nombre o id del contratista"),
+        tipo: z.enum(CONTRACTOR_LOAN_CATEGORIES).describe("prestamo, adelanto, herramienta, dano, indrive u otro"),
+        monto: z.number().positive().describe("Monto en dólares (sin el interés)"),
+        cuotas: z.number().int().min(1).max(52).optional().describe("Número de cuotas quincenales; por defecto 1. Adelanto e InDrive: siempre 1"),
+        fecha: z.string().optional().describe("Fecha de la solicitud / del gasto, YYYY-MM-DD; por defecto hoy"),
+        primera_quincena: z
+          .string()
+          .optional()
+          .describe("Si se quiere otra quincena para la primera cuota: 'YYYY-MM-1' (1ra quincena) o 'YYYY-MM-2' (2da). Por defecto la que pone la app"),
+        interes: z
+          .object({
+            modo: z.enum(["mensual_pct", "total_pct", "fijo"]).describe("mensual_pct: % por mes del plazo; total_pct: % una vez; fijo: un monto en dólares"),
+            valor: z.number().positive().describe("El porcentaje (ej. 5 = 5%) o el monto fijo en dólares"),
+          })
+          .optional()
+          .describe("Solo si la persona dijo que lleva interés"),
+        notas: z.string().optional(),
+        confirmar: z.boolean().optional(),
+        codigo_confirmacion: z.string().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (args) =>
+      run("registrar_descuento", async () => {
+        const fecha = args.fecha ?? todayInPanama();
+        if (!ISO.test(fecha)) return fail("La fecha debe ser YYYY-MM-DD.");
+        const category = args.tipo;
+        const label = CONTRACTOR_LOAN_LABEL[category];
+        if (isSingleInstallment(category) && (args.cuotas ?? 1) > 1) return fail(`Un ${label.toLowerCase()} se descuenta en una sola cuota.`);
+        let startPeriod: { year: number; month: number; half: 1 | 2 } | undefined;
+        if (args.primera_quincena) {
+          const m = /^(\d{4})-(\d{2})-([12])$/.exec(args.primera_quincena);
+          if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return fail("primera_quincena debe ser 'YYYY-MM-1' o 'YYYY-MM-2'.");
+          startPeriod = { year: Number(m[1]), month: Number(m[2]), half: Number(m[3]) as 1 | 2 };
+        }
+        const interest: LoanInterestInput | null = !args.interes
+          ? null
+          : args.interes.modo === "fijo"
+            ? { mode: "fixed", fixedCents: cents(args.interes.valor) }
+            : { mode: args.interes.modo === "mensual_pct" ? "monthly_pct" : "total_pct", ratePct: args.interes.valor };
+        const principal = cents(args.monto);
+        const loanPlan = planContractorLoan({ category, principalCents: principal, requestDate: fecha, numInstallments: args.cuotas ?? 1, startPeriod, interest });
+
+        const c = await resolveContractor(args.contratista);
+        const today = todayInPanama();
+        const ledger = await contractors.getContractorLedger(c.id);
+        const before = contractorBalanceCents(ledger.filter((e) => !isScheduled(e, today)));
+        const dueNow = loanPlan.installments.filter((q) => q.date <= today).reduce((s, q) => s + q.amountCents, 0);
+        const total = principal + loanPlan.interestCents;
+
+        const plan = {
+          contractorId: c.id,
+          category,
+          principal,
+          fecha,
+          numInstallments: loanPlan.numInstallments,
+          startPeriod: loanPlan.startPeriod,
+          interest,
+          notas: args.notas?.trim() || null,
+        };
+        const code = confirmationCode(user.id, "registrar_descuento", plan);
+
+        if (!args.confirmar) {
+          return ok({
+            estado: "VISTA PREVIA — no se ha guardado nada",
+            contratista: c.name,
+            tipo: label,
+            fecha,
+            monto: usd(principal),
+            interes: usd(loanPlan.interestCents),
+            total_a_descontar: usd(total),
+            cuotas: loanPlan.installments.map((q) => ({
+              fecha: q.date,
+              quincena: `${q.period.half === 1 ? "1ra" : "2da"} de ${q.period.month}/${q.period.year}`,
+              monto: usd(q.amountCents),
+              cuenta_hoy: q.date <= today,
+            })),
+            saldo_hoy: usd(before),
+            saldo_hoy_despues: usd(before - dueNow),
+            explicacion:
+              dueNow === total
+                ? "Todo se descuenta ya: el saldo de hoy baja por el total."
+                : `Hoy se descuentan $${usd(dueNow).toFixed(2)}; el resto se irá restando en la fecha de cada cuota.`,
+            nota_saldo: "saldo positivo = Ebony le debe al contratista; negativo = el contratista le debe a Ebony.",
+            notas: plan.notas,
+            codigo_confirmacion: code,
+            siguiente_paso: "Muestra esto a la persona. Si lo aprueba, llama de nuevo con los mismos datos, confirmar: true y este codigo_confirmacion.",
+          });
+        }
+        if (args.codigo_confirmacion !== code)
+          return fail("El código no coincide con estos datos (cambió algo desde la vista previa). Vuelve a pedir la vista previa y confírmala.");
+        await contractors.createContractorLoan({
+          contractorId: c.id,
+          category,
+          principalCents: principal,
+          requestDate: fecha,
+          numInstallments: loanPlan.numInstallments,
+          startPeriod: loanPlan.startPeriod,
+          interest,
+          notes: plan.notas,
+        });
+        await note("registrar_descuento", true, `${c.name} · ${label} · $${usd(total).toFixed(2)} en ${loanPlan.numInstallments} cuota(s)`);
+        return ok({ estado: "REGISTRADO", contratista: c.name, tipo: label, total: usd(total), cuotas: loanPlan.numInstallments, saldo_hoy_despues: usd(before - dueNow) });
       })
   );
 }

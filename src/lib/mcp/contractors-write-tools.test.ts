@@ -14,13 +14,14 @@ const svc = vi.hoisted(() => ({
   getContractorAllocations: vi.fn(),
   registerContractorPayment: vi.fn(),
   createLedgerEntry: vi.fn(),
+  createContractorLoan: vi.fn(),
 }));
 vi.mock("@/services/contractors", () => svc);
 vi.mock("@/lib/integrations/record", () => ({ recordRun: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn().mockResolvedValue({}) }));
-vi.mock("@/lib/contractors/contractor-loans", () => ({
+vi.mock("@/lib/contractors/contractor-loans", async (orig) => ({
+  ...(await orig<typeof import("@/lib/contractors/contractor-loans")>()),
   todayInPanama: () => "2026-11-09",
-  isScheduled: (e: { loanId: string | null; entryDate: string }, today: string) => !!e.loanId && e.entryDate > today,
 }));
 
 import { registerContractorWriteTools } from "./contractors-write-tools";
@@ -223,5 +224,51 @@ describe("MCP · registrar movimiento", () => {
     const adj = JSON.parse(body(await call({ tipo: "ajuste", monto: 10, direccion: "resta" })));
     expect(adj.saldo_despues).toBe(490);
     expect(svc.createLedgerEntry).not.toHaveBeenCalled();
+  });
+});
+
+describe("MCP · registrar descuento en cuotas", () => {
+  beforeEach(() => {
+    svc.getContractorLedger.mockResolvedValue([
+      { id: "w1", contractorId: "c1", loanId: null, entryDate: "2026-11-01", category: "trabajo", direction: "a_favor", amountCents: 50000, contractId: null, ebonyAbsorbsMaterial: false },
+    ]);
+    svc.createContractorLoan.mockResolvedValue(undefined);
+  });
+
+  it("una herramienta en 3 cuotas empieza la quincena siguiente y no resta nada hoy", async () => {
+    const client = await connect();
+    const args = { contratista: "Erick", tipo: "herramienta", monto: 100, cuotas: 3, notas: "Taladro" };
+    const data = JSON.parse(body(await client.callTool({ name: "registrar_descuento", arguments: args })));
+    expect(data.cuotas).toEqual([
+      { fecha: "2026-11-16", quincena: "2da de 11/2026", monto: 33.33, cuenta_hoy: false },
+      { fecha: "2026-12-01", quincena: "1ra de 12/2026", monto: 33.33, cuenta_hoy: false },
+      { fecha: "2026-12-16", quincena: "2da de 12/2026", monto: 33.34, cuenta_hoy: false },
+    ]);
+    expect(data).toMatchObject({ total_a_descontar: 100, saldo_hoy: 500, saldo_hoy_despues: 500 });
+    expect(svc.createContractorLoan).not.toHaveBeenCalled();
+
+    const r = await client.callTool({ name: "registrar_descuento", arguments: { ...args, confirmar: true, codigo_confirmacion: data.codigo_confirmacion } });
+    expect(JSON.parse(body(r)).estado).toBe("REGISTRADO");
+    expect(svc.createContractorLoan).toHaveBeenCalledWith(
+      expect.objectContaining({ contractorId: "c1", category: "herramienta", principalCents: 10000, numInstallments: 3, requestDate: "2026-11-09", startPeriod: { year: 2026, month: 11, half: 2 }, notes: "Taladro" })
+    );
+  });
+
+  it("un adelanto cae completo en la quincena de la fecha y resta hoy", async () => {
+    const client = await connect();
+    const data = JSON.parse(body(await client.callTool({ name: "registrar_descuento", arguments: { contratista: "Erick", tipo: "adelanto", monto: 50 } })));
+    expect(data.cuotas).toEqual([{ fecha: "2026-11-09", quincena: "1ra de 11/2026", monto: 50, cuenta_hoy: true }]);
+    expect(data.saldo_hoy_despues).toBe(450);
+    const many = await client.callTool({ name: "registrar_descuento", arguments: { contratista: "Erick", tipo: "indrive", monto: 50, cuotas: 2 } });
+    expect(many.isError).toBe(true);
+  });
+
+  it("el interés se suma con la misma regla de la app", async () => {
+    const client = await connect();
+    // 5% mensual, 4 cuotas = 2 meses → $10 sobre $100.
+    const data = JSON.parse(body(await client.callTool({ name: "registrar_descuento", arguments: { contratista: "Erick", tipo: "prestamo", monto: 100, cuotas: 4, interes: { modo: "mensual_pct", valor: 5 } } })));
+    expect(data).toMatchObject({ interes: 10, total_a_descontar: 110 });
+    const bad = await client.callTool({ name: "registrar_descuento", arguments: { contratista: "Erick", tipo: "prestamo", monto: 100, primera_quincena: "2026-13-1" } });
+    expect(bad.isError).toBe(true);
   });
 });

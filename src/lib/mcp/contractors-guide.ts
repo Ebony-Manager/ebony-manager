@@ -26,7 +26,7 @@ Tipos de movimiento (categoría → efecto):
 - **Material** → baja, salvo que se marque "Ebony asume el material": entonces queda anotado pero **no mueve el saldo**.
 - **Ajuste** → la persona elige si sube o baja (para corregir).
 
-Un movimiento con **fecha futura** (ej. una cuota de préstamo programada) **todavía no cuenta** en el saldo de hoy.
+Una **cuota de préstamo o descuento con fecha futura** (programada) **todavía no cuenta** en el saldo de hoy. Los demás movimientos cuentan en cuanto se registran, tengan la fecha que tengan.
 
 ## 2. Contratos
 
@@ -76,7 +76,7 @@ Al inactivar o liquidar a un contratista se puede **cerrar su saldo**: se repart
 - Para "¿por qué tiene ese saldo?": separa lo ganado (trabajo/extra/bono), lo entregado (pagos/adelantos) y los descuentos (cuotas, material, daños), y cuadra.
 - Para un contrato: valor, abonado, pendiente, retenido (si es pintor) y qué se puede pagar hoy.
 - Si algo no cuadra o no tienes el dato, dilo. No inventes movimientos.
-- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono) y **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (préstamos y descuentos en cuotas —herramienta, daño, InDrive, adelanto—, cierres de quincena, editar o borrar) se hace en la app.
+- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono) **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste) y **registrar un préstamo o descuento en cuotas** (registrar_descuento: préstamo, adelanto, herramienta, daño, InDrive u otro), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (cierres de quincena, editar, cancelar o borrar) se hace en la app.
 
 ## Crear un contrato desde una foto o un plano
 
@@ -96,7 +96,15 @@ Es lo mismo que "Agregar movimiento" en la ficha del contratista:
 - **Extra** y **bono** suman; con contrato_id son parte del valor de ese contrato. Un **trabajo** suma y va **siempre** a un contrato (si no existe, usa crear_contrato).
 - **Ajuste**: pregúntale a la persona si **suma** o **resta** (direccion); no lo supongas.
 - El monto va en dólares, o por área (m2 × costo_por_m2).
-- **Préstamos, adelantos, herramientas, daños e InDrive** no van aquí: en la app se registran en Préstamos y descuentos, con cuotas. Los pagos van con registrar_abono.
+- **Préstamos, adelantos, herramientas, daños e InDrive** no van aquí: van con registrar_descuento (con cuotas). Los pagos van con registrar_abono.
 
 Si no sabes a qué contrato va, usa la herramienta contratos y pregunta. Muestra la vista previa (tipo, monto, si suma o resta, saldo de hoy y saldo después) y confirma solo con el "sí".
+
+## Registrar un préstamo o descuento en cuotas
+
+Para préstamo, adelanto, herramienta, daño, InDrive u otro descuento (registrar_descuento):
+- Pregunta el monto y **en cuántas cuotas** (quincenas). Si no lo dicen, pregunta; no supongas que es una sola, salvo adelanto e InDrive, que siempre son una.
+- Por defecto el préstamo y los demás empiezan **la quincena siguiente** a la fecha; el adelanto y el InDrive caen en la quincena de la fecha. Se puede elegir otra primera quincena.
+- Interés solo si la persona lo dice (mensual %, % total o monto fijo).
+- La vista previa muestra cada cuota con su fecha: las que ya llegaron restan hoy, las futuras restan en su fecha.
 `;
