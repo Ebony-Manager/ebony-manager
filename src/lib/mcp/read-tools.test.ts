@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 vi.mock("server-only", () => ({}));
 const cot = vi.hoisted(() => ({ getQuoteSummaries: vi.fn(), getQuote: vi.fn() }));
 const ven = vi.hoisted(() => ({ getOpportunities: vi.fn(), getClients: vi.fn(), getOpportunityNotes: vi.fn(), addOpportunityNote: vi.fn() }));
-const alm = vi.hoisted(() => ({ getCatalog: vi.fn(), getCategories: vi.fn(), getPendingReturns: vi.fn(), getPurchaseRequests: vi.fn(), getWarehouseProjects: vi.fn() }));
+const alm = vi.hoisted(() => ({ getCatalog: vi.fn(), getCategories: vi.fn(), getPendingReturns: vi.fn(), getPurchaseRequests: vi.fn(), getWarehouseProjects: vi.fn(), getInventoryPeople: vi.fn(), registerIssue: vi.fn(), returnContainers: vi.fn() }));
 const emp = vi.hoisted(() => ({ getPayrollEmployees: vi.fn() }));
 vi.mock("@/services/cotizador", () => cot);
 vi.mock("@/services/ventas", () => ven);
@@ -117,5 +117,46 @@ describe("MCP · nota de seguimiento", () => {
     expect(bad.isError).toBe(true);
     await client.callTool({ name: "agregar_nota_oportunidad", arguments: { ...args, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
     expect(ven.addOpportunityNote).toHaveBeenCalledWith("o1", "Llamé a la arquitecta");
+  });
+});
+
+describe("MCP · salida de almacén", () => {
+  beforeEach(() => {
+    alm.getInventoryPeople.mockResolvedValue([
+      { kind: "contratista", id: "c9", name: "Pedro Pintor", active: true, contractorType: "pintor", photoPath: null },
+      { kind: "empleado", id: "e1", name: "Luis Ebanista", active: true, contractorType: null, photoPath: null },
+    ]);
+    alm.getWarehouseProjects.mockResolvedValue([{ id: "p1", name: "Golden Palace", active: true }]);
+    alm.getPendingReturns.mockResolvedValue([]);
+    alm.registerIssue.mockResolvedValue("iss1");
+  });
+  const args = { quien: "pedro", proyecto: "golden", productos: [{ producto: "tornillo", cantidad: 6 }] };
+
+  it("vista previa: existencia que queda, aviso si no alcanza y descuento al pintor; guarda solo con el código", async () => {
+    const client = await connect(["almacen"]);
+    const prev = json(await client.callTool({ name: "registrar_salida_almacen", arguments: args }));
+    expect(prev.productos[0]).toMatchObject({ producto: "Tornillo · 1/2", existencia_antes: 5, existencia_despues: -1 });
+    expect(prev.productos[0].aviso).toContain("Solo hay 5");
+    expect(prev.descuento_al_pintor).toContain("costo + 10%");
+    expect(prev.descuento_al_pintor).not.toContain("$"); // sin permiso de costos no ve el monto
+    expect(alm.registerIssue).not.toHaveBeenCalled();
+    await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(alm.registerIssue).toHaveBeenCalledWith({ issuedOn: "2026-11-19", recipient: { kind: "contratista", id: "c9" }, projectId: "p1", internalUse: null, notes: null, lines: [{ variantId: "v1", qty: 6 }] });
+  });
+
+  it("valida destino, fracciones y el envase pendiente", async () => {
+    const client = await connect(["almacen"]);
+    expect((await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, uso_interno: "taller" } })).isError).toBe(true);
+    expect((await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, productos: [{ producto: "tornillo", cantidad: 1.5 }] } })).isError).toBe(true);
+    alm.getCatalog.mockResolvedValue([{ id: "i3", name: "Thinner", categoryId: null, unit: "galon", allowsDecimals: false, kind: "devolvible", notes: null, photoPath: null, active: true, suppliers: [], variants: [{ id: "v3", itemId: "i3", label: "", stockQty: 4, minQty: null, reorderQty: null, sortOrder: 0, active: true, unitCostCents: 1000, packLabel: null, packQty: null }] }]);
+    alm.getPendingReturns.mockResolvedValue([{ kind: "envase", id: "m7", name: "Thinner", photoPath: null, employeeId: null, contractorId: "c9", person: "Pedro Pintor", since: "2026-11-01", dueOn: null, overdue: false, qty: 1, unit: "galon", project: null }]);
+    const thinner = { quien: "pedro", uso_interno: "pintura", productos: [{ producto: "thinner", cantidad: 1 }] };
+    const ask = await client.callTool({ name: "registrar_salida_almacen", arguments: thinner });
+    expect(ask.isError).toBe(true);
+    expect(body(ask)).toContain("envase anterior");
+    const prev = json(await client.callTool({ name: "registrar_salida_almacen", arguments: { ...thinner, envase_anterior: "devuelto" } }));
+    await client.callTool({ name: "registrar_salida_almacen", arguments: { ...thinner, envase_anterior: "devuelto", confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(alm.returnContainers).toHaveBeenCalledWith(["m7"]);
+    expect(alm.registerIssue).toHaveBeenCalledWith(expect.objectContaining({ internalUse: "pintura", projectId: null }));
   });
 });
