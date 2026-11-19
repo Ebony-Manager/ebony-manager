@@ -12,7 +12,7 @@ import * as ventas from "@/services/ventas";
 import { OPEN_STAGES, STAGES, type Stage } from "@/types/ventas";
 import { QUOTE_STATUSES } from "@/types/cotizador";
 import type { McpUser } from "./auth";
-import { READ_ONLY, fail, makeReadRegistrar, matches, ok } from "./shared";
+import { CODE_MISMATCH, NEXT_STEP, READ_ONLY, confirmationCode, fail, fold, makeReadRegistrar, matches, ok } from "./shared";
 
 /**
  * Consultas de Ventas (Seguimiento) y del Cotizador — solo lectura, con el
@@ -178,6 +178,67 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
         resumen: { subtotal: round2(t.subtotal), descuento: round2(t.discount), neto: round2(t.net), itbms: round2(t.tax), total: round2(t.total) },
         nota: costs ? undefined : "Sin el permiso de Costos solo se muestran precios de venta.",
       });
+    })
+  );
+
+  /** Una oportunidad por id o por título (parte, sin acentos). */
+  async function findOpportunity(query: string) {
+    const all = await ventas.getOpportunities();
+    const q = fold(query);
+    const exact = all.filter((o) => o.id === query || fold(o.title) === q);
+    const list = exact.length ? exact : all.filter((o) => fold(o.title).includes(q));
+    if (list.length === 0) throw new Error(`No encontré una oportunidad que coincida con "${query}". Usa seguimiento_ventas.`);
+    if (list.length > 1) throw new Error(`Varias oportunidades coinciden con "${query}": ${list.slice(0, 10).map((o) => `${o.title} (id ${o.id})`).join("; ")}. Pregunta cuál.`);
+    return list[0];
+  }
+
+  server.registerTool(
+    "notas_oportunidad",
+    {
+      title: "Notas de seguimiento de una oportunidad",
+      description: "La bitácora de seguimiento de una oportunidad de venta (las notas que se han ido anotando, la más nueva primero), con quién y cuándo.",
+      inputSchema: { oportunidad: z.string().describe("Título (o parte) o id de la oportunidad") },
+      annotations: READ_ONLY,
+    },
+    guard("notas_oportunidad", ["cotizacion"], async ({ oportunidad }: { oportunidad: string }) => {
+      const o = await findOpportunity(oportunidad);
+      const notes = await ventas.getOpportunityNotes(o.id);
+      return ok({
+        oportunidad: o.title,
+        etapa: STAGE_LABEL[o.stage],
+        proximo_seguimiento: o.nextFollowUp,
+        notas_generales: o.notes,
+        bitacora: notes.map((n) => ({ fecha: n.createdAt.slice(0, 10), por: n.createdByName, nota: n.body })),
+      });
+    })
+  );
+
+  server.registerTool(
+    "agregar_nota_oportunidad",
+    {
+      title: "Agregar nota de seguimiento a una oportunidad (con vista previa)",
+      description:
+        "Anota en la bitácora de seguimiento de una oportunidad de venta lo que pasó (ej. 'Llamé a la arquitecta, revisa la cotización el lunes'). Solo agrega una nota: no cambia la etapa, montos ni fechas. SIEMPRE en dos pasos: primero sin `confirmar` (vista previa y codigo_confirmacion); solo si la persona aprueba, vuelve a llamar con los MISMOS datos, `confirmar: true` y el código.",
+      inputSchema: {
+        oportunidad: z.string().describe("Título (o parte) o id de la oportunidad"),
+        nota: z.string().min(1).max(2000).describe("El texto de la nota, tal como lo dijo la persona"),
+        confirmar: z.boolean().optional(),
+        codigo_confirmacion: z.string().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    guard("agregar_nota_oportunidad", ["cotizacion"], async (args: { oportunidad: string; nota: string; confirmar?: boolean; codigo_confirmacion?: string }) => {
+      const o = await findOpportunity(args.oportunidad);
+      const body = args.nota.trim();
+      if (!body) return fail("La nota está vacía.");
+      const plan = { opportunityId: o.id, body };
+      const code = confirmationCode(user.id, "agregar_nota_oportunidad", plan);
+      if (!args.confirmar) {
+        return ok({ estado: "VISTA PREVIA — no se ha guardado nada", oportunidad: o.title, etapa: STAGE_LABEL[o.stage], nota: body, codigo_confirmacion: code, siguiente_paso: NEXT_STEP });
+      }
+      if (args.codigo_confirmacion !== code) return fail(CODE_MISMATCH);
+      await ventas.addOpportunityNote(o.id, body);
+      return ok({ estado: "ANOTADA", oportunidad: o.title, nota: body });
     })
   );
 }

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 
 import { hasAnyModule, type AppModule } from "@/lib/auth/modules";
 import { recordRun } from "@/lib/integrations/record";
@@ -70,3 +72,14 @@ export function makeReadRegistrar(user: McpUser) {
     };
   };
 }
+
+/** Código de confirmación de una escritura: sale de los datos exactos de la
+ *  vista previa, así si algo cambia entre la vista previa y el "sí", no
+ *  coincide y no se guarda nada. */
+export function confirmationCode(userId: string, kind: string, plan: unknown): string {
+  return createHash("sha256").update(`${userId}|${kind}|${JSON.stringify(plan)}`).digest("hex").slice(0, 10);
+}
+
+export const CODE_MISMATCH =
+  "El código no coincide con estos datos (cambió algo desde la vista previa). Vuelve a pedir la vista previa y confírmala.";
+export const NEXT_STEP = "Muestra esto a la persona. Si lo aprueba, llama de nuevo con los mismos datos, confirmar: true y este codigo_confirmacion.";

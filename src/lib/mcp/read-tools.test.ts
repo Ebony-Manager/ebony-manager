@@ -5,7 +5,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 vi.mock("server-only", () => ({}));
 const cot = vi.hoisted(() => ({ getQuoteSummaries: vi.fn(), getQuote: vi.fn() }));
-const ven = vi.hoisted(() => ({ getOpportunities: vi.fn(), getClients: vi.fn() }));
+const ven = vi.hoisted(() => ({ getOpportunities: vi.fn(), getClients: vi.fn(), getOpportunityNotes: vi.fn(), addOpportunityNote: vi.fn() }));
 const alm = vi.hoisted(() => ({ getCatalog: vi.fn(), getCategories: vi.fn(), getPendingReturns: vi.fn(), getPurchaseRequests: vi.fn(), getWarehouseProjects: vi.fn() }));
 const emp = vi.hoisted(() => ({ getPayrollEmployees: vi.fn() }));
 vi.mock("@/services/cotizador", () => cot);
@@ -55,6 +55,8 @@ beforeEach(() => {
     { id: "i1", name: "Tornillo", categoryId: "c1", unit: "unidad", allowsDecimals: false, kind: "suministro", notes: null, photoPath: null, active: true, suppliers: [], variants: [{ id: "v1", itemId: "i1", label: "1/2", stockQty: 5, minQty: 10, reorderQty: 100, sortOrder: 0, active: true, unitCostCents: 12, packLabel: null, packQty: null }] },
     { id: "i2", name: "Cola", categoryId: null, unit: "galon", allowsDecimals: true, kind: "suministro", notes: null, photoPath: null, active: true, suppliers: [], variants: [{ id: "v2", itemId: "i2", label: "", stockQty: 8, minQty: 2, reorderQty: null, sortOrder: 0, active: true, unitCostCents: 2500, packLabel: null, packQty: null }] },
   ]);
+  ven.getOpportunities.mockResolvedValue([{ id: "o1", title: "Cocina Torre Vista 19C", stage: "enviada", nextFollowUp: null, notes: null, quotes: [] }]);
+  ven.getOpportunityNotes.mockResolvedValue([]);
   alm.getCategories.mockResolvedValue([{ id: "c1", name: "Herrajes", sortOrder: 0 }]);
   emp.getPayrollEmployees.mockResolvedValue([{ id: "e1", name: "Luis", position: "Ebanista", categoria: "taller", status: "ACTIVE", startDate: "2024-01-01", endDate: null, phone: "6000", email: null, baseSalaryCents: 90000 }]);
 });
@@ -101,5 +103,19 @@ describe("MCP · consultas con permisos", () => {
     expect(docs.empleados[0].sueldo_mensual).toBeUndefined();
     const admin = json(await (await connect([], "admin")).callTool({ name: "empleados", arguments: {} }));
     expect(admin.empleados[0].sueldo_mensual).toBe(900);
+  });
+});
+
+describe("MCP · nota de seguimiento", () => {
+  it("solo agrega la nota con el sí y el mismo código", async () => {
+    const client = await connect(["cotizacion"]);
+    const args = { oportunidad: "torre vista", nota: "Llamé a la arquitecta" };
+    const prev = json(await client.callTool({ name: "agregar_nota_oportunidad", arguments: args }));
+    expect(prev).toMatchObject({ oportunidad: "Cocina Torre Vista 19C", nota: "Llamé a la arquitecta" });
+    expect(ven.addOpportunityNote).not.toHaveBeenCalled();
+    const bad = await client.callTool({ name: "agregar_nota_oportunidad", arguments: { ...args, nota: "otra", confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(bad.isError).toBe(true);
+    await client.callTool({ name: "agregar_nota_oportunidad", arguments: { ...args, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(ven.addOpportunityNote).toHaveBeenCalledWith("o1", "Llamé a la arquitecta");
   });
 });
