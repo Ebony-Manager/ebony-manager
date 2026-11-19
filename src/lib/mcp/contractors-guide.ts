@@ -76,7 +76,7 @@ Al inactivar o liquidar a un contratista se puede **cerrar su saldo**: se repart
 - Para "¿por qué tiene ese saldo?": separa lo ganado (trabajo/extra/bono), lo entregado (pagos/adelantos) y los descuentos (cuotas, material, daños), y cuadra.
 - Para un contrato: valor, abonado, pendiente, retenido (si es pintor) y qué se puede pagar hoy.
 - Si algo no cuadra o no tienes el dato, dilo. No inventes movimientos.
-- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono) **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste) y **registrar un préstamo o descuento en cuotas** (registrar_descuento: préstamo, adelanto, herramienta, daño, InDrive u otro), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (cierres de quincena, editar, cancelar o borrar) se hace en la app.
+- Por esta conexión se puede **crear un contrato** (crear_contrato), **registrar un abono** (registrar_abono), **registrar un movimiento** en el estado de cuenta (registrar_movimiento: material, gasto operativo, extra, bono, trabajo o ajuste) y **registrar un préstamo o descuento en cuotas** (registrar_descuento: préstamo, adelanto, herramienta, daño, InDrive u otro), siempre en dos pasos: primero la vista previa, y solo con el "sí" de la persona se confirma. Lo demás (cierres de quincena, editar, cancelar o borrar) se hace en la app.
 
 ## Crear un contrato desde una foto o un plano
 
