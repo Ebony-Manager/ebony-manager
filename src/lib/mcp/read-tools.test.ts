@@ -1,0 +1,105 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+
+vi.mock("server-only", () => ({}));
+const cot = vi.hoisted(() => ({ getQuoteSummaries: vi.fn(), getQuote: vi.fn() }));
+const ven = vi.hoisted(() => ({ getOpportunities: vi.fn(), getClients: vi.fn() }));
+const alm = vi.hoisted(() => ({ getCatalog: vi.fn(), getCategories: vi.fn(), getPendingReturns: vi.fn(), getPurchaseRequests: vi.fn(), getWarehouseProjects: vi.fn() }));
+const emp = vi.hoisted(() => ({ getPayrollEmployees: vi.fn() }));
+vi.mock("@/services/cotizador", () => cot);
+vi.mock("@/services/ventas", () => ven);
+vi.mock("@/services/almacen", () => alm);
+vi.mock("@/services/payroll-employees", () => emp);
+vi.mock("@/services/payroll", () => ({}));
+vi.mock("@/services/attendance", () => ({}));
+vi.mock("@/services/money-requests", () => ({}));
+vi.mock("@/services/taller", () => ({}));
+vi.mock("@/services/inspections", () => ({}));
+vi.mock("@/lib/integrations/record", () => ({ recordRun: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/lib/contractors/contractor-loans", async (orig) => ({
+  ...(await orig<typeof import("@/lib/contractors/contractor-loans")>()),
+  todayInPanama: () => "2026-11-19",
+}));
+
+import { registerVentasTools } from "./ventas-tools";
+import { registerAlmacenTools } from "./almacen-tools";
+import { registerPersonalTools } from "./personal-tools";
+import type { McpUser } from "./auth";
+
+async function connect(modules: string[], role = "vendedor") {
+  const server = new McpServer({ name: "t", version: "1" });
+  const user = { id: "u1", email: "a@b.c", clientId: null, profile: { role, modules } } as unknown as McpUser;
+  registerVentasTools(server, user);
+  registerAlmacenTools(server, user);
+  registerPersonalTools(server, user);
+  const [a, b] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "c", version: "1" });
+  await Promise.all([server.connect(a), client.connect(b)]);
+  return client;
+}
+const body = (r: unknown) => (r as { content: { text: string }[] }).content[0].text;
+const json = (r: unknown) => JSON.parse(body(r));
+
+const line = { id: "l1", itemId: null, name: "Módulo", category: "modulo", finish: "aglomerado", unit: "unidad", shape: "rect", mode: "dir", width: 0, height: 0, pieces: 1, qty: 2, unitPrice: 100, priceOverridden: false, wall: null, posX: null, posY: null, hostLineId: null, golaMl: 0, golaPrice: 0 };
+const section = { id: "s1", priceMode: "recipe", directPrice: 0, location: "Cocina", name: "Gabinetes", kind: "Cocina", description: "", qty: 1, utilPct: 50, subMarginPct: 0, wasteSheets: 0, wastePct: 0, wasteSheetPrice: 0, design3d: 0, extraLabor: 0, freight: 0, commissionPct: 0, ccfPct: 0, wallShape: "recta", cornerAt: null, lines: [line] };
+const quote = { id: "q1", number: "2617", clientName: "Ana", designerName: "Estudio X", projectName: "", quoteDate: "2026-11-01", deliveryDays: 30, status: "ENVIADA", lang: "es", pdfDetail: "section", terms: null, discountType: "pct", discountValue: 0, itbmsPct: 7, notes: "", sections: [section], opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, validDays: 15, updatedAt: null, sentOn: "2026-11-02", closedOn: null, followUpOn: null };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  cot.getQuote.mockImplementation(async (id: string) => (id === "q1" ? quote : null));
+  cot.getQuoteSummaries.mockResolvedValue([{ id: "q1", number: "2617", clientName: "Ana", designerName: "Estudio X", projectName: "", quoteDate: "2026-11-01", status: "ENVIADA", total: 321, updatedAt: "", followUpOn: null, opportunityId: null, projectId: null, designerId: null, clientId: null }]);
+  alm.getCatalog.mockResolvedValue([
+    { id: "i1", name: "Tornillo", categoryId: "c1", unit: "unidad", allowsDecimals: false, kind: "suministro", notes: null, photoPath: null, active: true, suppliers: [], variants: [{ id: "v1", itemId: "i1", label: "1/2", stockQty: 5, minQty: 10, reorderQty: 100, sortOrder: 0, active: true, unitCostCents: 12, packLabel: null, packQty: null }] },
+    { id: "i2", name: "Cola", categoryId: null, unit: "galon", allowsDecimals: true, kind: "suministro", notes: null, photoPath: null, active: true, suppliers: [], variants: [{ id: "v2", itemId: "i2", label: "", stockQty: 8, minQty: 2, reorderQty: null, sortOrder: 0, active: true, unitCostCents: 2500, packLabel: null, packQty: null }] },
+  ]);
+  alm.getCategories.mockResolvedValue([{ id: "c1", name: "Herrajes", sortOrder: 0 }]);
+  emp.getPayrollEmployees.mockResolvedValue([{ id: "e1", name: "Luis", position: "Ebanista", categoria: "taller", status: "ACTIVE", startDate: "2024-01-01", endDate: null, phone: "6000", email: null, baseSalaryCents: 90000 }]);
+});
+
+describe("MCP · consultas con permisos", () => {
+  it("sin el módulo no consulta nada", async () => {
+    const client = await connect(["almacen"]);
+    const r = await client.callTool({ name: "cotizaciones", arguments: {} });
+    expect(r.isError).toBe(true);
+    expect(body(r)).toContain("Cotización");
+    expect(cot.getQuoteSummaries).not.toHaveBeenCalled();
+    const p = await client.callTool({ name: "planilla_quincena", arguments: {} });
+    expect(p.isError).toBe(true);
+  });
+
+  it("detalle de cotización: precio de venta para todos, costos solo con el permiso de Costos", async () => {
+    const seller = await connect(["cotizacion"]);
+    const d = json(await seller.callTool({ name: "detalle_cotizacion", arguments: { cotizacion: "2617" } }));
+    // 2 × $100 = $200 de costo + 50% de utilidad = $300; + 7% ITBMS = $321.
+    expect(d.items[0]).toMatchObject({ precio_unitario: 300, total: 300 });
+    expect(d.resumen).toMatchObject({ subtotal: 300, itbms: 21, total: 321 });
+    expect(d.items[0].costos).toBeUndefined();
+    expect(d.items[0].renglones[0].costo_unitario).toBeUndefined();
+
+    const admin = await connect(["cotizacion", "costos"]);
+    const c = json(await admin.callTool({ name: "detalle_cotizacion", arguments: { cotizacion: "q1" } }));
+    expect(c.items[0].costos).toMatchObject({ costo_ebony: 200, utilidad: 100 });
+    expect(c.items[0].renglones[0].costo_unitario).toBe(100);
+  });
+
+  it("inventario: bajo mínimo y costos solo con Compras o Costos del almacén", async () => {
+    const client = await connect(["almacen"]);
+    const low = json(await client.callTool({ name: "inventario", arguments: { solo_bajo_minimo: true } }));
+    expect(low.productos).toEqual([expect.objectContaining({ producto: "Tornillo · 1/2", categoria: "Herrajes", existencia: 5, bajo_minimo: true })]);
+    expect(low.productos[0].costo_unitario).toBeUndefined();
+    const buyer = await connect(["almacen", "almacen_compras"]);
+    const all = json(await buyer.callTool({ name: "inventario", arguments: { buscar: "cola" } }));
+    expect(all.productos).toEqual([expect.objectContaining({ producto: "Cola", costo_unitario: 25 })]);
+  });
+
+  it("empleados: el sueldo solo con Planilla", async () => {
+    const docs = json(await (await connect(["documentos"])).callTool({ name: "empleados", arguments: {} }));
+    expect(docs.empleados[0]).toMatchObject({ nombre: "Luis", puesto: "Ebanista" });
+    expect(docs.empleados[0].sueldo_mensual).toBeUndefined();
+    const admin = json(await (await connect([], "admin")).callTool({ name: "empleados", arguments: {} }));
+    expect(admin.empleados[0].sueldo_mensual).toBe(900);
+  });
+});
