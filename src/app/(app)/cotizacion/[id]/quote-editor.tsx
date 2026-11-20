@@ -948,7 +948,10 @@ export function QuoteEditor({
                     <>
                       <dt className="mt-1.5 border-t border-border pt-2 text-foreground/80">{tt("item_before_discount")}</dt>
                       <dd className={cn(money, "mt-1.5 border-t border-border pt-2")}>{formatMoney(secTotals.gross)}</dd>
-                      <dt className="text-foreground/80">{tt("item_discount")}</dt>
+                      <dt className="text-foreground/80">
+                        {secTotals.discountSource === "general" ? tt("general_discount_short") : tt("item_discount")}
+                        {secTotals.discountPct !== null ? ` ${secTotals.discountPct}%` : ""}
+                      </dt>
                       <dd className={money}>−{formatMoney(secTotals.discount)}</dd>
                     </>
                   )}
@@ -981,25 +984,17 @@ export function QuoteEditor({
                           {g.label || tt("sec_no_location")}
                           <span className="ml-1.5 text-xs text-muted-foreground">({g.sections.length})</span>
                         </dt>
-                        <dd className={money}>{formatMoney(g.total)}</dd>
+                        <dd className={money}>{formatMoney(g.gross)}</dd>
                       </React.Fragment>
                     ))}
-                  {totals.itemDiscounts > 0 && (
-                    <>
-                      <dt className="mt-1 border-t border-border pt-2 text-[11px] text-muted-foreground">{tt("item_discounts_total")}</dt>
-                      <dd className={cn(money, "mt-1 border-t border-border pt-2 text-[11px] text-muted-foreground")}>
-                        −{formatMoney(totals.itemDiscounts)}
-                      </dd>
-                    </>
-                  )}
                   <dt className="mt-1 border-t border-border pt-2 text-foreground/80">
                     {tt("subtotal")}
                   </dt>
                   <dd className={cn(money, "mt-1 border-t border-border pt-2")}>
-                    {formatMoney(totals.subtotal)}
+                    {formatMoney(totals.gross)}
                   </dd>
                   <dt className="flex items-center gap-2 text-foreground/80">
-                    {tt("discount")}
+                    {tt("general_discount_short")}
                     <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
                       <NumField
                         value={quote.discountValue}
@@ -1024,11 +1019,17 @@ export function QuoteEditor({
                       </button>
                     </span>
                   </dt>
-                  <dd className={money}>
-                    {totals.discount > 0
-                      ? `−${formatMoney(totals.discount)}`
+                  <dd className={money} title={tt("general_discount_hint")}>
+                    {totals.generalDiscount > 0.004
+                      ? `−${formatMoney(totals.generalDiscount)}`
                       : "—"}
                   </dd>
+                  {totals.itemDiscounts > 0.004 && (
+                    <>
+                      <dt className="text-foreground/80">{tt("item_discounts_total")}</dt>
+                      <dd className={money}>−{formatMoney(totals.itemDiscounts)}</dd>
+                    </>
+                  )}
                   {/* Comisión de la arquitecta: va repartida dentro del precio de cada ítem (el cliente no la ve) y
                       sale del precio ya con todos los descuentos. */}
                   <dt className="flex items-center gap-2 text-foreground/80">

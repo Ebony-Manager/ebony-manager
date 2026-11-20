@@ -21,7 +21,10 @@ export interface LocationGroup {
   /** Como se escribió la primera vez ("" = sin ubicación). */
   label: string;
   sections: QuoteSection[];
+  /** Suma de sus ítems ya con su descuento. */
   total: number;
+  /** Suma de sus ítems sin descuentos. */
+  gross: number;
 }
 
 /** Sin comisión ni recargo: solo cuando lo que importa es el orden (los totales los pide quien los muestra). */
@@ -32,9 +35,11 @@ export function locationGroups(sections: readonly QuoteSection[], rates: QuoteRa
   const groups = new Map<string, LocationGroup>();
   for (const s of sections) {
     const key = locationKey(s.location);
-    const g = groups.get(key) ?? { key, label: s.location.trim(), sections: [], total: 0 };
+    const g = groups.get(key) ?? { key, label: s.location.trim(), sections: [], total: 0, gross: 0 };
     g.sections.push(s);
-    g.total += sectionTotals(s, rates).total;
+    const st = sectionTotals(s, rates);
+    g.total += st.total;
+    g.gross += st.gross;
     groups.set(key, g);
   }
   return [...groups.values()];

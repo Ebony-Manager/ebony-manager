@@ -1,7 +1,7 @@
 import type { jsPDF as JsPDF } from "jspdf";
 
 import { WORDMARK_PATH, WORDMARK_VIEWBOX } from "@/components/brand/ebony-logo";
-import { formatMoney, lineAmount, lineQty, pricedLines, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
+import { formatMoney, lineAmount, lineQty, pricedLines, clientDiscountView, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { groupedOrder } from "@/lib/cotizador/items";
 import { quoteHeading, quoteWho, validUntil } from "@/lib/cotizador/owner";
 import { richSegments } from "@/lib/cotizador/terms";
@@ -247,11 +247,12 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   const rowImage = new Map<number, { data: string; w: number; h: number }>();
   const itemEnds = new Set<number>();
   const sub = { fontSize: 8, textColor: MUTED, cellPadding: { top: 1.5, bottom: 1.5, left: 6, right: 6 } };
+  const view = clientDiscountView(quote);
   for (const s of groupedOrder(quote.sections)) {
     const st = sectionTotals(s, quote);
     const title = `${s.kind} · ${sectionLabel(s) || tq("sec_unnamed")}`;
     const desc = s.description.trim();
-    const hasDiscount = st.discount > 0.004;
+    const hasDiscount = view.itemDiscount(st);
     const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? pricedLines(s).length : 0) + (hasDiscount ? 1 : 0);
     const img = itemImages.get(s.id);
     if (img) rowImage.set(body.length, img);
@@ -260,13 +261,21 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
       { content: title, styles: { fontStyle: "bold" } },
       ...(showQty ? [{ content: detail === "line" ? (st.qty > 1 ? `× ${st.qty}` : "") : String(st.qty) }] : []),
       ...(showUnit ? [{ content: formatMoney(st.unit) }] : []),
-      ...(detail !== "total" ? [{ content: formatMoney(st.total), styles: { fontStyle: "bold" } }] : []),
+      ...(detail !== "total" ? [{ content: formatMoney(view.itemPrice(st)), styles: { fontStyle: "bold" } }] : []),
     ]);
     if (desc) {
       // Solo en la columna del ítem (hasta antes de "Cantidad").
       body.push([
         { content: desc, styles: { fontSize: 8, textColor: MUTED, cellPadding: { top: 0, bottom: 6, left: 6, right: 8 } } },
         ...Array.from({ length: cols - first - 1 }, () => ({ content: "", styles: { cellPadding: 0, fontSize: 1 } })),
+      ]);
+    }
+    // El descuento del ítem: solo el detalle, debajo de la descripción (el precio de la derecha ya es el rebajado).
+    if (hasDiscount) {
+      const pct = st.discountPct !== null ? ` ${st.discountPct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : "";
+      body.push([
+        { content: `${tq("pdf_discount")}${pct}: -${formatMoney(st.discount)}`, styles: { ...sub, textColor: INK } },
+        ...Array.from({ length: cols - first - 1 }, () => ({ content: "", styles: { ...sub } })),
       ]);
     }
     if (detail === "line") {
@@ -279,17 +288,6 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
           { content: formatMoney(lineAmount(l) * factor), styles: { ...sub } },
         ]);
       }
-    }
-    // El descuento del ítem: el precio sin descuento y lo que se rebaja (el total de arriba ya es el rebajado).
-    if (hasDiscount) {
-      const pct = s.discountType === "pct" ? ` ${s.discountValue.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : "";
-      const label = `${tq("pdf_discount")}${pct} · ${tq("item_before_discount")} ${formatMoney(st.gross)}`;
-      body.push([
-        { content: detail === "total" ? `${label} · -${formatMoney(st.discount)}` : label, styles: { ...sub, textColor: INK } },
-        ...(showQty ? [{ content: "", styles: { ...sub } }] : []),
-        ...(showUnit ? [{ content: "", styles: { ...sub } }] : []),
-        ...(detail !== "total" ? [{ content: `-${formatMoney(st.discount)}`, styles: { ...sub, textColor: INK } }] : []),
-      ]);
     }
     // Con imagen, la última fila del ítem completa la altura (así el título
     // y la descripción quedan juntos, al lado de la imagen).
@@ -346,9 +344,14 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   };
 
   // ── Datos para el pago (izquierda) y totales (derecha), lado a lado ──
-  const totals = quoteTotals(quote);
-  const rows: [string, string, boolean][] = [[tq("subtotal"), formatMoney(totals.subtotal), false]];
-  if (totals.discount > 0) rows.push([tq("discount"), `-${formatMoney(totals.discount)}`, false]);
+  const totals = view.totals;
+  const rows: [string, string, boolean][] = [[tq("subtotal"), formatMoney(view.subtotal), false]];
+  if (view.discount > 0.004)
+    rows.push([
+      `${tq("discount")}${view.discountPct !== null ? ` (${view.discountPct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%)` : ""}`,
+      `-${formatMoney(view.discount)}`,
+      false,
+    ]);
   rows.push([`ITBMS (${quote.itbmsPct}%)`, formatMoney(totals.tax), false]);
   rows.push([tq("total"), formatMoney(totals.total), true]);
   const totalsW = 190;

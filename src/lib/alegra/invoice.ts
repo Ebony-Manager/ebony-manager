@@ -51,12 +51,14 @@ export interface AlegraInvoiceBody {
 
 const round = (n: number, d: number) => Math.round(n * 10 ** d) / 10 ** d;
 
-/** El descuento global de la cotización como % por línea (Alegra no tiene descuento global). */
+/**
+ * El descuento general en MONTO como % de cada línea (Alegra no tiene descuento global). El general en % ya va dentro
+ * del descuento de cada ítem (cada ítem usa el suyo o el general).
+ */
 export function discountPct(
   q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct" | "commissionPct" | "ccfPct">,
 ): number {
-  if (!q.discountValue) return 0;
-  if (q.discountType === "pct") return round(q.discountValue, 4);
+  if (!q.discountValue || q.discountType !== "amount") return 0;
   const { subtotal, discount } = quoteTotals(q);
   return subtotal > 0 ? round((discount / subtotal) * 100, 4) : 0;
 }
@@ -104,7 +106,7 @@ export function buildAlegraInvoice(
     observations: [q.number, q.projectName].filter(Boolean).join(" · "),
     items: sections.map((s) => {
       const st = sectionTotals(s, q);
-      // Alegra tiene un solo % de descuento por línea: el del ítem y el general, combinados.
+      // Alegra tiene un solo % de descuento por línea: el del ítem (propio o el general en %) y el general en monto.
       const itemShare = st.gross > 0 ? st.total / st.gross : 1;
       const discount = round((1 - itemShare * (1 - general / 100)) * 100, 4);
       const title = [s.kind, sectionLabel(s)].filter(Boolean).join(" · ");

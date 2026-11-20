@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { EbonyLogo } from "@/components/brand/ebony-logo";
-import { formatMoney, lineAmount, lineQty, pricedLines, quoteTotals, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
+import { formatMoney, lineAmount, lineQty, pricedLines, clientDiscountView, sectionLabel, sectionTotals } from "@/lib/cotizador/pricing";
 import { strings, t } from "@/lib/i18n";
 import type { PdfDetail, Quote, QuoteImage } from "@/types/cotizador";
 import { photoUrl, THUMB_WIDTH } from "@/lib/photo-url";
@@ -46,7 +46,8 @@ export function ClientView({
   const firstImage = new Map<string, QuoteImage>();
   for (const im of [...images].sort((a, b) => a.sortOrder - b.sortOrder)) if (!firstImage.has(im.sectionId)) firstImage.set(im.sectionId, im);
   const tt = (k: keyof typeof strings.cotizador) => t(quote.lang, strings.cotizador[k]);
-  const totals = quoteTotals(quote);
+  const view = clientDiscountView(quote);
+  const totals = view.totals;
   // Con algún ítem de cantidad mayor a 1, se muestran cantidad y precio unitario.
   const hasQty = quote.sections.some((s) => s.qty > 1);
   const detail = quote.pdfDetail;
@@ -143,7 +144,7 @@ export function ClientView({
             <tbody>
               {groupedOrder(quote.sections).map((s) => {
                 const st = sectionTotals(s, quote);
-                const hasDiscount = st.discount > 0.004;
+                const hasDiscount = view.itemDiscount(st);
                 const cost = st.ebony + st.sub;
                 // Por renglón: lo de una unidad, repartido, por la cantidad del ítem.
                 const factor = cost > 0 ? (st.unit / cost) * st.qty : 0;
@@ -166,7 +167,7 @@ export function ClientView({
                             {hasDiscount && (
                               <p className="mt-1 text-xs font-medium text-foreground tabular-nums">
                                 {tt("pdf_discount")}
-                                {s.discountType === "pct" ? ` ${s.discountValue.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : ""}: −{formatMoney(st.discount)}
+                                {st.discountPct !== null ? ` ${st.discountPct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : ""}: −{formatMoney(st.discount)}
                               </p>
                             )}
                           </div>
@@ -177,10 +178,7 @@ export function ClientView({
                       )}
                       {detail === "section" && hasQty && <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{formatMoney(st.unit)}</td>}
                       {detail !== "total" && (
-                        <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">
-                          {hasDiscount && <span className="block text-xs font-normal text-muted-foreground line-through">{formatMoney(st.gross)}</span>}
-                          {formatMoney(st.total)}
-                        </td>
+                        <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatMoney(view.itemPrice(st))}</td>
                       )}
                     </tr>
                     {detail === "line" &&
@@ -222,11 +220,14 @@ export function ClientView({
         </section>
         <dl className="grid w-full shrink-0 sm:max-w-[280px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm">
           <dt className="text-foreground/80">{tt("subtotal")}</dt>
-          <dd className="text-right tabular-nums">{formatMoney(totals.subtotal)}</dd>
-          {totals.discount > 0 && (
+          <dd className="text-right tabular-nums">{formatMoney(view.subtotal)}</dd>
+          {view.discount > 0.004 && (
             <>
-              <dt className="text-foreground/80">{tt("discount")}</dt>
-              <dd className="text-right tabular-nums">−{formatMoney(totals.discount)}</dd>
+              <dt className="text-foreground/80">
+                {tt("discount")}
+                {view.discountPct !== null ? ` (${view.discountPct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%)` : ""}
+              </dt>
+              <dd className="text-right tabular-nums">−{formatMoney(view.discount)}</dd>
             </>
           )}
           <dt className="text-foreground/80">ITBMS ({quote.itbmsPct}%)</dt>

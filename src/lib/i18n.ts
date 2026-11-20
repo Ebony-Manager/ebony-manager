@@ -2323,7 +2323,13 @@ export const strings = {
     item_discount: { es: "Descuento del ítem", en: "Item discount" },
     item_before_discount: { es: "Precio sin descuento", en: "Price before discount" },
     item_no_commission: { es: "Este ítem no lleva comisión", en: "No commission on this item" },
-    item_discounts_total: { es: "Descuentos por ítem (ya restados)", en: "Item discounts (already applied)" },
+    item_discounts_total: { es: "Descuentos propios de ítems", en: "Items' own discounts" },
+    general_discount_short: { es: "Descuento general", en: "General discount" },
+    general_discount_hint: {
+      es: "En %, lo usa cada ítem que no tenga su propio descuento (el del ítem lo reemplaza, no se suman). En monto, se resta al final.",
+      en: "In %, every item without its own discount uses it (an item's own discount replaces it; they don't add up). As an amount, it's subtracted at the end.",
+    },
+    uses_general_discount: { es: "Usa el descuento general: {pct}%", en: "Uses the general discount: {pct}%" },
     quote_commission: { es: "Comisión arquitecta", en: "Designer commission" },
     quote_commission_hint: {
       es: "Lo que le toca a la arquitecta: sale del precio ya con todos los descuentos. Va repartida dentro del precio de cada ítem; el cliente no la ve.",

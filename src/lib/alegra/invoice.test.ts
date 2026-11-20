@@ -100,10 +100,10 @@ describe("factura de Alegra", () => {
 });
 
 describe("factura de Alegra con descuento por ítem", () => {
-  it("combina el descuento del ítem con el general en el % de la línea y cuadra con la cotización", () => {
+  it("el descuento del ítem reemplaza al general en %, y cuadra con la cotización", () => {
     const q = { ...quote, sections: [{ ...quote.sections[0], discountType: "pct" as const, discountValue: 20 }, quote.sections[1]] };
     const body = buildAlegraInvoice(q, config, "77", "2026-11-08");
-    expect(body.items[0].discount).toBeCloseTo(28, 4);
+    expect(body.items[0].discount).toBeCloseTo(20, 4);
     expect(body.items[1].discount).toBeCloseTo(10, 4);
     expect(Math.abs(alegraExpectedTotal(body, 7) - quoteTotals(q).total)).toBeLessThan(0.05);
   });

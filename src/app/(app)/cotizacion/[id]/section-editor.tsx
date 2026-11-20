@@ -293,6 +293,9 @@ export function SectionEditor({
             </button>
           </span>
         </Field>
+        {totals.discountSource === "general" && (
+          <p className="pb-2 text-xs text-muted-foreground">{tt("uses_general_discount").replace("{pct}", String(totals.discountPct ?? 0))}</p>
+        )}
         {totals.discount > 0 && (
           <p className="pb-2 text-xs text-muted-foreground tabular-nums">
             <span className="line-through">{formatMoney(totals.gross)}</span> − {formatMoney(totals.discount)} ={" "}

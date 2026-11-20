@@ -129,7 +129,10 @@ describe("quoteTotals", () => {
     expect(t.total).toBeCloseTo(13647.62 * 1.07, 1);
   });
   it("descuenta en porcentaje o en monto, antes del impuesto", () => {
-    expect(quoteTotals({ ...quote, discountValue: 10 }).discount).toBeCloseTo(1364.762, 2);
+    const pct = quoteTotals({ ...quote, discountValue: 10 });
+    expect(pct.generalDiscount).toBeCloseTo(1364.762, 2);
+    expect(pct.net).toBeCloseTo(13647.62 - 1364.762, 2);
+    expect(pct.itemizedDiscounts).toBe(false);
     const t = quoteTotals({ ...quote, discountType: "amount", discountValue: 647.62 });
     expect(t.net).toBeCloseTo(13000, 2);
     expect(t.tax).toBeCloseTo(910, 2);
@@ -291,7 +294,8 @@ describe("descuento por ítem y comisión de la cotización", () => {
   it("la comisión sale del subtotal con el descuento general (ej. de Carlos: 1,000 − 10% = 900 → comisión 90)", () => {
     const q = { sections: [s], discountType: "pct" as const, discountValue: 10, itbmsPct: 7, commissionPct: 10, ccfPct: 0 };
     const t = quoteTotals(q);
-    expect(t.subtotal).toBeCloseTo(1100, 6);
+    expect(t.gross).toBeCloseTo(1100, 6);
+    expect(t.generalDiscount).toBeCloseTo(110, 6);
     expect(t.net).toBeCloseTo(990, 6);
     expect(t.commission).toBeCloseTo(90, 6);
   });
@@ -303,5 +307,31 @@ describe("descuento por ítem y comisión de la cotización", () => {
     expect(t.itemDiscounts).toBeCloseTo(114.4, 6);
     expect(t.subtotal).toBeCloseTo(2173.6, 6);
     expect(t.commission).toBeCloseTo(190, 6);
+  });
+});
+
+describe("descuento general en % y descuento propio del ítem", () => {
+  const s = { ...newSection("s", defaults), lines: [], design3d: 1000, extraLabor: 0, freight: 0, wasteSheets: 0 };
+  const base = { discountType: "pct" as const, discountValue: 10, itbmsPct: 0, commissionPct: 0, ccfPct: 0 };
+
+  it("el ítem sin descuento propio usa el general; el que tiene el suyo lo reemplaza (no se suman)", () => {
+    const own = { ...s, id: "b", discountType: "pct" as const, discountValue: 15 };
+    expect(sectionTotals(s, base)).toMatchObject({ discountSource: "general", discountPct: 10 });
+    expect(sectionTotals(s, base).total).toBeCloseTo(900, 6);
+    expect(sectionTotals(own, base)).toMatchObject({ discountSource: "item", discountPct: 15 });
+    expect(sectionTotals(own, base).total).toBeCloseTo(850, 6);
+    const t = quoteTotals({ ...base, sections: [s, own] });
+    expect(t.net).toBeCloseTo(1750, 6);
+    expect(t.itemDiscounts).toBeCloseTo(150, 6);
+    expect(t.generalDiscount).toBeCloseTo(100, 6);
+    expect(t.itemizedDiscounts).toBe(true);
+  });
+
+  it("el general en monto se resta al final, después de los descuentos propios", () => {
+    const own = { ...s, id: "b", discountType: "pct" as const, discountValue: 15 };
+    const t = quoteTotals({ ...base, discountType: "amount", discountValue: 100, sections: [s, own] });
+    expect(t.subtotal).toBeCloseTo(1850, 6);
+    expect(t.discount).toBeCloseTo(100, 6);
+    expect(t.net).toBeCloseTo(1750, 6);
   });
 });
