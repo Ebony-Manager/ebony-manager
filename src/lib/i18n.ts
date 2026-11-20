@@ -2329,6 +2329,13 @@ export const strings = {
       es: "En %, se escribe en la casilla de descuento de cada ítem (los que cambiaste a mano se respetan). En monto, se resta al final. El monto de la derecha es todo lo descontado.",
       en: "In %, it's written into each item's discount box (the ones you changed by hand are kept). As an amount, it's subtracted at the end. The amount on the right is everything discounted.",
     },
+    overwrite_title: { es: "¿Y los ítems con su propio descuento?", en: "What about items with their own discount?" },
+    overwrite_msg: {
+      es: "{n} ítem(s) tienen un descuento distinto al general. ¿Les pones también {pct}% o respetas el suyo?",
+      en: "{n} item(s) have a discount different from the general one. Apply {pct}% to them too, or keep theirs?",
+    },
+    overwrite_yes: { es: "Ponerles {pct}%", en: "Apply {pct}%" },
+    overwrite_no: { es: "Respetar el suyo", en: "Keep theirs" },
     uses_general_discount: { es: "Usa el descuento general: {pct}%", en: "Uses the general discount: {pct}%" },
     quote_commission: { es: "Comisión arquitecta", en: "Designer commission" },
     quote_commission_hint: {

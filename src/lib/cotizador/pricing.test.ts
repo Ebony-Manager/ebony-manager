@@ -14,6 +14,8 @@ import {
   quoteTotals,
   applyGeneralDiscount,
   clientDiscountView,
+  ownDiscountSections,
+  overwriteItemDiscounts,
   pricedLines,
   sectionTotals,
   swapLineItem,
@@ -344,5 +346,14 @@ describe("descuento general en % y descuento propio del ítem", () => {
     const t = quoteTotals(q);
     expect(t.discount).toBeCloseTo(100, 6);
     expect(t.net).toBeCloseTo(1900, 6);
+  });
+});
+
+describe("sobrescribir los descuentos propios", () => {
+  it("encuentra los ítems con descuento distinto al general y puede ponerles el general", () => {
+    const base = { ...newSection("s", defaults), lines: [] };
+    const q = { ...newQuote("q", "a", defaults, "2026-11-20"), discountValue: 12, sections: [{ ...base, id: "a", discountValue: 12 }, { ...base, id: "b", discountValue: 15 }] };
+    expect(ownDiscountSections(q).map((x) => x.id)).toEqual(["b"]);
+    expect(overwriteItemDiscounts(q).sections.map((x) => x.discountValue)).toEqual([12, 12]);
   });
 });

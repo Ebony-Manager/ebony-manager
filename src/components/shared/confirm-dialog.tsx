@@ -11,6 +11,8 @@ interface Ask {
   title: string;
   message: string;
   confirmLabel: string;
+  /** Texto del botón de no (por defecto «No, volver»). */
+  cancelLabel?: string;
   destructive?: boolean;
 }
 
@@ -43,7 +45,7 @@ export function useConfirm() {
         </DialogHeader>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => close(false)}>
-            {t(lang, strings.nav.confirm_back)}
+            {ask?.cancelLabel ?? t(lang, strings.nav.confirm_back)}
           </Button>
           <Button variant={ask?.destructive ? "destructive" : "default"} onClick={() => close(true)}>
             {ask?.confirmLabel}

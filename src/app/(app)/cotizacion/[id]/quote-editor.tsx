@@ -16,7 +16,10 @@ import {
   sectionTotals,
   syncDraftPrices,
   applyGeneralDiscount,
+  ownDiscountSections,
+  overwriteItemDiscounts,
 } from "@/lib/cotizador/pricing";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { useLang } from "@/context/language-context";
@@ -275,6 +278,21 @@ export function QuoteEditor({
   );
 
   const setHeader = (p: Partial<Quote>) => change((q) => ({ ...q, ...p }));
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  // Al terminar de escribir el descuento general en %: si hay ítems con su propio descuento, pregunta si se respetan
+  // o si también se les pone el general.
+  const askOverwriteDiscounts = async () => {
+    if (quote.discountType !== "pct" || !(quote.discountValue > 0)) return;
+    const own = ownDiscountSections(quote);
+    if (own.length === 0) return;
+    const ok = await confirm({
+      title: tt("overwrite_title"),
+      message: tt("overwrite_msg").replace("{n}", String(own.length)).replace("{pct}", String(quote.discountValue)),
+      confirmLabel: tt("overwrite_yes").replace("{pct}", String(quote.discountValue)),
+      cancelLabel: tt("overwrite_no"),
+    });
+    if (ok) change((q) => overwriteItemDiscounts(q));
+  };
   const setSection = (next: QuoteSection) =>
     change((q) => ({
       ...q,
@@ -1005,6 +1023,7 @@ export function QuoteEditor({
                       <NumField
                         value={quote.discountValue}
                         onChange={(n) => change((q) => applyGeneralDiscount(q, { discountType: q.discountType, discountValue: n }))}
+                        onCommit={() => void askOverwriteDiscounts()}
                         locked={false}
                         inputWidth={46}
                         className="h-auto border-0 px-0 focus-within:ring-0"
@@ -1135,6 +1154,7 @@ export function QuoteEditor({
           runStatus("RECHAZADA", { lostReason, lostNote })
         }
       />
+      {confirmDialog}
     </div>
   );
 }

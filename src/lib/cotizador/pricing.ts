@@ -214,6 +214,18 @@ export function applyGeneralDiscount(q: Quote, next: Pick<Quote, "discountType" 
   };
 }
 
+/** Ítems con descuento propio distinto del general en % (los que cambiar el general no toca). */
+export function ownDiscountSections(q: Pick<Quote, "sections" | "discountType" | "discountValue">): QuoteSection[] {
+  const pct = q.discountType === "pct" ? q.discountValue || 0 : 0;
+  return q.sections.filter((s) => s.discountValue > 0 && !(s.discountType === "pct" && s.discountValue === pct));
+}
+
+/** Pone el descuento general en % en TODOS los ítems (también los que tenían el suyo). */
+export function overwriteItemDiscounts(q: Quote): Quote {
+  if (q.discountType !== "pct") return q;
+  return { ...q, sections: q.sections.map((s) => ({ ...s, discountType: "pct", discountValue: q.discountValue || 0 })) };
+}
+
 /**
  * Cómo ve el cliente los descuentos (PDF y vista del cliente): cada ítem con su precio sin descuento y, al final,
  * una sola línea "Descuento" con todo lo descontado ("Descuento (10%)" si todos tienen el mismo %). Si hay % distintos,
