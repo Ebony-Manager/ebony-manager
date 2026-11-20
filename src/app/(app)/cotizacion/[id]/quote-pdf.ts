@@ -248,10 +248,11 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
   const itemEnds = new Set<number>();
   const sub = { fontSize: 8, textColor: MUTED, cellPadding: { top: 1.5, bottom: 1.5, left: 6, right: 6 } };
   for (const s of groupedOrder(quote.sections)) {
-    const st = sectionTotals(s);
+    const st = sectionTotals(s, quote);
     const title = `${s.kind} · ${sectionLabel(s) || tq("sec_unnamed")}`;
     const desc = s.description.trim();
-    const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? pricedLines(s).length : 0);
+    const hasDiscount = st.discount > 0.004;
+    const rows = 1 + (desc ? 1 : 0) + (detail === "line" ? pricedLines(s).length : 0) + (hasDiscount ? 1 : 0);
     const img = itemImages.get(s.id);
     if (img) rowImage.set(body.length, img);
     body.push([
@@ -278,6 +279,17 @@ export async function buildQuotePdf(quote: Quote, images: readonly QuoteImage[] 
           { content: formatMoney(lineAmount(l) * factor), styles: { ...sub } },
         ]);
       }
+    }
+    // El descuento del ítem: el precio sin descuento y lo que se rebaja (el total de arriba ya es el rebajado).
+    if (hasDiscount) {
+      const pct = s.discountType === "pct" ? ` ${s.discountValue.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : "";
+      const label = `${tq("pdf_discount")}${pct} · ${tq("item_before_discount")} ${formatMoney(st.gross)}`;
+      body.push([
+        { content: detail === "total" ? `${label} · -${formatMoney(st.discount)}` : label, styles: { ...sub, textColor: INK } },
+        ...(showQty ? [{ content: "", styles: { ...sub } }] : []),
+        ...(showUnit ? [{ content: "", styles: { ...sub } }] : []),
+        ...(detail !== "total" ? [{ content: `-${formatMoney(st.discount)}`, styles: { ...sub, textColor: INK } }] : []),
+      ]);
     }
     // Con imagen, la última fila del ítem completa la altura (así el título
     // y la descripción quedan juntos, al lado de la imagen).

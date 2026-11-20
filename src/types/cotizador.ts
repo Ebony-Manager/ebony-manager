@@ -145,8 +145,11 @@ export interface QuoteSection {
   design3d: number;
   extraLabor: number;
   freight: number;
-  commissionPct: number;
-  ccfPct: number;
+  /** Descuento de este ítem (lo ve el cliente): en % o en monto del precio del ítem. */
+  discountType: DiscountType;
+  discountValue: number;
+  /** true = este ítem no lleva la comisión de la cotización (ej. algo que la arquitecta no trajo). */
+  noCommission: boolean;
   wallShape: WallShape;
   cornerAt: number | null;
   lines: QuoteLine[];
@@ -172,6 +175,10 @@ export interface Quote {
   terms: QuoteTerms | null;
   discountType: DiscountType;
   discountValue: number;
+  /** Comisión de la arquitecta para toda la cotización (va repartida dentro del precio de cada ítem; el cliente no la ve). */
+  commissionPct: number;
+  /** Recargo de tarjeta (lo cobra el banco; lo asume el cliente). Cubre también la comisión. */
+  ccfPct: number;
   itbmsPct: number;
   notes: string;
   sections: QuoteSection[];

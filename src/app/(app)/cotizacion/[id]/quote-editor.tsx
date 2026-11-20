@@ -262,7 +262,7 @@ export function QuoteEditor({
   const section =
     quote.sections.find((s) => s.id === currentId) ?? quote.sections[0] ?? null;
   const totals = quoteTotals(quote);
-  const secTotals = section ? sectionTotals(section) : null;
+  const secTotals = section ? sectionTotals(section, quote) : null;
   const locked = isQuoteLocked(quote);
   // Nombre de la pestaña: "COT-2640 Teo Zebede · Cotización" (● mientras guarda).
   usePageTitle(
@@ -322,6 +322,7 @@ export function QuoteEditor({
 
   const navProps: ItemsNavProps = {
     sections: quote.sections,
+    rates: quote,
     currentId: section?.id ?? null,
     onSelect: (id) => setCurrentId(id),
     locked,
@@ -774,6 +775,7 @@ export function QuoteEditor({
                   <SectionEditor
                     key={section.id}
                     section={section}
+                    rates={quote}
                     kinds={kinds}
                     catalog={catalog}
                     canEditCosts={canEditCosts}
@@ -910,7 +912,7 @@ export function QuoteEditor({
                   {secTotals.commission > 0 && (
                     <>
                       <dt className="pl-3 text-[11px] text-muted-foreground">
-                        {tt("bk_commission")} {section.commissionPct}%
+                        {tt("bk_commission")} {quote.commissionPct}%
                       </dt>
                       <dd
                         className={cn(
@@ -923,7 +925,7 @@ export function QuoteEditor({
                     </>
                   )}
                   <dt className="pl-3 text-[11px] text-muted-foreground">
-                    {tt("bk_ccf")} {section.ccfPct}%
+                    {tt("bk_ccf")} {quote.ccfPct}%
                   </dt>
                   <dd
                     className={cn(money, "text-[11px] text-muted-foreground")}
@@ -940,6 +942,14 @@ export function QuoteEditor({
                       </dd>
                       <dt className="text-foreground/80">{tt("sec_qty")}</dt>
                       <dd className={money}>× {secTotals.qty}</dd>
+                    </>
+                  )}
+                  {secTotals.discount > 0 && (
+                    <>
+                      <dt className="mt-1.5 border-t border-border pt-2 text-foreground/80">{tt("item_before_discount")}</dt>
+                      <dd className={cn(money, "mt-1.5 border-t border-border pt-2")}>{formatMoney(secTotals.gross)}</dd>
+                      <dt className="text-foreground/80">{tt("item_discount")}</dt>
+                      <dd className={money}>−{formatMoney(secTotals.discount)}</dd>
                     </>
                   )}
                   <dt className="mt-1.5 border-t border-border pt-2">
@@ -965,7 +975,7 @@ export function QuoteEditor({
                 <fieldset disabled={locked} className="m-0 min-w-0 border-0 p-0">
                   <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 p-3.5 text-sm">
                     {/* Por ubicación (el detalle de cada ítem está en la lista). */}
-                    {locationGroups(quote.sections).map((g) => (
+                    {locationGroups(quote.sections, quote).map((g) => (
                       <React.Fragment key={g.key}>
                         <dt className="min-w-0 truncate text-foreground/80">
                           {g.label || tt("sec_no_location")}
@@ -974,6 +984,14 @@ export function QuoteEditor({
                         <dd className={money}>{formatMoney(g.total)}</dd>
                       </React.Fragment>
                     ))}
+                  {totals.itemDiscounts > 0 && (
+                    <>
+                      <dt className="mt-1 border-t border-border pt-2 text-[11px] text-muted-foreground">{tt("item_discounts_total")}</dt>
+                      <dd className={cn(money, "mt-1 border-t border-border pt-2 text-[11px] text-muted-foreground")}>
+                        −{formatMoney(totals.itemDiscounts)}
+                      </dd>
+                    </>
+                  )}
                   <dt className="mt-1 border-t border-border pt-2 text-foreground/80">
                     {tt("subtotal")}
                   </dt>
@@ -1011,6 +1029,40 @@ export function QuoteEditor({
                       ? `−${formatMoney(totals.discount)}`
                       : "—"}
                   </dd>
+                  {/* Comisión de la arquitecta: va repartida dentro del precio de cada ítem (el cliente no la ve) y
+                      sale del precio ya con todos los descuentos. */}
+                  <dt className="flex items-center gap-2 text-foreground/80">
+                    {tt("quote_commission")}
+                    <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-1.5 pl-1.5 focus-within:border-ring">
+                      <NumField
+                        value={quote.commissionPct}
+                        onChange={(n) => setHeader({ commissionPct: Math.min(100, Math.max(0, n)) })}
+                        locked={false}
+                        suffix="%"
+                        inputWidth={36}
+                        className="h-auto border-0 px-0 focus-within:ring-0"
+                        aria-label={tt("quote_commission")}
+                      />
+                    </span>
+                  </dt>
+                  <dd className={cn(money, "text-[11px] text-muted-foreground")} title={tt("quote_commission_hint")}>
+                    {totals.commission > 0 ? formatMoney(totals.commission) : "—"}
+                  </dd>
+                  <dt className="flex items-center gap-2 text-foreground/80">
+                    {tt("quote_ccf")}
+                    <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-1.5 pl-1.5 focus-within:border-ring">
+                      <NumField
+                        value={quote.ccfPct}
+                        onChange={(n) => setHeader({ ccfPct: Math.min(100, Math.max(0, n)) })}
+                        locked={false}
+                        suffix="%"
+                        inputWidth={36}
+                        className="h-auto border-0 px-0 focus-within:ring-0"
+                        aria-label={tt("quote_ccf")}
+                      />
+                    </span>
+                  </dt>
+                  <dd className={cn(money, "text-[11px] text-muted-foreground")}>{tt("quote_in_prices")}</dd>
                   {/* ITBMS editable por cotización (ej. 0% para un cliente exento). */}
                   <dt className="flex items-center gap-2 text-foreground/80">
                     ITBMS

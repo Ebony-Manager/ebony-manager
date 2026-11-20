@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SearchInput } from "@/components/shared/search-input";
 import { RowMenu } from "@/components/shared/row-menu";
-import { formatMoney, sectionTotals } from "@/lib/cotizador/pricing";
+import { formatMoney, sectionTotals, type QuoteRates } from "@/lib/cotizador/pricing";
 import { locationGroups } from "@/lib/cotizador/items";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
 import { useLang } from "@/context/language-context";
@@ -19,6 +19,8 @@ type Tk = keyof typeof strings.cotizador;
 
 export interface ItemsNavProps {
   sections: QuoteSection[];
+  /** Comisión y recargo de la cotización (para el precio de cada ítem). */
+  rates: QuoteRates;
   currentId: string | null;
   onSelect: (id: string) => void;
   locked: boolean;
@@ -38,7 +40,7 @@ const qtyLabel = (s: QuoteSection) => (s.qty > 1 ? `× ${s.qty.toLocaleString("e
  * soltar en otra ubicación toma esa ubicación) y, en el "⋯" de cada ítem,
  * duplicar, subir, bajar y eliminar.
  */
-export function ItemsPanel({ sections, currentId, onSelect, locked, onAdd, onDuplicate, onRemove, onShift, onMove, draggable = true }: ItemsNavProps & { draggable?: boolean }) {
+export function ItemsPanel({ sections, rates, currentId, onSelect, locked, onAdd, onDuplicate, onRemove, onShift, onMove, draggable = true }: ItemsNavProps & { draggable?: boolean }) {
   const { lang } = useLang();
   const tt = (k: Tk) => t(lang, strings.cotizador[k]);
   const [search, setSearch] = React.useState("");
@@ -47,7 +49,7 @@ export function ItemsPanel({ sections, currentId, onSelect, locked, onAdd, onDup
   const [overId, setOverId] = React.useState<string | null>(null);
 
   const q = normalizeSearchText(search);
-  const groups = locationGroups(sections)
+  const groups = locationGroups(sections, rates)
     .map((g) => ({ ...g, shown: q ? g.sections.filter((s) => [s.name, s.location, s.kind].some((v) => matchesSearch(v, q))) : g.sections }))
     .filter((g) => g.shown.length > 0);
   const canDrag = draggable && !locked && !q;
@@ -118,7 +120,7 @@ export function ItemsPanel({ sections, currentId, onSelect, locked, onAdd, onDup
                         <button type="button" onClick={() => onSelect(s.id)} aria-current={active || undefined} className={cn("flex min-w-0 flex-1 items-baseline gap-2 py-1.5 text-left text-sm", !canDrag && "pl-2")}>
                           <span className={cn("min-w-0 flex-1 truncate", active ? "font-semibold text-foreground" : "text-foreground/90")}>{s.name || tt("sec_unnamed")}</span>
                           {qtyLabel(s) && <span className="shrink-0 text-xs font-semibold text-primary tabular-nums">{qtyLabel(s)}</span>}
-                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatMoney(sectionTotals(s).total)}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatMoney(sectionTotals(s, rates).total)}</span>
                         </button>
                         {!locked && (
                           <RowMenu
@@ -170,7 +172,7 @@ export function ItemsPanel({ sections, currentId, onSelect, locked, onAdd, onDup
  * sigue), la activa siempre a la vista, y "Ver todos" abre la lista agrupada.
  */
 export function ItemTabs(props: ItemsNavProps) {
-  const { sections, currentId, onSelect, locked, onAdd } = props;
+  const { sections, rates, currentId, onSelect, locked, onAdd } = props;
   const { lang } = useLang();
   const tt = (k: Tk) => t(lang, strings.cotizador[k]);
   const [all, setAll] = React.useState(false);
@@ -202,7 +204,7 @@ export function ItemTabs(props: ItemsNavProps) {
                 {s.name || tt("sec_unnamed")}
                 {qtyLabel(s) && <span className="ml-1 font-normal">{qtyLabel(s)}</span>}
               </span>
-              <span className={cn("text-[11px] tabular-nums", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{formatMoney(sectionTotals(s).total)}</span>
+              <span className={cn("text-[11px] tabular-nums", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{formatMoney(sectionTotals(s, rates).total)}</span>
             </button>
           );
         })}

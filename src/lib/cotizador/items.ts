@@ -1,5 +1,5 @@
 import type { QuoteSection } from "@/types/cotizador";
-import { sectionTotals } from "./pricing";
+import { sectionTotals, type QuoteRates } from "./pricing";
 
 /**
  * La lista de ítems de una cotización: agrupada por ubicación ("Rec #8" →
@@ -24,14 +24,17 @@ export interface LocationGroup {
   total: number;
 }
 
+/** Sin comisión ni recargo: solo cuando lo que importa es el orden (los totales los pide quien los muestra). */
+const NO_RATES: QuoteRates = { commissionPct: 0, ccfPct: 0 };
+
 /** Grupos en el orden en que aparece cada ubicación; los ítems, en su orden. */
-export function locationGroups(sections: readonly QuoteSection[]): LocationGroup[] {
+export function locationGroups(sections: readonly QuoteSection[], rates: QuoteRates = NO_RATES): LocationGroup[] {
   const groups = new Map<string, LocationGroup>();
   for (const s of sections) {
     const key = locationKey(s.location);
     const g = groups.get(key) ?? { key, label: s.location.trim(), sections: [], total: 0 };
     g.sections.push(s);
-    g.total += sectionTotals(s).total;
+    g.total += sectionTotals(s, rates).total;
     groups.set(key, g);
   }
   return [...groups.values()];

@@ -2110,6 +2110,9 @@ export type Database = {
       }
       quote_sections: {
         Row: {
+          discount_type: string
+          discount_value: number
+          no_commission: boolean
           ccf_pct: number
           commission_pct: number
           corner_at: number | null
@@ -2136,6 +2139,9 @@ export type Database = {
           waste_sheets: number
         }
         Insert: {
+          discount_type?: string
+          discount_value?: number
+          no_commission?: boolean
           ccf_pct?: number
           commission_pct?: number
           corner_at?: number | null
@@ -2162,6 +2168,9 @@ export type Database = {
           waste_sheets?: number
         }
         Update: {
+          discount_type?: string
+          discount_value?: number
+          no_commission?: boolean
           ccf_pct?: number
           commission_pct?: number
           corner_at?: number | null
@@ -2199,6 +2208,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          commission_pct: number
+          ccf_pct: number
           client_name: string
           created_at: string
           created_by: string | null
@@ -2231,6 +2242,8 @@ export type Database = {
           terms: Json | null
         }
         Insert: {
+          commission_pct?: number
+          ccf_pct?: number
           client_name?: string
           created_at?: string
           created_by?: string | null
@@ -2263,6 +2276,8 @@ export type Database = {
           terms?: Json | null
         }
         Update: {
+          commission_pct?: number
+          ccf_pct?: number
           client_name?: string
           created_at?: string
           created_by?: string | null

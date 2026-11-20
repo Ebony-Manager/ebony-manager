@@ -51,6 +51,9 @@ function dir(code: string, qty: number, price?: number): QuoteLine {
   const l = { ...newLine(`l${++seq}`, item(code)), mode: "dir" as const, qty };
   return price === undefined ? l : { ...l, unitPrice: price, priceOverridden: true };
 }
+// Los valores de la empresa: sin comisión y 4% de tarjeta (como la cotización 2617).
+const rates = { commissionPct: defaults.commissionPct, ccfPct: defaults.ccfPct };
+
 function section(name: string, lines: QuoteLine[]): QuoteSection {
   return { ...newSection(name, defaults, "Sala"), name, lines };
 }
@@ -75,20 +78,20 @@ const bar = section("Bar", [
 describe("sectionTotals", () => {
   it("precio directo: el precio escrito × cantidad, sin utilidad ni renglones", () => {
     const direct = { ...panelado, priceMode: "direct" as const, directPrice: 450, qty: 2 };
-    const st = sectionTotals(direct);
+    const st = sectionTotals(direct, rates);
     expect(st).toMatchObject({ unit: 450, qty: 2, total: 900, util: 0, ebony: 0, sub: 0 });
     expect(pricedLines(direct)).toEqual([]);
     expect(pricedLines(panelado).length).toBe(panelado.lines.length);
   });
 
   it("reproduce los tres ítems de la cotización 2617", () => {
-    expect(sectionTotals(panelado).total).toBeCloseTo(6397.3234, 3);
-    expect(sectionTotals(listones).total).toBeCloseTo(1635.05264, 3);
-    expect(sectionTotals(bar).total).toBeCloseTo(5615.244406, 3);
+    expect(sectionTotals(panelado, rates).total).toBeCloseTo(6397.3234, 3);
+    expect(sectionTotals(listones, rates).total).toBeCloseTo(1635.05264, 3);
+    expect(sectionTotals(bar, rates).total).toBeCloseTo(5615.244406, 3);
   });
 
   it("desglosa Sala / Panelado igual que la hoja", () => {
-    const t = sectionTotals(panelado);
+    const t = sectionTotals(panelado, rates);
     expect(t.ebony).toBeCloseTo(2291.525, 3);
     expect(t.util).toBeCloseTo(2978.9825, 3);
     expect(t.sub).toBeCloseTo(505.71, 3);
@@ -98,8 +101,8 @@ describe("sectionTotals", () => {
     expect(t.ccf).toBeCloseTo(246.0509, 3);
   });
 
-  it("aplica la comisión de diseñadora antes del credit card fee", () => {
-    const t = sectionTotals({ ...panelado, commissionPct: 10 });
+  it("aplica la comisión de diseñadora antes del credit card fee (la tarjeta también cubre la comisión)", () => {
+    const t = sectionTotals(panelado, { ...rates, commissionPct: 10 });
     const before = t.ebonyTotal + t.subTotal + t.extras;
     expect(t.commission).toBeCloseTo(before * 0.1, 6);
     expect(t.total).toBeCloseTo(before * 1.1 * 1.04, 6);
@@ -119,7 +122,7 @@ describe("lineQty", () => {
 });
 
 describe("quoteTotals", () => {
-  const quote = { sections: [panelado, listones, bar], discountType: "pct" as const, discountValue: 0, itbmsPct: 7 };
+  const quote = { sections: [panelado, listones, bar], discountType: "pct" as const, discountValue: 0, itbmsPct: 7, ...rates };
   it("suma los ítems y aplica el ITBMS", () => {
     const t = quoteTotals(quote);
     expect(t.subtotal).toBeCloseTo(13647.62, 2);
@@ -145,6 +148,8 @@ describe("precios y catálogo", () => {
     projectName: "",
     quoteDate: "2026-10-12",
     deliveryDays: 65,
+    commissionPct: 0,
+    ccfPct: 4,
     validDays: 30,
     status: "BORRADOR",
     lang: "es",
@@ -234,23 +239,69 @@ describe("gola dentro de puertas y gavetas", () => {
     const door = { ...med("pta-pi", 0.9, 0.72, 1), golaMl: 0.9, golaPrice: 16.93 };
     expect(lineAmount(door)).toBeCloseTo(0.65 * 127.23 + 0.9 * 16.93, 6);
     const s = section("puerta", [door]);
-    expect(sectionTotals(s).ebony).toBeCloseTo(lineAmount(door), 6);
+    expect(sectionTotals(s, rates).ebony).toBeCloseTo(lineAmount(door), 6);
   });
 
   it("en un borrador la gola sigue el precio del catálogo", () => {
     const door = { ...med("pta-pi", 0.9, 0.72, 1), golaMl: 0.9, golaPrice: 15 };
-    const q = { id: "q", number: "", clientName: "", designerName: "", projectName: "", quoteDate: "2026-10-26", deliveryDays: 65, status: "BORRADOR" as const, lang: "es" as const, pdfDetail: "section" as const, terms: null, discountType: "pct" as const, discountValue: 0, itbmsPct: 7, notes: "", sections: [section("x", [door])], validDays: 30, opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null, sentOn: null, closedOn: null, followUpOn: null };
+    const q = { id: "q", number: "", clientName: "", designerName: "", projectName: "", quoteDate: "2026-10-26", deliveryDays: 65, status: "BORRADOR" as const, lang: "es" as const, pdfDetail: "section" as const, terms: null, discountType: "pct" as const, discountValue: 0, ...rates, itbmsPct: 7, notes: "", sections: [section("x", [door])], validDays: 30, opportunityId: null, projectId: null, designerId: null, designerContactId: null, clientId: null, updatedAt: null, sentOn: null, closedOn: null, followUpOn: null };
     expect(syncDraftPrices(q, all).sections[0].lines[0].golaPrice).toBe(16.93);
   });
 });
 
 describe("cantidad por ítem", () => {
   it("el total del ítem es el de una unidad por la cantidad", () => {
-    const s = { ...newSection("s", defaults), lines: [], design3d: 30, extraLabor: 0, freight: 0, wasteSheets: 0, ccfPct: 0 };
-    const one = sectionTotals(s);
-    const three = sectionTotals({ ...s, qty: 3 });
+    const s = { ...newSection("s", defaults), lines: [], design3d: 30, extraLabor: 0, freight: 0, wasteSheets: 0 };
+    const noFee = { ...rates, ccfPct: 0 };
+    const one = sectionTotals(s, noFee);
+    const three = sectionTotals({ ...s, qty: 3 }, noFee);
     expect(three.unit).toBeCloseTo(one.total, 6);
     expect(three.total).toBeCloseTo(one.total * 3, 6);
-    expect(sectionTotals({ ...s, qty: 0 }).total).toBeCloseTo(one.total, 6);
+    expect(sectionTotals({ ...s, qty: 0 }, noFee).total).toBeCloseTo(one.total, 6);
+  });
+});
+
+describe("descuento por ítem y comisión de la cotización", () => {
+  const s = { ...newSection("s", defaults), lines: [], design3d: 1000, extraLabor: 0, freight: 0, wasteSheets: 0 };
+  const r = { commissionPct: 10, ccfPct: 4 };
+
+  it("la comisión va dentro del precio y la tarjeta también la cubre", () => {
+    const t = sectionTotals(s, r);
+    expect(t.commission).toBeCloseTo(100, 6);
+    expect(t.total).toBeCloseTo(1000 * 1.1 * 1.04, 6);
+    expect(t.commissionAmount).toBeCloseTo(100, 6);
+  });
+
+  it("el descuento del ítem baja el precio y la comisión en la misma proporción", () => {
+    const t = sectionTotals({ ...s, discountType: "pct", discountValue: 10 }, r);
+    expect(t.gross).toBeCloseTo(1144, 6);
+    expect(t.discount).toBeCloseTo(114.4, 6);
+    expect(t.total).toBeCloseTo(1029.6, 6);
+    expect(t.commissionAmount).toBeCloseTo(90, 6);
+    const amount = sectionTotals({ ...s, discountType: "amount", discountValue: 5000 }, r);
+    expect(amount.total).toBe(0);
+  });
+
+  it("un ítem marcado sin comisión no la lleva", () => {
+    const t = sectionTotals({ ...s, noCommission: true }, r);
+    expect(t.commission).toBe(0);
+    expect(t.total).toBeCloseTo(1040, 6);
+  });
+
+  it("la comisión sale del subtotal con el descuento general (ej. de Carlos: 1,000 − 10% = 900 → comisión 90)", () => {
+    const q = { sections: [s], discountType: "pct" as const, discountValue: 10, itbmsPct: 7, commissionPct: 10, ccfPct: 0 };
+    const t = quoteTotals(q);
+    expect(t.subtotal).toBeCloseTo(1100, 6);
+    expect(t.net).toBeCloseTo(990, 6);
+    expect(t.commission).toBeCloseTo(90, 6);
+  });
+
+  it("suma los descuentos de los ítems aparte del general", () => {
+    const q = { sections: [{ ...s, discountType: "pct" as const, discountValue: 10 }, s], discountType: "pct" as const, discountValue: 0, itbmsPct: 7, ...r };
+    const t = quoteTotals(q);
+    expect(t.gross).toBeCloseTo(2288, 6);
+    expect(t.itemDiscounts).toBeCloseTo(114.4, 6);
+    expect(t.subtotal).toBeCloseTo(2173.6, 6);
+    expect(t.commission).toBeCloseTo(190, 6);
   });
 });

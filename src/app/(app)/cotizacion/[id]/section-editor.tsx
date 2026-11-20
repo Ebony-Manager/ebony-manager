@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronRight, Plus } from "lucide-react";
 
-import { formatMoney, golaItemFor, isGolaItem, newFreeLine, newLine, sectionTotals, swapLineItem } from "@/lib/cotizador/pricing";
+import { formatMoney, golaItemFor, isGolaItem, newFreeLine, newLine, sectionTotals, swapLineItem , type QuoteRates } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
@@ -87,6 +87,7 @@ function AutoTextarea({ value, onChange, ...rest }: { value: string; onChange: (
 
 export function SectionEditor({
   section,
+  rates,
   catalog,
   canEditCosts,
   open,
@@ -103,6 +104,8 @@ export function SectionEditor({
   /** Ubicaciones ya usadas en la cotización (se ofrecen al escribir). */
   locations?: string[];
   section: QuoteSection;
+  /** Comisión y recargo de tarjeta de la cotización (los precios del ítem los llevan adentro). */
+  rates: QuoteRates;
   catalog: CatalogItem[];
   canEditCosts: boolean;
   open: Record<BlockKey, boolean>;
@@ -113,7 +116,7 @@ export function SectionEditor({
   const tt = (k: keyof typeof strings.cotizador) => t(lang, strings.cotizador[k]);
   const [unlocked, setUnlocked] = React.useState<Record<BlockKey, boolean>>({ eb: false, sb: false, ex: false, mg: false });
 
-  const totals = sectionTotals(section);
+  const totals = sectionTotals(section, rates);
   const patch = (p: Partial<QuoteSection>) => onChange({ ...section, ...p });
   const setLines = (lines: QuoteLine[]) => onChange({ ...section, lines });
   const patchLine = (id: string, p: Partial<QuoteLine>) => setLines(section.lines.map((l) => (l.id === id ? { ...l, ...p } : l)));
@@ -195,7 +198,7 @@ export function SectionEditor({
   };
 
   // Lista "etiqueta … valor" para los valores fijos: bloqueados hasta "Editar".
-  type NumKey = "utilPct" | "subMarginPct" | "wasteSheets" | "wastePct" | "design3d" | "extraLabor" | "freight" | "commissionPct" | "ccfPct";
+  type NumKey = "utilPct" | "subMarginPct" | "wasteSheets" | "wastePct" | "design3d" | "extraLabor" | "freight";
   const kv = (blockKey: BlockKey, field: NumKey, label: string, unit: "%" | "$" | "u") => (
     <div key={`${blockKey}-${field}`} className={cn("flex min-h-[30px] items-center justify-between gap-3 border-b text-xs text-foreground/80", BLOCK_STYLE[blockKey].rule)}>
       <span>{label}</span>
@@ -267,6 +270,42 @@ export function SectionEditor({
         </Field>
       </div>
       {extra}
+
+      {/* Descuento del ítem (lo ve el cliente) y si lleva la comisión de la cotización. */}
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3 rounded-lg border border-border bg-muted/30 p-3">
+        <Field label={tt("item_discount")}>
+          <span className="inline-flex h-9 items-center rounded-md border border-input bg-card pr-0.5 pl-2 focus-within:border-ring">
+            <NumField
+              value={section.discountValue}
+              onChange={(n) => patch({ discountValue: n > 0 ? n : 0 })}
+              locked={false}
+              inputWidth={56}
+              className="h-auto border-0 px-0 focus-within:ring-0"
+              aria-label={tt("item_discount")}
+            />
+            <button
+              type="button"
+              title={tt("discount_toggle")}
+              onClick={() => patch({ discountType: section.discountType === "pct" ? "amount" : "pct" })}
+              className="ml-1 bg-muted px-1.5 text-[11px] leading-[22px] text-foreground/80 hover:bg-accent"
+            >
+              {section.discountType === "pct" ? "%" : "$"}
+            </button>
+          </span>
+        </Field>
+        {totals.discount > 0 && (
+          <p className="pb-2 text-xs text-muted-foreground tabular-nums">
+            <span className="line-through">{formatMoney(totals.gross)}</span> − {formatMoney(totals.discount)} ={" "}
+            <span className="font-semibold text-foreground">{formatMoney(totals.total)}</span>
+          </p>
+        )}
+        {!direct && rates.commissionPct > 0 && (
+          <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-muted-foreground select-none">
+            <input type="checkbox" className="size-3.5 accent-primary" checked={section.noCommission} onChange={(e) => patch({ noCommission: e.target.checked })} />
+            {tt("item_no_commission")}
+          </label>
+        )}
+      </div>
 
       {direct ? (
         <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
@@ -356,8 +395,6 @@ export function SectionEditor({
           <div className="max-w-[330px]">
             {kv("mg", "utilPct", tt("f_util"), "%")}
             {kv("mg", "subMarginPct", tt("f_sub_margin"), "%")}
-            {kv("mg", "commissionPct", tt("f_commission"), "%")}
-            {kv("mg", "ccfPct", tt("f_ccf"), "%")}
             <div className="flex items-start justify-between gap-3 pt-1.5">
               <span className="text-[11px] text-muted-foreground">{tt("margins_note")}</span>
               {editLink("mg")}

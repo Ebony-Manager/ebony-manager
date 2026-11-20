@@ -16,7 +16,7 @@ import type { Quote } from "@/types/cotizador";
  * - Una línea por ítem, en el orden de la cotización, todas con el mismo
  *   producto/servicio de Alegra; el nombre del ítem va en la descripción.
  * - Precio por unidad SIN impuesto ni descuento (así lo pide Alegra),
- *   cantidad del ítem, el descuento de la cotización como % en cada línea y
+ *   cantidad del ítem, el descuento (el del ítem y el general, combinados) como % en cada línea y
  *   el ITBMS como impuesto de Alegra.
  */
 
@@ -53,7 +53,7 @@ const round = (n: number, d: number) => Math.round(n * 10 ** d) / 10 ** d;
 
 /** El descuento global de la cotización como % por línea (Alegra no tiene descuento global). */
 export function discountPct(
-  q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct">,
+  q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct" | "commissionPct" | "ccfPct">,
 ): number {
   if (!q.discountValue) return 0;
   if (q.discountType === "pct") return round(q.discountValue, 4);
@@ -70,6 +70,8 @@ export function buildAlegraInvoice(
     | "discountType"
     | "discountValue"
     | "itbmsPct"
+    | "commissionPct"
+    | "ccfPct"
   >,
   config: AlegraConfig,
   contactId: string,
@@ -89,11 +91,11 @@ export function buildAlegraInvoice(
     );
   }
   const sections = groupedOrder(q.sections).filter(
-    (s) => sectionTotals(s).total > 0,
+    (s) => sectionTotals(s, q).total > 0,
   );
   if (sections.length === 0)
     throw new Error("La cotización no tiene ítems con precio.");
-  const discount = discountPct(q);
+  const general = discountPct(q);
   return {
     date: today,
     dueDate: today,
@@ -101,7 +103,10 @@ export function buildAlegraInvoice(
     status: "draft",
     observations: [q.number, q.projectName].filter(Boolean).join(" · "),
     items: sections.map((s) => {
-      const st = sectionTotals(s);
+      const st = sectionTotals(s, q);
+      // Alegra tiene un solo % de descuento por línea: el del ítem y el general, combinados.
+      const itemShare = st.gross > 0 ? st.total / st.gross : 1;
+      const discount = round((1 - itemShare * (1 - general / 100)) * 100, 4);
       const title = [s.kind, sectionLabel(s)].filter(Boolean).join(" · ");
       return {
         id: config.itemId,

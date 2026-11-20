@@ -70,14 +70,26 @@ export interface SectionTotals {
   subTotal: number;
   waste: number;
   extras: number;
+  /** Comisión de la arquitecta (por unidad, antes de descuentos). */
   commission: number;
   base: number;
+  /** Recargo de tarjeta (por unidad, antes de descuentos). Cubre también la comisión. */
   ccf: number;
-  /** Lo de arriba es por unidad; `unit` es el precio de una y `total` = unit × qty. */
+  /** Lo de arriba es por unidad; `unit` es el precio de una (lo que ve el cliente, sin descuento). */
   unit: number;
   qty: number;
+  /** Precio del ítem sin su descuento (unit × qty). */
+  gross: number;
+  /** Descuento del ítem (lo ve el cliente). */
+  discount: number;
+  /** Precio del ítem con su descuento: gross − discount. */
   total: number;
+  /** Comisión de la arquitecta en este ítem, ya con el descuento del ítem (sin el descuento general). */
+  commissionAmount: number;
 }
+
+/** Comisión y recargo de tarjeta: son de la cotización, no de cada ítem. */
+export type QuoteRates = Pick<Quote, "commissionPct" | "ccfPct">;
 
 /** Cantidad del ítem (si no es un número positivo, 1). */
 export function sectionQty(s: Pick<QuoteSection, "qty">): number {
@@ -89,12 +101,35 @@ export function pricedLines(s: Pick<QuoteSection, "priceMode" | "lines">): Quote
   return s.priceMode === "direct" ? [] : s.lines;
 }
 
-export function sectionTotals(s: QuoteSection): SectionTotals {
+/** Descuento sobre un monto: en % o en monto (nunca más que el monto). */
+export function discountOf(amount: number, type: Quote["discountType"], value: number): number {
+  if (!(value > 0) || !(amount > 0)) return 0;
+  return type === "pct" ? (amount * Math.min(value, 100)) / 100 : Math.min(value, amount);
+}
+
+/**
+ * Precio de un ítem.
+ *   lo de Ebony (renglones × utilidad + subcontratos × margen + extras)
+ * + comisión de la arquitecta (el % de la cotización; salvo ítems marcados sin comisión)
+ * + recargo de tarjeta sobre todo lo anterior (también cubre la comisión)
+ * − el descuento del ítem.
+ * Como todo es proporcional, descontar el precio final equivale a descontar lo de Ebony, la comisión y la tarjeta
+ * en la misma proporción: la comisión siempre sale del precio ya rebajado.
+ * Un ítem de precio directo es el precio escrito, tal cual (sin comisión ni tarjeta), menos su descuento.
+ */
+export function sectionTotals(s: QuoteSection, rates: QuoteRates): SectionTotals {
+  const qty = sectionQty(s);
+  const withDiscount = (t: Omit<SectionTotals, "gross" | "discount" | "total" | "commissionAmount">): SectionTotals => {
+    const gross = t.unit * qty;
+    const discount = discountOf(gross, s.discountType, s.discountValue);
+    const total = gross - discount;
+    const factor = gross > 0 ? total / gross : 0;
+    return { ...t, gross, discount, total, commissionAmount: t.commission * qty * factor };
+  };
   if (s.priceMode === "direct") {
     // Precio directo: el precio escrito, tal cual, sin utilidad ni nada encima.
     const unit = Number.isFinite(s.directPrice) && s.directPrice > 0 ? s.directPrice : 0;
-    const qty = sectionQty(s);
-    return { ebony: 0, util: 0, ebonyTotal: 0, sub: 0, subTotal: 0, waste: 0, extras: 0, commission: 0, base: unit, ccf: 0, unit, qty, total: unit * qty };
+    return withDiscount({ ebony: 0, util: 0, ebonyTotal: 0, sub: 0, subTotal: 0, waste: 0, extras: 0, commission: 0, base: unit, ccf: 0, unit, qty });
   }
   let ebony = 0;
   let sub = 0;
@@ -107,29 +142,45 @@ export function sectionTotals(s: QuoteSection): SectionTotals {
   const subTotal = sub * (1 + s.subMarginPct / 100);
   const waste = (s.wasteSheetPrice * s.wasteSheets * s.wastePct) / 100;
   const extras = waste + s.design3d + s.extraLabor + s.freight;
-  const commission = ((ebonyTotal + subTotal + extras) * s.commissionPct) / 100;
+  const commissionPct = s.noCommission ? 0 : rates.commissionPct || 0;
+  const commission = ((ebonyTotal + subTotal + extras) * commissionPct) / 100;
   const base = ebonyTotal + subTotal + extras + commission;
-  const ccf = (base * s.ccfPct) / 100;
+  const ccf = (base * (rates.ccfPct || 0)) / 100;
   const unit = base + ccf;
-  const qty = sectionQty(s);
-  return { ebony, util, ebonyTotal, sub, subTotal, waste, extras, commission, base, ccf, unit, qty, total: unit * qty };
+  return withDiscount({ ebony, util, ebonyTotal, sub, subTotal, waste, extras, commission, base, ccf, unit, qty });
 }
 
 export interface QuoteTotals {
+  /** Suma de los ítems sin sus descuentos. */
+  gross: number;
+  /** Suma de los descuentos de los ítems. */
+  itemDiscounts: number;
+  /** Suma de los ítems ya con sus descuentos (y la comisión y la tarjeta adentro). */
   subtotal: number;
+  /** Descuento general de la cotización. */
   discount: number;
   net: number;
   tax: number;
   total: number;
+  /** Comisión de la arquitecta: sale del precio ya con todos los descuentos (de cada ítem y el general). */
+  commission: number;
 }
 
-export function quoteTotals(q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct">): QuoteTotals {
-  const subtotal = q.sections.reduce((sum, s) => sum + sectionTotals(s).total, 0);
-  const discount =
-    q.discountType === "pct" ? (subtotal * (q.discountValue || 0)) / 100 : Math.min(q.discountValue || 0, subtotal);
+export function quoteTotals(q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct" | "commissionPct" | "ccfPct">): QuoteTotals {
+  let gross = 0;
+  let subtotal = 0;
+  let itemCommission = 0;
+  for (const s of q.sections) {
+    const st = sectionTotals(s, q);
+    gross += st.gross;
+    subtotal += st.total;
+    itemCommission += st.commissionAmount;
+  }
+  const discount = discountOf(subtotal, q.discountType, q.discountValue);
   const net = subtotal - discount;
   const tax = (net * q.itbmsPct) / 100;
-  return { subtotal, discount, net, tax, total: net + tax };
+  const commission = subtotal > 0 ? itemCommission * (net / subtotal) : 0;
+  return { gross, itemDiscounts: gross - subtotal, subtotal, discount, net, tax, total: net + tax, commission };
 }
 
 /** Lee los valores fijos de la empresa de la tabla de insumos. */
@@ -173,6 +224,8 @@ export function newQuote(id: string, firstSectionId: string, d: QuoteDefaults, q
     terms: null,
     discountType: "pct",
     discountValue: 0,
+    commissionPct: d.commissionPct,
+    ccfPct: d.ccfPct,
     itbmsPct: d.itbmsPct,
     notes: "",
     sections: [newSection(firstSectionId, d)],
@@ -207,8 +260,9 @@ export function newSection(id: string, d: QuoteDefaults, location = ""): QuoteSe
     design3d: d.design3d,
     extraLabor: d.extraLabor,
     freight: d.freight,
-    commissionPct: d.commissionPct,
-    ccfPct: d.ccfPct,
+    discountType: "pct",
+    discountValue: 0,
+    noCommission: false,
     wallShape: "recta",
     cornerAt: null,
     lines: [],

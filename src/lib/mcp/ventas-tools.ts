@@ -154,7 +154,7 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
         seguimiento: q.followUpOn,
         notas: q.notes || null,
         items: q.sections.map((s) => {
-          const st = sectionTotals(s);
+          const st = sectionTotals(s, q);
           return {
             ubicacion: s.location || null,
             nombre: s.name,
@@ -162,6 +162,7 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
             descripcion: s.description || null,
             cantidad: st.qty,
             precio_unitario: round2(st.unit),
+            ...(st.discount > 0 ? { precio_sin_descuento: round2(st.gross), descuento: round2(st.discount) } : {}),
             total: round2(st.total),
             renglones: s.priceMode === "direct" ? undefined : s.lines.map((l) => ({
               nombre: l.name,
@@ -171,11 +172,19 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
               ...(costs ? { costo_unitario: l.unitPrice } : {}),
             })),
             ...(costs && s.priceMode !== "direct"
-              ? { costos: { costo_ebony: round2(st.ebony), utilidad: round2(st.util), subcontrato: round2(st.subTotal), extras: round2(st.extras), comision: round2(st.commission), ccf: round2(st.ccf) } }
+              ? { costos: { costo_ebony: round2(st.ebony), utilidad: round2(st.util), subcontrato: round2(st.subTotal), extras: round2(st.extras), comision: round2(st.commissionAmount), ccf: round2(st.ccf * st.qty * (st.gross > 0 ? st.total / st.gross : 0)) } }
               : {}),
           };
         }),
-        resumen: { subtotal: round2(t.subtotal), descuento: round2(t.discount), neto: round2(t.net), itbms: round2(t.tax), total: round2(t.total) },
+        resumen: {
+          ...(t.itemDiscounts > 0 ? { suma_sin_descuentos: round2(t.gross), descuentos_por_item: round2(t.itemDiscounts) } : {}),
+          subtotal: round2(t.subtotal),
+          descuento: round2(t.discount),
+          neto: round2(t.net),
+          itbms: round2(t.tax),
+          total: round2(t.total),
+          ...(costs ? { comision_arquitecta: round2(t.commission), comision_pct: q.commissionPct, recargo_tarjeta_pct: q.ccfPct } : {}),
+        },
         nota: costs ? undefined : "Sin el permiso de Costos solo se muestran precios de venta.",
       });
     })

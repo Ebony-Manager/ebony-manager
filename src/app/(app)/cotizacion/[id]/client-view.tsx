@@ -142,7 +142,8 @@ export function ClientView({
             </thead>
             <tbody>
               {groupedOrder(quote.sections).map((s) => {
-                const st = sectionTotals(s);
+                const st = sectionTotals(s, quote);
+                const hasDiscount = st.discount > 0.004;
                 const cost = st.ebony + st.sub;
                 // Por renglón: lo de una unidad, repartido, por la cantidad del ítem.
                 const factor = cost > 0 ? (st.unit / cost) * st.qty : 0;
@@ -162,6 +163,12 @@ export function ClientView({
                               {s.kind} · {sectionLabel(s) || tt("sec_unnamed")}
                             </p>
                             {s.description && <p className="mt-0.5 max-w-[62ch] text-xs leading-relaxed text-foreground/80">{s.description}</p>}
+                            {hasDiscount && (
+                              <p className="mt-1 text-xs font-medium text-foreground tabular-nums">
+                                {tt("pdf_discount")}
+                                {s.discountType === "pct" ? ` ${s.discountValue.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : ""}: −{formatMoney(st.discount)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -169,7 +176,12 @@ export function ClientView({
                         <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{detail === "line" ? (st.qty > 1 ? `× ${st.qty}` : "") : st.qty}</td>
                       )}
                       {detail === "section" && hasQty && <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">{formatMoney(st.unit)}</td>}
-                      {detail !== "total" && <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatMoney(st.total)}</td>}
+                      {detail !== "total" && (
+                        <td className="py-2.5 pl-3 text-right font-semibold whitespace-nowrap tabular-nums">
+                          {hasDiscount && <span className="block text-xs font-normal text-muted-foreground line-through">{formatMoney(st.gross)}</span>}
+                          {formatMoney(st.total)}
+                        </td>
+                      )}
                     </tr>
                     {detail === "line" &&
                       pricedLines(s).map((l) => (
