@@ -2326,8 +2326,8 @@ export const strings = {
     item_discounts_total: { es: "Descuentos propios de ítems", en: "Items' own discounts" },
     general_discount_short: { es: "Descuento general", en: "General discount" },
     general_discount_hint: {
-      es: "En %, lo usa cada ítem que no tenga su propio descuento (el del ítem lo reemplaza, no se suman). En monto, se resta al final.",
-      en: "In %, every item without its own discount uses it (an item's own discount replaces it; they don't add up). As an amount, it's subtracted at the end.",
+      es: "En %, se escribe en la casilla de descuento de cada ítem (los que cambiaste a mano se respetan). En monto, se resta al final. El monto de la derecha es todo lo descontado.",
+      en: "In %, it's written into each item's discount box (the ones you changed by hand are kept). As an amount, it's subtracted at the end. The amount on the right is everything discounted.",
     },
     uses_general_discount: { es: "Usa el descuento general: {pct}%", en: "Uses the general discount: {pct}%" },
     quote_commission: { es: "Comisión arquitecta", en: "Designer commission" },

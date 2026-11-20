@@ -163,7 +163,7 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
             cantidad: st.qty,
             precio_unitario: round2(st.unit),
             ...(st.discount > 0
-              ? { precio_sin_descuento: round2(st.gross), descuento: round2(st.discount), descuento_de: st.discountSource === "item" ? "el ítem" : "el general", descuento_pct: st.discountPct }
+              ? { precio_sin_descuento: round2(st.gross), descuento: round2(st.discount), descuento_pct: st.discountPct }
               : {}),
             total: round2(st.total),
             renglones: s.priceMode === "direct" ? undefined : s.lines.map((l) => ({
@@ -180,8 +180,8 @@ export function registerVentasTools(server: McpServer, user: McpUser) {
         }),
         resumen: {
           subtotal: round2(t.gross),
-          descuento_general: round2(t.generalDiscount),
-          descuentos_propios_de_items: round2(t.itemDiscounts),
+          descuento: round2(t.allDiscounts),
+          ...(t.uniformPct !== null ? { descuento_pct: t.uniformPct } : {}),
           neto: round2(t.net),
           itbms: round2(t.tax),
           total: round2(t.total),

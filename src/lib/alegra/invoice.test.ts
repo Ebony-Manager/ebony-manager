@@ -14,8 +14,10 @@ import {
 
 const defaults = defaultsFromInputs([]);
 // Un ítem sin renglones: su precio sale de los fijos (diseño 3D, transporte…).
+// El descuento general en % (10) ya está escrito en la casilla de cada ítem.
 const sec = (id: string, extra: Partial<QuoteSection>): QuoteSection => ({
   ...newSection(id, defaults),
+  discountValue: 10,
   lines: [],
   design3d: 100,
   extraLabor: 0,
@@ -71,7 +73,7 @@ describe("factura de Alegra", () => {
   });
 
   it("un descuento en monto se reparte como % en cada línea", () => {
-    const q = { ...quote, discountType: "amount" as const, discountValue: 50 };
+    const q = { ...quote, discountType: "amount" as const, discountValue: 50, sections: quote.sections.map((x) => ({ ...x, discountValue: 0 })) };
     const pct = discountPct(q);
     expect(pct).toBeCloseTo((50 / quoteTotals(q).subtotal) * 100, 3);
     const body = buildAlegraInvoice(q, config, "77", "2026-11-08");

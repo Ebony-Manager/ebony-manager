@@ -80,11 +80,9 @@ export interface SectionTotals {
   qty: number;
   /** Precio del ítem sin su descuento (unit × qty). */
   gross: number;
-  /** Descuento del ítem (lo ve el cliente): el suyo o, si no tiene, el general en %. */
+  /** Descuento del ítem (su casilla; el descuento general en % solo sirve para llenar estas casillas). */
   discount: number;
-  /** De dónde sale el descuento: el del ítem, el general (en %) o ninguno. */
-  discountSource: "item" | "general" | null;
-  /** El % del descuento (null si el del ítem es un monto). */
+  /** El % del descuento del ítem (null si no tiene o si es un monto). */
   discountPct: number | null;
   /** Precio del ítem con su descuento: gross − discount. */
   total: number;
@@ -92,14 +90,8 @@ export interface SectionTotals {
   commissionAmount: number;
 }
 
-/**
- * Lo de la cotización que entra en el precio de cada ítem: comisión, recargo de tarjeta y el descuento general
- * (cuando es en %, cada ítem lo usa salvo que tenga el suyo; en monto se resta al final).
- */
-export type QuoteRates = Pick<Quote, "commissionPct" | "ccfPct"> & Partial<Pick<Quote, "discountType" | "discountValue">>;
-
-/** ¿El ítem tiene descuento propio? (si no, usa el general en %). */
-export const hasOwnDiscount = (s: Pick<QuoteSection, "discountValue">) => s.discountValue > 0;
+/** Lo de la cotización que entra en el precio de cada ítem: la comisión y el recargo de tarjeta. */
+export type QuoteRates = Pick<Quote, "commissionPct" | "ccfPct">;
 
 /** Cantidad del ítem (si no es un número positivo, 1). */
 export function sectionQty(s: Pick<QuoteSection, "qty">): number {
@@ -122,28 +114,21 @@ export function discountOf(amount: number, type: Quote["discountType"], value: n
  *   lo de Ebony (renglones × utilidad + subcontratos × margen + extras)
  * + comisión de la arquitecta (el % de la cotización; salvo ítems marcados sin comisión)
  * + recargo de tarjeta sobre todo lo anterior (también cubre la comisión)
- * − el descuento del ítem: el suyo o, si no tiene, el general cuando es en % (el del ítem REEMPLAZA al general,
- *   no se suman: 10% general y 15% en un ítem = ese ítem con 15%).
+ * − el descuento del ítem (su casilla). El descuento general en % no se calcula aparte: llena las casillas de los
+ *   ítems (ver applyGeneralDiscount), así que nunca se suman (10% general y 15% en un ítem = ese ítem con 15%).
  * Como todo es proporcional, descontar el precio final equivale a descontar lo de Ebony, la comisión y la tarjeta
  * en la misma proporción: la comisión siempre sale del precio ya rebajado.
  * Un ítem de precio directo es el precio escrito, tal cual (sin comisión ni tarjeta), menos su descuento.
  */
 export function sectionTotals(s: QuoteSection, rates: QuoteRates): SectionTotals {
   const qty = sectionQty(s);
-  const own = hasOwnDiscount(s);
-  const general = !own && rates.discountType === "pct" && (rates.discountValue ?? 0) > 0;
-  const dType = own ? s.discountType : "pct";
-  const dValue = own ? s.discountValue : general ? (rates.discountValue ?? 0) : 0;
-  const discountSource = own ? "item" : general ? "general" : null;
-  const discountPct = discountSource && dType === "pct" ? Math.min(dValue, 100) : null;
-  const withDiscount = (
-    t: Omit<SectionTotals, "gross" | "discount" | "discountSource" | "discountPct" | "total" | "commissionAmount">,
-  ): SectionTotals => {
+  const discountPct = s.discountType === "pct" && s.discountValue > 0 ? Math.min(s.discountValue, 100) : null;
+  const withDiscount = (t: Omit<SectionTotals, "gross" | "discount" | "discountPct" | "total" | "commissionAmount">): SectionTotals => {
     const gross = t.unit * qty;
-    const discount = discountOf(gross, dType, dValue);
+    const discount = discountOf(gross, s.discountType, s.discountValue);
     const total = gross - discount;
     const factor = gross > 0 ? total / gross : 0;
-    return { ...t, gross, discount, discountSource, discountPct, total, commissionAmount: t.commission * qty * factor };
+    return { ...t, gross, discount, discountPct, total, commissionAmount: t.commission * qty * factor };
   };
   if (s.priceMode === "direct") {
     // Precio directo: el precio escrito, tal cual, sin utilidad ni nada encima.
@@ -172,76 +157,78 @@ export function sectionTotals(s: QuoteSection, rates: QuoteRates): SectionTotals
 export interface QuoteTotals {
   /** Suma de los ítems sin descuentos. */
   gross: number;
-  /** Descuentos propios de los ítems (los que tienen el suyo). */
+  /** Suma de los descuentos de los ítems (sus casillas). */
   itemDiscounts: number;
-  /** Descuento general: el % repartido en los ítems que no tienen el suyo, o el monto que se resta al final. */
-  generalDiscount: number;
-  /** Suma de los ítems ya con su descuento (el propio o el general en %). */
+  /** Suma de los ítems ya con su descuento. */
   subtotal: number;
-  /** Descuento general en monto, que se resta al final (0 si el general es en %). */
+  /** Descuento general en MONTO, que se resta al final (el general en % ya está en las casillas de los ítems). */
   discount: number;
+  /** Todo lo descontado: los ítems y el general en monto. Es la línea "Descuento" que ve el cliente. */
+  allDiscounts: number;
+  /** Si todos los ítems con precio tienen el mismo % (y no hay descuentos en monto): ese %; si no, null. */
+  uniformPct: number | null;
   net: number;
   tax: number;
   total: number;
   /** Comisión de la arquitecta: sale del precio ya con todos los descuentos. */
   commission: number;
-  /** true = algún ítem tiene descuento propio: el cliente ve el descuento de cada ítem; si no, una sola línea al final. */
-  itemizedDiscounts: boolean;
 }
 
 export function quoteTotals(q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct" | "commissionPct" | "ccfPct">): QuoteTotals {
   let gross = 0;
   let subtotal = 0;
-  let own = 0;
-  let inherited = 0;
   let itemCommission = 0;
+  const pcts = new Set<number>();
+  let amountItem = false;
   for (const s of q.sections) {
     const st = sectionTotals(s, q);
     gross += st.gross;
     subtotal += st.total;
-    if (st.discountSource === "item") own += st.discount;
-    else inherited += st.discount;
     itemCommission += st.commissionAmount;
+    if (st.gross > 0) {
+      if (s.discountType === "amount" && s.discountValue > 0) amountItem = true;
+      pcts.add(st.discountPct ?? 0);
+    }
   }
   const discount = q.discountType === "amount" ? discountOf(subtotal, "amount", q.discountValue) : 0;
   const net = subtotal - discount;
   const tax = (net * q.itbmsPct) / 100;
   const commission = subtotal > 0 ? itemCommission * (net / subtotal) : 0;
+  const only = pcts.size === 1 ? [...pcts][0] : null;
+  const uniformPct = !amountItem && discount === 0 && only !== null && only > 0 ? only : null;
+  return { gross, itemDiscounts: gross - subtotal, subtotal, discount, allDiscounts: gross - net, uniformPct, net, tax, total: net + tax, commission };
+}
+
+/**
+ * El descuento general en %: escribe ese % en las casillas de los ítems que tenían el general anterior (los que se
+ * cambiaron a mano se respetan). Pasar a monto quita el % general de esas casillas; pasar a % lo pone en las vacías.
+ */
+export function applyGeneralDiscount(q: Quote, next: Pick<Quote, "discountType" | "discountValue">): Quote {
+  const oldPct = q.discountType === "pct" ? q.discountValue || 0 : 0;
+  const newPct = next.discountType === "pct" ? next.discountValue || 0 : 0;
+  const followsGeneral = (s: QuoteSection) => (s.discountValue || 0) === 0 ? true : s.discountType === "pct" && s.discountValue === oldPct;
   return {
-    gross,
-    itemDiscounts: own,
-    generalDiscount: inherited + discount,
-    subtotal,
-    discount,
-    net,
-    tax,
-    total: net + tax,
-    commission,
-    itemizedDiscounts: q.sections.some(hasOwnDiscount),
+    ...q,
+    ...next,
+    sections: q.sections.map((s) => (followsGeneral(s) ? { ...s, discountType: "pct", discountValue: newPct } : s)),
   };
 }
 
 /**
- * Cómo ve el cliente los descuentos (PDF y vista del cliente):
- * - Si algún ítem tiene descuento propio, cada ítem muestra su descuento (debajo de su descripción) y su precio ya
- *   rebajado; al final solo va el general si es en monto.
- * - Si no, los ítems van sin descuento y el general sale en una sola línea al final, como siempre.
+ * Cómo ve el cliente los descuentos (PDF y vista del cliente): cada ítem con su precio sin descuento y, al final,
+ * una sola línea "Descuento" con todo lo descontado ("Descuento (10%)" si todos tienen el mismo %). Si hay % distintos,
+ * cada ítem con descuento lleva su detalle debajo de la descripción.
  */
 export function clientDiscountView(q: Pick<Quote, "sections" | "discountType" | "discountValue" | "itbmsPct" | "commissionPct" | "ccfPct">) {
   const totals = quoteTotals(q);
-  const itemized = totals.itemizedDiscounts;
+  const mixed = totals.uniformPct === null;
   return {
     totals,
-    itemized,
-    /** El precio del ítem que se muestra. */
-    itemPrice: (st: SectionTotals) => (itemized ? st.total : st.gross),
-    /** ¿Se muestra el descuento debajo del ítem? */
-    itemDiscount: (st: SectionTotals) => itemized && st.discount > 0.004,
-    subtotal: itemized ? totals.subtotal : totals.gross,
-    /** El descuento de la línea de totales (0 = no va). */
-    discount: itemized ? totals.discount : totals.generalDiscount,
-    /** El % para la etiqueta de esa línea (null si es en monto). */
-    discountPct: !itemized && q.discountType === "pct" && q.discountValue > 0 ? q.discountValue : null,
+    itemPrice: (st: SectionTotals) => st.gross,
+    itemDiscount: (st: SectionTotals) => mixed && st.discount > 0.004,
+    subtotal: totals.gross,
+    discount: totals.allDiscounts,
+    discountPct: totals.uniformPct,
   };
 }
 

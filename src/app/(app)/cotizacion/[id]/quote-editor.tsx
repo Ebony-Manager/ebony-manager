@@ -15,6 +15,7 @@ import {
   quoteTotals,
   sectionTotals,
   syncDraftPrices,
+  applyGeneralDiscount,
 } from "@/lib/cotizador/pricing";
 import { cn } from "@/lib/utils";
 import { formatDateCompact } from "@/lib/planilla/format";
@@ -291,7 +292,12 @@ export function QuoteEditor({
       ...q,
       sections: [
         ...q.sections,
-        { ...newSection(id, defaults, section?.location ?? ""), kind: kinds.includes("Mueble") ? "Mueble" : (kinds[0] ?? "Mueble") },
+        {
+          ...newSection(id, defaults, section?.location ?? ""),
+          kind: kinds.includes("Mueble") ? "Mueble" : (kinds[0] ?? "Mueble"),
+          // Nace con el descuento general en % (se puede cambiar en su casilla).
+          ...(q.discountType === "pct" && q.discountValue > 0 ? { discountType: "pct" as const, discountValue: q.discountValue } : {}),
+        },
       ],
     }));
     setCurrentId(id);
@@ -949,7 +955,7 @@ export function QuoteEditor({
                       <dt className="mt-1.5 border-t border-border pt-2 text-foreground/80">{tt("item_before_discount")}</dt>
                       <dd className={cn(money, "mt-1.5 border-t border-border pt-2")}>{formatMoney(secTotals.gross)}</dd>
                       <dt className="text-foreground/80">
-                        {secTotals.discountSource === "general" ? tt("general_discount_short") : tt("item_discount")}
+                        {tt("item_discount")}
                         {secTotals.discountPct !== null ? ` ${secTotals.discountPct}%` : ""}
                       </dt>
                       <dd className={money}>−{formatMoney(secTotals.discount)}</dd>
@@ -994,11 +1000,11 @@ export function QuoteEditor({
                     {formatMoney(totals.gross)}
                   </dd>
                   <dt className="flex items-center gap-2 text-foreground/80">
-                    {tt("general_discount_short")}
+                    {tt("discount")}
                     <span className="inline-flex h-7 items-center rounded-md border border-input bg-card pr-0.5 pl-1.5 focus-within:border-ring">
                       <NumField
                         value={quote.discountValue}
-                        onChange={(n) => setHeader({ discountValue: n })}
+                        onChange={(n) => change((q) => applyGeneralDiscount(q, { discountType: q.discountType, discountValue: n }))}
                         locked={false}
                         inputWidth={46}
                         className="h-auto border-0 px-0 focus-within:ring-0"
@@ -1008,10 +1014,7 @@ export function QuoteEditor({
                         type="button"
                         title={tt("discount_toggle")}
                         onClick={() =>
-                          setHeader({
-                            discountType:
-                              quote.discountType === "pct" ? "amount" : "pct",
-                          })
+                          change((q) => applyGeneralDiscount(q, { discountType: q.discountType === "pct" ? "amount" : "pct", discountValue: q.discountValue }))
                         }
                         className="ml-1 bg-muted px-1.5 text-[11px] leading-[20px] text-foreground/80 hover:bg-accent"
                       >
@@ -1020,16 +1023,8 @@ export function QuoteEditor({
                     </span>
                   </dt>
                   <dd className={money} title={tt("general_discount_hint")}>
-                    {totals.generalDiscount > 0.004
-                      ? `−${formatMoney(totals.generalDiscount)}`
-                      : "—"}
+                    {totals.allDiscounts > 0.004 ? `−${formatMoney(totals.allDiscounts)}` : "—"}
                   </dd>
-                  {totals.itemDiscounts > 0.004 && (
-                    <>
-                      <dt className="text-foreground/80">{tt("item_discounts_total")}</dt>
-                      <dd className={money}>−{formatMoney(totals.itemDiscounts)}</dd>
-                    </>
-                  )}
                   {/* Comisión de la arquitecta: va repartida dentro del precio de cada ítem (el cliente no la ve) y
                       sale del precio ya con todos los descuentos. */}
                   <dt className="flex items-center gap-2 text-foreground/80">
