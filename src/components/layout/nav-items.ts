@@ -1,4 +1,4 @@
-import { BarChart2, Bell, BookUser, Boxes, CalendarCheck, CalendarDays, ClipboardCheck, ClipboardList, Contact, Factory, FileText, Folder, Handshake, Layers, PackageMinus, PlugZap, Settings, ShoppingCart, UserCog, Users, Wallet, Warehouse, Wrench, type LucideIcon } from "lucide-react";
+import { BarChart2, Bell, BookUser, Boxes, CalendarCheck, CalendarDays, ClipboardCheck, ClipboardList, Contact, Factory, FileText, Folder, Handshake, Layers, PackageMinus, Palette, PlugZap, Settings, ShoppingCart, UserCog, Users, Wallet, Warehouse, Wrench, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -39,6 +39,8 @@ export const RAIL_ITEMS: NavItem[] = [
   // Ventas: Seguimiento (entrada), Cotizaciones y Clientes, como pestañas dentro.
   { href: "/cotizacion/seguimiento", icon: Handshake, label: strings.nav.cotizacion, modules: ["cotizacion"], alsoActive: ["/cotizacion"] },
   { href: "/proyectos", icon: Folder, label: strings.nav.proyectos, anyModules: ["proyectos", "contratistas", "diseno"] },
+  // Diseño: los ítems (muebles) de cada proyecto por etapa — ver el documento del flujo y TALLER-PLAN.md.
+  { href: "/diseno", icon: Palette, label: strings.nav.diseno, anyModules: ["diseno", "proyectos", "contratistas"] },
   // Inspecciones de obra (supervisora en sitio): fotos, detalles, PDF para el instalador.
   { href: "/inspecciones", icon: ClipboardCheck, label: strings.nav.inspecciones, modules: ["inspecciones"] },
   // Taller: trabajos (por ahora CNC) — ver TALLER-PLAN.md.
@@ -157,7 +159,7 @@ export function orderNavigation<T extends { key: string }>(entries: T[], device:
     : ["/dashboard", "/proyectos", "personal", "almacen"];
   const order = [
     ...primary.filter((key) => key !== "almacen" || hasModule(subject, "almacen")),
-    "/taller", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "almacen", "settings",
+    "/diseno", "/taller", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "almacen", "settings",
   ];
   const rank = (key: string) => { const index = order.indexOf(key); return index < 0 ? order.length : index; };
   return [...entries].sort((a, b) => rank(a.key) - rank(b.key));

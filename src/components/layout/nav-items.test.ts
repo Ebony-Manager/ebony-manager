@@ -43,7 +43,7 @@ describe("prioridad de navegación", () => {
     expect(orderNavigation(destinations(admin), "mobile", admin).slice(0, 4).map((e) => e.key)).toEqual(["/dashboard", "almacen", "/proyectos", "personal"]);
   });
   it("admin web: Dashboard, Proyectos, Personal y Almacén", () => {
-    expect(orderNavigation(destinations(admin), "desktop", admin).map((e) => e.key)).toEqual(["/dashboard", "/proyectos", "personal", "almacen", "/taller", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "settings"]);
+    expect(orderNavigation(destinations(admin), "desktop", admin).map((e) => e.key)).toEqual(["/dashboard", "/proyectos", "personal", "almacen", "/diseno", "/taller", "/inspecciones", "/cotizacion/seguimiento", "/directorio", "settings"]);
   });
   it("solo inspecciones: mantiene su herramienta accesible y no inventa permisos", () => {
     const subject = { role: "vendedor" as const, modules: ["inspecciones"] };

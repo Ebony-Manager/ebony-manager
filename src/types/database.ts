@@ -3568,6 +3568,28 @@ export type Database = {
           { foreignKeyName: "user_notification_preferences_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
+      project_items: {
+        Row: { area: string; area_not_ready: boolean; created_at: string; created_by: string | null; id: string; kind: string; name: string; needs_paint: boolean; next_visit: string | null; notes: string | null; project_id: string; quote_section_id: string | null; round: number; sort_order: number; stage: string; stage_since: string; updated_at: string }
+        Insert: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; id?: string; kind?: string; name: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
+        Update: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; id?: string; kind?: string; name?: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id?: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "project_items_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+        ]
+      }
+      project_item_files: {
+        Row: { created_at: string; created_by: string | null; drive_file_id: string; id: string; item_id: string; kind: string; mime_type: string | null; name: string; round: number; size_bytes: number | null }
+        Insert: { created_at?: string; created_by?: string | null; drive_file_id: string; id?: string; item_id: string; kind: string; mime_type?: string | null; name: string; round?: number; size_bytes?: number | null }
+        Update: { created_at?: string; created_by?: string | null; drive_file_id?: string; id?: string; item_id?: string; kind?: string; mime_type?: string | null; name?: string; round?: number; size_bytes?: number | null }
+        Relationships: [
+          { foreignKeyName: "project_item_files_item_id_fkey"; columns: ["item_id"]; isOneToOne: false; referencedRelation: "project_items"; referencedColumns: ["id"] },
+        ]
+      }
+      project_item_events: {
+        Row: { actor_id: string | null; created_at: string; detail: string | null; from_stage: string | null; id: number; item_id: string; kind: string; to_stage: string | null }
+        Insert: { actor_id?: string | null; created_at?: string; detail?: string | null; from_stage?: string | null; id?: number; item_id: string; kind: string; to_stage?: string | null }
+        Update: { actor_id?: string | null; created_at?: string; detail?: string | null; from_stage?: string | null; id?: number; item_id?: string; kind?: string; to_stage?: string | null }
+        Relationships: []
+      }
       paint_samples: {
         Row: { created_at: string; id: string; kind: string; name: string; official_code: string | null; sort_order: number; updated_at: string; veneer_type_id: string | null; work_order_id: string }
         Insert: { created_at?: string; id?: string; kind: string; name: string; official_code?: string | null; sort_order?: number; updated_at?: string; veneer_type_id?: string | null; work_order_id: string }
@@ -3644,6 +3666,14 @@ export type Database = {
       }
       assign_inspection_schedules: {
         Args: { p_ids: string[]; p_person_kind?: string | null; p_person_id?: string | null }
+        Returns: number
+      }
+      import_quote_items: {
+        Args: { p_project: string }
+        Returns: number
+      }
+      quote_items_pending: {
+        Args: { p_project: string }
         Returns: number
       }
       taller_painters: {

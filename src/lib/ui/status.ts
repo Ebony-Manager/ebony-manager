@@ -24,6 +24,12 @@ export const STATUS = {
   // Inspecciones: un detalle (o una obra/visita con detalles) pendiente o ya resuelto
   insp_pendiente: { icon: Clock, tone: "warn" },
   insp_resuelto: { icon: CircleCheck, tone: "ok" },
+  // Diseño: la etapa de cada ítem (mueble) de un proyecto
+  item_por_medir: { icon: CircleDashed, tone: "muted" },
+  item_en_diseno: { icon: FilePen, tone: "info" },
+  item_con_cliente: { icon: Send, tone: "warn" },
+  item_aprobado: { icon: CircleCheck, tone: "ok" },
+  item_en_produccion: { icon: Hammer, tone: "info" },
   // Cotizaciones
   quote_BORRADOR: { icon: FilePen, tone: "muted" },
   quote_ENVIADA: { icon: Send, tone: "warn" },

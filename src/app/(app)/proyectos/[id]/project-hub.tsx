@@ -18,6 +18,8 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { ICON } from "@/lib/ui/concepts";
 import type { TallerPainter, TallerPerson, TallerProject, VeneerType, WorkOrder } from "@/types/taller";
 import { ProjectWorkOrders } from "@/app/(app)/taller/project-work-orders";
+import { ProjectItems } from "@/app/(app)/diseno/project-items";
+import type { ProjectItem } from "@/types/diseno";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +51,7 @@ import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs, EmptyState, ShowToggle } from "@/components/shared/page-header";
 
-type SectionKey = "resumen" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
+type SectionKey = "resumen" | "diseno" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -81,6 +83,7 @@ export function ProjectHub({
   designerCandidates = [],
   designerQuotes = [],
   taller = null,
+  design = null,
 }: {
   project: Project;
   initialTab?: string;
@@ -111,6 +114,8 @@ export function ProjectHub({
   /** Las cotizaciones del proyecto sin montos (para la diseñadora). */
   designerQuotes?: DesignerQuoteSummary[];
   /** Con Taller: los trabajos de este proyecto, y nombres/fotos/proyectos para crearlos. */
+  /** Los ítems (muebles) del proyecto y sus etapas de diseño. */
+  design?: { items: ProjectItem[]; pendingFromQuote: number } | null;
   taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[]; painters: TallerPainter[]; veneers: VeneerType[] } | null;
 }) {
   const { lang } = useLang();
@@ -119,6 +124,7 @@ export function ProjectHub({
 
   const sections: { key: SectionKey; label: string; visible: boolean }[] = [
     { key: "resumen", label: tt("tab_resumen"), visible: true },
+    { key: "diseno", label: tt("tab_diseno"), visible: !!design },
     { key: "cotizaciones", label: tt("tab_cotizaciones"), visible: canQuotes || designerView },
     { key: "contratos", label: tt("tab_contratos"), visible: canContracts },
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
@@ -205,6 +211,7 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} {...taller} />}
+      {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (

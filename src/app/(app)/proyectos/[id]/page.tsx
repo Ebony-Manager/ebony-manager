@@ -10,6 +10,7 @@ import { getClients } from "@/services/ventas";
 import { getProjectQuotes } from "@/services/cotizador";
 import { getProjectDeliveries, getUnassignedDeliveries } from "@/services/deliveries";
 import { getDesignerCandidates, getDesignerProjectQuotes, getProjectDesigners } from "@/services/project-designers";
+import { getProjectItems, quoteItemsPending } from "@/services/diseno";
 import { getTallerPainters, getTallerPeople, getTallerProjects, getVeneerTypes, getWorkOrders, withProjectNames } from "@/services/taller";
 import { ProjectHub } from "./project-hub";
 
@@ -39,7 +40,7 @@ export default async function ProjectPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes, taller] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes, taller, design] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -59,6 +60,9 @@ export default async function ProjectPage({
           .then(([orders, people, projects, painters, veneers]) => ({ orders: withProjectNames(orders, projects), people, projects, painters, veneers }))
           .catch(() => null)
       : none(null),
+    Promise.all([getProjectItems(id), quoteItemsPending(id)])
+      .then(([items, pendingFromQuote]) => ({ items, pendingFromQuote }))
+      .catch(() => null),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
@@ -86,6 +90,7 @@ export default async function ProjectPage({
       designerCandidates={designerCandidates}
       designerQuotes={designerQuotes}
       taller={taller}
+      design={design}
     />
   );
 }
