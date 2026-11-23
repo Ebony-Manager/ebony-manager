@@ -105,6 +105,11 @@ async function readBody(request: NextRequest): Promise<Record<string, string>> {
 /** El webhook del formulario y el del workflow no nombran igual los campos. */
 const pick = (body: Record<string, string>, ...keys: string[]) => keys.map((k) => body[k]).find(Boolean) ?? "";
 
+/** Un registro de empleado sin nombre no es un envío completo (JotForm todavía lo estaba guardando). */
+function incompleteIntake(formId: string, answers: AnswersByName): boolean {
+  return formId === EMPLOYEE_FORM_ID && !normalizeIntake(answers).firstName;
+}
+
 function intakeData(answers: AnswersByName) {
   const f = normalizeIntake(answers);
   return {
@@ -183,13 +188,23 @@ async function handle(request: NextRequest, body: Record<string, string>) {
   const deliveryKind = kindForForm(formId);
   if (deliveryKind) return handleActa(token, submissionId, body, deliveryKind);
 
-  let answers = /^\d+$/.test(submissionId) ? await answersFromJotformApi(submissionId, formId) : null;
+  const fromApi = /^\d+$/.test(submissionId);
+  let answers = fromApi ? await answersFromJotformApi(submissionId, formId) : null;
+  // JotForm a veces avisa antes de terminar de guardar el envío (mientras sube la foto de la cédula) y la API
+  // devuelve casi nada: un registro así no sirve, se usa lo que vino en el aviso o se vuelve a pedir.
+  if (answers && incompleteIntake(formId, answers)) answers = null;
   if (!answers && body.rawRequest) {
     try {
       answers = answersFromRawRequest(JSON.parse(body.rawRequest) as Record<string, unknown>);
     } catch {
       return Response.json({ ok: false, error: "bad rawRequest" }, { status: 400 });
     }
+    if (incompleteIntake(formId, answers)) answers = null;
+  }
+  for (let attempt = 0; !answers && fromApi && formId === EMPLOYEE_FORM_ID && attempt < 3; attempt++) {
+    await new Promise((r) => setTimeout(r, 4000));
+    const retry = await answersFromJotformApi(submissionId, formId);
+    if (retry && !incompleteIntake(formId, retry)) answers = retry;
   }
   answers ??= workflowAnswers;
   if (!answers) {
