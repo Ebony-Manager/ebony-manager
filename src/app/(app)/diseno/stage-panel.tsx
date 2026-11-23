@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { CircleCheck, FileText, RotateCcw, Upload } from "lucide-react";
+import { CircleCheck, FileText, RotateCcw } from "lucide-react";
+import { FileDropZone } from "@/components/shared/file-drop-zone";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
   const step = items[0] ? STAGE_STEP[items[0].stage] : undefined;
   const [checked, setChecked] = React.useState<Set<string>>(() => new Set(defaultChecked));
   const [busy, setBusy] = React.useState(false);
-  const ref = React.useRef<HTMLInputElement>(null);
   const ids = items.map((i) => i.id).join(",");
 
   // Si la lista cambia (un ítem avanzó), se quitan los que ya no están.
@@ -93,25 +93,6 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
 
-      {docs.length > 0 && (
-        <p className="flex items-center gap-1.5 text-xs text-foreground">
-          <CircleCheck className="size-3.5 shrink-0 text-primary" />
-          <span className="truncate">{docs.map((f) => f.name).join(", ")}</span>
-        </p>
-      )}
-
-      <input
-        ref={ref}
-        type="file"
-        accept="application/pdf,image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (file) void upload(file);
-        }}
-      />
-
       {several && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-muted-foreground">{td("for_items")}</p>
@@ -141,18 +122,28 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
         </div>
       )}
 
+      {/* Primero se marca para qué ítems; después se arrastra el documento. */}
+      <FileDropZone
+        accept="application/pdf,image/*"
+        label={docs.length ? td("drop_again") : td(step === "medido" ? "drop_medidas" : step === "enviar" ? "drop_presentacion" : "drop_aprobada")}
+        busy={busy}
+        busyLabel={td("uploading")}
+        disabled={n === 0}
+        onFiles={(files) => void upload(files[0])}
+      />
+
+      {docs.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-foreground">
+          <CircleCheck className="size-3.5 shrink-0 text-primary" />
+          <span className="truncate">{docs.map((f) => f.name).join(", ")}</span>
+        </p>
+      )}
       {missing.length > 0 && docs.length > 0 && <p className="text-xs text-muted-foreground">{td("missing_doc", { names: missing.map((i) => i.name).join(", ") })}</p>}
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" disabled={busy || n === 0} onClick={() => ref.current?.click()}>
-          <Upload className="size-4" />
-          {busy ? td("uploading") : docs.length ? td("replace_doc") : td("upload_doc")}
-        </Button>
-        <Button type="button" className="flex-1" disabled={busy || n === 0 || missing.length > 0} onClick={() => void advance(step)}>
-          {td(`step_${step}`)}
-          {n > 1 ? ` (${n})` : ""}
-        </Button>
-      </div>
+      <Button type="button" className="w-full" disabled={busy || n === 0 || missing.length > 0} onClick={() => void advance(step)}>
+        {td(`step_${step}`)}
+        {n > 1 ? ` (${n})` : ""}
+      </Button>
       {step === "aprobado" && (
         <Button type="button" variant="ghost" size="sm" className="self-start" disabled={busy || n === 0} onClick={() => void advance("cambios")}>
           <RotateCcw className="size-3.5" />

@@ -29,6 +29,7 @@
 | Tarjeta de cifra | `<KpiCard>` | `shared/kpi-card` |
 | Borrar / cancelar / acción destructiva | `<ConfirmButton>` (dos toques, rojo) — nunca `window.confirm` 🛡️ | `shared/confirm-button` |
 | Archivos de Drive | `<DriveFiles>` | `shared/drive-files` |
+| Subir un documento (arrastrar o tocar para elegir) | `<FileDropZone>` (el documento principal de una ficha; en una lista de varios tipos, el botón Subir de cada fila) | `shared/file-drop-zone` |
 
 ## 2. Reglas de estilo
 
