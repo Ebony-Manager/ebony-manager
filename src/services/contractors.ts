@@ -171,6 +171,8 @@ function mapProject(r: ProjectRow): Project {
     status: r.status === "COMPLETED" ? "COMPLETED" : "ACTIVE",
     notes: r.notes,
     location: r.location,
+    building: r.building ?? null,
+    unit: r.unit ?? null,
     createdAt: r.created_at,
     scope: r.scope,
     furnitureType: r.furniture_type,
@@ -320,6 +322,8 @@ export interface CreateProjectInput extends ProjectContractInput {
   designerId?: string | null;
   clientId?: string | null;
   location?: string | null;
+  building?: string | null;
+  unit?: string | null;
   status?: ProjectStatus;
   notes?: string | null;
 }
@@ -334,6 +338,8 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       designer_id: input.designerId ?? null,
       client_id: input.clientId ?? null,
       location: input.location ?? null,
+      building: input.building ?? null,
+      unit: input.unit ?? null,
       status: input.status ?? "ACTIVE",
       notes: input.notes ?? null,
       scope: input.scope ?? null,
@@ -355,6 +361,8 @@ export interface UpdateProjectInput extends ProjectContractInput {
   designerId?: string | null;
   clientId?: string | null;
   location?: string | null;
+  building?: string | null;
+  unit?: string | null;
   status?: ProjectStatus;
   notes?: string | null;
 }
@@ -366,6 +374,8 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
   if (input.designerId !== undefined) patch.designer_id = input.designerId;
   if (input.clientId !== undefined) patch.client_id = input.clientId;
   if (input.location !== undefined) patch.location = input.location;
+  if (input.building !== undefined) patch.building = input.building;
+  if (input.unit !== undefined) patch.unit = input.unit;
   if (input.status !== undefined) patch.status = input.status;
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.scope !== undefined) patch.scope = input.scope;

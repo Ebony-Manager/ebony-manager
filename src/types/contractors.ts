@@ -30,8 +30,12 @@ export interface Project {
   clientId: string | null;
   status: ProjectStatus;
   notes: string | null;
-  /** Dónde queda la obra. */
+  /** Barrio o zona de la obra. */
   location: string | null;
+  /** Edificio o casa. */
+  building: string | null;
+  /** Apartamento: solo número y letra ("19C"). */
+  unit: string | null;
   /** Cuándo se creó el proyecto en la app (ISO). */
   createdAt: string;
   /** Campos de "contrato" (Etapa 2-A) — todos opcionales. */

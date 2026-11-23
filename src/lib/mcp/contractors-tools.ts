@@ -13,6 +13,7 @@ import { CONTRACTORS_GUIDE } from "./contractors-guide";
 import { recordRun } from "@/lib/integrations/record";
 import { createClient } from "@/lib/supabase/server";
 import type { McpUser } from "./auth";
+import { projectAddress } from "@/lib/proyectos/address";
 
 /**
  * Herramientas de CONSULTA del módulo de Contratistas para la IA. Usan los
@@ -325,7 +326,7 @@ export function registerContractorTools(server: McpServer, user: McpUser) {
       guard("proyectos", async () => {
         const q = buscar ? fold(buscar) : "";
         const list = (await contractors.getProjects()).filter((p) => (incluir_terminados || p.status === "ACTIVE") && (!q || fold(p.name).includes(q)));
-        return ok({ proyectos: list.map((p) => ({ id: p.id, nombre: p.name, estado: p.status === "ACTIVE" ? "activo" : "terminado", cliente: p.clientName, ubicacion: p.location })) });
+        return ok({ proyectos: list.map((p) => ({ id: p.id, nombre: p.name, estado: p.status === "ACTIVE" ? "activo" : "terminado", cliente: p.clientName, ubicacion: projectAddress(p) || null })) });
       })()
   );
 }

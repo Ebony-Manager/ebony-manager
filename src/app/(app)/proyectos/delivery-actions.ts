@@ -8,6 +8,7 @@ import { DELIVERY_FORMS, actaPrefillUrl, formUrl, type DeliveryKind } from "@/li
 import { getFormQuestions } from "@/lib/deliveries/acta-server";
 import { assignDelivery } from "@/services/deliveries";
 import { projectPath } from "./paths";
+import { projectAddress } from "@/lib/proyectos/address";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -20,7 +21,7 @@ export async function getActaUrlAction(projectId: string, kind: DeliveryKind = "
   // Una diseñadora (permiso Diseño) solo llega a los proyectos donde está asignada: la RLS de `projects` lo decide.
   await requireAnyModule("proyectos", "contratistas", "diseno");
   const supabase = await createClient();
-  const { data: project, error } = await supabase.from("projects").select("name, location, client_name, client_id").eq("id", projectId).single();
+  const { data: project, error } = await supabase.from("projects").select("name, location, building, unit, client_name, client_id").eq("id", projectId).single();
   if (error) return { ok: false, error: error.message };
   const { data: client } = project.client_id
     ? await supabase.from("clients").select("name, email").eq("id", project.client_id).maybeSingle()
@@ -33,7 +34,7 @@ export async function getActaUrlAction(projectId: string, kind: DeliveryKind = "
     const url = actaPrefillUrl(
       questions,
       kind === "entrega"
-        ? { project: project.name, address: project.location, clientName: client?.name ?? null, email: client?.email ?? null }
+        ? { project: project.name, address: projectAddress(project) || null, clientName: client?.name ?? null, email: client?.email ?? null }
         : { project: project.name },
       base
     );

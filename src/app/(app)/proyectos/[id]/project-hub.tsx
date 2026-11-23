@@ -50,6 +50,7 @@ import { usePageTitle } from "@/components/shared/page-title";
 import { ensureProjectFolderAction } from "../../drive-actions";
 import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs, EmptyState, ShowToggle } from "@/components/shared/page-header";
+import { projectAddress } from "@/lib/proyectos/address";
 
 type SectionKey = "resumen" | "diseno" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
 
@@ -185,7 +186,7 @@ export function ProjectHub({
             </StatusBadge>
           </h1>
           <p className="text-sm text-muted-foreground">
-            {[project.location, project.clientName].filter(Boolean).join(" · ") || tt("no_location")}
+            {[projectAddress(project), project.clientName].filter(Boolean).join(" · ") || tt("no_location")}
           </p>
         </div>
         {!designerView && (
@@ -312,7 +313,7 @@ function Overview({
     <div className="flex flex-col gap-4">
       <ProfileCard icon={Info} title={tt("info_title")}>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm lg:grid-cols-4">
-          <Item label={tt("f_location")} value={project.location || tt("none")} />
+          <Item label={tt("f_location")} value={projectAddress(project) || tt("none")} />
           {project.designerId || project.clientId ? (
             <>
               <Item label={tt("f_designer")} value={links.designer || tt("none")} />

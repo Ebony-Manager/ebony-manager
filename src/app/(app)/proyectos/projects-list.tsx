@@ -21,6 +21,7 @@ import { t, strings } from "@/lib/i18n";
 import { ProjectFormDialog } from "../contratistas/project-form-dialog";
 import { projectPath } from "./paths";
 import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { projectAddress } from "@/lib/proyectos/address";
 
 type StatusFilter = "active" | "completed" | "all";
 type SortBy = "name" | "recent" | "designer";
@@ -94,7 +95,7 @@ export function ProjectsList({
     return projects
       .filter((p) => status === "all" || (status === "active" ? p.status === "ACTIVE" : p.status !== "ACTIVE"))
       .filter((p) => scope === "all" || !mineIds || mineIds.includes(p.id))
-      .filter((p) => !q || [p.name, p.location, p.clientName].some((s) => matchesSearch(s, q)))
+      .filter((p) => !q || [p.name, projectAddress(p), p.clientName].some((s) => matchesSearch(s, q)))
       .sort((a, b) => (sortBy === "recent" ? b.createdAt.localeCompare(a.createdAt) : a.name.localeCompare(b.name, "es")));
   }, [projects, query, status, scope, mineIds, sortBy]);
 
@@ -136,7 +137,7 @@ export function ProjectsList({
                 >
                   <td className="max-w-0 px-3.5 py-2.5">
                     <span className="block truncate font-semibold text-foreground">{p.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{p.location || tt("no_location")}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{projectAddress(p) || tt("no_location")}</span>
                   </td>
                   <td className="hidden px-3 py-2.5 text-foreground sm:table-cell">
                     <span className="block truncate">{designerNames[p.id]?.join(", ") || <span className="text-muted-foreground">—</span>}</span>

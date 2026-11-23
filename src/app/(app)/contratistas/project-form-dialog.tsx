@@ -26,6 +26,7 @@ import { ClientDialog } from "../cotizacion/clientes/client-dialog";
 import { Field } from "./field";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
+import { cleanUnit } from "@/lib/ventas/opportunities";
 import { ICON } from "@/lib/ui/concepts";
 import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 
@@ -59,6 +60,7 @@ export function ProjectFormDialog({
 }) {
   const { lang } = useLang();
   const tt = (k: keyof typeof strings.contratistas) => t(lang, strings.contratistas[k]);
+  const tv = (k: keyof typeof strings.ventas) => t(lang, strings.ventas[k]);
 
   const [name, setName] = React.useState("");
   const [designerId, setDesignerId] = React.useState<string | null>(null);
@@ -67,6 +69,8 @@ export function ProjectFormDialog({
   const [canCreate, setCanCreate] = React.useState(false);
   const [newClient, setNewClient] = React.useState<{ name: string; kind: ClientKind } | null>(null);
   const [location, setLocation] = React.useState("");
+  const [building, setBuilding] = React.useState("");
+  const [unit, setUnit] = React.useState("");
   const [status, setStatus] = React.useState<ProjectStatus>("ACTIVE");
   const [notes, setNotes] = React.useState("");
   // Contrato (Etapa 2-A) — todo texto salvo m² totales.
@@ -78,7 +82,7 @@ export function ProjectFormDialog({
   const [totalMt2, setTotalMt2] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"name">();
-  const snapshot = () => JSON.stringify([name, designerId, clientId, location, status, notes, scope, furnitureType, materialColor, specs, paymentTerms, totalMt2]);
+  const snapshot = () => JSON.stringify([name, designerId, clientId, location, building, unit, status, notes, scope, furnitureType, materialColor, specs, paymentTerms, totalMt2]);
   const { isDirty, markSeeded } = useFormBaseline(snapshot);
 
   /* eslint-disable react-hooks/set-state-in-effect -- re-siembra al abrir; el proyecto cambia entre aperturas. */
@@ -88,6 +92,8 @@ export function ProjectFormDialog({
     setDesignerId(project?.designerId ?? null);
     setClientId(project?.clientId ?? null);
     setLocation(project?.location ?? "");
+    setBuilding(project?.building ?? "");
+    setUnit(project?.unit ?? "");
     setStatus(project?.status ?? "ACTIVE");
     setNotes(project?.notes ?? "");
     setScope(project?.scope ?? "");
@@ -132,6 +138,8 @@ export function ProjectFormDialog({
         // Lo que muestran las listas: "Firma · Cliente final" (o el texto que ya tenía).
         clientName: [nameOf(designerId), nameOf(clientId)].filter(Boolean).join(" · ") || (designerId || clientId ? null : (project?.clientName ?? null)),
         location: location.trim() || null,
+        building: building.trim() || null,
+        unit: cleanUnit(unit) || null,
         status,
         notes: notes.trim() || null,
         scope: scope.trim() || null,
@@ -199,10 +207,16 @@ export function ProjectFormDialog({
               />
             </Field>
           </div>
-          {/* Un proyecto nuevo siempre empieza activo: el estado solo se cambia al editar. */}
-          <div className={project ? "grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : "contents"}>
-            <Field label={tt("proj_f_location")} icon={ICON.location}>
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tt("proj_f_location_ph")} />
+          {/* Dónde queda la obra, como en la oportunidad. Un proyecto nuevo siempre empieza activo: el estado solo se cambia al editar. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={tv("f_building")} icon={ICON.building}>
+              <Input value={building} onChange={(e) => setBuilding(e.target.value)} placeholder={tv("f_building_ph")} />
+            </Field>
+            <Field label={tv("f_unit")} icon={ICON.unit}>
+              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={tv("f_unit_ph")} />
+            </Field>
+            <Field label={tv("f_location")} icon={ICON.location}>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={tv("f_location_ph")} />
             </Field>
             {project && (
               <Field label={tt("proj_f_status")}>

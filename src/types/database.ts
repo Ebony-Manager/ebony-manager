@@ -1780,6 +1780,8 @@ export type Database = {
           furniture_type: string | null
           id: string
           location: string | null
+          building: string | null
+          unit: string | null
           material_color: string | null
           name: string
           notes: string | null
@@ -1799,6 +1801,8 @@ export type Database = {
           furniture_type?: string | null
           id?: string
           location?: string | null
+          building?: string | null
+          unit?: string | null
           material_color?: string | null
           name: string
           notes?: string | null
@@ -1818,6 +1822,8 @@ export type Database = {
           furniture_type?: string | null
           id?: string
           location?: string | null
+          building?: string | null
+          unit?: string | null
           material_color?: string | null
           name?: string
           notes?: string | null

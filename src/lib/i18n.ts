@@ -1708,8 +1708,6 @@ export const strings = {
     proj_dlg_edit_title: { es: "Editar proyecto", en: "Edit project" },
     proj_f_name: { es: "Nombre del proyecto", en: "Project name" },
     proj_f_name_ph: { es: "Ej. Cocina Apto. Costa del Este", en: "e.g. Kitchen — Costa del Este apt." },
-    proj_f_location: { es: "Ubicación", en: "Location" },
-    proj_f_location_ph: { es: "Ej. Costa del Este, Torre Ocean, apto 12B", en: "E.g. Costa del Este, Ocean Tower, apt 12B" },
     proj_f_client: { es: "Cliente / diseñadora", en: "Client / designer" },
     proj_f_designer: { es: "Arquitecto / diseñador", en: "Architect / designer" },
     proj_f_end_client: { es: "Cliente final", en: "End client" },
