@@ -16,6 +16,9 @@ import { DESIGN_ORDER_STATUSES, type OrderSummary } from "@/types/produccion";
 import { orderMissing } from "@/lib/produccion/missing";
 import { OrderStatusBadge, itemsLabel, missingText, useTo } from "./orden/shared";
 import { orderPath } from "./orden/paths";
+import { StageGroupDialog } from "./stage-panel";
+import { STAGE_STEP } from "@/lib/diseno/steps";
+import { Button } from "@/components/ui/button";
 import { daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
 import { ItemDialog } from "./item-dialog";
 
@@ -90,6 +93,8 @@ export function DesignBoard({
   const [scope, setScope] = React.useState<Scope>(hasMine ? "mine" : "all");
   const [column, setColumn] = React.useState<Column>("por_medir");
   const [openId, setOpenId] = React.useState<string | null>(null);
+  // El documento de la etapa para varios ítems de un proyecto a la vez (desde el encabezado del grupo).
+  const [groupFor, setGroupFor] = React.useState<{ ids: string[]; title: string } | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- se lee el navegador una vez al abrir. */
   React.useEffect(() => {
@@ -194,6 +199,7 @@ export function DesignBoard({
         </div>
       );
     const list = byStage(s);
+    const step = STAGE_STEP[s];
     return (
       <div key={s} className="flex min-w-0 flex-col gap-2">
         <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground xl:flex">
@@ -203,14 +209,33 @@ export function DesignBoard({
           <EmptyState className="py-6">—</EmptyState>
         ) : grouped ? (
           // Todos los proyectos: dentro de la columna, un grupo por proyecto (el que tiene algo atrasado, arriba).
-          projectsOf(list.map((i) => ({ projectId: i.projectId, projectName: i.projectName, stageSince: i.stageSince, late: isLate(i) }))).map((p) => (
-            <div key={p.id} className="flex flex-col gap-1.5">
-              <ListGroupHeader title={p.name} count={p.count} />
-              <ul className="flex flex-col gap-2">{list.filter((i) => i.projectId === p.id).map(card)}</ul>
-            </div>
-          ))
+          projectsOf(list.map((i) => ({ projectId: i.projectId, projectName: i.projectName, stageSince: i.stageSince, late: isLate(i) }))).map((p) => {
+            const group = list.filter((i) => i.projectId === p.id);
+            return (
+              <div key={p.id} className="flex flex-col gap-1.5">
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <ListGroupHeader title={p.name} count={p.count} />
+                  </div>
+                  {step && group.length > 1 && (
+                    <Button size="sm" variant="outline" className="h-7 shrink-0 px-2 text-xs" onClick={() => setGroupFor({ ids: group.map((i) => i.id), title: p.name })}>
+                      {td(`step_${step}`)}…
+                    </Button>
+                  )}
+                </div>
+                <ul className="flex flex-col gap-2">{group.map(card)}</ul>
+              </div>
+            );
+          })
         ) : (
-          <ul className="flex flex-col gap-2">{list.map(card)}</ul>
+          <>
+            {step && list.length > 1 && (
+              <Button size="sm" variant="outline" className="h-7 self-end px-2 text-xs" onClick={() => setGroupFor({ ids: list.map((i) => i.id), title: list[0].projectName })}>
+                {td(`step_${step}`)}…
+              </Button>
+            )}
+            <ul className="flex flex-col gap-2">{list.map(card)}</ul>
+          </>
         )}
       </div>
     );
@@ -270,7 +295,8 @@ export function DesignBoard({
           <div className="hidden gap-4 xl:grid xl:grid-cols-5">{COLUMNS.map(col)}</div>
         </>
       )}
-      <ItemDialog item={open} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
+      <StageGroupDialog items={groupFor ? allItems.filter((i) => groupFor.ids.includes(i.id) && i.stage === allItems.find((x) => x.id === groupFor.ids[0])?.stage) : null} title={groupFor?.title ?? ""} onClose={() => setGroupFor(null)} />
+      <ItemDialog item={open} siblings={open ? allItems.filter((i) => i.projectId === open.projectId) : []} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
     </div>
   );
 }

@@ -129,3 +129,13 @@ export function DesignerSelect({
 export function designerName(td: Td, id: string | null, options: DesignerOption[]): string {
   return (id && options.find((o) => o.id === id)?.name) || td("unassigned");
 }
+
+/** Agrupa los ítems por área, en el orden en que aparece cada área. */
+export function byArea<T extends Pick<ProjectItem, "area">>(items: T[]): { area: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const i of items) {
+    const k = i.area.trim();
+    groups.set(k, [...(groups.get(k) ?? []), i]);
+  }
+  return [...groups.entries()].map(([area, list]) => ({ area, items: list }));
+}

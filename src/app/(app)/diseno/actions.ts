@@ -7,6 +7,7 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { driveEnabled, ensureSubfolders, getItem as getDriveItem, startUpload, trashItem } from "@/lib/google/drive";
 import * as diseno from "@/services/diseno";
 import { ITEM_FILE_MAX, type ItemEvent, type ItemFileKind, type ItemStage } from "@/types/diseno";
+import { STEP_FILE, STEP_FROM, STEP_TO, fileRound, hasStepFile, type FileStep } from "@/lib/diseno/steps";
 import { ensureProjectFolderAction } from "@/app/(app)/drive-actions";
 import { projectPath } from "@/app/(app)/proyectos/paths";
 
@@ -124,39 +125,80 @@ async function registerFiles(itemId: string, projectId: string, files: UploadedF
 
 export type ItemStep = "medido" | "enviar" | "cambios" | "aprobado" | "volver";
 
+/** Los ítems pedidos, todos del mismo proyecto. */
+async function sameProjectItems(ids: string[]) {
+  const items = (await Promise.all([...new Set(ids)].map((id) => diseno.getItem(id)))).filter((i) => i !== null);
+  if (items.length === 0) throw new Error("Los ítems ya no existen.");
+  if (items.length !== new Set(ids).size) throw new Error("Uno de los ítems ya no existe: actualiza la pantalla.");
+  if (new Set(items.map((i) => i.projectId)).size > 1) throw new Error("Los ítems tienen que ser del mismo proyecto.");
+  return items;
+}
+
 /**
- * Mueve un ítem con su acción (y los archivos que la acompañan):
- *  - medido: Por medir → En diseño; pide la hoja de medidas (fotos opcionales).
- *  - enviar: En diseño → Con el cliente; pide la presentación enviada (abre una ronda nueva).
+ * Sube el documento de la etapa (hoja de medidas, presentación o presentación aprobada) a uno o varios ítems del
+ * mismo proyecto que están en esa etapa: el archivo queda una vez en Drive y anotado en cada ítem.
+ */
+export async function attachStepFileAction(itemIds: string[], step: FileStep, file: UploadedFile): Promise<Result> {
+  await access();
+  const res = await run(async () => {
+    const items = await sameProjectItems(itemIds);
+    const kind = STEP_FILE[step];
+    if (file.kind !== kind) throw new Error("Tipo de documento no válido.");
+    const wrong = items.find((i) => i.stage !== STEP_FROM[step]);
+    if (wrong) throw new Error(`«${wrong.name}» ya cambió de etapa: actualiza la pantalla.`);
+    const folder = await itemFolder(items[0].projectId, kind);
+    const drive = await getDriveItem(file.driveFileId);
+    if (drive.parentId !== folder) throw new Error(`«${file.name}» no quedó en la carpeta del proyecto.`);
+    for (const it of items) {
+      await diseno.addItemFiles(it.id, [{ ...file, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size ?? file.sizeBytes, round: fileRound(it, kind) }]);
+    }
+    return items[0].projectId;
+  });
+  if (res.ok) revalidate(res.data);
+  return res.ok ? { ok: true, data: null } : res;
+}
+
+/**
+ * Mueve uno o varios ítems con su acción:
+ *  - medido: Por medir → En diseño; pide la hoja de medidas cargada.
+ *  - enviar: En diseño → Con el cliente; pide la presentación de la ronda nueva (y abre esa ronda).
  *  - cambios: Con el cliente → En diseño (el cliente pidió cambios).
  *  - aprobado: Con el cliente → Aprobado; pide la presentación aprobada.
- *  - volver: un paso atrás, para corregir un toque equivocado (sin archivos).
+ *  - volver: un paso atrás, para corregir un toque equivocado.
  */
-export async function advanceItemAction(id: string, step: ItemStep, files: UploadedFile[]): Promise<Result> {
+export async function advanceItemsAction(itemIds: string[], step: ItemStep): Promise<Result> {
   await access();
-  const item = await diseno.getItem(id);
-  if (!item) return { ok: false, error: "El ítem ya no existe." };
-  const need = (kind: ItemFileKind, msg: string) => (files.some((f) => f.kind === kind) ? null : msg);
-  const plan: Record<ItemStep, { from: ItemStage[]; to: ItemStage; round?: number; error?: string | null }> = {
-    medido: { from: ["por_medir"], to: "en_diseno", error: need("medidas", "Sube la hoja de medidas.") },
-    enviar: { from: ["en_diseno"], to: "con_cliente", round: item.round + 1, error: need("presentacion", "Sube la presentación que enviaste al cliente.") },
-    cambios: { from: ["con_cliente"], to: "en_diseno" },
-    aprobado: { from: ["con_cliente"], to: "aprobado", error: need("aprobada", "Sube la presentación que aprobó el cliente.") },
-    volver: {
-      from: ["en_diseno", "con_cliente", "aprobado"],
-      to: item.stage === "aprobado" ? "con_cliente" : item.stage === "con_cliente" ? "en_diseno" : "por_medir",
-    },
-  };
-  const p = plan[step];
-  if (!p.from.includes(item.stage)) return { ok: false, error: "El ítem ya cambió de etapa: actualiza la pantalla." };
-  if (p.error) return { ok: false, error: p.error };
   const res = await run(async () => {
-    await registerFiles(id, item.projectId, files, p.round ?? item.round);
-    await diseno.setItemStage(id, p.to, p.round);
-    return null;
+    const items = await sameProjectItems(itemIds);
+    for (const item of items) {
+      const from: ItemStage[] =
+        step === "cambios" ? ["con_cliente"] : step === "volver" ? ["en_diseno", "con_cliente", "aprobado"] : [STEP_FROM[step]];
+      if (!from.includes(item.stage)) throw new Error(`«${item.name}» ya cambió de etapa: actualiza la pantalla.`);
+      if ((step === "medido" || step === "enviar" || step === "aprobado") && !hasStepFile(item, step))
+        throw new Error(`A «${item.name}» le falta ${step === "medido" ? "la hoja de medidas" : step === "enviar" ? "la presentación" : "la presentación aprobada"}.`);
+    }
+    for (const item of items) {
+      const to: ItemStage =
+        step === "cambios"
+          ? "en_diseno"
+          : step === "volver"
+            ? item.stage === "aprobado"
+              ? "con_cliente"
+              : item.stage === "con_cliente"
+                ? "en_diseno"
+                : "por_medir"
+            : STEP_TO[step];
+      await diseno.setItemStage(item.id, to, step === "enviar" ? item.round + 1 : undefined);
+    }
+    return items[0].projectId;
   });
-  if (res.ok) revalidate(item.projectId);
-  return res;
+  if (res.ok) revalidate(res.data);
+  return res.ok ? { ok: true, data: null } : res;
+}
+
+/** Un ítem (para «Pidió cambios» y «Volver» desde su ficha). */
+export async function advanceItemAction(id: string, step: ItemStep): Promise<Result> {
+  return advanceItemsAction([id], step);
 }
 
 /** Agrega archivos a un ítem sin cambiar de etapa (otra foto, otra hoja). */

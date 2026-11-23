@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { FileText, History, Image as ImageIcon, Pencil, RotateCcw, Undo2, X } from "lucide-react";
+import { FileText, History, Image as ImageIcon, Pencil, Undo2, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,9 @@ import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import type { DesignerOption, ItemEvent, ItemFile, ProjectItem } from "@/types/diseno";
 import { advanceItemAction, assignItemsAction, deleteItemAction, getItemEventsAction, removeItemFileAction, updateItemAction } from "./actions";
-import { DesignerSelect, NEXT_STEP, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
-import { StepDialog, type FileStep } from "./step-dialog";
+import { DesignerSelect, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
+import { StagePanel } from "./stage-panel";
+import { STAGE_STEP } from "@/lib/diseno/steps";
 
 /**
  * La ficha de un ítem: su etapa y desde cuándo, el paso siguiente en grande, sus archivos (hoja de medidas, fotos,
@@ -32,8 +33,11 @@ export function ItemDialog({
   projectHref,
   projectName,
   designers = [],
+  siblings = [],
 }: {
   item: ProjectItem | null;
+  /** Los ítems del mismo proyecto: el documento de la etapa se puede subir para varios a la vez. */
+  siblings?: ProjectItem[];
   onClose: () => void;
   names?: Record<string, string>;
   /** Las diseñadoras del proyecto: para asignar el ítem. */
@@ -45,7 +49,6 @@ export function ItemDialog({
   const { lang, td } = useTd();
   const [busy, setBusy] = React.useState(false);
   const [events, setEvents] = React.useState<ItemEvent[] | null>(null);
-  const [step, setStep] = React.useState<FileStep | null>(null);
   const [editing, setEditing] = React.useState(false);
   const itemId = item?.id ?? null;
   const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}` : "";
@@ -63,12 +66,13 @@ export function ItemDialog({
 
   if (!item) return null;
   const late = isLate(item);
-  const next = NEXT_STEP[item.stage];
+  // Los del mismo proyecto en la misma etapa (este primero); marcados de entrada, los de la misma área.
+  const sameStage = [item, ...siblings.filter((s) => s.id !== item.id && s.projectId === item.projectId && s.stage === item.stage)];
 
-  async function go(stepName: "cambios" | "volver") {
+  async function go(stepName: "volver") {
     if (!item) return;
     setBusy(true);
-    const res = await advanceItemAction(item.id, stepName, []);
+    const res = await advanceItemAction(item.id, stepName);
     setBusy(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(td("moved"));
@@ -151,16 +155,12 @@ export function ItemDialog({
           </Field>
         )}
 
-        {next && (
-          <Button size="lg" className="w-full" disabled={busy} onClick={() => setStep(next)}>
-            {td(`step_${next}`)}
-          </Button>
-        )}
-        {item.stage === "con_cliente" && (
-          <Button variant="outline" className="w-full" disabled={busy} onClick={() => void go("cambios")}>
-            <RotateCcw className="size-4" />
-            {td("step_cambios")}
-          </Button>
+        {STAGE_STEP[item.stage] && (
+          <StagePanel
+            key={`${item.id}:${item.stage}`}
+            items={sameStage}
+            defaultChecked={sameStage.filter((s) => s.area.trim() === item.area.trim()).map((s) => s.id)}
+          />
         )}
 
         {item.stage === "por_medir" && (
@@ -229,7 +229,6 @@ export function ItemDialog({
           </div>
         </div>
       </DialogContent>
-      <StepDialog item={step ? item : null} step={step} onClose={() => setStep(null)} />
       <EditItemDialog item={editing ? item : null} onClose={() => setEditing(false)} />
     </Dialog>
   );

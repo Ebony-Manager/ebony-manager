@@ -178,7 +178,16 @@ export async function deleteItem(id: string): Promise<string[]> {
   const { data } = await supabase.from("project_item_files").select("drive_file_id").eq("item_id", id);
   const { error } = await supabase.from("project_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((f) => f.drive_file_id);
+  return unusedDriveFiles((data ?? []).map((f) => f.drive_file_id));
+}
+
+/** De estos archivos de Drive, los que ya ningún ítem usa (un mismo plano puede servir a varios ítems). */
+async function unusedDriveFiles(driveIds: string[]): Promise<string[]> {
+  if (driveIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("project_item_files").select("drive_file_id").in("drive_file_id", driveIds);
+  const used = new Set((data ?? []).map((f) => f.drive_file_id));
+  return [...new Set(driveIds)].filter((id) => !used.has(id));
 }
 
 export async function addItemFiles(
@@ -197,7 +206,8 @@ export async function removeItemFile(fileId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("project_item_files").delete().eq("id", fileId).select("drive_file_id").maybeSingle();
   if (error) throw new Error(error.message);
-  return data?.drive_file_id ?? null;
+  // Solo se manda a la papelera si ningún otro ítem usa el mismo archivo.
+  return data ? ((await unusedDriveFiles([data.drive_file_id]))[0] ?? null) : null;
 }
 
 export async function importQuoteItems(projectId: string): Promise<number> {

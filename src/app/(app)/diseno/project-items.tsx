@@ -21,20 +21,11 @@ import { orderPath } from "./orden/paths";
 import { Factory } from "lucide-react";
 import { FormSection } from "@/components/shared/form-section";
 import { assignItemsAction, createItemsAction, importQuoteItemsAction } from "./actions";
-import { DesignerSelect, ItemStageBadge, NEXT_STEP, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
+import { DesignerSelect, ItemStageBadge, NEXT_STEP, byArea, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
 import { ICON } from "@/lib/ui/concepts";
 import { ItemDialog } from "./item-dialog";
-import { StepDialog, type FileStep } from "./step-dialog";
 
-/** Agrupa los ítems por área, en el orden en que aparece cada área. */
-export function byArea<T extends Pick<ProjectItem, "area">>(items: T[]): { area: string; items: T[] }[] {
-  const groups = new Map<string, T[]>();
-  for (const i of items) {
-    const k = i.area.trim();
-    groups.set(k, [...(groups.get(k) ?? []), i]);
-  }
-  return [...groups.entries()].map(([area, list]) => ({ area, items: list }));
-}
+export { byArea };
 
 /**
  * Pestaña «Diseño» de la ficha del proyecto: los ítems (muebles) agrupados por área, cada uno con su etapa, desde
@@ -58,7 +49,6 @@ export function ProjectItems({
   const { td } = useTd();
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
-  const [stepFor, setStepFor] = React.useState<{ id: string; step: FileStep } | null>(null);
   const [importing, setImporting] = React.useState(false);
   const groups = byArea(items);
   const { lang, to } = useTo();
@@ -191,7 +181,7 @@ export function ProjectItems({
                     </button>
                     <ItemStageBadge stage={i.stage} td={td} />
                     {next && (
-                      <Button size="sm" variant="outline" className="h-8" onClick={() => setStepFor({ id: i.id, step: next })}>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => setOpenId(i.id)}>
                         {td(`step_${next}`)}
                       </Button>
                     )}
@@ -203,8 +193,7 @@ export function ProjectItems({
         ))
       )}
 
-      <ItemDialog item={items.find((i) => i.id === openId) ?? null} designers={designers} onClose={() => setOpenId(null)} />
-      <StepDialog item={stepFor ? (items.find((i) => i.id === stepFor.id) ?? null) : null} step={stepFor?.step ?? null} onClose={() => setStepFor(null)} />
+      <ItemDialog item={items.find((i) => i.id === openId) ?? null} siblings={items} designers={designers} onClose={() => setOpenId(null)} />
       <NewOrderDialog open={ordering} projectId={projectId} freeItems={freeItems} onClose={() => setOrdering(false)} />
       <AddItemsDialog open={adding} projectId={projectId} designers={several ? designers : []} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
     </div>
