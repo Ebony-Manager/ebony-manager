@@ -4226,6 +4226,7 @@ export const strings = {
     day1: { es: "1 día", en: "1 day" },
     today: { es: "desde hoy", en: "since today" },
     late: { es: "Atrasado", en: "Late" },
+    all_projects_tab: { es: "Todos", en: "All" },
     area_not_ready: { es: "Área no lista", en: "Area not ready" },
     area_not_ready_hint: { es: "Todavía no se puede medir.", en: "It can't be measured yet." },
     next_visit: { es: "Próxima visita", en: "Next visit" },

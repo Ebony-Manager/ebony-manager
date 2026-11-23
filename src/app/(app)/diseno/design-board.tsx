@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Palette, UserCheck } from "lucide-react";
 
-import { EmptyState, PAGE_CLASS, PageHeader } from "@/components/shared/page-header";
+import { EmptyState, PAGE_CLASS, PageHeader, SubTabs } from "@/components/shared/page-header";
+import { ListGroupHeader } from "@/components/shared/list-group-header";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { ICON } from "@/lib/ui/concepts";
@@ -13,6 +14,26 @@ import { daysInStage, daysLabel, isLate, stageLabel, useTd } from "./shared";
 import { ItemDialog } from "./item-dialog";
 
 type Scope = "mine" | "all";
+const ALL = "__all__";
+
+type ProjectTab = { id: string; name: string; count: number; late: boolean; oldest: string };
+
+/** Los proyectos de una lista de ítems: los que tienen algo atrasado primero; después, el que espera hace más tiempo. */
+function projectsOf(items: BoardItem[]): ProjectTab[] {
+  const map = new Map<string, ProjectTab>();
+  for (const i of items) {
+    const p = map.get(i.projectId) ?? { id: i.projectId, name: i.projectName, count: 0, late: false, oldest: i.stageSince };
+    p.count += 1;
+    p.late ||= isLate(i);
+    if (i.stageSince < p.oldest) p.oldest = i.stageSince;
+    map.set(i.projectId, p);
+  }
+  return [...map.values()].sort((a, b) => Number(b.late) - Number(a.late) || a.oldest.localeCompare(b.oldest) || a.name.localeCompare(b.name));
+}
+
+function Count({ n }: { n: number }) {
+  return <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{n}</span>;
+}
 const SCOPE_KEY = "diseno.scope";
 
 function readScope(): Scope | null {
@@ -51,7 +72,13 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const mine = React.useMemo(() => new Set(myProjectIds), [myProjectIds]);
-  const shown = scope === "mine" ? items.filter((i) => mine.has(i.projectId)) : items;
+  const inScope = scope === "mine" ? items.filter((i) => mine.has(i.projectId)) : items;
+  // Una pestaña por proyecto (los que tienen algo atrasado primero) para ver uno solo.
+  const projects = React.useMemo(() => projectsOf(inScope), [inScope]);
+  const [project, setProject] = React.useState<string>(ALL);
+  const current = projects.some((p) => p.id === project) ? project : ALL;
+  const shown = current === ALL ? inScope : inScope.filter((i) => i.projectId === current);
+  const grouped = current === ALL && projects.length > 1;
   const byStage = (s: ItemStage) =>
     shown
       .filter((i) => i.stage === s)
@@ -60,6 +87,7 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
 
   const card = (i: BoardItem) => {
     const late = isLate(i);
+    const where = grouped || current !== ALL ? i.area : [i.projectName, i.area].filter(Boolean).join(" · ");
     return (
       <li key={i.id}>
         <button
@@ -68,7 +96,7 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
           className="flex w-full flex-col gap-1 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted/40"
         >
           <span className="text-sm font-medium text-foreground">{i.name}</span>
-          <span className="truncate text-xs text-muted-foreground">{[i.projectName, i.area].filter(Boolean).join(" · ")}</span>
+          {where && <span className="truncate text-xs text-muted-foreground">{where}</span>}
           <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
             <span className={late ? "font-medium text-destructive" : ""}>
               {late ? `${td("late")} · ` : ""}
@@ -94,7 +122,19 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
         <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground md:flex">
           {stageLabel(td, s)} <span className="font-normal">({list.length})</span>
         </p>
-        {list.length === 0 ? <EmptyState className="py-6">—</EmptyState> : <ul className="flex flex-col gap-2">{list.map(card)}</ul>}
+        {list.length === 0 ? (
+          <EmptyState className="py-6">—</EmptyState>
+        ) : grouped ? (
+          // Todos los proyectos: dentro de la columna, un grupo por proyecto (el que tiene algo atrasado, arriba).
+          projectsOf(list).map((p) => (
+            <div key={p.id} className="flex flex-col gap-1.5">
+              <ListGroupHeader title={p.name} count={p.count} />
+              <ul className="flex flex-col gap-2">{list.filter((i) => i.projectId === p.id).map(card)}</ul>
+            </div>
+          ))
+        ) : (
+          <ul className="flex flex-col gap-2">{list.map(card)}</ul>
+        )}
       </div>
     );
   };
@@ -123,6 +163,20 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
         </EmptyState>
       ) : (
         <>
+          {projects.length > 1 && (
+            <SubTabs
+              value={current}
+              onChange={setProject}
+              tabs={[
+                { value: ALL, label: td("all_projects_tab"), badge: <Count n={inScope.length} /> },
+                ...projects.map((p) => ({
+                  value: p.id,
+                  label: <span className={p.late ? "text-destructive" : undefined}>{p.name}</span>,
+                  badge: <Count n={p.count} />,
+                })),
+              ]}
+            />
+          )}
           <div className="flex flex-col gap-3 md:hidden">
             <SegmentedFilter
               fill
