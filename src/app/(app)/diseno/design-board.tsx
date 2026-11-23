@@ -10,7 +10,7 @@ import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { ICON } from "@/lib/ui/concepts";
 import { projectPath } from "@/app/(app)/proyectos/paths";
 import { DESIGN_STAGES, type BoardItem, type ItemStage } from "@/types/diseno";
-import { daysInStage, daysLabel, isLate, stageLabel, useTd } from "./shared";
+import { daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
 import { ItemDialog } from "./item-dialog";
 
 type Scope = "mine" | "all";
@@ -56,9 +56,9 @@ function saveScope(v: Scope) {
  * Diseño: los ítems en columnas por etapa (Por medir → En diseño → Con el cliente → Aprobado). Cada diseñadora ve
  * sus proyectos; gerencia ve todos. Lo que lleva más de 7 días en la misma etapa sale en rojo y arriba.
  */
-export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myProjectIds: string[] }) {
+export function DesignBoard({ items, myProjectIds, myEmployeeId }: { items: BoardItem[]; myProjectIds: string[]; myEmployeeId: string | null }) {
   const { td } = useTd();
-  const hasMine = myProjectIds.length > 0;
+  const hasMine = myProjectIds.length > 0 || (!!myEmployeeId && items.some((i) => i.designerId === myEmployeeId));
   const [scope, setScope] = React.useState<Scope>(hasMine ? "mine" : "all");
   const [column, setColumn] = React.useState<ItemStage>("por_medir");
   const [openId, setOpenId] = React.useState<string | null>(null);
@@ -72,7 +72,9 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const mine = React.useMemo(() => new Set(myProjectIds), [myProjectIds]);
-  const inScope = scope === "mine" ? items.filter((i) => mine.has(i.projectId)) : items;
+  // Mis ítems: los asignados a mí y, de mis proyectos, los que nadie tiene todavía (para que no se pierdan).
+  const isMine = (i: BoardItem) => (myEmployeeId && i.designerId === myEmployeeId) || (!i.designerId && mine.has(i.projectId));
+  const inScope = scope === "mine" ? items.filter(isMine) : items;
   // Una pestaña por proyecto (los que tienen algo atrasado primero) para ver uno solo.
   const projects = React.useMemo(() => projectsOf(inScope), [inScope]);
   const [project, setProject] = React.useState<string>(ALL);
@@ -103,10 +105,10 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
               {daysLabel(td, daysInStage(i))}
             </span>
             {i.areaNotReady && <span>· {td("area_not_ready")}</span>}
-            {scope === "all" && i.designers.length > 0 && (
-              <span className="flex items-center gap-1">
+            {(scope === "all" || !i.designerId) && i.designers.length > 0 && (
+              <span className={`flex items-center gap-1 ${i.designerId ? "" : "font-medium text-foreground"}`}>
                 · <ICON.designer className="size-3" />
-                {i.designers.join(", ")}
+                {designerName(td, i.designerId, i.designers)}
               </span>
             )}
           </span>
@@ -194,7 +196,7 @@ export function DesignBoard({ items, myProjectIds }: { items: BoardItem[]; myPro
           <div className="hidden gap-4 md:grid md:grid-cols-4">{DESIGN_STAGES.map(col)}</div>
         </>
       )}
-      <ItemDialog item={open} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
+      <ItemDialog item={open} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
     </div>
   );
 }

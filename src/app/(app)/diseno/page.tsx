@@ -1,5 +1,5 @@
 import { requireAnyModule } from "@/lib/auth/dal";
-import { getBoardItems } from "@/services/diseno";
+import { getBoardItems, getMyEmployeeId } from "@/services/diseno";
 import { getMyDesignerProjectIds } from "@/services/project-designers";
 import { DesignBoard } from "./design-board";
 
@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
 
 export default async function DisenoPage() {
   await requireAnyModule("diseno", "proyectos", "contratistas");
-  const [items, mine] = await Promise.all([getBoardItems(), getMyDesignerProjectIds().catch(() => [])]);
-  return <DesignBoard items={items} myProjectIds={mine} />;
+  const [items, mine, me] = await Promise.all([getBoardItems(), getMyDesignerProjectIds().catch(() => []), getMyEmployeeId().catch(() => null)]);
+  return <DesignBoard items={items} myProjectIds={mine} myEmployeeId={me} />;
 }

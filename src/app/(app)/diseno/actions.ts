@@ -32,7 +32,7 @@ function revalidate(projectId: string) {
 
 export async function createItemsAction(projectId: string, items: diseno.ItemInput[]): Promise<Result> {
   await access();
-  const clean = items.map((i) => ({ area: i.area.trim(), name: i.name.trim(), kind: i.kind.trim() })).filter((i) => i.name);
+  const clean = items.map((i) => ({ area: i.area.trim(), name: i.name.trim(), kind: i.kind.trim(), designerId: i.designerId ?? null })).filter((i) => i.name);
   if (clean.length === 0) return { ok: false, error: "Escribe el nombre del ítem." };
   const res = await run(async () => {
     await diseno.createItems(projectId, clean);
@@ -51,6 +51,17 @@ export async function updateItemAction(
   if (patch.name !== undefined && !patch.name.trim()) return { ok: false, error: "Escribe el nombre del ítem." };
   const res = await run(async () => {
     await diseno.updateItem(id, patch);
+    return null;
+  });
+  if (res.ok) revalidate(projectId);
+  return res;
+}
+
+/** Asigna la diseñadora a uno o varios ítems del proyecto (un ítem o un área entera); null = sin asignar. */
+export async function assignItemsAction(ids: string[], projectId: string, designerId: string | null): Promise<Result> {
+  await access();
+  const res = await run(async () => {
+    await diseno.assignItems(ids, designerId);
     return null;
   });
   if (res.ok) revalidate(projectId);

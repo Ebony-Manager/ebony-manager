@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type ItemUpdate = Database["public"]["Tables"]["project_items"]["Update"];
-import type { BoardItem, ItemEvent, ItemFile, ItemFileKind, ItemStage, ProjectItem } from "@/types/diseno";
+import type { BoardItem, DesignerOption, ItemEvent, ItemFile, ItemFileKind, ItemStage, ProjectItem } from "@/types/diseno";
 
 /**
  * Diseño · los ítems de cada proyecto y sus etapas. Permiso Diseño, Proyectos o Contratistas (la RLS lo exige
@@ -27,6 +27,7 @@ type ItemRow = {
   next_visit: string | null;
   notes: string | null;
   quote_section_id: string | null;
+  designer_id: string | null;
   project_item_files: { id: string; kind: string; round: number; drive_file_id: string; name: string; mime_type: string | null; size_bytes: number | null; created_at: string }[] | null;
 };
 
@@ -45,6 +46,7 @@ function mapItem(r: ItemRow): ProjectItem {
     nextVisit: r.next_visit,
     notes: r.notes,
     fromQuote: !!r.quote_section_id,
+    designerId: r.designer_id ?? null,
     files: (r.project_item_files ?? [])
       .map(
         (f): ItemFile => ({
@@ -86,10 +88,11 @@ export async function getBoardItems(): Promise<BoardItem[]> {
       .neq("stage", "en_produccion")
       .eq("projects.status", "ACTIVE")
       .order("stage_since"),
-    supabase.rpc("project_designer_names"),
+    supabase.rpc("project_designer_options"),
   ]);
   if (error) throw new Error(error.message);
-  const designers = new Map((names.data ?? []).map((r) => [r.project_id, r.names as string[]]));
+  const designers = new Map<string, DesignerOption[]>();
+  for (const r of names.data ?? []) designers.set(r.project_id, [...(designers.get(r.project_id) ?? []), { id: r.employee_id, name: r.name }]);
   return ((data ?? []) as unknown as (ItemRow & { projects: { name: string } })[]).map((r) => ({
     ...mapItem(r),
     projectName: r.projects.name,
@@ -116,6 +119,8 @@ export interface ItemInput {
   area: string;
   name: string;
   kind: string;
+  /** null/omitido = la única diseñadora del proyecto (si tiene una) o sin asignar. */
+  designerId?: string | null;
 }
 
 export async function createItems(projectId: string, items: ItemInput[]): Promise<void> {
@@ -124,7 +129,7 @@ export async function createItems(projectId: string, items: ItemInput[]): Promis
   let next = (last?.sort_order ?? 0) + 1;
   const { error } = await supabase
     .from("project_items")
-    .insert(items.map((i) => ({ project_id: projectId, area: i.area.trim(), name: i.name.trim(), kind: i.kind.trim(), sort_order: next++ })));
+    .insert(items.map((i) => ({ project_id: projectId, area: i.area.trim(), name: i.name.trim(), kind: i.kind.trim(), sort_order: next++, ...(i.designerId ? { designer_id: i.designerId } : {}) })));
   if (error) throw new Error(error.message);
 }
 
@@ -137,8 +142,25 @@ export async function updateItem(id: string, patch: Partial<ItemInput> & { areaN
   if (patch.areaNotReady !== undefined) row.area_not_ready = patch.areaNotReady;
   if (patch.nextVisit !== undefined) row.next_visit = patch.nextVisit;
   if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.designerId !== undefined) row.designer_id = patch.designerId;
   const { error } = await supabase.from("project_items").update(row).eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/** Asigna (o quita, con null) la diseñadora de varios ítems a la vez: un área entera. */
+export async function assignItems(ids: string[], designerId: string | null): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_items").update({ designer_id: designerId }).in("id", ids);
+  if (error) throw new Error(error.message);
+}
+
+/** Quién es quien tiene sesión en Personal (null si no está vinculado). */
+export async function getMyEmployeeId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_employee_id");
+  if (error) throw new Error(error.message);
+  return data ?? null;
 }
 
 export async function setItemStage(id: string, stage: ItemStage, round?: number): Promise<void> {

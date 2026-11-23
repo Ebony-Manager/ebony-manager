@@ -5,8 +5,10 @@ import * as React from "react";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { useField } from "@/components/shared/field";
 import { shrinkImage } from "@/app/(app)/taller/shared";
-import { STAGE_LATE_DAYS, type ItemFileKind, type ItemStage, type ProjectItem } from "@/types/diseno";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { STAGE_LATE_DAYS, type DesignerOption, type ItemFileKind, type ItemStage, type ProjectItem } from "@/types/diseno";
 import { startItemUploadAction, type UploadedFile } from "./actions";
 
 export type Td = (k: keyof typeof strings.diseno, vars?: Record<string, string | number>) => string;
@@ -83,3 +85,47 @@ export async function uploadItemFiles(
 }
 
 export const driveFile = (id: string, download = false) => `/api/drive/file/${id}${download ? "?download=1" : ""}`;
+
+const NONE = "__none__";
+
+/** Escoger la diseñadora de un ítem (o de un área) entre las del proyecto; «Sin asignar» la quita. */
+export function DesignerSelect({
+  value,
+  options,
+  onChange,
+  disabled,
+  placeholder,
+  className,
+  id,
+}: {
+  value: string | null;
+  options: DesignerOption[];
+  onChange: (id: string | null) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  id?: string;
+}) {
+  const { td } = useTd();
+  const field = useField();
+  return (
+    <Select value={value ?? (placeholder ? undefined : NONE)} onValueChange={(v) => onChange(v === NONE ? null : v)} disabled={disabled}>
+      <SelectTrigger id={id ?? field?.id} className={className ?? "w-full"}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>{td("unassigned")}</SelectItem>
+        {options.map((o) => (
+          <SelectItem key={o.id} value={o.id}>
+            {o.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** El nombre de la diseñadora del ítem, o «Sin asignar». */
+export function designerName(td: Td, id: string | null, options: DesignerOption[]): string {
+  return (id && options.find((o) => o.id === id)?.name) || td("unassigned");
+}

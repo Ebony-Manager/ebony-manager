@@ -13,9 +13,10 @@ import { Field } from "@/components/shared/field";
 import { ListGroupHeader } from "@/components/shared/list-group-header";
 import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
-import type { ProjectItem } from "@/types/diseno";
-import { createItemsAction, importQuoteItemsAction } from "./actions";
-import { ItemStageBadge, NEXT_STEP, daysInStage, daysLabel, isLate, useTd } from "./shared";
+import type { DesignerOption, ProjectItem } from "@/types/diseno";
+import { assignItemsAction, createItemsAction, importQuoteItemsAction } from "./actions";
+import { DesignerSelect, ItemStageBadge, NEXT_STEP, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
+import { ICON } from "@/lib/ui/concepts";
 import { ItemDialog } from "./item-dialog";
 import { StepDialog, type FileStep } from "./step-dialog";
 
@@ -33,13 +34,34 @@ export function byArea<T extends Pick<ProjectItem, "area">>(items: T[]): { area:
  * Pestaña «Diseño» de la ficha del proyecto: los ítems (muebles) agrupados por área, cada uno con su etapa, desde
  * cuándo y el botón de su paso siguiente. Se agregan a mano o se traen de la cotización aprobada.
  */
-export function ProjectItems({ projectId, items, pendingFromQuote }: { projectId: string; items: ProjectItem[]; pendingFromQuote: number }) {
+export function ProjectItems({
+  projectId,
+  items,
+  pendingFromQuote,
+  designers = [],
+}: {
+  projectId: string;
+  items: ProjectItem[];
+  pendingFromQuote: number;
+  /** Las diseñadoras del proyecto: con más de una, cada ítem (o área) se asigna a una. */
+  designers?: DesignerOption[];
+}) {
   const { td } = useTd();
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
   const [stepFor, setStepFor] = React.useState<{ id: string; step: FileStep } | null>(null);
   const [importing, setImporting] = React.useState(false);
   const groups = byArea(items);
+  const several = designers.length > 1;
+  const [assigning, setAssigning] = React.useState(false);
+
+  async function assignArea(ids: string[], designerId: string | null) {
+    setAssigning(true);
+    const res = await assignItemsAction(ids, projectId, designerId);
+    setAssigning(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(td("assigned"));
+  }
 
   async function importQuote() {
     setImporting(true);
@@ -72,7 +94,24 @@ export function ProjectItems({ projectId, items, pendingFromQuote }: { projectId
       ) : (
         groups.map((g) => (
           <div key={g.area} className="flex flex-col gap-1.5">
-            <ListGroupHeader title={g.area || td("no_area")} count={g.items.length} />
+            {several ? (
+              <div className="flex items-end gap-3">
+                <div className="min-w-0 flex-1">
+                  <ListGroupHeader title={g.area || td("no_area")} count={g.items.length} />
+                </div>
+                {/* Toda el área a una diseñadora de una vez (cada ítem se puede cambiar después). */}
+                <DesignerSelect
+                  value={null}
+                  placeholder={td("assign_area")}
+                  options={designers}
+                  disabled={assigning}
+                  className="h-8 w-40 shrink-0 text-xs"
+                  onChange={(v) => void assignArea(g.items.map((i) => i.id), v)}
+                />
+              </div>
+            ) : (
+              <ListGroupHeader title={g.area || td("no_area")} count={g.items.length} />
+            )}
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
               {g.items.map((i) => {
                 const late = isLate(i);
@@ -88,6 +127,12 @@ export function ProjectItems({ projectId, items, pendingFromQuote }: { projectId
                           {daysLabel(td, daysInStage(i))}
                         </span>
                         {i.areaNotReady && <span>· {td("area_not_ready")}</span>}
+                        {several && (
+                          <span className={`flex items-center gap-1 ${i.designerId ? "" : "font-medium text-foreground"}`}>
+                            · <ICON.designer className="size-3" />
+                            {designerName(td, i.designerId, designers)}
+                          </span>
+                        )}
                       </p>
                     </button>
                     <ItemStageBadge stage={i.stage} td={td} />
@@ -104,9 +149,9 @@ export function ProjectItems({ projectId, items, pendingFromQuote }: { projectId
         ))
       )}
 
-      <ItemDialog item={items.find((i) => i.id === openId) ?? null} onClose={() => setOpenId(null)} />
+      <ItemDialog item={items.find((i) => i.id === openId) ?? null} designers={designers} onClose={() => setOpenId(null)} />
       <StepDialog item={stepFor ? (items.find((i) => i.id === stepFor.id) ?? null) : null} step={stepFor?.step ?? null} onClose={() => setStepFor(null)} />
-      <AddItemsDialog open={adding} projectId={projectId} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
+      <AddItemsDialog open={adding} projectId={projectId} designers={several ? designers : []} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
     </div>
   );
 }
@@ -115,9 +160,23 @@ type Row = { key: string; area: string; name: string; kind: string };
 const newRow = (area = ""): Row => ({ key: crypto.randomUUID(), area, name: "", kind: "" });
 
 /** Agregar uno o varios ítems de una vez (área, ítem y tipo); el área se repite en el siguiente para ir rápido. */
-function AddItemsDialog({ open, projectId, areas, onClose }: { open: boolean; projectId: string; areas: string[]; onClose: () => void }) {
+function AddItemsDialog({
+  open,
+  projectId,
+  areas,
+  designers,
+  onClose,
+}: {
+  open: boolean;
+  projectId: string;
+  areas: string[];
+  /** Solo si el proyecto tiene varias: a quién van los ítems nuevos (con una sola, se asignan solos). */
+  designers: DesignerOption[];
+  onClose: () => void;
+}) {
   const { td } = useTd();
   const [rows, setRows] = React.useState<Row[]>([newRow()]);
+  const [designerId, setDesignerId] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"rows">();
   const listId = React.useId();
@@ -126,6 +185,7 @@ function AddItemsDialog({ open, projectId, areas, onClose }: { open: boolean; pr
   React.useEffect(() => {
     if (!open) return;
     setRows([newRow()]);
+    setDesignerId(null);
     reset();
   }, [open, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -141,7 +201,7 @@ function AddItemsDialog({ open, projectId, areas, onClose }: { open: boolean; pr
     const named = rows.filter((r) => r.name.trim());
     if (!validate([["rows", named.length === 0, td("err_name")]])) return;
     setSaving(true);
-    const res = await createItemsAction(projectId, named);
+    const res = await createItemsAction(projectId, named.map((r) => ({ ...r, designerId })));
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(td("saved"));
@@ -193,6 +253,11 @@ function AddItemsDialog({ open, projectId, areas, onClose }: { open: boolean; pr
             <Plus className="size-3.5" />
             {td("add_another")}
           </Button>
+          {designers.length > 0 && (
+            <Field label={td("f_designer")} icon={ICON.designer}>
+              <DesignerSelect value={designerId} options={designers} onChange={setDesignerId} />
+            </Field>
+          )}
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" disabled={saving} onClick={() => void requestClose()}>
               {td("cancel")}

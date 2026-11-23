@@ -212,7 +212,7 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} {...taller} />}
-      {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} />}
+      {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} designers={designers.map((d) => ({ id: d.employeeId, name: d.name }))} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (

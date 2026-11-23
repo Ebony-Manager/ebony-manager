@@ -3575,9 +3575,9 @@ export type Database = {
         ]
       }
       project_items: {
-        Row: { area: string; area_not_ready: boolean; created_at: string; created_by: string | null; id: string; kind: string; name: string; needs_paint: boolean; next_visit: string | null; notes: string | null; project_id: string; quote_section_id: string | null; round: number; sort_order: number; stage: string; stage_since: string; updated_at: string }
-        Insert: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; id?: string; kind?: string; name: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
-        Update: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; id?: string; kind?: string; name?: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id?: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
+        Row: { area: string; area_not_ready: boolean; created_at: string; created_by: string | null; designer_id: string | null; id: string; kind: string; name: string; needs_paint: boolean; next_visit: string | null; notes: string | null; project_id: string; quote_section_id: string | null; round: number; sort_order: number; stage: string; stage_since: string; updated_at: string }
+        Insert: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; designer_id?: string | null; id?: string; kind?: string; name: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
+        Update: { area?: string; area_not_ready?: boolean; created_at?: string; created_by?: string | null; designer_id?: string | null; id?: string; kind?: string; name?: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id?: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
         Relationships: [
           { foreignKeyName: "project_items_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
         ]
@@ -3709,6 +3709,14 @@ export type Database = {
       project_designer_names: {
         Args: Record<string, never>
         Returns: { project_id: string; names: string[] }[]
+      }
+      project_designer_options: {
+        Args: Record<string, never>
+        Returns: { project_id: string; employee_id: string; name: string }[]
+      }
+      my_employee_id: {
+        Args: Record<string, never>
+        Returns: string | null
       }
       designer_candidates: {
         Args: Record<string, never>

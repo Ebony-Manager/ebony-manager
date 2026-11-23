@@ -16,9 +16,9 @@ import { LoadingBlock } from "@/components/shared/loading-block";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
-import type { ItemEvent, ItemFile, ProjectItem } from "@/types/diseno";
-import { advanceItemAction, deleteItemAction, getItemEventsAction, removeItemFileAction, updateItemAction } from "./actions";
-import { NEXT_STEP, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
+import type { DesignerOption, ItemEvent, ItemFile, ProjectItem } from "@/types/diseno";
+import { advanceItemAction, assignItemsAction, deleteItemAction, getItemEventsAction, removeItemFileAction, updateItemAction } from "./actions";
+import { DesignerSelect, NEXT_STEP, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
 import { StepDialog, type FileStep } from "./step-dialog";
 
 /**
@@ -31,10 +31,13 @@ export function ItemDialog({
   names,
   projectHref,
   projectName,
+  designers = [],
 }: {
   item: ProjectItem | null;
   onClose: () => void;
   names?: Record<string, string>;
+  /** Las diseñadoras del proyecto: para asignar el ítem. */
+  designers?: DesignerOption[];
   /** Desde el tablero: el enlace a la ficha del proyecto. */
   projectHref?: string;
   projectName?: string;
@@ -45,7 +48,7 @@ export function ItemDialog({
   const [step, setStep] = React.useState<FileStep | null>(null);
   const [editing, setEditing] = React.useState(false);
   const itemId = item?.id ?? null;
-  const key = item ? `${item.stage}:${item.files.length}:${item.name}` : "";
+  const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}` : "";
 
   React.useEffect(() => {
     if (!itemId) return;
@@ -79,6 +82,15 @@ export function ItemDialog({
     if (!res.ok) toast.error(res.error);
   }
 
+  async function assign(designerId: string | null) {
+    if (!item) return;
+    setBusy(true);
+    const res = await assignItemsAction([item.id], item.projectId, designerId);
+    setBusy(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(td("assigned"));
+  }
+
   async function remove() {
     if (!item) return;
     setBusy(true);
@@ -101,7 +113,7 @@ export function ItemDialog({
   const fileLabel = (f: ItemFile) =>
     f.kind === "presentacion" ? td("file_presentacion", { n: f.round || 1 }) : f.kind === "medidas" ? td("file_medidas") : f.kind === "aprobada" ? td("file_aprobada") : td("file_foto");
   const eventText = (e: ItemEvent) =>
-    e.kind === "etapa" && e.toStage ? td("ev_etapa", { to: stageLabel(td, e.toStage) }) : e.kind === "archivo" ? td("ev_archivo", { detail: e.detail ?? "" }) : td(`ev_${e.kind}`);
+    e.kind === "etapa" && e.toStage ? td("ev_etapa", { to: stageLabel(td, e.toStage) }) : e.kind === "archivo" ? td("ev_archivo", { detail: e.detail ?? "" }) : e.kind === "editado" && e.detail ? e.detail : td(`ev_${e.kind}`);
   const who = (id: string | null) => (id && names?.[id]) || td("someone");
 
   return (
@@ -132,6 +144,12 @@ export function ItemDialog({
           </span>
           {item.areaNotReady && <span className="text-muted-foreground">· {td("area_not_ready")}</span>}
         </div>
+
+        {designers.length > 0 && (
+          <Field label={td("f_designer")} icon={ICON.designer}>
+            <DesignerSelect value={item.designerId} options={designers} disabled={busy} onChange={(v) => void assign(v)} />
+          </Field>
+        )}
 
         {next && (
           <Button size="lg" className="w-full" disabled={busy} onClick={() => setStep(next)}>

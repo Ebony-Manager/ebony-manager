@@ -35,7 +35,15 @@ export interface ProjectItem {
   nextVisit: string | null;
   notes: string | null;
   fromQuote: boolean;
+  /** La diseñadora del ítem (Personal); null = sin asignar. */
+  designerId: string | null;
   files: ItemFile[];
+}
+
+/** Una diseñadora que se puede asignar (las del proyecto). */
+export interface DesignerOption {
+  id: string;
+  name: string;
 }
 
 export interface ItemEvent {
@@ -48,10 +56,10 @@ export interface ItemEvent {
   createdAt: string;
 }
 
-/** Para el tablero de Diseño: el ítem con su proyecto y sus diseñadoras. */
+/** Para el tablero de Diseño: el ítem con su proyecto y las diseñadoras del proyecto (para asignar). */
 export interface BoardItem extends ProjectItem {
   projectName: string;
-  designers: string[];
+  designers: DesignerOption[];
 }
 
 /** Hasta este tamaño se sube un archivo de diseño (las presentaciones en PDF suelen pesar varios MB). */
