@@ -3752,6 +3752,10 @@ export type Database = {
         Args: Record<string, never>
         Returns: { project_id: string; names: string[] }[]
       }
+      item_events: {
+        Args: { p_item: string }
+        Returns: { id: number; kind: string; from_stage: string | null; to_stage: string | null; detail: string | null; actor_name: string | null; created_at: string }[]
+      }
       labor_rate_options: {
         Args: Record<string, never>
         Returns: { id: string; contractor_type: string; fase: string | null; unidad: string; descripcion: string; precio_cents: number }[]

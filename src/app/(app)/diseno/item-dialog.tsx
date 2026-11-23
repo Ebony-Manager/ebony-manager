@@ -155,14 +155,6 @@ export function ItemDialog({
           </Field>
         )}
 
-        {STAGE_STEP[item.stage] && (
-          <StagePanel
-            key={`${item.id}:${item.stage}`}
-            items={sameStage}
-            defaultChecked={sameStage.filter((s) => s.area.trim() === item.area.trim()).map((s) => s.id)}
-          />
-        )}
-
         {item.stage === "por_medir" && (
           <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/30 p-3">
             <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm select-none">
@@ -177,9 +169,17 @@ export function ItemDialog({
           </div>
         )}
 
+        {/* Archivos: arriba, el documento que pide la etapa (se sube aquí, para este y otros ítems) y el paso; abajo, lo cargado. */}
         <FormSection icon={FileText} title={td("files_title")}>
+          {STAGE_STEP[item.stage] && (
+            <StagePanel
+              key={`${item.id}:${item.stage}`}
+              items={sameStage}
+              defaultChecked={sameStage.filter((s) => s.area.trim() === item.area.trim()).map((s) => s.id)}
+            />
+          )}
           {item.files.length === 0 ? (
-            <EmptyState>{td("no_files")}</EmptyState>
+            !STAGE_STEP[item.stage] && <EmptyState>{td("no_files")}</EmptyState>
           ) : (
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {item.files.map((f) => (
@@ -204,7 +204,7 @@ export function ItemDialog({
               {events.map((e) => (
                 <li key={e.id} className="flex items-baseline justify-between gap-3">
                   <span className="min-w-0 text-foreground">
-                    <span className="font-medium">{who(e.actorId)}</span> · {eventText(e)}
+                    <span className="font-medium">{e.actorName || who(e.actorId)}</span> · {eventText(e)}
                   </span>
                   <span className="shrink-0 text-muted-foreground">{when(e.createdAt)}</span>
                 </li>

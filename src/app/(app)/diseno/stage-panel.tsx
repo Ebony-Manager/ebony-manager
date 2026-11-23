@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { FileText, RotateCcw, Upload } from "lucide-react";
+import { CircleCheck, FileText, RotateCcw, Upload } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { STAGE_STEP, STEP_FILE, hasStepFile, stepFiles, type FileStep } from "@/lib/diseno/steps";
 import type { ProjectItem } from "@/types/diseno";
 import { advanceItemsAction, attachStepFileAction } from "./actions";
-import { byArea, driveFile, uploadItemFiles, useTd } from "./shared";
+import { byArea, uploadItemFiles, useTd } from "./shared";
 
 /**
  * El documento que pide la etapa (hoja de medidas, presentación o presentación aprobada), para uno o varios
@@ -93,12 +93,12 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
 
-      {docs.map((f) => (
-        <a key={f.driveFileId} href={driveFile(f.driveFileId)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-          <FileText className="size-4 shrink-0" />
-          <span className="truncate">{f.name}</span>
-        </a>
-      ))}
+      {docs.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-foreground">
+          <CircleCheck className="size-3.5 shrink-0 text-primary" />
+          <span className="truncate">{docs.map((f) => f.name).join(", ")}</span>
+        </p>
+      )}
 
       <input
         ref={ref}

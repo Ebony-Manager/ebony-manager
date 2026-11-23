@@ -53,6 +53,8 @@ export interface ItemEvent {
   toStage: ItemStage | null;
   detail: string | null;
   actorId: string | null;
+  /** Quién lo hizo (nombre o el usuario de su correo). */
+  actorName: string | null;
   createdAt: string;
 }
 

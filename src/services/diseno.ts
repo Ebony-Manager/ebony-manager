@@ -102,7 +102,7 @@ export async function getBoardItems(): Promise<BoardItem[]> {
 
 export async function getItemEvents(itemId: string): Promise<ItemEvent[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("project_item_events").select("*").eq("item_id", itemId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("item_events", { p_item: itemId });
   if (error) throw new Error(error.message);
   return (data ?? []).map((e) => ({
     id: e.id,
@@ -110,7 +110,8 @@ export async function getItemEvents(itemId: string): Promise<ItemEvent[]> {
     fromStage: e.from_stage as ItemStage | null,
     toStage: e.to_stage as ItemStage | null,
     detail: e.detail,
-    actorId: e.actor_id,
+    actorId: null,
+    actorName: e.actor_name,
     createdAt: e.created_at,
   }));
 }
