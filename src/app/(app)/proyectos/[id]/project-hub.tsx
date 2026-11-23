@@ -20,6 +20,7 @@ import type { TallerPainter, TallerPerson, TallerProject, VeneerType, WorkOrder 
 import { ProjectWorkOrders } from "@/app/(app)/taller/project-work-orders";
 import { ProjectItems } from "@/app/(app)/diseno/project-items";
 import type { ProjectItem } from "@/types/diseno";
+import type { OrderSummary } from "@/types/produccion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,7 +117,7 @@ export function ProjectHub({
   designerQuotes?: DesignerQuoteSummary[];
   /** Con Taller: los trabajos de este proyecto, y nombres/fotos/proyectos para crearlos. */
   /** Los ítems (muebles) del proyecto y sus etapas de diseño. */
-  design?: { items: ProjectItem[]; pendingFromQuote: number } | null;
+  design?: { items: ProjectItem[]; pendingFromQuote: number; orders: OrderSummary[] } | null;
   taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[]; painters: TallerPainter[]; veneers: VeneerType[] } | null;
 }) {
   const { lang } = useLang();
@@ -212,7 +213,7 @@ export function ProjectHub({
       )}
       {tab === "inspecciones" && canInspections && <InspectionsBoard project={project} inspections={inspections} painters={painters} />}
       {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} {...taller} />}
-      {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} designers={designers.map((d) => ({ id: d.employeeId, name: d.name }))} />}
+      {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} orders={design.orders} designers={designers.map((d) => ({ id: d.employeeId, name: d.name }))} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (

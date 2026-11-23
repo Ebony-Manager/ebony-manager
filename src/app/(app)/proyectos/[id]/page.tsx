@@ -13,6 +13,7 @@ import { getDesignerCandidates, getDesignerProjectQuotes, getProjectDesigners } 
 import { getProjectItems, quoteItemsPending } from "@/services/diseno";
 import { getTallerPainters, getTallerPeople, getTallerProjects, getVeneerTypes, getWorkOrders, withProjectNames } from "@/services/taller";
 import { ProjectHub } from "./project-hub";
+import { getOrderSummaries } from "@/services/produccion";
 
 // La ficha de un proyecto: el lugar desde donde se llega a todo lo de la
 // obra. Cada sección pide su módulo (Contratos pide Contratistas;
@@ -60,8 +61,8 @@ export default async function ProjectPage({
           .then(([orders, people, projects, painters, veneers]) => ({ orders: withProjectNames(orders, projects), people, projects, painters, veneers }))
           .catch(() => null)
       : none(null),
-    Promise.all([getProjectItems(id), quoteItemsPending(id)])
-      .then(([items, pendingFromQuote]) => ({ items, pendingFromQuote }))
+    Promise.all([getProjectItems(id), quoteItemsPending(id), getOrderSummaries({ projectId: id }).catch(() => [])])
+      .then(([items, pendingFromQuote, orders]) => ({ items, pendingFromQuote, orders }))
       .catch(() => null),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);

@@ -14,6 +14,12 @@ import { ListGroupHeader } from "@/components/shared/list-group-header";
 import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import type { DesignerOption, ProjectItem } from "@/types/diseno";
+import type { OrderSummary } from "@/types/produccion";
+import { orderMissing } from "@/lib/produccion/missing";
+import { NewOrderDialog, OrderStatusBadge, itemsLabel, missingText, useTo } from "./orden/shared";
+import { orderPath } from "./orden/paths";
+import { Factory } from "lucide-react";
+import { FormSection } from "@/components/shared/form-section";
 import { assignItemsAction, createItemsAction, importQuoteItemsAction } from "./actions";
 import { DesignerSelect, ItemStageBadge, NEXT_STEP, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
 import { ICON } from "@/lib/ui/concepts";
@@ -39,10 +45,13 @@ export function ProjectItems({
   items,
   pendingFromQuote,
   designers = [],
+  orders = [],
 }: {
   projectId: string;
   items: ProjectItem[];
   pendingFromQuote: number;
+  /** Las órdenes de producción del proyecto (las de Diseño y las que ya siguieron). */
+  orders?: OrderSummary[];
   /** Las diseñadoras del proyecto: con más de una, cada ítem (o área) se asigna a una. */
   designers?: DesignerOption[];
 }) {
@@ -52,6 +61,10 @@ export function ProjectItems({
   const [stepFor, setStepFor] = React.useState<{ id: string; step: FileStep } | null>(null);
   const [importing, setImporting] = React.useState(false);
   const groups = byArea(items);
+  const { lang, to } = useTo();
+  const [ordering, setOrdering] = React.useState(false);
+  const orderOf = new Map(orders.flatMap((o) => o.itemIds.map((id) => [id, o] as const)));
+  const freeItems = items.filter((i) => i.stage === "aprobado" && !orderOf.has(i.id));
   const several = designers.length > 1;
   const [assigning, setAssigning] = React.useState(false);
 
@@ -88,6 +101,46 @@ export function ProjectItems({
           {td("add_item")}
         </Button>
       </div>
+
+      {(orders.length > 0 || freeItems.length > 0) && (
+        <FormSection
+          icon={Factory}
+          title={to("orders")}
+          action={
+            freeItems.length > 0 ? (
+              <Button size="sm" variant="outline" onClick={() => setOrdering(true)}>
+                <Plus className="size-3.5" />
+                {to("new_order")}
+              </Button>
+            ) : undefined
+          }
+        >
+          {orders.length === 0 ? (
+            <EmptyState>{to("new_order_desc")}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
+              {orders.map((o) => {
+                const missing = orderMissing({ itemCount: o.itemIds.length, fileKinds: o.fileKinds, laborCount: o.laborCount });
+                const showMissing = (o.status === "borrador" || o.status === "por_corregir") && missing.length > 0;
+                return (
+                  <li key={o.id}>
+                    <Link href={orderPath(o.id)} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-muted/40">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-foreground">{to("title", { n: o.number })}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {itemsLabel(to, o.itemIds.length)}
+                          {showMissing && ` · ${to("missing", { list: missingText(to, missing, lang) })}`}
+                        </span>
+                      </span>
+                      <OrderStatusBadge status={o.status} to={to} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </FormSection>
+      )}
 
       {items.length === 0 ? (
         <EmptyState>{td("empty")}</EmptyState>
@@ -127,6 +180,7 @@ export function ProjectItems({
                           {daysLabel(td, daysInStage(i))}
                         </span>
                         {i.areaNotReady && <span>· {td("area_not_ready")}</span>}
+                        {orderOf.has(i.id) && <span className="font-medium text-foreground">· {to("in_order", { n: orderOf.get(i.id)!.number })}</span>}
                         {several && (
                           <span className={`flex items-center gap-1 ${i.designerId ? "" : "font-medium text-foreground"}`}>
                             · <ICON.designer className="size-3" />
@@ -151,6 +205,7 @@ export function ProjectItems({
 
       <ItemDialog item={items.find((i) => i.id === openId) ?? null} designers={designers} onClose={() => setOpenId(null)} />
       <StepDialog item={stepFor ? (items.find((i) => i.id === stepFor.id) ?? null) : null} step={stepFor?.step ?? null} onClose={() => setStepFor(null)} />
+      <NewOrderDialog open={ordering} projectId={projectId} freeItems={freeItems} onClose={() => setOrdering(false)} />
       <AddItemsDialog open={adding} projectId={projectId} designers={several ? designers : []} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
     </div>
   );

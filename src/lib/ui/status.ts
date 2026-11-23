@@ -30,6 +30,14 @@ export const STATUS = {
   item_con_cliente: { icon: Send, tone: "warn" },
   item_aprobado: { icon: CircleCheck, tone: "ok" },
   item_en_produccion: { icon: Hammer, tone: "info" },
+  // Orden de producción (Diseño → revisión de Brainer → pedidos → taller).
+  order_borrador: { icon: FilePen, tone: "muted" },
+  order_en_revision: { icon: Send, tone: "warn" },
+  order_por_corregir: { icon: TriangleAlert, tone: "error" },
+  order_aprobada: { icon: CircleCheck, tone: "ok" },
+  order_pedida: { icon: Truck, tone: "info" },
+  order_en_taller: { icon: Hammer, tone: "info" },
+  order_cancelada: { icon: CircleX, tone: "muted" },
   // Cotizaciones
   quote_BORRADOR: { icon: FilePen, tone: "muted" },
   quote_ENVIADA: { icon: Send, tone: "warn" },

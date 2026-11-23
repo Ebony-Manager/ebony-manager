@@ -3596,6 +3596,48 @@ export type Database = {
         Update: { actor_id?: string | null; created_at?: string; detail?: string | null; from_stage?: string | null; id?: number; item_id?: string; kind?: string; to_stage?: string | null }
         Relationships: []
       }
+      production_orders: {
+        Row: { id: string; project_id: string; number: number; status: string; status_since: string; review_note: string | null; notes: string | null; sent_at: string | null; created_by: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; project_id: string; number?: number; status?: string; status_since?: string; review_note?: string | null; notes?: string | null; sent_at?: string | null; created_by?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; project_id?: string; number?: number; status?: string; status_since?: string; review_note?: string | null; notes?: string | null; sent_at?: string | null; created_by?: string | null; created_at?: string; updated_at?: string }
+        Relationships: [{ foreignKeyName: "production_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] }]
+      }
+      production_order_items: {
+        Row: { order_id: string; item_id: string; color: string | null; sort_order: number; created_at: string }
+        Insert: { order_id: string; item_id: string; color?: string | null; sort_order?: number; created_at?: string }
+        Update: { order_id?: string; item_id?: string; color?: string | null; sort_order?: number; created_at?: string }
+        Relationships: [{ foreignKeyName: "production_order_items_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }, { foreignKeyName: "production_order_items_item_id_fkey"; columns: ["item_id"]; isOneToOne: true; referencedRelation: "project_items"; referencedColumns: ["id"] }]
+      }
+      production_order_files: {
+        Row: { id: string; order_id: string; kind: string; drive_file_id: string; name: string; mime_type: string | null; size_bytes: number | null; created_by: string | null; created_at: string }
+        Insert: { id?: string; order_id: string; kind: string; drive_file_id: string; name: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
+        Update: { id?: string; order_id?: string; kind?: string; drive_file_id?: string; name?: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "production_order_files_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }]
+      }
+      production_order_labor: {
+        Row: { id: string; order_id: string; item_id: string | null; rate_id: string | null; contractor_type: string; fase: string | null; unidad: string; description: string; quantity: number; unit_price_cents: number; created_at: string }
+        Insert: { id?: string; order_id: string; item_id?: string | null; rate_id?: string | null; contractor_type: string; fase?: string | null; unidad: string; description: string; quantity: number; unit_price_cents: number; created_at?: string }
+        Update: { id?: string; order_id?: string; item_id?: string | null; rate_id?: string | null; contractor_type?: string; fase?: string | null; unidad?: string; description?: string; quantity?: number; unit_price_cents?: number; created_at?: string }
+        Relationships: [{ foreignKeyName: "production_order_labor_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }]
+      }
+      production_order_hardware: {
+        Row: { id: string; order_id: string; source: string; inventory_item_id: string | null; description: string; quantity: number; unit: string | null; notes: string | null; created_at: string }
+        Insert: { id?: string; order_id: string; source: string; inventory_item_id?: string | null; description: string; quantity: number; unit?: string | null; notes?: string | null; created_at?: string }
+        Update: { id?: string; order_id?: string; source?: string; inventory_item_id?: string | null; description?: string; quantity?: number; unit?: string | null; notes?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "production_order_hardware_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }]
+      }
+      production_order_materials: {
+        Row: { id: string; order_id: string; material: string; quantity: number; unit: string; notes: string | null; created_at: string }
+        Insert: { id?: string; order_id: string; material: string; quantity: number; unit?: string; notes?: string | null; created_at?: string }
+        Update: { id?: string; order_id?: string; material?: string; quantity?: number; unit?: string; notes?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "production_order_materials_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }]
+      }
+      production_order_events: {
+        Row: { id: number; order_id: string; kind: string; from_status: string | null; to_status: string | null; detail: string | null; actor_id: string | null; created_at: string }
+        Insert: { id?: number; order_id: string; kind: string; from_status?: string | null; to_status?: string | null; detail?: string | null; actor_id?: string | null; created_at?: string }
+        Update: { id?: number; order_id?: string; kind?: string; from_status?: string | null; to_status?: string | null; detail?: string | null; actor_id?: string | null; created_at?: string }
+        Relationships: []
+      }
       paint_samples: {
         Row: { created_at: string; id: string; kind: string; name: string; official_code: string | null; sort_order: number; updated_at: string; veneer_type_id: string | null; work_order_id: string }
         Insert: { created_at?: string; id?: string; kind: string; name: string; official_code?: string | null; sort_order?: number; updated_at?: string; veneer_type_id?: string | null; work_order_id: string }
@@ -3709,6 +3751,18 @@ export type Database = {
       project_designer_names: {
         Args: Record<string, never>
         Returns: { project_id: string; names: string[] }[]
+      }
+      labor_rate_options: {
+        Args: Record<string, never>
+        Returns: { id: string; contractor_type: string; fase: string | null; unidad: string; descripcion: string; precio_cents: number }[]
+      }
+      hardware_item_options: {
+        Args: Record<string, never>
+        Returns: { id: string; name: string; unit: string | null; category: string | null }[]
+      }
+      color_options: {
+        Args: { p_project: string }
+        Returns: { label: string; from_project: boolean }[]
       }
       project_designer_options: {
         Args: Record<string, never>
