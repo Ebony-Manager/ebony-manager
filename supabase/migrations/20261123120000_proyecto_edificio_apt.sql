@@ -82,33 +82,33 @@ end;
 $$;
 
 -- Los proyectos activos: lo que estaba escrito en "Ubicación", separado en barrio, edificio y apartamento
--- (revisado con Carlos). Donde no se sabe el barrio queda vacío.
+-- (revisado con Carlos).
 update public.projects p
    set location = v.barrio, building = v.edificio, unit = v.apt
   from (values
-    ('781d57f2-f8fc-48e8-9681-893ad35c8211'::uuid, null, 'PH Península', '25B'),
-    ('3d85c216-2660-47cd-96d7-193f704d23dd'::uuid, null, 'PH Bellagio', '7A'),
+    ('781d57f2-f8fc-48e8-9681-893ad35c8211'::uuid, 'Paitilla', 'PH Península', '25B'),
+    ('3d85c216-2660-47cd-96d7-193f704d23dd'::uuid, 'Punta Pacífica', 'PH Bellagio', '7A'),
     ('926e9a1e-2cb7-4e1a-80f8-33d150031128'::uuid, 'San Carlos, Playa Corona', 'Casa pasando Ibiza Ocean View', null),
     ('494c70ba-a167-4082-9703-a22e99789e33'::uuid, 'Santa María', 'Empire Residences', '15B'),
     ('157d8095-9615-410d-b4d6-da1f9616e704'::uuid, 'Coco del Mar', 'PH Punta Arenas', '33'),
-    ('760204b7-1f5f-43e8-a7df-d4572c5f76b5'::uuid, null, 'PH Park Eleven', '3B'),
-    ('5133cb2f-0542-473d-9a4c-b946159ddea1'::uuid, null, 'PH Bayside', '15'),
+    ('760204b7-1f5f-43e8-a7df-d4572c5f76b5'::uuid, 'Santa María', 'PH Park Eleven', '3B'),
+    ('5133cb2f-0542-473d-9a4c-b946159ddea1'::uuid, 'Paitilla', 'PH Bayside', '15'),
     ('dfd293fc-7921-4e77-9ed3-684e033fc8f9'::uuid, 'Santa María', 'PH Serena', '7A'),
     ('feb68d11-d600-4400-981a-f3266cd2e8dc'::uuid, 'Punta Pacífica', 'PH Aquamare', '11B'),
-    ('c05b2fad-8593-4ab5-ba36-57b581b4dfbb'::uuid, null, 'PH Vitri', '44A'),
+    ('c05b2fad-8593-4ab5-ba36-57b581b4dfbb'::uuid, 'Costa del Este', 'PH Vitri', '44A'),
     ('44da4527-8962-4d83-aa13-cfec5547d788'::uuid, 'Paitilla', 'PH The Towers, Torre 100', '28B'),
     ('c38b5ab6-2269-4d3b-b75b-1bcbbf620855'::uuid, 'Santa María', 'The Colonial', '9A'),
     ('53459c7d-5dd7-4199-b309-9f42170138eb'::uuid, 'Costa del Este', 'Financial Park', '28'),
-    ('93b458f9-9e8c-4b00-b1d0-6bf10ce7183b'::uuid, null, 'PH The Colonial', '23C'),
+    ('93b458f9-9e8c-4b00-b1d0-6bf10ce7183b'::uuid, 'Santa María', 'PH The Colonial', '23C'),
     ('1ada473d-3391-40a6-bf30-5fa9f1945e78'::uuid, 'Buenaventura', null, null),
     ('e8bc0a20-0d7d-4285-9465-641caff1a5a4'::uuid, 'Santa María', 'The Grove, Casa 13', null),
     ('944d3c43-0802-45e1-9c70-5da3715e443c'::uuid, 'Paitilla', 'Royal Palace', '6'),
-    ('cbceb0f3-9c3c-40dd-a700-c5d21021703a'::uuid, null, 'Sea Point', '18B'),
-    ('e27050a9-4ecb-42e6-92da-c7828033a320'::uuid, null, 'Parque del Mar, Torre 100', '15'),
+    ('cbceb0f3-9c3c-40dd-a700-c5d21021703a'::uuid, 'Paitilla', 'Sea Point', '18B'),
+    ('e27050a9-4ecb-42e6-92da-c7828033a320'::uuid, 'Costa del Este', 'Parque del Mar, Torre 100', '15'),
     ('64072806-50e5-4b6e-a44b-654dda40d166'::uuid, 'Paitilla', 'PH Golden Palace', '16'),
     ('f1559886-90f6-4527-8a6c-a6ad2aeed257'::uuid, 'Santa María', 'PH Buenavista', '4B'),
-    ('e8cc4ffe-2a7f-40bb-91fc-e488840c3c8e'::uuid, null, 'PH Venetian', '12A'),
+    ('e8cc4ffe-2a7f-40bb-91fc-e488840c3c8e'::uuid, 'Punta Pacífica', 'PH Venetian', '12A'),
     ('c066b3db-c00a-4815-80a4-0f5b693969aa'::uuid, 'Colón, Calle 9, Avenida Roosevelt', 'Edificio Orquídea', '2B'),
-    ('8e7b3ce5-80c0-4d6a-9f30-f30512a4300c'::uuid, null, 'PH Torre del Mar', '11A')
+    ('8e7b3ce5-80c0-4d6a-9f30-f30512a4300c'::uuid, 'Paitilla', 'PH Torre del Mar', '11A')
   ) as v(id, barrio, edificio, apt)
  where p.id = v.id;
