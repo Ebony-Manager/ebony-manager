@@ -3,7 +3,8 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { FileText, Hammer, Layers, ListChecks, Plus, Upload, Wrench, X } from "lucide-react";
+import { FileText, FolderOpen, Hammer, Layers, ListChecks, Plus, Upload, Wrench, X } from "lucide-react";
+import { DrivePicker } from "@/app/(app)/diseno/drive-picker";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import {
   addOrderFilesAction,
   addOrderItemsAction,
   deleteOrderAction,
+  linkOrderFileAction,
   removeOrderFileAction,
   removeOrderItemAction,
   removeOrderLineAction,
@@ -433,6 +435,17 @@ function ColorInput({ value, listId, placeholder, label, onSave }: { value: stri
 /** Un tipo de documento: sus archivos (abrir / quitar) y el botón para subir. */
 function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: OrderFileKind; editable: boolean; to: To }) {
   const refresh = React.useContext(OrderRefresh);
+  const [picking, setPicking] = React.useState(false);
+
+  async function link(driveFileId: string) {
+    setPicking(false);
+    setUploading(true);
+    const res = await linkOrderFileAction(order.id, kind, driveFileId);
+    setUploading(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(to("linked"));
+    refresh();
+  }
   const ref = React.useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = React.useState(false);
   const files = order.files.filter((f) => f.kind === kind);
@@ -497,10 +510,15 @@ function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: O
                 void upload(picked);
               }}
             />
+            <Button size="sm" variant="outline" className="h-8" disabled={uploading} onClick={() => setPicking(true)}>
+              <FolderOpen className="size-3.5" />
+              {to("drive")}
+            </Button>
             <Button size="sm" variant="outline" className="h-8" disabled={uploading} onClick={() => ref.current?.click()}>
               <Upload className="size-3.5" />
               {uploading ? to("uploading") : to("upload")}
             </Button>
+            <DrivePicker projectId={order.projectId} open={picking} onPick={(f) => void link(f.id)} onClose={() => setPicking(false)} />
           </>
         )}
       </div>

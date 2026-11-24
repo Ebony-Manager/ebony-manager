@@ -3583,9 +3583,9 @@ export type Database = {
         ]
       }
       project_item_files: {
-        Row: { created_at: string; created_by: string | null; drive_file_id: string; id: string; item_id: string; kind: string; mime_type: string | null; name: string; round: number; size_bytes: number | null }
-        Insert: { created_at?: string; created_by?: string | null; drive_file_id: string; id?: string; item_id: string; kind: string; mime_type?: string | null; name: string; round?: number; size_bytes?: number | null }
-        Update: { created_at?: string; created_by?: string | null; drive_file_id?: string; id?: string; item_id?: string; kind?: string; mime_type?: string | null; name?: string; round?: number; size_bytes?: number | null }
+        Row: { created_at: string; created_by: string | null; drive_file_id: string; id: string; item_id: string; kind: string; linked: boolean; mime_type: string | null; name: string; round: number; size_bytes: number | null }
+        Insert: { created_at?: string; created_by?: string | null; drive_file_id: string; id?: string; item_id: string; kind: string; linked?: boolean; mime_type?: string | null; name: string; round?: number; size_bytes?: number | null }
+        Update: { created_at?: string; created_by?: string | null; drive_file_id?: string; id?: string; item_id?: string; kind?: string; linked?: boolean; mime_type?: string | null; name?: string; round?: number; size_bytes?: number | null }
         Relationships: [
           { foreignKeyName: "project_item_files_item_id_fkey"; columns: ["item_id"]; isOneToOne: false; referencedRelation: "project_items"; referencedColumns: ["id"] },
         ]
@@ -3609,9 +3609,9 @@ export type Database = {
         Relationships: [{ foreignKeyName: "production_order_items_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }, { foreignKeyName: "production_order_items_item_id_fkey"; columns: ["item_id"]; isOneToOne: true; referencedRelation: "project_items"; referencedColumns: ["id"] }]
       }
       production_order_files: {
-        Row: { id: string; order_id: string; kind: string; drive_file_id: string; name: string; mime_type: string | null; size_bytes: number | null; created_by: string | null; created_at: string }
-        Insert: { id?: string; order_id: string; kind: string; drive_file_id: string; name: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
-        Update: { id?: string; order_id?: string; kind?: string; drive_file_id?: string; name?: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
+        Row: { id: string; order_id: string; kind: string; linked: boolean; drive_file_id: string; name: string; mime_type: string | null; size_bytes: number | null; created_by: string | null; created_at: string }
+        Insert: { id?: string; order_id: string; kind: string; linked?: boolean; drive_file_id: string; name: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
+        Update: { id?: string; order_id?: string; kind?: string; linked?: boolean; drive_file_id?: string; name?: string; mime_type?: string | null; size_bytes?: number | null; created_by?: string | null; created_at?: string }
         Relationships: [{ foreignKeyName: "production_order_files_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "production_orders"; referencedColumns: ["id"] }]
       }
       production_order_labor: {

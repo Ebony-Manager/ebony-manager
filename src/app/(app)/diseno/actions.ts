@@ -10,6 +10,7 @@ import { ITEM_FILE_MAX, type ItemEvent, type ItemFileKind, type ItemStage } from
 import { tidyCase } from "@/lib/diseno/text";
 import { STEP_FILE, STEP_FROM, STEP_TO, fileRound, hasStepFile, type FileStep } from "@/lib/diseno/steps";
 import { ensureProjectFolderAction } from "@/app/(app)/drive-actions";
+import { checkProjectDriveFile } from "./drive-check";
 import { projectPath } from "@/app/(app)/proyectos/paths";
 
 // Diseño · ítems y etapas. Permiso Diseño, Proyectos o Contratistas (la RLS lo repite).
@@ -154,6 +155,29 @@ export async function attachStepFileAction(itemIds: string[], step: FileStep, fi
     if (drive.parentId !== folder) throw new Error(`«${file.name}» no quedó en la carpeta del proyecto.`);
     for (const it of items) {
       await diseno.addItemFiles(it.id, [{ ...file, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size ?? file.sizeBytes, round: fileRound(it) }]);
+    }
+    return items[0].projectId;
+  });
+  if (res.ok) revalidate(res.data);
+  return res.ok ? { ok: true, data: null } : res;
+}
+
+/**
+ * Escoge del Drive del proyecto el documento de la etapa (sin subirlo otra vez) para uno o varios ítems: queda
+ * anotado como «escogido», así que al quitarlo nunca se borra de Drive.
+ */
+export async function linkStepFileAction(itemIds: string[], step: FileStep, driveFileId: string): Promise<Result> {
+  await access();
+  const res = await run(async () => {
+    const items = await sameProjectItems(itemIds);
+    const wrong = items.find((i) => i.stage !== STEP_FROM[step]);
+    if (wrong) throw new Error(`«${wrong.name}» ya cambió de etapa: actualiza la pantalla.`);
+    const drive = await checkProjectDriveFile(items[0].projectId, driveFileId);
+    for (const it of items) {
+      if (it.files.some((f) => f.driveFileId === driveFileId && f.kind === STEP_FILE[step])) continue;
+      await diseno.addItemFiles(it.id, [
+        { kind: STEP_FILE[step], round: fileRound(it), driveFileId, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size, linked: true },
+      ]);
     }
     return items[0].projectId;
   });

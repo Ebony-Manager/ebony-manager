@@ -179,10 +179,11 @@ export async function setItemStage(id: string, stage: ItemStage, round?: number)
 /** Borra el ítem y devuelve sus archivos de Drive (para mandarlos a la papelera). */
 export async function deleteItem(id: string): Promise<string[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("project_item_files").select("drive_file_id").eq("item_id", id);
+  const { data } = await supabase.from("project_item_files").select("drive_file_id, linked").eq("item_id", id);
   const { error } = await supabase.from("project_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  return unusedDriveFiles((data ?? []).map((f) => f.drive_file_id));
+  // Los escogidos de Drive son de la diseñadora: nunca se borran.
+  return unusedDriveFiles((data ?? []).filter((f) => !f.linked).map((f) => f.drive_file_id));
 }
 
 /** De estos archivos de Drive, los que ya ningún ítem usa (un mismo plano puede servir a varios ítems). */
@@ -196,20 +197,21 @@ async function unusedDriveFiles(driveIds: string[]): Promise<string[]> {
 
 export async function addItemFiles(
   itemId: string,
-  files: { kind: ItemFileKind; round: number; driveFileId: string; name: string; mimeType: string | null; sizeBytes: number | null }[],
+  files: { kind: ItemFileKind; round: number; driveFileId: string; name: string; mimeType: string | null; sizeBytes: number | null; linked?: boolean }[],
 ): Promise<void> {
   if (files.length === 0) return;
   const supabase = await createClient();
   const { error } = await supabase.from("project_item_files").insert(
-    files.map((f) => ({ item_id: itemId, kind: f.kind, round: f.round, drive_file_id: f.driveFileId, name: f.name, mime_type: f.mimeType, size_bytes: f.sizeBytes })),
+    files.map((f) => ({ item_id: itemId, kind: f.kind, round: f.round, drive_file_id: f.driveFileId, name: f.name, mime_type: f.mimeType, size_bytes: f.sizeBytes, linked: !!f.linked })),
   );
   if (error) throw new Error(error.message);
 }
 
 export async function removeItemFile(fileId: string): Promise<string | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("project_item_files").delete().eq("id", fileId).select("drive_file_id").maybeSingle();
+  const { data, error } = await supabase.from("project_item_files").delete().eq("id", fileId).select("drive_file_id, linked").maybeSingle();
   if (error) throw new Error(error.message);
+  if (data?.linked) return null;
   // Solo se manda a la papelera si ningún otro ítem usa el mismo archivo.
   return data ? ((await unusedDriveFiles([data.drive_file_id]))[0] ?? null) : null;
 }

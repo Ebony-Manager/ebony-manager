@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { STAGE_STEP, STEP_FILE, hasStepFile, stepFiles, type FileStep } from "@/lib/diseno/steps";
 import type { ProjectItem } from "@/types/diseno";
-import { advanceItemsAction, attachStepFileAction } from "./actions";
+import { advanceItemsAction, attachStepFileAction, linkStepFileAction } from "./actions";
+import { DrivePicker } from "./drive-picker";
+import { FolderOpen } from "lucide-react";
 import { byArea, uploadItemFiles, useTd } from "./shared";
 
 /**
@@ -22,6 +24,7 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
   const step = items[0] ? STAGE_STEP[items[0].stage] : undefined;
   const [checked, setChecked] = React.useState<Set<string>>(() => new Set(defaultChecked));
   const [busy, setBusy] = React.useState(false);
+  const [picking, setPicking] = React.useState(false);
   const ids = items.map((i) => i.id).join(",");
 
   // Si la lista cambia (un ítem avanzó), se quitan los que ya no están.
@@ -70,6 +73,20 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
       else toast.success(td("doc_uploaded"));
     }
     setBusy(false);
+  }
+
+  async function linkFromDrive(driveFileId: string) {
+    if (!step || picked.length === 0) return void toast.error(td("err_pick_items"));
+    setPicking(false);
+    setBusy(true);
+    const res = await linkStepFileAction(
+      picked.map((i) => i.id),
+      step,
+      driveFileId,
+    );
+    setBusy(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(td("linked_ok"));
   }
 
   async function advance(s: FileStep) {
@@ -131,6 +148,15 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
         disabled={n === 0}
         onFiles={(files) => void upload(files[0])}
       />
+      {/* Si el archivo ya está en el Drive del proyecto, se escoge de ahí: no se sube otra copia. */}
+      <p className="-mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        {td("or_drive")}
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" disabled={busy || n === 0} onClick={() => setPicking(true)}>
+          <FolderOpen className="size-3.5" />
+          {td("pick_drive")}
+        </Button>
+      </p>
+      {items[0] && <DrivePicker projectId={items[0].projectId} open={picking} onPick={(f) => void linkFromDrive(f.id)} onClose={() => setPicking(false)} />}
 
       {docs.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-foreground">

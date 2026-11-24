@@ -13,6 +13,7 @@ import { ITEM_FILE_MAX } from "@/types/diseno";
 import { ensureProjectFolderAction } from "@/app/(app)/drive-actions";
 import { projectPath } from "@/app/(app)/proyectos/paths";
 import { orderPath } from "./paths";
+import { checkProjectDriveFile } from "../drive-check";
 
 // Orden de producción · armarla y enviarla a revisión. Permiso Diseño, Proyectos o Contratistas (la RLS lo repite).
 
@@ -180,6 +181,20 @@ export async function addOrderFilesAction(orderId: string, files: UploadedOrderF
       checked.push({ ...f, name: item.name, mimeType: item.mimeType, sizeBytes: item.size ?? f.sizeBytes });
     }
     await produccion.addOrderFiles(orderId, checked);
+    revalidate(o);
+    return null;
+  });
+}
+
+/** Un documento escogido del Drive del proyecto (sin subirlo otra vez): al quitarlo nunca se borra de Drive. */
+export async function linkOrderFileAction(orderId: string, kind: OrderFileKind, driveFileId: string): Promise<Result> {
+  await access();
+  return run(async () => {
+    if (!ORDER_FILE_KINDS.includes(kind)) throw new Error("Tipo de documento no válido.");
+    const o = await editable(orderId);
+    if (o.files.some((f) => f.driveFileId === driveFileId && f.kind === kind)) return null;
+    const drive = await checkProjectDriveFile(o.projectId, driveFileId);
+    await produccion.addOrderFiles(orderId, [{ kind, driveFileId, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size, linked: true }]);
     revalidate(o);
     return null;
   });

@@ -199,26 +199,27 @@ export async function setOrderNotes(id: string, notes: string | null): Promise<v
 /** Borra la orden (y devuelve sus archivos de Drive, para la papelera). Sus ítems quedan libres otra vez. */
 export async function deleteOrder(id: string): Promise<string[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("production_order_files").select("drive_file_id").eq("order_id", id);
+  const { data } = await supabase.from("production_order_files").select("drive_file_id, linked").eq("order_id", id);
   const { error } = await supabase.from("production_orders").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((f) => f.drive_file_id);
+  // Los escogidos de Drive son de la diseñadora: nunca se borran.
+  return (data ?? []).filter((f) => !f.linked).map((f) => f.drive_file_id);
 }
 
-export async function addOrderFiles(orderId: string, files: { kind: OrderFileKind; driveFileId: string; name: string; mimeType: string | null; sizeBytes: number | null }[]) {
+export async function addOrderFiles(orderId: string, files: { kind: OrderFileKind; driveFileId: string; name: string; mimeType: string | null; sizeBytes: number | null; linked?: boolean }[]) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("production_order_files")
-    .insert(files.map((f) => ({ order_id: orderId, kind: f.kind, drive_file_id: f.driveFileId, name: f.name, mime_type: f.mimeType, size_bytes: f.sizeBytes })));
+    .insert(files.map((f) => ({ order_id: orderId, kind: f.kind, drive_file_id: f.driveFileId, name: f.name, mime_type: f.mimeType, size_bytes: f.sizeBytes, linked: !!f.linked })));
   if (error) throw new Error(error.message);
 }
 
 export async function removeOrderFile(fileId: string): Promise<string | null> {
   const supabase = await createClient();
-  const { data } = await supabase.from("production_order_files").select("drive_file_id").eq("id", fileId).maybeSingle();
+  const { data } = await supabase.from("production_order_files").select("drive_file_id, linked").eq("id", fileId).maybeSingle();
   const { error } = await supabase.from("production_order_files").delete().eq("id", fileId);
   if (error) throw new Error(error.message);
-  return data?.drive_file_id ?? null;
+  return data && !data.linked ? data.drive_file_id : null;
 }
 
 export async function addLaborLine(orderId: string, line: Omit<LaborLine, "id">): Promise<void> {

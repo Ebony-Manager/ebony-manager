@@ -338,3 +338,14 @@ export async function ensureSubfolders(parentId: string, names: readonly string[
   }
   return out;
 }
+
+/** ¿El archivo está dentro de esta carpeta (en cualquier subcarpeta, hasta 10 niveles)? */
+export async function isInsideFolder(fileId: string, folderId: string): Promise<boolean> {
+  let current = [fileId];
+  for (let depth = 0; depth < 10 && current.length; depth++) {
+    const parents = (await Promise.all(current.map((id) => getParents(id).catch(() => [] as string[])))).flat();
+    if (parents.includes(folderId)) return true;
+    current = [...new Set(parents)];
+  }
+  return false;
+}
