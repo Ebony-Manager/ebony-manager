@@ -66,5 +66,5 @@ export interface BoardItem extends ProjectItem {
   designers: DesignerOption[];
 }
 
-/** Hasta este tamaño se sube un archivo de diseño (las presentaciones en PDF suelen pesar varios MB). */
-export const ITEM_FILE_MAX = 30 * 1024 * 1024;
+/** Hasta este tamaño se sube un archivo de diseño (va directo del navegador a Drive; las presentaciones con renders pesan mucho). */
+export const ITEM_FILE_MAX = 200 * 1024 * 1024;

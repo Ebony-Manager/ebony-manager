@@ -160,7 +160,7 @@ async function orderFolder(o: { projectId: string; number: number }): Promise<st
 
 export async function startOrderUploadAction(orderId: string, name: string, mimeType: string, size: number): Promise<Result<string>> {
   await access();
-  if (size > ITEM_FILE_MAX) return { ok: false, error: `«${name}» pesa más de 30 MB.` };
+  if (size > ITEM_FILE_MAX) return { ok: false, error: `«${name}» pesa más de 200 MB.` };
   const origin = (await headers()).get("origin");
   return run(async () => startUpload(await orderFolder(await editable(orderId)), name, mimeType, size, origin));
 }

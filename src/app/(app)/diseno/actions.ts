@@ -107,7 +107,7 @@ async function itemFolder(projectId: string, kind: ItemFileKind): Promise<string
 /** Abre la subida de un archivo: el navegador lo manda directo a Drive. */
 export async function startItemUploadAction(projectId: string, kind: ItemFileKind, name: string, mimeType: string, size: number): Promise<Result<string>> {
   await access();
-  if (size > ITEM_FILE_MAX) return { ok: false, error: `«${name}» pesa más de 30 MB.` };
+  if (size > ITEM_FILE_MAX) return { ok: false, error: `«${name}» pesa más de 200 MB.` };
   const origin = (await headers()).get("origin");
   return run(async () => startUpload(await itemFolder(projectId, kind), name, mimeType, size, origin));
 }
