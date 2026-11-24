@@ -267,3 +267,31 @@ export async function removeOrderLineAction(table: produccion.OrderLineTable, id
     return null;
   });
 }
+
+// ── Para la ventana flotante de la orden ──
+
+export type OrderBundle = {
+  order: ProductionOrder;
+  rates: Awaited<ReturnType<typeof produccion.getLaborRateOptions>>;
+  hardwareItems: Awaited<ReturnType<typeof produccion.getHardwareItemOptions>>;
+  colors: Awaited<ReturnType<typeof produccion.getColorOptions>>;
+  freeItems: Awaited<ReturnType<typeof diseno.getProjectItems>>;
+};
+
+/** Todo lo que la ventana de la orden necesita: la orden, las tarifas, el inventario, los colores y los ítems libres. */
+export async function getOrderBundleAction(orderId: string): Promise<Result<OrderBundle>> {
+  await access();
+  return run(async () => {
+    const order = await produccion.getOrder(orderId);
+    if (!order) throw new Error("Esa orden ya no existe.");
+    const [rates, hardwareItems, colors, items, orders] = await Promise.all([
+      produccion.getLaborRateOptions().catch(() => []),
+      produccion.getHardwareItemOptions().catch(() => []),
+      produccion.getColorOptions(order.projectId).catch(() => []),
+      diseno.getProjectItems(order.projectId).catch(() => []),
+      produccion.getOrderSummaries({ projectId: order.projectId }).catch(() => []),
+    ]);
+    const taken = new Set(orders.flatMap((o) => o.itemIds));
+    return { order, rates, hardwareItems, colors, freeItems: items.filter((i) => i.stage === "aprobado" && !taken.has(i.id)) };
+  });
+}

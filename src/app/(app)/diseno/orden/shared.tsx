@@ -48,7 +48,20 @@ export function missingText(to: To, keys: readonly MissingKey[], lang: "es" | "e
 export const itemsLabel = (to: To, n: number) => (n === 1 ? to("item_1") : to("items_n", { n }));
 
 /** Nueva orden: escoger los ítems aprobados (sin orden) que entran y abrir la orden para seguir armándola. */
-export function NewOrderDialog({ open, projectId, freeItems, onClose }: { open: boolean; projectId: string; freeItems: ProjectItem[]; onClose: () => void }) {
+export function NewOrderDialog({
+  open,
+  projectId,
+  freeItems,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  projectId: string;
+  freeItems: ProjectItem[];
+  onClose: () => void;
+  /** Abrir la orden recién creada (en su ventana flotante); si no se da, se va a su página. */
+  onCreated?: (orderId: string) => void;
+}) {
   const { to } = useTo();
   const router = useRouter();
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
@@ -73,7 +86,8 @@ export function NewOrderDialog({ open, projectId, freeItems, onClose }: { open: 
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("created"));
     onClose();
-    router.push(orderPath(res.data));
+    if (onCreated) onCreated(res.data);
+    else router.push(orderPath(res.data));
   }
 
   const toggle = (id: string) => {

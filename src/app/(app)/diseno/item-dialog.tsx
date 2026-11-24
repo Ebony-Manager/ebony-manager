@@ -39,7 +39,10 @@ export function ItemDialog({
   designers = [],
   siblings = [],
   orders = [],
+  onOpenOrder,
 }: {
+  /** Abrir una orden en su ventana flotante (desde el tablero o la ficha del proyecto). */
+  onOpenOrder?: (orderId: string) => void;
   /** Las órdenes de producción del proyecto: un ítem aprobado muestra la suya o el botón para crearla. */
   orders?: OrderSummary[];
   item: ProjectItem | null;
@@ -184,12 +187,19 @@ export function ItemDialog({
         {item.stage === "aprobado" && (
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
             {myOrder ? (
-              <Button asChild className="w-full">
-                <Link href={orderPath(myOrder.id)}>
+              onOpenOrder ? (
+                <Button className="w-full" onClick={() => onOpenOrder(myOrder.id)}>
                   <Factory className="size-4" />
                   {td("open_order", { n: myOrder.number })}
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button asChild className="w-full">
+                  <Link href={orderPath(myOrder.id)}>
+                    <Factory className="size-4" />
+                    {td("open_order", { n: myOrder.number })}
+                  </Link>
+                </Button>
+              )
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">{td("approved_next")}</p>
@@ -288,7 +298,7 @@ export function ItemDialog({
         </div>
       </DialogContent>
       <EditItemDialog item={editing ? item : null} onClose={() => setEditing(false)} />
-      <NewOrderDialog open={ordering} projectId={item.projectId} freeItems={freeApproved} onClose={() => setOrdering(false)} />
+      <NewOrderDialog open={ordering} projectId={item.projectId} freeItems={freeApproved} onClose={() => setOrdering(false)} onCreated={onOpenOrder} />
     </Dialog>
   );
 }

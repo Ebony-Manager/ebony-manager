@@ -17,7 +17,7 @@ import type { DesignerOption, ProjectItem } from "@/types/diseno";
 import type { OrderSummary } from "@/types/produccion";
 import { orderMissing } from "@/lib/produccion/missing";
 import { NewOrderDialog, OrderStatusBadge, itemsLabel, missingText, useTo } from "./orden/shared";
-import { orderPath } from "./orden/paths";
+import { OrderDialog } from "./orden/order-dialog";
 import { Factory } from "lucide-react";
 import { FormSection } from "@/components/shared/form-section";
 import { assignItemsAction, createItemsAction, importQuoteItemsAction } from "./actions";
@@ -53,6 +53,7 @@ export function ProjectItems({
   const groups = byArea(items);
   const { lang, to } = useTo();
   const [ordering, setOrdering] = React.useState(false);
+  const [orderId, setOrderId] = React.useState<string | null>(null);
   const orderOf = new Map(orders.flatMap((o) => o.itemIds.map((id) => [id, o] as const)));
   const freeItems = items.filter((i) => i.stage === "aprobado" && !orderOf.has(i.id));
   const several = designers.length > 1;
@@ -114,7 +115,7 @@ export function ProjectItems({
                 const showMissing = (o.status === "borrador" || o.status === "por_corregir") && missing.length > 0;
                 return (
                   <li key={o.id}>
-                    <Link href={orderPath(o.id)} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-muted/40">
+                    <button type="button" onClick={() => setOrderId(o.id)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left hover:bg-muted/40">
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium text-foreground">{to("title", { n: o.number })}</span>
                         <span className="block truncate text-xs text-muted-foreground">
@@ -123,7 +124,7 @@ export function ProjectItems({
                         </span>
                       </span>
                       <OrderStatusBadge status={o.status} to={to} />
-                    </Link>
+                    </button>
                   </li>
                 );
               })}
@@ -193,8 +194,16 @@ export function ProjectItems({
         ))
       )}
 
-      <ItemDialog item={items.find((i) => i.id === openId) ?? null} siblings={items} orders={orders} designers={designers} onClose={() => setOpenId(null)} />
-      <NewOrderDialog open={ordering} projectId={projectId} freeItems={freeItems} onClose={() => setOrdering(false)} />
+      <ItemDialog
+        onOpenOrder={(id) => {
+          setOpenId(null);
+          setOrderId(id);
+        }}
+        item={items.find((i) => i.id === openId) ?? null}
+        siblings={items}
+        orders={orders} designers={designers} onClose={() => setOpenId(null)} />
+      <NewOrderDialog open={ordering} projectId={projectId} freeItems={freeItems} onClose={() => setOrdering(false)} onCreated={setOrderId} />
+      <OrderDialog orderId={orderId} onClose={() => setOrderId(null)} />
       <AddItemsDialog open={adding} projectId={projectId} designers={several ? designers : []} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
     </div>
   );

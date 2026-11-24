@@ -9,13 +9,12 @@ import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { STATUS, TONE_TEXT } from "@/lib/ui/status";
 import { ICON } from "@/lib/ui/concepts";
 import { projectPath } from "@/app/(app)/proyectos/paths";
-import Link from "next/link";
 import { Factory } from "lucide-react";
 import { DESIGN_STAGES, STAGE_LATE_DAYS, type BoardItem, type ItemStage } from "@/types/diseno";
 import { DESIGN_ORDER_STATUSES, type OrderSummary } from "@/types/produccion";
 import { orderMissing } from "@/lib/produccion/missing";
 import { OrderStatusBadge, itemsLabel, missingText, useTo } from "./orden/shared";
-import { orderPath } from "./orden/paths";
+import { OrderDialog } from "./orden/order-dialog";
 import { StageGroupDialog } from "./stage-panel";
 import { STAGE_STEP } from "@/lib/diseno/steps";
 import { Button } from "@/components/ui/button";
@@ -93,6 +92,8 @@ export function DesignBoard({
   const [scope, setScope] = React.useState<Scope>(hasMine ? "mine" : "all");
   const [column, setColumn] = React.useState<Column>("por_medir");
   const [openId, setOpenId] = React.useState<string | null>(null);
+  // La orden de producción abierta en su ventana flotante.
+  const [orderId, setOrderId] = React.useState<string | null>(null);
   // El documento de la etapa para varios ítems de un proyecto a la vez (desde el encabezado del grupo).
   const [groupFor, setGroupFor] = React.useState<{ ids: string[]; title: string } | null>(null);
 
@@ -168,7 +169,7 @@ export function DesignBoard({
     const editing = o.status !== "en_revision";
     return (
       <li key={o.id}>
-        <Link href={orderPath(o.id)} className="flex w-full flex-col gap-1 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted/40">
+        <button type="button" onClick={() => setOrderId(o.id)} className="flex w-full flex-col gap-1 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted/40">
           <span className="flex items-start justify-between gap-2">
             <span className="text-sm font-medium text-foreground">{to("title", { n: o.number })}</span>
             <OrderStatusBadge status={o.status} to={to} />
@@ -183,7 +184,7 @@ export function DesignBoard({
             {late ? `${td("late")} · ` : ""}
             {daysLabel(td, daysInStage({ stageSince: o.statusSince }))}
           </span>
-        </Link>
+        </button>
       </li>
     );
   };
@@ -296,7 +297,14 @@ export function DesignBoard({
         </>
       )}
       <StageGroupDialog items={groupFor ? allItems.filter((i) => groupFor.ids.includes(i.id) && i.stage === allItems.find((x) => x.id === groupFor.ids[0])?.stage) : null} title={groupFor?.title ?? ""} onClose={() => setGroupFor(null)} />
-      <ItemDialog item={open} orders={allOrders} siblings={open ? allItems.filter((i) => i.projectId === open.projectId) : []} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
+      <OrderDialog orderId={orderId} onClose={() => setOrderId(null)} />
+      <ItemDialog
+        onOpenOrder={(id) => {
+          setOpenId(null);
+          setOrderId(id);
+        }}
+        item={open}
+        orders={allOrders} siblings={open ? allItems.filter((i) => i.projectId === open.projectId) : []} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
     </div>
   );
 }

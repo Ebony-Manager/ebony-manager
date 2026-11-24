@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { FileText, Hammer, Layers, ListChecks, Plus, Upload, Wrench, X } from "lucide-react";
 
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,21 +48,30 @@ import {
 } from "../actions";
 import { OrderStatusBadge, itemsLabel, missingText, useTo, type To } from "../shared";
 
+/** Lo que la ventana de la orden hace después de cada cambio: volver a leer la orden (en la página, nada: la recarga sola). */
+export const OrderRefresh = React.createContext<() => void>(() => undefined);
+
 export function OrderView({
   order,
   rates,
   hardwareItems,
   colors,
   freeItems,
+  variant = "page",
+  onDeleted,
 }: {
   order: ProductionOrder;
   rates: LaborRateOption[];
   hardwareItems: HardwareItemOption[];
   colors: ColorOption[];
   freeItems: ProjectItem[];
+  /** «dialog»: dentro de la ventana flotante del tablero (sin «volver»). */
+  variant?: "page" | "dialog";
+  onDeleted?: () => void;
 }) {
   const { lang, to } = useTo();
   const router = useRouter();
+  const refresh = React.useContext(OrderRefresh);
   const [busy, setBusy] = React.useState(false);
   const [dialog, setDialog] = React.useState<"items" | "labor" | "hardware" | "materials" | null>(null);
   const editable = EDITABLE_ORDER_STATUSES.includes(order.status);
@@ -79,6 +88,7 @@ export function OrderView({
       return false;
     }
     if (okMsg) toast.success(okMsg);
+    refresh();
     return true;
   }
 
@@ -88,19 +98,11 @@ export function OrderView({
     setBusy(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("deleted"));
-    router.push(projectPath(res.data, "diseno"));
+    if (onDeleted) onDeleted();
+    else router.push(projectPath(res.data, "diseno"));
   }
 
-  const itemName = (id: string | null) => (id ? (order.items.find((i) => i.itemId === id)?.name ?? "—") : to("whole_order"));
-  const totals = laborTotals(order.labor);
-
-  return (
-    <div className={PAGE_CLASS}>
-      <PageHeader
-        back={{ href: projectPath(order.projectId, "diseno"), label: order.projectName }}
-        title={to("title", { n: order.number })}
-        meta={<OrderStatusBadge status={order.status} to={to} />}
-        action={
+  const headerAction = 
           order.status === "en_revision" ? (
             <Button variant="outline" disabled={busy} onClick={() => void act(() => withdrawOrderAction(order.id), to("withdrawn"))}>
               {to("withdraw")}
@@ -109,9 +111,31 @@ export function OrderView({
             <Button disabled={busy || missing.length > 0} onClick={() => void act(() => sendOrderAction(order.id), to("sent"))}>
               {to("send")}
             </Button>
-          ) : null
-        }
-      />
+          ) : null;
+
+  const itemName = (id: string | null) => (id ? (order.items.find((i) => i.itemId === id)?.name ?? "—") : to("whole_order"));
+  const totals = laborTotals(order.labor);
+
+  return (
+    <div className={variant === "page" ? PAGE_CLASS : "flex flex-col gap-5"}>
+      {variant === "page" ? (
+        <PageHeader
+          back={{ href: projectPath(order.projectId, "diseno"), label: order.projectName }}
+          title={to("title", { n: order.number })}
+          meta={<OrderStatusBadge status={order.status} to={to} />}
+          action={headerAction}
+        />
+      ) : (
+        <DialogHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0 pr-6">
+          <div className="min-w-0">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              {to("title", { n: order.number })} <OrderStatusBadge status={order.status} to={to} />
+            </DialogTitle>
+            <DialogDescription>{order.projectName}</DialogDescription>
+          </div>
+          {headerAction}
+        </DialogHeader>
+      )}
 
       {order.status === "por_corregir" && order.reviewNote && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
@@ -408,6 +432,7 @@ function ColorInput({ value, listId, placeholder, label, onSave }: { value: stri
 
 /** Un tipo de documento: sus archivos (abrir / quitar) y el botón para subir. */
 function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: OrderFileKind; editable: boolean; to: To }) {
+  const refresh = React.useContext(OrderRefresh);
   const ref = React.useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = React.useState(false);
   const files = order.files.filter((f) => f.kind === kind);
@@ -437,7 +462,10 @@ function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: O
     if (done.length) {
       const res = await addOrderFilesAction(order.id, done);
       if (!res.ok) toast.error(res.error);
-      else toast.success(to("uploaded"));
+      else {
+        toast.success(to("uploaded"));
+        refresh();
+      }
     }
     setUploading(false);
   }
@@ -445,6 +473,7 @@ function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: O
   async function removeFile(id: string) {
     const res = await removeOrderFileAction(id);
     if (!res.ok) toast.error(res.error);
+    else refresh();
   }
 
   return (
@@ -492,6 +521,7 @@ function DocRow({ order, kind, editable, to }: { order: ProductionOrder; kind: O
 
 /** Agregar a la orden más ítems aprobados del proyecto. */
 function AddItemsDialog({ open, orderId, freeItems, onClose }: { open: boolean; orderId: string; freeItems: ProjectItem[]; onClose: () => void }) {
+  const refresh = React.useContext(OrderRefresh);
   const { to } = useTo();
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
   const [saving, setSaving] = React.useState(false);
@@ -513,6 +543,7 @@ function AddItemsDialog({ open, orderId, freeItems, onClose }: { open: boolean; 
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("saved"));
+    refresh();
     onClose();
   }
 
@@ -569,6 +600,7 @@ const ORDER_ALL = "__order__";
 
 /** Una línea de mano de obra: la tarifa, el ítem (o toda la orden) y la cantidad; el monto lo calcula la app. */
 function LaborDialog({ open, order, rates, onClose }: { open: boolean; order: ProductionOrder; rates: LaborRateOption[]; onClose: () => void }) {
+  const refresh = React.useContext(OrderRefresh);
   const { to } = useTo();
   const [rateId, setRateId] = React.useState("");
   const [itemId, setItemId] = React.useState(ORDER_ALL);
@@ -599,6 +631,7 @@ function LaborDialog({ open, order, rates, onClose }: { open: boolean; order: Pr
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("saved"));
+    refresh();
     onClose();
   }
 
@@ -702,6 +735,7 @@ function ItemSelect({ value, onChange, order, to }: { value: string; onChange: (
 
 /** Un herraje: del inventario (lo prepara Almacén) o de compra especial. */
 function HardwareDialog({ open, orderId, items, onClose }: { open: boolean; orderId: string; items: HardwareItemOption[]; onClose: () => void }) {
+  const refresh = React.useContext(OrderRefresh);
   const { to } = useTo();
   const [source, setSource] = React.useState<"inventario" | "especial">("inventario");
   const [itemId, setItemId] = React.useState("");
@@ -750,6 +784,7 @@ function HardwareDialog({ open, orderId, items, onClose }: { open: boolean; orde
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("saved"));
+    refresh();
     onClose();
   }
 
@@ -866,6 +901,7 @@ function InventorySelect({
 
 /** Un material que se aparta para la orden. */
 function MaterialDialog({ open, orderId, onClose }: { open: boolean; orderId: string; onClose: () => void }) {
+  const refresh = React.useContext(OrderRefresh);
   const { to } = useTo();
   const [material, setMaterial] = React.useState("");
   const [qty, setQty] = React.useState("");
@@ -896,6 +932,7 @@ function MaterialDialog({ open, orderId, onClose }: { open: boolean; orderId: st
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(to("saved"));
+    refresh();
     onClose();
   }
 
