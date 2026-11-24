@@ -50,3 +50,26 @@ Todo lo que haga la app más barata, más rápida o más estable:
 - `contractor_ledger_entries` 787 y `payroll_entries` 492 el viernes; < 120 el fin de semana.
 - Sin errores en postgres el lunes; sin 4xx/5xx en edge.
 - Pico: vie 13 22:40 UTC, 357 consultas/min = fichas de proyecto armadas dos veces (arreglado en `24bd09e`).
+
+### 23 nov 2026 (revisión del lunes; cubre lun 16 22:38 → lun 23 22:37 UTC — la del jueves 19 no corrió: se reinició la sesión)
+| Día (UTC) | Consultas | Fotos | `save_quote` | `contractor_ledger` / `payroll` |
+|---|---|---|---|---|
+| Mar 17 | 13,681 | 4,194 | 158 | 125 / 122 |
+| Mié 18 | 10,566 | 1,284 | 1,178 | 232 / 75 |
+| Jue 19 | 5,781 | 504 | 449 | 290 / 67 |
+| Vie 20 | 6,367 | 1,017 | 596 | 237 / 20 |
+| Sáb 21 | 1,752 | 290 | 0 | 10 / 8 |
+| Dom 22 | 403 | 59 | 20 | 0 / 0 |
+| Lun 23 | 8,693 | 543 | 108 | 93 / 29 |
+- **Arreglo `24bd09e` confirmado:** consultas a `projects` en un día laboral 639 (vie 13) → 198 (vie 20) y 396 (lun 23), ≈ −40 %.
+  Las tablas hijas (`project_*`) no bajaron (860 → 991 el lunes; más uso de las fichas). Sin picos de doble armado.
+- **Mar 17:** 4,529 de las 13,681 consultas (y casi todo el salto de fotos, `inventory-photos`, 17:30–18:35 UTC) vinieron de
+  servidores `node` en Google Cloud (35.184.*, 136.113.*, 34.1xx.*) que **no son Vercel** (Vercel sale por AWS 44.*/3.*):
+  probablemente las sesiones de trabajo del barrido de diseño abriendo la app con datos reales. El lunes 23 fueron solo 619.
+  No es tráfico de usuarios; la caché sirvió ~93 % de esas fotos.
+- Pico sin fotos: mié 18 04:54 UTC, 253/min (de noche: contratos, proyectos, entregas, pintores) — también sesión de trabajo.
+- `/auth/v1/user`: 0 todos los días. `jwks`: ~430–460 en días laborales (normal). Sin 5xx en edge; sin errores en postgres el lunes.
+- Asesores de seguridad: sin novedades (las funciones con token para formularios/cron por diseño; protección de contraseñas filtradas apagada — solo aplica si se activa login con contraseña).
+- Vercel: sin despliegues fallidos en la semana. Errores: aviso `url.parse()` (de una librería, inofensivo); 1 «Push falló» 410
+  (suscripción vencida, se limpia sola); **`record_integration_run drive TOKEN_INVALIDO` 3 veces (10–23 nov) desde
+  `/api/jotform/webhook`**: el webhook no logra anotar el estado de Drive en Settings → Conexiones (Drive en sí no se reportó caído). Revisar.
