@@ -8,7 +8,7 @@ import { driveEnabled, ensureSubfolders, getItem as getDriveItem, startUpload, t
 import * as diseno from "@/services/diseno";
 import { ITEM_FILE_MAX, type ItemEvent, type ItemFileKind, type ItemStage } from "@/types/diseno";
 import { tidyCase } from "@/lib/diseno/text";
-import { STEP_FILE, STEP_FROM, STEP_TO, fileRound, hasStepFile, type FileStep } from "@/lib/diseno/steps";
+import { STEP_FILE, STEP_FROM, STEP_TO, fileAction, fileRound, hasStepFile, type FileStep } from "@/lib/diseno/steps";
 import { ensureProjectFolderAction } from "@/app/(app)/drive-actions";
 import { checkProjectDriveFile } from "./drive-check";
 import { projectPath } from "@/app/(app)/proyectos/paths";
@@ -198,6 +198,8 @@ export async function advanceItemsAction(itemIds: string[], step: ItemStep): Pro
     for (const item of items) {
       const from: ItemStage[] = step === "volver" ? ["en_diseno", "aprobado"] : [STEP_FROM[step]];
       if (!from.includes(item.stage)) throw new Error(`«${item.name}» ya cambió de etapa: actualiza la pantalla.`);
+      if (step === "volver" && item.stage === "aprobado" && (await diseno.itemOrderStatus(item.id)))
+        throw new Error(`«${item.name}» está en una orden de producción: quítalo de la orden antes de volver a En diseño.`);
       if (step !== "volver" && !hasStepFile(item, step))
         throw new Error(`A «${item.name}» le falta ${step === "medido" ? "la hoja de medidas" : "la presentación aprobada"}.`);
     }
@@ -229,13 +231,52 @@ export async function addItemFilesAction(id: string, files: UploadedFile[]): Pro
   return res;
 }
 
+/** Lo que se puede hacer con un archivo del ítem (ver `fileAction`): se valida aquí igual que en la pantalla. */
+async function fileRules(fileId: string) {
+  const file = await diseno.getItemFile(fileId);
+  if (!file) throw new Error("El archivo ya no está.");
+  const item = await diseno.getItem(file.itemId);
+  if (!item) throw new Error("El ítem ya no existe.");
+  return { file, item, action: fileAction(item, file, await diseno.itemOrderStatus(item.id)) };
+}
+
 export async function removeItemFileAction(fileId: string, projectId: string): Promise<Result> {
   await access();
   const res = await run(async () => {
+    const { action } = await fileRules(fileId);
+    if (action === "fijo") throw new Error("El ítem está en una orden en revisión: sus archivos ya no se cambian.");
+    if (action === "cambiar") throw new Error("Este documento justifica un paso ya dado: cámbialo por otra versión, o usa «Volver» para quitarlo.");
     const driveId = await diseno.removeItemFile(fileId);
     if (driveId && driveEnabled()) await trashItem(driveId).catch(() => undefined);
     return null;
   });
   if (res.ok) revalidate(projectId);
   return res;
+}
+
+/**
+ * Cambia un documento por otra versión (subida o escogida de Drive): la nueva entra y la anterior sale, así el ítem
+ * nunca queda sin su documento. La anterior solo se borra de Drive si la subió la app y ningún ítem la usa.
+ */
+export async function replaceItemFileAction(fileId: string, next: { upload: UploadedFile } | { driveFileId: string }): Promise<Result> {
+  await access();
+  const res = await run(async () => {
+    const { file, item, action } = await fileRules(fileId);
+    if (action === "fijo") throw new Error("El ítem está en una orden en revisión: sus archivos ya no se cambian.");
+    if ("upload" in next) {
+      if (next.upload.kind !== file.kind) throw new Error("Tipo de documento no válido.");
+      const folder = await itemFolder(item.projectId, file.kind);
+      const drive = await getDriveItem(next.upload.driveFileId);
+      if (drive.parentId !== folder) throw new Error(`«${next.upload.name}» no quedó en la carpeta del proyecto.`);
+      await diseno.addItemFiles(item.id, [{ ...next.upload, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size ?? next.upload.sizeBytes, round: file.round }]);
+    } else {
+      const drive = await checkProjectDriveFile(item.projectId, next.driveFileId);
+      await diseno.addItemFiles(item.id, [{ kind: file.kind, round: file.round, driveFileId: next.driveFileId, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size, linked: true }]);
+    }
+    const oldDrive = await diseno.removeItemFile(fileId);
+    if (oldDrive && driveEnabled()) await trashItem(oldDrive).catch(() => undefined);
+    return item.projectId;
+  });
+  if (res.ok) revalidate(res.data);
+  return res.ok ? { ok: true, data: null } : res;
 }

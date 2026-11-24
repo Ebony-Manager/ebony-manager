@@ -13,3 +13,17 @@ describe("documentos de cada paso", () => {
     expect(stepFiles({ round: 0, files: [f("aprobada", 0), f("medidas", 0)] }, "aprobado")).toEqual([f("aprobada", 0)]);
   });
 });
+
+import { fileAction } from "./steps";
+
+describe("qué se puede hacer con un archivo", () => {
+  it("la hoja de medidas se quita en Por medir y después solo se cambia", () => {
+    expect(fileAction({ stage: "por_medir" }, { kind: "medidas" }, null)).toBe("quitar");
+    expect(fileAction({ stage: "en_diseno" }, { kind: "medidas" }, null)).toBe("cambiar");
+  });
+  it("la aprobada se cambia una vez aprobado; en una orden en revisión todo queda fijo", () => {
+    expect(fileAction({ stage: "en_diseno" }, { kind: "aprobada" }, null)).toBe("quitar");
+    expect(fileAction({ stage: "aprobado" }, { kind: "aprobada" }, "borrador")).toBe("cambiar");
+    expect(fileAction({ stage: "aprobado" }, { kind: "medidas" }, "en_revision")).toBe("fijo");
+  });
+});

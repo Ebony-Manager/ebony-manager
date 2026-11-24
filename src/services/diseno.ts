@@ -207,6 +207,21 @@ export async function addItemFiles(
   if (error) throw new Error(error.message);
 }
 
+/** Un archivo de un ítem (para validar antes de quitarlo o cambiarlo). */
+export async function getItemFile(fileId: string): Promise<{ id: string; itemId: string; kind: ItemFileKind; round: number; driveFileId: string; linked: boolean } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("project_item_files").select("id, item_id, kind, round, drive_file_id, linked").eq("id", fileId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? { id: data.id, itemId: data.item_id, kind: data.kind as ItemFileKind, round: data.round, driveFileId: data.drive_file_id, linked: data.linked } : null;
+}
+
+/** La etapa de la orden de producción en la que está el ítem (null si no está en ninguna). */
+export async function itemOrderStatus(itemId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("production_order_items").select("production_orders(status)").eq("item_id", itemId).maybeSingle();
+  return (data?.production_orders as { status: string } | null)?.status ?? null;
+}
+
 export async function removeItemFile(fileId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("project_item_files").delete().eq("id", fileId).select("drive_file_id, linked").maybeSingle();

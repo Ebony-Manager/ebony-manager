@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { Factory, FileText, History, Image as ImageIcon, Pencil, Undo2, X } from "lucide-react";
+import { Factory, FileText, FolderOpen, History, Image as ImageIcon, Lock, Pencil, RefreshCw, Undo2, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,11 @@ import type { DesignerOption, ItemEvent, ItemFile, ProjectItem } from "@/types/d
 import { advanceItemAction, assignItemsAction, deleteItemAction, getItemEventsAction, removeItemFileAction, updateItemAction } from "./actions";
 import { DesignerSelect, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
 import { StagePanel } from "./stage-panel";
-import { STAGE_STEP } from "@/lib/diseno/steps";
+import { STAGE_STEP, fileAction } from "@/lib/diseno/steps";
+import { FileDropZone } from "@/components/shared/file-drop-zone";
+import { DrivePicker } from "./drive-picker";
+import { replaceItemFileAction } from "./actions";
+import { uploadItemFiles } from "./shared";
 import type { OrderSummary } from "@/types/produccion";
 import { NewOrderDialog } from "./orden/shared";
 import { orderPath } from "./orden/paths";
@@ -61,6 +65,7 @@ export function ItemDialog({
   const [events, setEvents] = React.useState<ItemEvent[] | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [ordering, setOrdering] = React.useState(false);
+  const [replacing, setReplacing] = React.useState<ItemFile | null>(null);
   const itemId = item?.id ?? null;
   const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}:${item.notes}:${item.waitingClient}` : "";
 
@@ -257,7 +262,21 @@ export function ItemDialog({
                     <span className="text-xs text-muted-foreground">{fileLabel(f)} · </span>
                     {f.name}
                   </a>
-                  <ConfirmButton iconOnly icon={X} label={td("remove_file")} confirmLabel={td("confirm_remove")} disabled={busy} className="shrink-0 text-muted-foreground" onConfirm={() => void removeFile(f)} />
+                  {(() => {
+                    // La hoja de medidas o la aprobada de un paso ya dado solo se cambia; en una orden en revisión, nada.
+                    const action = fileAction(item, f, myOrder?.status ?? null);
+                    if (action === "fijo") return <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-label={td("file_locked")} />;
+                    if (action === "cambiar")
+                      return (
+                        <Button type="button" size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" disabled={busy} onClick={() => setReplacing(f)}>
+                          <RefreshCw className="size-3.5" />
+                          {td("replace_file")}
+                        </Button>
+                      );
+                    return (
+                      <ConfirmButton iconOnly icon={X} label={td("remove_file")} confirmLabel={td("confirm_remove")} disabled={busy} className="shrink-0 text-muted-foreground" onConfirm={() => void removeFile(f)} />
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
@@ -298,6 +317,7 @@ export function ItemDialog({
         </div>
       </DialogContent>
       <EditItemDialog item={editing ? item : null} onClose={() => setEditing(false)} />
+      <ReplaceFileDialog item={item} file={replacing} label={replacing ? fileLabel(replacing) : ""} onClose={() => setReplacing(null)} />
       <NewOrderDialog open={ordering} projectId={item.projectId} freeItems={freeApproved} onClose={() => setOrdering(false)} onCreated={onOpenOrder} />
     </Dialog>
   );
@@ -379,6 +399,53 @@ function EditItemDialog({ item, onClose }: { item: ProjectItem | null; onClose: 
         </form>
       </DialogContent>
       {dialog}
+    </Dialog>
+  );
+}
+
+/** Cambiar un documento por otra versión: se arrastra o se escoge de Drive; la anterior sale al entrar la nueva. */
+function ReplaceFileDialog({ item, file, label, onClose }: { item: ProjectItem; file: ItemFile | null; label: string; onClose: () => void }) {
+  const { td } = useTd();
+  const [busy, setBusy] = React.useState(false);
+  const [picking, setPicking] = React.useState(false);
+  if (!file) return null;
+
+  async function replace(next: Parameters<typeof replaceItemFileAction>[1]) {
+    if (!file) return;
+    setBusy(true);
+    const res = await replaceItemFileAction(file.id, next);
+    setBusy(false);
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(td("doc_uploaded"));
+    onClose();
+  }
+
+  async function upload(f: File) {
+    if (!file) return;
+    setBusy(true);
+    const up = await uploadItemFiles(item.projectId, [{ file: f, kind: file.kind }]);
+    setBusy(false);
+    for (const x of up.failed) toast.error(td("upload_failed", { name: x.name, error: x.error }), { duration: 8000 });
+    if (up.uploaded[0]) await replace({ upload: up.uploaded[0] });
+  }
+
+  return (
+    // ui-allow: sin-campos (se arrastra o se escoge un archivo; no hay nada que escribir)
+    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {td("replace_file")} · {label}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="truncate text-sm text-muted-foreground">{file.name}</p>
+        <FileDropZone accept="application/pdf,image/*" label={td("drop_replace")} busy={busy} busyLabel={td("uploading")} onFiles={(fs) => void upload(fs[0])} />
+        <Button type="button" variant="outline" disabled={busy} onClick={() => setPicking(true)}>
+          <FolderOpen className="size-4" />
+          {td("pick_drive")}
+        </Button>
+        <DrivePicker projectId={item.projectId} open={picking} onPick={(f) => (setPicking(false), void replace({ driveFileId: f.id }))} onClose={() => setPicking(false)} />
+      </DialogContent>
     </Dialog>
   );
 }
