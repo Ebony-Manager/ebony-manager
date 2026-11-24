@@ -1,0 +1,53 @@
+# Publica la app en Vercel (producción) cada vez que cambia `main`.
+#
+# GitHub arma la app y le entrega a Vercel el resultado ya listo (`vercel deploy --prebuilt`): así Vercel no
+# tiene que leer el repositorio privado de la organización, que el plan gratuito de Vercel no permite.
+# Necesita un solo secreto en GitHub: VERCEL_TOKEN (Vercel → Account Settings → Tokens).
+name: Publicar en Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: team_BwhpqA9effYitFalFc8H2lf6
+      VERCEL_PROJECT_ID: prj_rG27U6dAwKGOmrZGS6mvunGrpkbf
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Revisar que esté la llave de Vercel
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Falta el secreto VERCEL_TOKEN en GitHub (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar la herramienta de Vercel
+        run: npm install --global vercel@latest
+
+      - name: Traer la configuración y las variables de producción
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Armar la app
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Publicar
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
