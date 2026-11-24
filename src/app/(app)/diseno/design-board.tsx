@@ -192,7 +192,7 @@ export function DesignBoard({
     if (s === "orders")
       return (
         <div key={s} className="flex min-w-0 flex-col gap-2">
-          <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground xl:flex">
+          <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground lg:flex">
             {to("column")} <span className="font-normal">({shownOrders.length})</span>
           </p>
           {shownOrders.length === 0 ? <EmptyState className="py-6">—</EmptyState> : <ul className="flex flex-col gap-2">{shownOrders.map(orderCard)}</ul>}
@@ -202,7 +202,7 @@ export function DesignBoard({
     const step = STAGE_STEP[s];
     return (
       <div key={s} className="flex min-w-0 flex-col gap-2">
-        <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground xl:flex">
+        <p className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground lg:flex">
           {stageLabel(td, s)} <span className="font-normal">({list.length})</span>
         </p>
         {list.length === 0 ? (
@@ -279,7 +279,7 @@ export function DesignBoard({
               ]}
             />
           )}
-          <div className="flex flex-col gap-3 xl:hidden">
+          <div className="flex flex-col gap-3 lg:hidden">
             <SegmentedFilter
               fill
               value={column}
@@ -292,7 +292,7 @@ export function DesignBoard({
             />
             {col(column)}
           </div>
-          <div className="hidden gap-4 xl:grid xl:grid-cols-5">{COLUMNS.map(col)}</div>
+          <div className="hidden gap-4 lg:grid lg:grid-cols-4">{COLUMNS.map(col)}</div>
         </>
       )}
       <StageGroupDialog items={groupFor ? allItems.filter((i) => groupFor.ids.includes(i.id) && i.stage === allItems.find((x) => x.id === groupFor.ids[0])?.stage) : null} title={groupFor?.title ?? ""} onClose={() => setGroupFor(null)} />

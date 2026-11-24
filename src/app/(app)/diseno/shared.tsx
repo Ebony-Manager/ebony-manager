@@ -41,8 +41,8 @@ export function daysInStage(item: Pick<ProjectItem, "stageSince">, now = Date.no
 }
 
 /** Atrasado: lleva más de 7 días en la misma etapa de diseño (no cuenta en producción ni con el área sin lista). */
-export function isLate(item: Pick<ProjectItem, "stageSince" | "stage" | "areaNotReady">, now = Date.now()): boolean {
-  return item.stage !== "en_produccion" && !item.areaNotReady && daysInStage(item, now) > STAGE_LATE_DAYS;
+export function isLate(item: Pick<ProjectItem, "stageSince" | "stage" | "areaNotReady" | "waitingClient">, now = Date.now()): boolean {
+  return item.stage !== "en_produccion" && item.stage !== "aprobado" && !item.areaNotReady && !item.waitingClient && daysInStage(item, now) > STAGE_LATE_DAYS;
 }
 
 export function daysLabel(td: Td, n: number) {
@@ -50,10 +50,9 @@ export function daysLabel(td: Td, n: number) {
 }
 
 /** El paso siguiente de cada etapa (botón principal). */
-export const NEXT_STEP: Partial<Record<ItemStage, "medido" | "enviar" | "aprobado">> = {
+export const NEXT_STEP: Partial<Record<ItemStage, "medido" | "aprobado">> = {
   por_medir: "medido",
-  en_diseno: "enviar",
-  con_cliente: "aprobado",
+  en_diseno: "aprobado",
 };
 
 /**
@@ -158,6 +157,7 @@ export function ItemCardNotes({ item }: { item: ProjectItem }) {
           {td("doc_ready", { doc: td(`doc_short_${step}`) })}
         </span>
       )}
+      {item.waitingClient && <span>· {td("waiting_client")}</span>}
       {item.areaNotReady && (
         <span>
           · {td("area_not_ready")}

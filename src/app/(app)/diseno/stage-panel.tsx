@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { CircleCheck, FileText, RotateCcw } from "lucide-react";
+import { CircleCheck, FileText } from "lucide-react";
 import { FileDropZone } from "@/components/shared/file-drop-zone";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -40,8 +40,8 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
   const groups = byArea(items);
   const several = items.length > 1;
 
-  const docLabel = step === "medido" ? td("f_medidas") : step === "enviar" ? td("f_presentacion") : td("f_aprobada");
-  const desc = step === "medido" ? td("dlg_medido_desc") : step === "enviar" ? td("dlg_enviar_desc") : td("dlg_aprobado_desc");
+  const docLabel = step === "medido" ? td("f_medidas") : td("f_aprobada");
+  const desc = step === "medido" ? td("dlg_medido_desc") : td("dlg_aprobado_desc");
   const n = picked.length;
 
   function toggle(idsToToggle: string[], on: boolean) {
@@ -72,7 +72,7 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
     setBusy(false);
   }
 
-  async function advance(s: FileStep | "cambios") {
+  async function advance(s: FileStep) {
     if (picked.length === 0) return void toast.error(td("err_pick_items"));
     setBusy(true);
     const res = await advanceItemsAction(
@@ -125,7 +125,7 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
       {/* Primero se marca para qué ítems; después se arrastra el documento. */}
       <FileDropZone
         accept="application/pdf,image/*"
-        label={docs.length ? td("drop_again") : td(step === "medido" ? "drop_medidas" : step === "enviar" ? "drop_presentacion" : "drop_aprobada")}
+        label={docs.length ? td("drop_again") : td(step === "medido" ? "drop_medidas" : "drop_aprobada")}
         busy={busy}
         busyLabel={td("uploading")}
         disabled={n === 0}
@@ -144,13 +144,6 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
         {td(`step_${step}`)}
         {n > 1 ? ` (${n})` : ""}
       </Button>
-      {step === "aprobado" && (
-        <Button type="button" variant="ghost" size="sm" className="self-start" disabled={busy || n === 0} onClick={() => void advance("cambios")}>
-          <RotateCcw className="size-3.5" />
-          {td("step_cambios")}
-          {n > 1 ? ` (${n})` : ""}
-        </Button>
-      )}
     </div>
   );
 }

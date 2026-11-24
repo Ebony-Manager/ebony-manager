@@ -1,8 +1,8 @@
 /** Diseño · ítems de cada proyecto y sus etapas (ver el documento del flujo y TALLER-PLAN.md). */
 
-export type ItemStage = "por_medir" | "en_diseno" | "con_cliente" | "aprobado" | "en_produccion";
+export type ItemStage = "por_medir" | "en_diseno" | "aprobado" | "en_produccion";
 /** Las etapas de diseño (en_produccion la pone la orden de producción). */
-export const DESIGN_STAGES: readonly ItemStage[] = ["por_medir", "en_diseno", "con_cliente", "aprobado"];
+export const DESIGN_STAGES: readonly ItemStage[] = ["por_medir", "en_diseno", "aprobado"];
 export const ITEM_STAGES: readonly ItemStage[] = [...DESIGN_STAGES, "en_produccion"];
 
 export type ItemFileKind = "medidas" | "foto" | "presentacion" | "aprobada";
@@ -32,6 +32,8 @@ export interface ProjectItem {
   stageSince: string;
   round: number;
   areaNotReady: boolean;
+  /** Esperando respuesta del cliente (no cuenta como atraso). */
+  waitingClient: boolean;
   nextVisit: string | null;
   notes: string | null;
   fromQuote: boolean;

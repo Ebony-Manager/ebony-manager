@@ -24,6 +24,7 @@ type ItemRow = {
   stage_since: string;
   round: number;
   area_not_ready: boolean;
+  waiting_client: boolean;
   next_visit: string | null;
   notes: string | null;
   quote_section_id: string | null;
@@ -43,6 +44,7 @@ function mapItem(r: ItemRow): ProjectItem {
     stageSince: r.stage_since,
     round: r.round,
     areaNotReady: r.area_not_ready,
+    waitingClient: r.waiting_client ?? false,
     nextVisit: r.next_visit,
     notes: r.notes,
     fromQuote: !!r.quote_section_id,
@@ -134,13 +136,14 @@ export async function createItems(projectId: string, items: ItemInput[]): Promis
   if (error) throw new Error(error.message);
 }
 
-export async function updateItem(id: string, patch: Partial<ItemInput> & { areaNotReady?: boolean; nextVisit?: string | null; notes?: string | null }): Promise<void> {
+export async function updateItem(id: string, patch: Partial<ItemInput> & { waitingClient?: boolean; areaNotReady?: boolean; nextVisit?: string | null; notes?: string | null }): Promise<void> {
   const supabase = await createClient();
   const row: ItemUpdate = {};
   if (patch.area !== undefined) row.area = patch.area.trim();
   if (patch.name !== undefined) row.name = patch.name.trim();
   if (patch.kind !== undefined) row.kind = patch.kind.trim();
   if (patch.areaNotReady !== undefined) row.area_not_ready = patch.areaNotReady;
+  if (patch.waitingClient !== undefined) row.waiting_client = patch.waitingClient;
   if (patch.nextVisit !== undefined) row.next_visit = patch.nextVisit;
   if (patch.notes !== undefined) row.notes = patch.notes;
   if (patch.designerId !== undefined) row.designer_id = patch.designerId;

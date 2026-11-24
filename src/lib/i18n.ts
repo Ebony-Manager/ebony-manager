@@ -4225,6 +4225,8 @@ export const strings = {
     today: { es: "desde hoy", en: "since today" },
     late: { es: "Atrasado", en: "Late" },
     all_projects_tab: { es: "Todos", en: "All" },
+    waiting_client: { es: "Esperando al cliente", en: "Waiting for the client" },
+    waiting_client_hint: { es: "No cuenta como atraso mientras esté marcado.", en: "It doesn't count as late while checked." },
     f_designer: { es: "Diseñadora", en: "Designer" },
     unassigned: { es: "Sin asignar", en: "Unassigned" },
     assign_area: { es: "Asignar área", en: "Assign area" },

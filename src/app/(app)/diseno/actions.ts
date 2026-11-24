@@ -47,7 +47,7 @@ export async function createItemsAction(projectId: string, items: diseno.ItemInp
 export async function updateItemAction(
   id: string,
   projectId: string,
-  patch: Partial<diseno.ItemInput> & { areaNotReady?: boolean; nextVisit?: string | null; notes?: string | null },
+  patch: Partial<diseno.ItemInput> & { waitingClient?: boolean; areaNotReady?: boolean; nextVisit?: string | null; notes?: string | null },
 ): Promise<Result> {
   await access();
   if (patch.name !== undefined && !patch.name.trim()) return { ok: false, error: "Escribe el nombre del ítem." };
@@ -126,7 +126,7 @@ async function registerFiles(itemId: string, projectId: string, files: UploadedF
   await diseno.addItemFiles(itemId, checked);
 }
 
-export type ItemStep = "medido" | "enviar" | "cambios" | "aprobado" | "volver";
+export type ItemStep = "medido" | "aprobado" | "volver";
 
 /** Los ítems pedidos, todos del mismo proyecto. */
 async function sameProjectItems(ids: string[]) {
@@ -153,7 +153,7 @@ export async function attachStepFileAction(itemIds: string[], step: FileStep, fi
     const drive = await getDriveItem(file.driveFileId);
     if (drive.parentId !== folder) throw new Error(`«${file.name}» no quedó en la carpeta del proyecto.`);
     for (const it of items) {
-      await diseno.addItemFiles(it.id, [{ ...file, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size ?? file.sizeBytes, round: fileRound(it, kind) }]);
+      await diseno.addItemFiles(it.id, [{ ...file, name: drive.name, mimeType: drive.mimeType, sizeBytes: drive.size ?? file.sizeBytes, round: fileRound(it) }]);
     }
     return items[0].projectId;
   });
@@ -164,9 +164,7 @@ export async function attachStepFileAction(itemIds: string[], step: FileStep, fi
 /**
  * Mueve uno o varios ítems con su acción:
  *  - medido: Por medir → En diseño; pide la hoja de medidas cargada.
- *  - enviar: En diseño → Con el cliente; pide la presentación de la ronda nueva (y abre esa ronda).
- *  - cambios: Con el cliente → En diseño (el cliente pidió cambios).
- *  - aprobado: Con el cliente → Aprobado; pide la presentación aprobada.
+ *  - aprobado: En diseño → Aprobado; pide la presentación aprobada (el ida y vuelta con el cliente va por WhatsApp).
  *  - volver: un paso atrás, para corregir un toque equivocado.
  */
 export async function advanceItemsAction(itemIds: string[], step: ItemStep): Promise<Result> {
@@ -174,24 +172,14 @@ export async function advanceItemsAction(itemIds: string[], step: ItemStep): Pro
   const res = await run(async () => {
     const items = await sameProjectItems(itemIds);
     for (const item of items) {
-      const from: ItemStage[] =
-        step === "cambios" ? ["con_cliente"] : step === "volver" ? ["en_diseno", "con_cliente", "aprobado"] : [STEP_FROM[step]];
+      const from: ItemStage[] = step === "volver" ? ["en_diseno", "aprobado"] : [STEP_FROM[step]];
       if (!from.includes(item.stage)) throw new Error(`«${item.name}» ya cambió de etapa: actualiza la pantalla.`);
-      if ((step === "medido" || step === "enviar" || step === "aprobado") && !hasStepFile(item, step))
-        throw new Error(`A «${item.name}» le falta ${step === "medido" ? "la hoja de medidas" : step === "enviar" ? "la presentación" : "la presentación aprobada"}.`);
+      if (step !== "volver" && !hasStepFile(item, step))
+        throw new Error(`A «${item.name}» le falta ${step === "medido" ? "la hoja de medidas" : "la presentación aprobada"}.`);
     }
     for (const item of items) {
-      const to: ItemStage =
-        step === "cambios"
-          ? "en_diseno"
-          : step === "volver"
-            ? item.stage === "aprobado"
-              ? "con_cliente"
-              : item.stage === "con_cliente"
-                ? "en_diseno"
-                : "por_medir"
-            : STEP_TO[step];
-      await diseno.setItemStage(item.id, to, step === "enviar" ? item.round + 1 : undefined);
+      const to: ItemStage = step === "volver" ? (item.stage === "aprobado" ? "en_diseno" : "por_medir") : STEP_TO[step];
+      await diseno.setItemStage(item.id, to);
     }
     return items[0].projectId;
   });

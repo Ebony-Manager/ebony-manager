@@ -59,7 +59,7 @@ export function ItemDialog({
   const [editing, setEditing] = React.useState(false);
   const [ordering, setOrdering] = React.useState(false);
   const itemId = item?.id ?? null;
-  const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}:${item.notes}` : "";
+  const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}:${item.notes}:${item.waitingClient}` : "";
 
   React.useEffect(() => {
     if (!itemId) return;
@@ -88,6 +88,14 @@ export function ItemDialog({
     setBusy(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(td("moved"));
+  }
+
+  async function toggleWaiting(v: boolean) {
+    if (!item) return;
+    setBusy(true);
+    const res = await updateItemAction(item.id, item.projectId, { waitingClient: v });
+    setBusy(false);
+    if (!res.ok) toast.error(res.error);
   }
 
   async function toggleNotReady(v: boolean, nextVisit: string | null) {
@@ -159,6 +167,7 @@ export function ItemDialog({
             {daysLabel(td, daysInStage(item))}
           </span>
           {item.areaNotReady && <span className="text-muted-foreground">· {td("area_not_ready")}</span>}
+          {item.waitingClient && <span className="text-muted-foreground">· {td("waiting_client")}</span>}
         </div>
 
         {designers.length > 0 && (
@@ -190,6 +199,17 @@ export function ItemDialog({
                 </Button>
               </>
             )}
+          </div>
+        )}
+
+        {/* El ida y vuelta con el cliente va por WhatsApp: esta casilla solo dice que la pelota está con el cliente. */}
+        {item.stage === "en_diseno" && (
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
+              <input type="checkbox" className="size-4 accent-primary" checked={item.waitingClient} disabled={busy} onChange={(e) => void toggleWaiting(e.target.checked)} />
+              {td("waiting_client")}
+            </label>
+            <p className="mt-1 pl-6 text-xs text-muted-foreground">{td("waiting_client_hint")}</p>
           </div>
         )}
 

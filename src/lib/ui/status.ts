@@ -27,7 +27,6 @@ export const STATUS = {
   // Diseño: la etapa de cada ítem (mueble) de un proyecto
   item_por_medir: { icon: CircleDashed, tone: "muted" },
   item_en_diseno: { icon: FilePen, tone: "info" },
-  item_con_cliente: { icon: Send, tone: "warn" },
   item_aprobado: { icon: CircleCheck, tone: "ok" },
   item_en_produccion: { icon: Hammer, tone: "info" },
   // Orden de producción (Diseño → revisión de Brainer → pedidos → taller).
