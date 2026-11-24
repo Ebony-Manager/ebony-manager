@@ -19,7 +19,7 @@ import { orderPath } from "./orden/paths";
 import { StageGroupDialog } from "./stage-panel";
 import { STAGE_STEP } from "@/lib/diseno/steps";
 import { Button } from "@/components/ui/button";
-import { daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
+import { ItemCardNotes, daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
 import { ItemDialog } from "./item-dialog";
 
 type Scope = "mine" | "all";
@@ -149,7 +149,7 @@ export function DesignBoard({
               {late ? `${td("late")} · ` : ""}
               {daysLabel(td, daysInStage(i))}
             </span>
-            {i.areaNotReady && <span>· {td("area_not_ready")}</span>}
+            <ItemCardNotes item={i} />
             {(scope === "all" || !i.designerId) && i.designers.length > 0 && (
               <span className={`flex items-center gap-1 ${i.designerId ? "" : "font-medium text-foreground"}`}>
                 · <ICON.designer className="size-3" />
@@ -296,7 +296,7 @@ export function DesignBoard({
         </>
       )}
       <StageGroupDialog items={groupFor ? allItems.filter((i) => groupFor.ids.includes(i.id) && i.stage === allItems.find((x) => x.id === groupFor.ids[0])?.stage) : null} title={groupFor?.title ?? ""} onClose={() => setGroupFor(null)} />
-      <ItemDialog item={open} siblings={open ? allItems.filter((i) => i.projectId === open.projectId) : []} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
+      <ItemDialog item={open} orders={allOrders} siblings={open ? allItems.filter((i) => i.projectId === open.projectId) : []} designers={open?.designers ?? []} projectHref={open ? projectPath(open.projectId, "diseno") : undefined} projectName={open?.projectName} onClose={() => setOpenId(null)} />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import * as React from "react";
 import { useLang } from "@/context/language-context";
 import { t, strings } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { CircleCheck } from "lucide-react";
+import { STAGE_STEP, hasStepFile } from "@/lib/diseno/steps";
+import { formatDateCompact } from "@/lib/planilla/format";
 import { useField } from "@/components/shared/field";
 import { shrinkImage } from "@/app/(app)/taller/shared";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,4 +141,29 @@ export function byArea<T extends Pick<ProjectItem, "area">>(items: T[]): { area:
     groups.set(k, [...(groups.get(k) ?? []), i]);
   }
   return [...groups.entries()].map(([area, list]) => ({ area, items: list }));
+}
+
+/**
+ * Lo que una tarjeta de ítem dice además de la etapa: «✓ Hoja cargada» si el documento de la etapa ya está (solo
+ * falta avanzar) y «Área no lista · visita 28-Nov».
+ */
+export function ItemCardNotes({ item }: { item: ProjectItem }) {
+  const { lang, td } = useTd();
+  const step = STAGE_STEP[item.stage];
+  return (
+    <>
+      {step && hasStepFile(item, step) && (
+        <span className="inline-flex items-center gap-1 font-medium text-primary">
+          · <CircleCheck className="size-3" />
+          {td("doc_ready", { doc: td(`doc_short_${step}`) })}
+        </span>
+      )}
+      {item.areaNotReady && (
+        <span>
+          · {td("area_not_ready")}
+          {item.nextVisit ? ` · ${td("visit_on", { date: formatDateCompact(lang, item.nextVisit) })}` : ""}
+        </span>
+      )}
+    </>
+  );
 }

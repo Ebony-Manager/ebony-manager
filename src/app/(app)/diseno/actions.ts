@@ -7,6 +7,7 @@ import { requireAnyModule } from "@/lib/auth/dal";
 import { driveEnabled, ensureSubfolders, getItem as getDriveItem, startUpload, trashItem } from "@/lib/google/drive";
 import * as diseno from "@/services/diseno";
 import { ITEM_FILE_MAX, type ItemEvent, type ItemFileKind, type ItemStage } from "@/types/diseno";
+import { tidyCase } from "@/lib/diseno/text";
 import { STEP_FILE, STEP_FROM, STEP_TO, fileRound, hasStepFile, type FileStep } from "@/lib/diseno/steps";
 import { ensureProjectFolderAction } from "@/app/(app)/drive-actions";
 import { projectPath } from "@/app/(app)/proyectos/paths";
@@ -33,7 +34,7 @@ function revalidate(projectId: string) {
 
 export async function createItemsAction(projectId: string, items: diseno.ItemInput[]): Promise<Result> {
   await access();
-  const clean = items.map((i) => ({ area: i.area.trim(), name: i.name.trim(), kind: i.kind.trim(), designerId: i.designerId ?? null })).filter((i) => i.name);
+  const clean = items.map((i) => ({ area: tidyCase(i.area), name: tidyCase(i.name), kind: tidyCase(i.kind), designerId: i.designerId ?? null })).filter((i) => i.name);
   if (clean.length === 0) return { ok: false, error: "Escribe el nombre del ítem." };
   const res = await run(async () => {
     await diseno.createItems(projectId, clean);
@@ -50,6 +51,8 @@ export async function updateItemAction(
 ): Promise<Result> {
   await access();
   if (patch.name !== undefined && !patch.name.trim()) return { ok: false, error: "Escribe el nombre del ítem." };
+  for (const k of ["area", "name", "kind"] as const) if (patch[k] !== undefined) patch = { ...patch, [k]: tidyCase(patch[k]) };
+  if (patch.notes !== undefined) patch = { ...patch, notes: patch.notes?.trim() || null };
   const res = await run(async () => {
     await diseno.updateItem(id, patch);
     return null;

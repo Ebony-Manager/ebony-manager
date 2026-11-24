@@ -21,7 +21,7 @@ import { orderPath } from "./orden/paths";
 import { Factory } from "lucide-react";
 import { FormSection } from "@/components/shared/form-section";
 import { assignItemsAction, createItemsAction, importQuoteItemsAction } from "./actions";
-import { DesignerSelect, ItemStageBadge, NEXT_STEP, byArea, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
+import { DesignerSelect, ItemCardNotes, ItemStageBadge, NEXT_STEP, byArea, daysInStage, daysLabel, designerName, isLate, useTd } from "./shared";
 import { ICON } from "@/lib/ui/concepts";
 import { ItemDialog } from "./item-dialog";
 
@@ -169,7 +169,7 @@ export function ProjectItems({
                           {late ? `${td("late")} · ` : ""}
                           {daysLabel(td, daysInStage(i))}
                         </span>
-                        {i.areaNotReady && <span>· {td("area_not_ready")}</span>}
+                        <ItemCardNotes item={i} />
                         {orderOf.has(i.id) && <span className="font-medium text-foreground">· {to("in_order", { n: orderOf.get(i.id)!.number })}</span>}
                         {several && (
                           <span className={`flex items-center gap-1 ${i.designerId ? "" : "font-medium text-foreground"}`}>
@@ -193,7 +193,7 @@ export function ProjectItems({
         ))
       )}
 
-      <ItemDialog item={items.find((i) => i.id === openId) ?? null} siblings={items} designers={designers} onClose={() => setOpenId(null)} />
+      <ItemDialog item={items.find((i) => i.id === openId) ?? null} siblings={items} orders={orders} designers={designers} onClose={() => setOpenId(null)} />
       <NewOrderDialog open={ordering} projectId={projectId} freeItems={freeItems} onClose={() => setOrdering(false)} />
       <AddItemsDialog open={adding} projectId={projectId} designers={several ? designers : []} areas={groups.map((g) => g.area).filter(Boolean)} onClose={() => setAdding(false)} />
     </div>

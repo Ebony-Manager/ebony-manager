@@ -3,11 +3,12 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { FileText, History, Image as ImageIcon, Pencil, Undo2, X } from "lucide-react";
+import { Factory, FileText, History, Image as ImageIcon, Pencil, Undo2, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { EmptyState } from "@/components/shared/page-header";
 import { Field } from "@/components/shared/field";
@@ -21,6 +22,9 @@ import { advanceItemAction, assignItemsAction, deleteItemAction, getItemEventsAc
 import { DesignerSelect, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
 import { StagePanel } from "./stage-panel";
 import { STAGE_STEP } from "@/lib/diseno/steps";
+import type { OrderSummary } from "@/types/produccion";
+import { NewOrderDialog } from "./orden/shared";
+import { orderPath } from "./orden/paths";
 
 /**
  * La ficha de un ítem: su etapa y desde cuándo, el paso siguiente en grande, sus archivos (hoja de medidas, fotos,
@@ -34,7 +38,10 @@ export function ItemDialog({
   projectName,
   designers = [],
   siblings = [],
+  orders = [],
 }: {
+  /** Las órdenes de producción del proyecto: un ítem aprobado muestra la suya o el botón para crearla. */
+  orders?: OrderSummary[];
   item: ProjectItem | null;
   /** Los ítems del mismo proyecto: el documento de la etapa se puede subir para varios a la vez. */
   siblings?: ProjectItem[];
@@ -50,8 +57,9 @@ export function ItemDialog({
   const [busy, setBusy] = React.useState(false);
   const [events, setEvents] = React.useState<ItemEvent[] | null>(null);
   const [editing, setEditing] = React.useState(false);
+  const [ordering, setOrdering] = React.useState(false);
   const itemId = item?.id ?? null;
-  const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}` : "";
+  const key = item ? `${item.stage}:${item.files.length}:${item.name}:${item.designerId}:${item.notes}` : "";
 
   React.useEffect(() => {
     if (!itemId) return;
@@ -68,6 +76,10 @@ export function ItemDialog({
   const late = isLate(item);
   // Los del mismo proyecto en la misma etapa (este primero); marcados de entrada, los de la misma área.
   const sameStage = [item, ...siblings.filter((s) => s.id !== item.id && s.projectId === item.projectId && s.stage === item.stage)];
+  const projectOrders = orders.filter((o) => o.projectId === item.projectId);
+  const myOrder = projectOrders.find((o) => o.itemIds.includes(item.id));
+  const taken = new Set(projectOrders.flatMap((o) => o.itemIds));
+  const freeApproved = sameStage.filter((s) => s.stage === "aprobado" && !taken.has(s.id));
 
   async function go(stepName: "volver") {
     if (!item) return;
@@ -155,6 +167,32 @@ export function ItemDialog({
           </Field>
         )}
 
+        {/* Lo que se cotizó (material, acabado, herrajes…): viene de la cotización o se escribe al editar. */}
+        <FormSection icon={ICON.notes} title={td("notes_title")}>
+          {item.notes ? <p className="whitespace-pre-line text-sm text-foreground">{item.notes}</p> : <p className="text-sm text-muted-foreground">{td("no_notes")}</p>}
+        </FormSection>
+
+        {item.stage === "aprobado" && (
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+            {myOrder ? (
+              <Button asChild className="w-full">
+                <Link href={orderPath(myOrder.id)}>
+                  <Factory className="size-4" />
+                  {td("open_order", { n: myOrder.number })}
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{td("approved_next")}</p>
+                <Button className="w-full" onClick={() => setOrdering(true)}>
+                  <Factory className="size-4" />
+                  {td("create_order")}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         {item.stage === "por_medir" && (
           <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/30 p-3">
             <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm select-none">
@@ -230,6 +268,7 @@ export function ItemDialog({
         </div>
       </DialogContent>
       <EditItemDialog item={editing ? item : null} onClose={() => setEditing(false)} />
+      <NewOrderDialog open={ordering} projectId={item.projectId} freeItems={freeApproved} onClose={() => setOrdering(false)} />
     </Dialog>
   );
 }
@@ -240,9 +279,10 @@ function EditItemDialog({ item, onClose }: { item: ProjectItem | null; onClose: 
   const [area, setArea] = React.useState("");
   const [name, setName] = React.useState("");
   const [kind, setKind] = React.useState("");
+  const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"name">();
-  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([area, name, kind]));
+  const { isDirty, markSeeded } = useFormBaseline(() => JSON.stringify([area, name, kind, notes]));
   const open = !!item;
 
   /* eslint-disable react-hooks/set-state-in-effect -- siembra al abrir. */
@@ -252,6 +292,7 @@ function EditItemDialog({ item, onClose }: { item: ProjectItem | null; onClose: 
     setArea(item.area);
     setName(item.name);
     setKind(item.kind);
+    setNotes(item.notes ?? "");
     markSeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id, open]);
@@ -264,7 +305,7 @@ function EditItemDialog({ item, onClose }: { item: ProjectItem | null; onClose: 
     e.preventDefault();
     if (!item || !validate([["name", !name.trim(), td("err_name")]])) return;
     setSaving(true);
-    const res = await updateItemAction(item.id, item.projectId, { area, name, kind });
+    const res = await updateItemAction(item.id, item.projectId, { area, name, kind, notes });
     setSaving(false);
     if (!res.ok) return void toast.error(res.error);
     toast.success(td("saved"));
@@ -293,6 +334,9 @@ function EditItemDialog({ item, onClose }: { item: ProjectItem | null; onClose: 
           </Field>
           <Field label={td("f_kind")}>
             <Input value={kind} onChange={(e) => setKind(e.target.value)} placeholder={td("f_kind_ph")} />
+          </Field>
+          <Field label={td("f_notes")}>
+            <Textarea rows={5} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={td("f_notes_ph")} />
           </Field>
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" disabled={saving} onClick={() => void requestClose()}>
