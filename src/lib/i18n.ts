@@ -4157,6 +4157,10 @@ export const strings = {
     push_unsupported_hint: { es: "Este navegador no admite notificaciones push.", en: "This browser does not support push notifications." },
     push_enable: { es: "Activar notificaciones", en: "Enable notifications" },
     push_disable: { es: "Desactivar", en: "Disable" },
+    push_browser_failed: {
+      es: "El navegador no pudo activar los avisos. Prueba: 1) si usas Brave, activa «Usar los servicios de Google para mensajes push» en su configuración; 2) borra los datos del sitio (candado junto a la dirección → Configuración del sitio → Borrar datos) y vuelve a intentar; 3) si estás en una VPN o en la red de la oficina, prueba con otra red.",
+      en: "The browser couldn't turn on notifications. Try: 1) in Brave, enable “Use Google services for push messaging”; 2) clear the site data (padlock next to the address → Site settings → Clear data) and try again; 3) if you're on a VPN or office network, try another network.",
+    },
     push_enabled: { es: "Notificaciones activadas", en: "Notifications enabled" },
     push_disabled: { es: "Notificaciones desactivadas", en: "Notifications disabled" },
     push_test: { es: "Enviar prueba", en: "Send test" },

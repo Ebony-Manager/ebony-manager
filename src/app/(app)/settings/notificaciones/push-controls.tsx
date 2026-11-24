@@ -26,6 +26,24 @@ function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
+/**
+ * Se suscribe a los avisos. Si el navegador falla (registro viejo o dañado del sitio), borra el registro, lo vuelve
+ * a crear y prueba una vez más.
+ */
+async function subscribeWithRetry(publicKey: string): Promise<PushSubscription> {
+  const options = { userVisibleOnly: true, applicationServerKey: applicationServerKey(publicKey) };
+  let registration = await navigator.serviceWorker.register("/sw.js");
+  try {
+    return (await registration.pushManager.getSubscription()) || (await registration.pushManager.subscribe(options));
+  } catch {
+    await (await registration.pushManager.getSubscription().catch(() => null))?.unsubscribe().catch(() => false);
+    await registration.unregister().catch(() => false);
+    registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+    return registration.pushManager.subscribe(options);
+  }
+}
+
 export function PushControls() {
   const { lang } = useLang();
   const tn = (key: keyof typeof strings.notificaciones) => t(lang, strings.notificaciones[key]);
@@ -57,15 +75,15 @@ export function PushControls() {
         setState(permission === "denied" ? "blocked" : "off");
         return;
       }
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      const subscription =
-        (await registration.pushManager.getSubscription()) ||
-        (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: applicationServerKey(publicKey) }));
+      const subscription = await subscribeWithRetry(publicKey);
       await savePushSubscription(subscription);
       setState("on");
       toast.success(tn("push_enabled"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error");
+      // El navegador no pudo crear su llave de avisos (Brave con los avisos de Google apagados, un registro viejo
+      // del sitio o una red que bloquea el servicio de Google): se explica qué hacer en vez del mensaje en inglés.
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(/public key|push service|registration failed/i.test(msg) ? tn("push_browser_failed") : msg || "Error", { duration: 12000 });
     } finally {
       setBusy(false);
     }
