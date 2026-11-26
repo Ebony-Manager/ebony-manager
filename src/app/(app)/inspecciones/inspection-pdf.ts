@@ -237,19 +237,31 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
       doc.text(statusText, pageW - margin, y, { align: "right" });
       // Cápsulas a la izquierda del estado: el responsable y el pintor.
       let pillRight = pageW - margin - doc.getTextWidth(statusText) - 8;
-      const pill = (text: string, bg: [number, number, number], fg: [number, number, number]) => {
+      const pill = (text: string, bg: [number, number, number], fg: [number, number, number], roller = false) => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
-        const w = doc.getTextWidth(text) + 12;
+        const icon = roller ? 12 : 0;
+        const w = doc.getTextWidth(text) + 12 + icon;
+        const x = pillRight - w;
         doc.setFillColor(...bg);
-        doc.roundedRect(pillRight - w, y - 9, w, 13, 6.5, 6.5, "F");
+        doc.roundedRect(x, y - 9, w, 13, 6.5, 6.5, "F");
+        if (roller) {
+          // Un rodillo de pintura dibujado a mano (el PDF no tiene íconos).
+          doc.setDrawColor(...fg);
+          doc.setFillColor(...fg);
+          doc.setLineWidth(0.8);
+          const ix = x + 6;
+          doc.roundedRect(ix, y - 7, 7, 3.2, 1, 1, "F");
+          doc.lines([[1.6, 0], [0, 2.6], [-5, 0], [0, 3.2]], ix + 7, y - 5.4, [1, 1], "S");
+        }
         doc.setTextColor(...fg);
-        doc.text(text, pillRight - w / 2, y, { align: "center" });
+        doc.text(text, x + (w + icon) / 2, y, { align: "center" });
         pillRight -= w + 5;
       };
       const rc = RESP_COLORS[item.responsible] ?? RESP_COLORS.ebony;
       pill(labels.responsible[item.responsible as "ebony"] ?? labels.responsible.ebony, rc.bg, rc.fg);
-      if (item.kind === "pintura" && item.painterName) pill(`${labels.painter}: ${item.painterName}`, [235, 235, 235], [60, 60, 60]);
+      // El pintor que lo arregla: solo su nombre, con un rodillo (no confundir con la cápsula del responsable).
+      if (item.kind === "pintura" && item.painterName) pill(item.painterName, [235, 235, 235], [60, 60, 60], true);
       y += 14;
       const subline = [item.meta, item.visitLabel].filter(Boolean).join(" · ");
       if (subline) {
