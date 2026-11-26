@@ -46,6 +46,7 @@ import {
   ApproveQuoteDialog,
   RejectQuoteDialog,
   type ApproveChoice,
+  DeliveryCheckDialog,
 } from "./status-dialogs";
 import type { Client } from "@/types/ventas";
 import type { DesignerCandidate } from "@/types/designers";
@@ -96,7 +97,6 @@ export function QuoteEditor({
   owners,
   siblings = [],
   designerCandidates = [],
-  isAdmin = false,
   initialImages = [],
   docs,
   kinds,
@@ -165,6 +165,8 @@ export function QuoteEditor({
     "approve" | "reject" | null
   >(null);
   const [statusBusy, setStatusBusy] = React.useState(false);
+  /** Reconfirmar los días de entrega antes de marcarla enviada o bajar el PDF del borrador. */
+  const [deliveryCheck, setDeliveryCheck] = React.useState<"send" | "pdf" | null>(null);
 
   // El primer guardado de una cotización nueva la crea y deja la dirección
   // en /cotizacion/<id> (sin recargar); los siguientes la actualizan. Si se
@@ -455,7 +457,7 @@ export function QuoteEditor({
           ),
           { duration: 6000 },
         );
-      } else toast.success(tt("st_changed"));
+      } else toast.success(status === "BORRADOR" ? tt("st_reopened") : tt("st_changed"), { duration: status === "BORRADOR" ? 6000 : undefined });
       router.refresh();
     } finally {
       setStatusBusy(false);
@@ -464,7 +466,24 @@ export function QuoteEditor({
 
   function onSend() {
     if (!quoteWho(quote)) return void toast.error(tt("st_need_owner"));
-    void runStatus("ENVIADA");
+    setDeliveryCheck("send");
+  }
+
+  function downloadPdf() {
+    void downloadQuotePdf(latest.current, images, quoteDocs(latest.current)).catch((err) => toast.error(err instanceof Error ? err.message : "Error"));
+  }
+
+  /** Los días ya confirmados (y cambiados si hizo falta): ahora sí, enviar o bajar el PDF. */
+  async function onDeliveryConfirmed(days: number) {
+    const mode = deliveryCheck;
+    if (days !== latest.current.deliveryDays) change((q) => ({ ...q, deliveryDays: days }));
+    if (mode === "send") {
+      await runStatus("ENVIADA");
+    } else {
+      setDeliveryCheck(null);
+      downloadPdf();
+    }
+    setDeliveryCheck(null);
   }
 
   async function onDuplicate() {
@@ -599,11 +618,7 @@ export function QuoteEditor({
                       <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuItem
-                    onSelect={() =>
-                      void downloadQuotePdf(latest.current, images, quoteDocs(latest.current)).catch((err) => toast.error(err instanceof Error ? err.message : "Error"))
-                    }
-                  >
+                  <DropdownMenuItem onSelect={() => (quote.status === "BORRADOR" ? setDeliveryCheck("pdf") : downloadPdf())}>
                     <Download className="size-4" />
                     {tt("pdf_download")}
                   </DropdownMenuItem>
@@ -612,8 +627,8 @@ export function QuoteEditor({
                     <Copy className="size-4" />
                     {tt("duplicate_version")}
                   </DropdownMenuItem>
-                  {quote.status === "ENVIADA" && isAdmin && (
-                    <DropdownMenuItem onSelect={() => void runStatus("BORRADOR")} disabled={!canStatus}>
+                  {quote.status === "ENVIADA" && (
+                    <DropdownMenuItem onSelect={() => void runStatus("BORRADOR")} disabled={!canStatus} title={tt("st_reopen_hint")}>
                       <Undo2 className="size-4" />
                       {tt("st_reopen")}
                     </DropdownMenuItem>
@@ -658,7 +673,22 @@ export function QuoteEditor({
                     {tt("st_closed_on")} {shortDate(quote.closedOn)}.
                   </span>
                 )}
-                <span>{tt("st_locked")}</span>
+                {quote.status === "ENVIADA" ? (
+                  <span>
+                    {tt("st_locked_sent")}{" "}
+                    <button
+                      type="button"
+                      disabled={!canStatus}
+                      onClick={() => void runStatus("BORRADOR")}
+                      title={tt("st_reopen_hint")}
+                      className="font-medium text-foreground underline underline-offset-2 hover:text-primary disabled:opacity-50"
+                    >
+                      {tt("st_edit_sent")}
+                    </button>
+                  </span>
+                ) : (
+                  <span>{tt("st_locked")}</span>
+                )}
                 {quote.status === "APROBADA" && quote.projectId && (
                   <Link
                     href={projectPath(quote.projectId)}
@@ -1154,6 +1184,7 @@ export function QuoteEditor({
           runStatus("RECHAZADA", { lostReason, lostNote })
         }
       />
+      <DeliveryCheckDialog mode={deliveryCheck} days={quote.deliveryDays} onClose={() => setDeliveryCheck(null)} onConfirm={onDeliveryConfirmed} />
       {confirmDialog}
     </div>
   );

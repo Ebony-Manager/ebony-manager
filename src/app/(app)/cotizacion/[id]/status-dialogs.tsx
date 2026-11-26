@@ -340,3 +340,96 @@ export function RejectQuoteDialog({
     </Dialog>
   );
 }
+
+/**
+ * Antes de mandar una cotización (marcarla enviada o bajar el PDF de un borrador) se reconfirman los días hábiles
+ * de entrega: es el dato que más se queda sin ajustar y sale en el PDF que recibe el cliente. Se puede cambiar ahí mismo.
+ */
+export function DeliveryCheckDialog({
+  mode,
+  days,
+  onClose,
+  onConfirm,
+}: {
+  /** null = cerrado. */
+  mode: "send" | "pdf" | null;
+  days: number;
+  onClose: () => void;
+  onConfirm: (days: number) => Promise<void>;
+}) {
+  const { lang } = useLang();
+  const tt = (k: Tk) => t(lang, strings.cotizador[k]);
+  const { tv } = useTv();
+  const [value, setValue] = React.useState(String(days));
+  const [saving, setSaving] = React.useState(false);
+  const { error, validate, clear, reset } = useFormErrors<"days">();
+  const { requestClose, dialog: discardDialog } = useDiscardGuard(() => value !== String(days), onClose);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- el valor de la cotización al abrir. */
+  React.useEffect(() => {
+    if (!mode) return;
+    setValue(String(days));
+    setSaving(false);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
+  }, [mode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const n = Number(value);
+  const valid = value.trim() !== "" && Number.isInteger(n) && n > 0 && n <= 365;
+
+  async function submit() {
+    if (!validate([["days", !valid, tt("dc_days_invalid")]])) return;
+    setSaving(true);
+    await onConfirm(n);
+    setSaving(false);
+  }
+
+  return (
+    <Dialog open={mode !== null} onOpenChange={(o) => !o && void requestClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{tt("dc_title")}</DialogTitle>
+          <DialogDescription>{tt("dc_desc")}</DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <Field label={tt("f_delivery")} icon={ICON.date} error={error("days")} hint={valid && n !== days ? `${tt("dc_changed")} ${days} → ${n}` : undefined}>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                autoFocus
+                className="w-24 text-right tabular-nums"
+                value={value}
+                onFocus={(e) => e.currentTarget.select()}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  clear("days");
+                }}
+              />
+              <span className="text-sm text-muted-foreground">{tt("unit_days")}</span>
+            </div>
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => void requestClose()}>
+              {tv("cancel")}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? tv("saving") : mode === "pdf" ? tt("dc_confirm_pdf") : tt("dc_confirm_send")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+      {discardDialog}
+    </Dialog>
+  );
+}
