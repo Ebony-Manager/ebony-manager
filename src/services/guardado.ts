@@ -184,3 +184,11 @@ export async function deleteStoredItem(id: string): Promise<string | null> {
   fail((await supabase.from("project_stored_items").delete().eq("id", id)).error);
   return data?.photo_path ?? null;
 }
+
+/** Dónde quedó guardado lo especial recién recibido (el apartado lo crea la base al recibir la línea). */
+export async function setStoredLocationsByLine(rows: { lineId: string; location: string }[]): Promise<void> {
+  const supabase = await createClient();
+  for (const r of rows) {
+    fail((await supabase.from("project_stored_items").update({ location: r.location }).eq("purchase_line_id", r.lineId)).error);
+  }
+}

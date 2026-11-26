@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAnyModule, requireModule, requireProfile } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
 import * as almacen from "@/services/almacen";
+import { setStoredLocationsByLine } from "@/services/guardado";
 import type { AdjustmentReason, OrderDelivery, RequestStatus, ToolCondition, ToolStatus } from "@/types/almacen";
 import { dispatchPendingPush } from "@/lib/notifications/push";
 
@@ -140,9 +141,14 @@ export async function setOrderDeliveryAction(orderId: string, delivery: OrderDel
   return run(() => almacen.setOrderDelivery(orderId, delivery));
 }
 
-export async function receivePurchaseOrderAction(orderId: string, receivedOn: string | null, lines: { lineId: string; qty: number }[]) {
+export async function receivePurchaseOrderAction(orderId: string, receivedOn: string | null, lines: { lineId: string; qty: number; location?: string | null }[]) {
   await requireModule("almacen");
-  return run(() => almacen.receivePurchaseOrder(orderId, receivedOn, lines));
+  return run(async () => {
+    await almacen.receivePurchaseOrder(orderId, receivedOn, lines.map(({ lineId, qty }) => ({ lineId, qty })));
+    // Lo especial ya quedó en Apartados (lo crea la base al recibir): se le pone dónde se guardó.
+    const withPlace = lines.filter((l) => l.location?.trim());
+    if (withPlace.length) await setStoredLocationsByLine(withPlace.map((l) => ({ lineId: l.lineId, location: l.location!.trim() })));
+  });
 }
 
 export async function saveOrderInvoiceAction(orderId: string, invoiceRef: string | null, costs: { lineId: string; totalCents: number | null }[]) {

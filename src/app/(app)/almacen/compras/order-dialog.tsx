@@ -68,6 +68,8 @@ export function OrderDialog({
 
   const [receivedOn, setReceivedOn] = React.useState("");
   const [receive, setReceive] = React.useState<Record<string, string>>({});
+  // Dónde se guarda lo especial que se recibe (pasa al apartado).
+  const [locations, setLocations] = React.useState<Record<string, string>>({});
   const [invoiceRef, setInvoiceRef] = React.useState("");
   // Precio por unidad de cada línea (texto del campo); el total de la línea = precio × cantidad pedida.
   const [prices, setPrices] = React.useState<Record<string, string>>({});
@@ -75,7 +77,7 @@ export function OrderDialog({
 
   // Aviso de descartar: solo si se escribió algo sin guardarlo. Recepción y factura se guardan por
   // separado, así que cada una lleva su propia «cómo estaba»: guardar una no borra el aviso de la otra.
-  const { isDirty: receiveDirty, markSeeded: markReceiveSeeded } = useFormBaseline(() => JSON.stringify([receivedOn, receive]));
+  const { isDirty: receiveDirty, markSeeded: markReceiveSeeded } = useFormBaseline(() => JSON.stringify([receivedOn, receive, locations]));
   const { isDirty: invoiceFormDirty, markSeeded: markInvoiceSeeded } = useFormBaseline(() => JSON.stringify([invoiceRef, prices]));
   const isDirty = React.useCallback(() => receiveDirty() || invoiceFormDirty(), [receiveDirty, invoiceFormDirty]);
   const { requestClose, dialog } = useDiscardGuard(isDirty, onClose);
@@ -142,11 +144,16 @@ export function OrderDialog({
       .filter((l) => l.qty > 0);
     if (lines.length === 0) return toast.error(ta("nothing_to_receive"));
     setBusy(true);
-    const res = await receivePurchaseOrderAction(order!.id, receivedOn || null, lines);
+    const res = await receivePurchaseOrderAction(
+      order!.id,
+      receivedOn || null,
+      lines.map((l) => ({ ...l, location: destByLine?.get(l.lineId)?.forProject ? locations[l.lineId]?.trim() || null : null })),
+    );
     setBusy(false);
     if (res.ok) {
       toast.success(ta("received_saved"));
-      if (lines.some((l) => destByLine?.get(l.lineId)?.forProject)) toast(ta("received_special"), { icon: "📦", duration: 7000 });
+      const special = lines.filter((l) => destByLine?.get(l.lineId)?.forProject);
+      if (special.length) toast(special.every((l) => locations[l.lineId]?.trim()) ? ta("received_special_done") : ta("received_special"), { icon: "📦", duration: 7000 });
       markReceiveSeeded(); // lo recibido ya no cuenta como cambio (la factura sigue igual)
     } else toast.error(res.error);
   }
@@ -250,6 +257,15 @@ export function OrderDialog({
                         lang={lang}
                         className={`mt-0.5 block max-w-none text-left text-xs ${done ? "text-success" : "text-muted-foreground"}`}
                       />
+                      {showReceive && destByLine?.get(l.id)?.forProject && (
+                        <Input
+                          className="mt-2 h-8 text-sm"
+                          aria-label={ta("st_f_location")}
+                          placeholder={ta("receive_location_ph")}
+                          value={locations[l.id] ?? ""}
+                          onChange={(e) => setLocations((m) => ({ ...m, [l.id]: e.target.value }))}
+                        />
+                      )}
                     </span>
                   </span>
                   {hasCols && (

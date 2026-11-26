@@ -3657,6 +3657,8 @@ export const strings = {
     dest_special_hint: { es: "al recibirlo va a Apartados", en: "goes to Set aside when received" },
     dest_project_line: { es: "Para {p}", en: "For {p}" },
     dest_inventory: { es: "Inventario", en: "Inventory" },
+    receive_location_ph: { es: "Dónde se guarda (ej. estante 3)", en: "Where it's stored (e.g. shelf 3)" },
+    received_special_done: { es: "Lo especial quedó en Almacén → Apartados, con dónde se guardó.", en: "Special items went to Warehouse → Set aside, with where they're stored." },
     received_special: { es: "Lo especial quedó en Almacén → Apartados: anota dónde se guardó.", en: "Special items went to Warehouse → Set aside: note where they were stored." },
     request_photo_hint: { es: "Foto de cómo es (se guarda al elegirla).", en: "Photo of what it looks like (saved when picked)." },
     request_ordered_photo_only: { es: "Ya está pedida: solo se le puede poner o cambiar la foto. Llega con ella a Apartados.", en: "Already ordered: only the photo can be added or changed. It arrives with it in Set aside." },

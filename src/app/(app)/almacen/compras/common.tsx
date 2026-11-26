@@ -21,10 +21,12 @@ export function LineDestinationTag({ dest, variantId }: { dest: LineDestination 
   const { ta } = useTa();
   if (dest?.forProject)
     return (
-      <span className="mt-1 inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-        <Archive className="size-3.5 shrink-0" />
-        <span>{ta("dest_special", { p: dest.projectName ?? "—" })}</span>
-        <span className="font-normal opacity-80">· {ta("dest_special_hint")}</span>
+      <span
+        title={ta("dest_special_hint")}
+        className="mt-1 flex w-fit max-w-full items-start gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+      >
+        <Archive className="mt-px size-3.5 shrink-0" />
+        <span className="min-w-0 break-words">{ta("dest_special", { p: dest.projectName ?? "—" })}</span>
       </span>
     );
   if (dest?.projectName)
