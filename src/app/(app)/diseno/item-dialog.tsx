@@ -22,6 +22,7 @@ import { advanceItemAction, assignItemsAction, deleteItemAction, getItemEventsAc
 import { DesignerSelect, ItemStageBadge, daysInStage, daysLabel, driveFile, isLate, stageLabel, useTd } from "./shared";
 import { StagePanel } from "./stage-panel";
 import { STAGE_STEP, fileAction } from "@/lib/diseno/steps";
+import { blockKey } from "@/lib/diseno/blocks";
 import { FileDropZone } from "@/components/shared/file-drop-zone";
 import { DrivePicker } from "./drive-picker";
 import { replaceItemFileAction } from "./actions";
@@ -82,7 +83,7 @@ export function ItemDialog({
 
   if (!item) return null;
   const late = isLate(item);
-  // Los del mismo proyecto en la misma etapa (este primero); marcados de entrada, los de la misma área.
+  // Los del mismo proyecto en la misma etapa (este primero); marcados de entrada, los de su bloque (en Por medir, su área).
   const sameStage = [item, ...siblings.filter((s) => s.id !== item.id && s.projectId === item.projectId && s.stage === item.stage)];
   const projectOrders = orders.filter((o) => o.projectId === item.projectId);
   const myOrder = projectOrders.find((o) => o.itemIds.includes(item.id));
@@ -248,7 +249,7 @@ export function ItemDialog({
             <StagePanel
               key={`${item.id}:${item.stage}`}
               items={sameStage}
-              defaultChecked={sameStage.filter((s) => s.area.trim() === item.area.trim()).map((s) => s.id)}
+              defaultChecked={sameStage.filter((s) => blockKey(s) === blockKey(item)).map((s) => s.id)}
             />
           )}
           {item.files.length === 0 ? (

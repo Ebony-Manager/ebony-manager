@@ -25,6 +25,7 @@ type ItemRow = {
   round: number;
   area_not_ready: boolean;
   waiting_client: boolean;
+  block_id: string | null;
   next_visit: string | null;
   notes: string | null;
   quote_section_id: string | null;
@@ -45,6 +46,7 @@ function mapItem(r: ItemRow): ProjectItem {
     round: r.round,
     areaNotReady: r.area_not_ready,
     waitingClient: r.waiting_client ?? false,
+    blockId: r.block_id ?? null,
     nextVisit: r.next_visit,
     notes: r.notes,
     fromQuote: !!r.quote_section_id,
@@ -167,9 +169,10 @@ export async function getMyEmployeeId(): Promise<string | null> {
   return data ?? null;
 }
 
-export async function setItemStage(id: string, stage: ItemStage, round?: number): Promise<void> {
+export async function setItemStage(id: string, stage: ItemStage, round?: number, blockId?: string | null): Promise<void> {
   const supabase = await createClient();
   const row: ItemUpdate = { stage };
+  if (blockId !== undefined) row.block_id = blockId;
   if (round !== undefined) row.round = round;
   if (stage !== "por_medir") row.area_not_ready = false;
   const { error } = await supabase.from("project_items").update(row).eq("id", id);

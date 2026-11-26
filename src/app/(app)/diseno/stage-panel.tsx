@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { CircleCheck, FileText } from "lucide-react";
+import { CircleCheck, Factory, Upload } from "lucide-react";
+import { NewOrderDialog } from "./orden/shared";
 import { FileDropZone } from "@/components/shared/file-drop-zone";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,19 +13,22 @@ import type { ProjectItem } from "@/types/diseno";
 import { advanceItemsAction, attachStepFileAction, linkStepFileAction } from "./actions";
 import { DrivePicker } from "./drive-picker";
 import { FolderOpen } from "lucide-react";
-import { byArea, uploadItemFiles, useTd } from "./shared";
+import { byArea, stageLabel, uploadItemFiles, useTd } from "./shared";
 
 /**
  * El documento que pide la etapa (hoja de medidas, presentación o presentación aprobada), para uno o varios
  * ítems del mismo proyecto que están en la misma etapa: se sube una vez y queda en todos los marcados. El
  * botón del paso (Medido, Enviar al cliente, Cliente aprobó) se habilita cuando todos tienen su documento.
  */
-export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; defaultChecked: string[] }) {
+export function StagePanel({ items, defaultChecked, onOpenItem }: { items: ProjectItem[]; defaultChecked: string[]; onOpenItem?: (id: string) => void }) {
   const { td } = useTd();
   const step = items[0] ? STAGE_STEP[items[0].stage] : undefined;
   const [checked, setChecked] = React.useState<Set<string>>(() => new Set(defaultChecked));
   const [busy, setBusy] = React.useState(false);
-  const [picking, setPicking] = React.useState(false);
+  // A quién va el archivo: a todos los marcados, o a un ítem solo (su propia hoja).
+  const [picking, setPicking] = React.useState<false | "all" | string>(false);
+  const [uploadFor, setUploadFor] = React.useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const ids = items.map((i) => i.id).join(",");
 
   // Si la lista cambia (un ítem avanzó), se quitan los que ya no están.
@@ -58,14 +62,15 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
     });
   }
 
-  async function upload(file: File) {
-    if (!step || picked.length === 0) return void toast.error(td("err_pick_items"));
+  async function upload(file: File, only?: string) {
+    const targets = only ? items.filter((i) => i.id === only) : picked;
+    if (!step || targets.length === 0) return void toast.error(td("err_pick_items"));
     setBusy(true);
-    const up = await uploadItemFiles(picked[0].projectId, [{ file, kind: STEP_FILE[step] }]);
+    const up = await uploadItemFiles(targets[0].projectId, [{ file, kind: STEP_FILE[step] }]);
     for (const f of up.failed) toast.error(td("upload_failed", { name: f.name, error: f.error }), { duration: 8000 });
     if (up.uploaded[0]) {
       const res = await attachStepFileAction(
-        picked.map((i) => i.id),
+        targets.map((i) => i.id),
         step,
         up.uploaded[0],
       );
@@ -76,11 +81,12 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
   }
 
   async function linkFromDrive(driveFileId: string) {
-    if (!step || picked.length === 0) return void toast.error(td("err_pick_items"));
+    const targets = picking && picking !== "all" ? items.filter((i) => i.id === picking) : picked;
+    if (!step || targets.length === 0) return void toast.error(td("err_pick_items"));
     setPicking(false);
     setBusy(true);
     const res = await linkStepFileAction(
-      picked.map((i) => i.id),
+      targets.map((i) => i.id),
       step,
       driveFileId,
     );
@@ -113,6 +119,18 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
       {several && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-muted-foreground">{td("for_items")}</p>
+          <input
+            ref={inputRef}
+            type="file"
+            hidden
+            accept="application/pdf,image/*"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f && uploadFor) void upload(f, uploadFor);
+              setUploadFor(null);
+            }}
+          />
           {groups.map((g) => {
             const areaIds = g.items.map((i) => i.id);
             const all = areaIds.every((id) => checked.has(id));
@@ -126,20 +144,68 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
                     </button>
                   </div>
                 )}
-                {g.items.map((i) => (
-                  <label key={i.id} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm select-none">
-                    <input type="checkbox" className="size-4 accent-primary" checked={checked.has(i.id)} disabled={busy} onChange={(e) => toggle([i.id], e.target.checked)} />
-                    <span className="min-w-0 flex-1 truncate">{i.name}</span>
-                    {hasStepFile(i, step) && <FileText className="size-3.5 shrink-0 text-muted-foreground" />}
-                  </label>
-                ))}
+                {g.items.map((i) => {
+                  const own = stepFiles(i, step);
+                  return (
+                    <div key={i.id} className="flex items-center gap-2 py-0.5 text-sm">
+                      <input
+                        type="checkbox"
+                        aria-label={i.name}
+                        className="size-4 shrink-0 accent-primary"
+                        checked={checked.has(i.id)}
+                        disabled={busy}
+                        onChange={(e) => toggle([i.id], e.target.checked)}
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        {onOpenItem ? (
+                          <button type="button" className="truncate text-left hover:underline" onClick={() => onOpenItem(i.id)}>
+                            {i.name}
+                          </button>
+                        ) : (
+                          <span className="truncate">{i.name}</span>
+                        )}
+                        <span className={`truncate text-xs ${own.length ? "text-primary" : "text-muted-foreground"}`}>
+                          {own.length ? `✓ ${own.map((f) => f.name).join(", ")}` : td("doc_missing_short")}
+                        </span>
+                      </span>
+                      {/* Su propia hoja: subirla o escogerla de Drive solo para este ítem. */}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0 text-muted-foreground"
+                        aria-label={td("upload_own")}
+                        title={td("upload_own")}
+                        disabled={busy}
+                        onClick={() => {
+                          setUploadFor(i.id);
+                          inputRef.current?.click();
+                        }}
+                      >
+                        <Upload className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 shrink-0 text-muted-foreground"
+                        aria-label={td("pick_own")}
+                        title={td("pick_own")}
+                        disabled={busy}
+                        onClick={() => setPicking(i.id)}
+                      >
+                        <FolderOpen className="size-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Primero se marca para qué ítems; después se arrastra el documento. */}
+      {/* Un mismo archivo para todos los marcados (si es un solo plano); cada ítem también puede llevar el suyo, arriba. */}
       <FileDropZone
         accept="application/pdf,image/*"
         label={docs.length ? td("drop_again") : td(step === "medido" ? "drop_medidas" : "drop_aprobada")}
@@ -151,12 +217,12 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
       {/* Si el archivo ya está en el Drive del proyecto, se escoge de ahí: no se sube otra copia. */}
       <p className="-mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted-foreground">
         {td("or_drive")}
-        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" disabled={busy || n === 0} onClick={() => setPicking(true)}>
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" disabled={busy || n === 0} onClick={() => setPicking("all")}>
           <FolderOpen className="size-3.5" />
           {td("pick_drive")}
         </Button>
       </p>
-      {items[0] && <DrivePicker projectId={items[0].projectId} open={picking} onPick={(f) => void linkFromDrive(f.id)} onClose={() => setPicking(false)} />}
+      {items[0] && <DrivePicker projectId={items[0].projectId} open={!!picking} onPick={(f) => void linkFromDrive(f.id)} onClose={() => setPicking(false)} />}
 
       {docs.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-foreground">
@@ -174,9 +240,27 @@ export function StagePanel({ items, defaultChecked }: { items: ProjectItem[]; de
   );
 }
 
-/** El mismo panel para un grupo (los ítems de un proyecto en una columna del tablero). */
-export function StageGroupDialog({ items, title, onClose }: { items: ProjectItem[] | null; title: string; onClose: () => void }) {
+/**
+ * Un bloque del tablero (lo que se trabaja y avanza junto): sus ítems con sus documentos y el paso. En Aprobado, el
+ * botón para crear su orden de producción.
+ */
+export function BlockDialog({
+  items,
+  title,
+  projectName,
+  onOpenItem,
+  onOpenOrder,
+  onClose,
+}: {
+  items: ProjectItem[] | null;
+  title: string;
+  projectName: string;
+  onOpenItem: (id: string) => void;
+  onOpenOrder: (orderId: string) => void;
+  onClose: () => void;
+}) {
   const { td } = useTd();
+  const [ordering, setOrdering] = React.useState(false);
   if (!items || items.length === 0) return null;
   const step = STAGE_STEP[items[0].stage];
   return (
@@ -184,12 +268,46 @@ export function StageGroupDialog({ items, title, onClose }: { items: ProjectItem
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {step ? td(`step_${step}`) : ""} · {title}
-          </DialogTitle>
-          <DialogDescription className="sr-only">{title}</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {projectName} · {td("items_n", { n: items.length })} · {stageLabel(td, items[0].stage)}
+          </DialogDescription>
         </DialogHeader>
-        <StagePanel items={items} defaultChecked={items.map((i) => i.id)} />
+        {step ? (
+          <StagePanel items={items} defaultChecked={items.map((i) => i.id)} onOpenItem={onOpenItem} />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+              {items.map((i) => (
+                <li key={i.id}>
+                  <button type="button" className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-muted/40" onClick={() => onOpenItem(i.id)}>
+                    <span className="font-medium text-foreground">{i.name}</span>
+                    <span className="text-xs text-muted-foreground">{[i.area, i.kind].filter(Boolean).join(" · ")}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {items[0].stage === "aprobado" && (
+              <>
+                <p className="text-sm text-muted-foreground">{td("approved_next")}</p>
+                <Button className="w-full" onClick={() => setOrdering(true)}>
+                  <Factory className="size-4" />
+                  {td("create_order")}
+                </Button>
+                <NewOrderDialog
+                  open={ordering}
+                  projectId={items[0].projectId}
+                  freeItems={items}
+                  onClose={() => setOrdering(false)}
+                  onCreated={(id) => {
+                    setOrdering(false);
+                    onOpenOrder(id);
+                  }}
+                />
+              </>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

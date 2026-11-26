@@ -203,9 +203,11 @@ export async function advanceItemsAction(itemIds: string[], step: ItemStep): Pro
       if (step !== "volver" && !hasStepFile(item, step))
         throw new Error(`A «${item.name}» le falta ${step === "medido" ? "la hoja de medidas" : "la presentación aprobada"}.`);
     }
+    // Los que avanzan juntos forman un bloque (una tarjeta en el tablero); uno solo queda suelto.
+    const block = items.length > 1 ? crypto.randomUUID() : null;
     for (const item of items) {
       const to: ItemStage = step === "volver" ? (item.stage === "aprobado" ? "en_diseno" : "por_medir") : STEP_TO[step];
-      await diseno.setItemStage(item.id, to);
+      await diseno.setItemStage(item.id, to, undefined, to === "por_medir" ? null : block);
     }
     return items[0].projectId;
   });

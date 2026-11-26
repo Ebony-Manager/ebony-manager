@@ -34,6 +34,8 @@ export interface ProjectItem {
   areaNotReady: boolean;
   /** Esperando respuesta del cliente (no cuenta como atraso). */
   waitingClient: boolean;
+  /** Bloque de trabajo: ítems que se avanzaron juntos (null = solo; en Por medir el bloque es el área). */
+  blockId: string | null;
   nextVisit: string | null;
   notes: string | null;
   fromQuote: boolean;
