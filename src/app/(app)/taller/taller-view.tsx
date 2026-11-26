@@ -53,6 +53,9 @@ export function TallerView({ data, initialOpenId }: { data: TallerData; initialO
   const [personFilter, setPersonFilter] = React.useState("all");
   const [projectFilter, setProjectFilter] = React.useState("all");
   const [showCancelled, setShowCancelled] = React.useState(false);
+  // «Asignados a mí»: lo asignado a su ficha de Personal o, si es un contratista (pintor), a su ficha de contratista.
+  const isMine = (o: WorkOrder) =>
+    (!!data.meEmployeeId && o.assigneeId === data.meEmployeeId) || (!!data.meContractorId && o.assigneeContractorId === data.meContractorId);
   const [mobileColumn, setMobileColumn] = React.useState<WorkOrderStatus>("por_hacer");
   const [openId, setOpenId] = React.useState<string | null>(initialOpenId ?? null);
   const [editing, setEditing] = React.useState<WorkOrder | null>(null);
@@ -63,7 +66,7 @@ export function TallerView({ data, initialOpenId }: { data: TallerData; initialO
   React.useEffect(() => {
     const saved = readScope();
     if (saved) setScope(saved);
-    else if (data.meEmployeeId && data.orders.some((o) => o.assigneeId === data.meEmployeeId)) setScope("mine");
+    else if (data.orders.some(isMine)) setScope("mine");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -86,7 +89,7 @@ export function TallerView({ data, initialOpenId }: { data: TallerData; initialO
 
 
   const filtered = data.orders.filter((o) => {
-    if (scope === "mine" && (!data.meEmployeeId || o.assigneeId !== data.meEmployeeId)) return false;
+    if (scope === "mine" && !isMine(o)) return false;
     if (scope === "requested" && o.requestedBy !== data.meUserId) return false;
     if (typeFilter !== "all" && o.kind !== typeFilter) return false;
     if (personFilter !== "all" && `e:${o.assigneeId}` !== personFilter && `c:${o.assigneeContractorId}` !== personFilter) return false;

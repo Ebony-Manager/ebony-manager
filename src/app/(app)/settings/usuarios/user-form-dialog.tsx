@@ -140,7 +140,18 @@ export function UserFormDialog({
     )
       return;
     setSubmitting(true);
-    const input = { firstName, lastName, role, modules, note, employeeId: isInvite && source === "other" ? null : employeeId };
+    // La persona elegida puede ser de Personal o un contratista: se guarda en su columna y la otra queda vacía.
+    const linkId = isInvite && source === "other" ? null : employeeId;
+    const linkKind = linkId ? ((user?.employee?.id === linkId ? user.employee.kind : pool.find((c) => c.id === linkId)?.kind) ?? "employee") : null;
+    const input = {
+      firstName,
+      lastName,
+      role,
+      modules,
+      note,
+      employeeId: linkKind === "employee" ? linkId : null,
+      contractorId: linkKind === "contractor" ? linkId : null,
+    };
 
     if (isInvite) {
       const res = await inviteUserAction(email, input);

@@ -303,6 +303,14 @@ export async function setSampleOfficialCode(sampleId: string, code: string | nul
   if (error) throw new Error(error.message);
 }
 
+/** La ficha de contratista de quien tiene la sesión (o null): para «Asignados a mí». */
+export async function getMyContractorId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_contractor_id");
+  if (error) return null;
+  return data ?? null;
+}
+
 export async function getTallerPainters(): Promise<TallerPainter[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("taller_painters");

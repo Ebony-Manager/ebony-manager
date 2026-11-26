@@ -17,22 +17,28 @@ export interface AppUser {
   fullName: string | null;
   avatarUrl: string | null;
   lastSignInAt: string | null;
-  /** Su ficha en Personal, si la tiene. */
+  /** Su ficha en Personal o de contratista, si la tiene (ver `kind`). */
   employee: LinkedEmployee | null;
 }
 
-/** La ficha de Personal a la que está enlazado un usuario. */
+/** De dónde sale la persona: Personal (planilla) o Contratistas. */
+export type LinkKind = "employee" | "contractor";
+
+/** La ficha (de Personal o de contratista) a la que está enlazado un usuario. */
 export interface LinkedEmployee {
   id: string;
+  kind: LinkKind;
   name: string;
   position: string | null;
   /** false = ya no trabaja (inactivo en Personal). */
   active: boolean;
 }
 
-/** Alguien de Personal al que todavía no se le ha dado acceso a la app. */
+/** Alguien de Personal (o un contratista) al que todavía no se le ha dado acceso a la app. */
 export interface AccessCandidate {
   id: string;
+  /** Sin poner = Personal. */
+  kind?: LinkKind;
   name: string;
   position: string | null;
   email: string | null;
@@ -47,4 +53,6 @@ export interface AppUserInput {
   note?: string | null;
   /** Su ficha en Personal: undefined = no tocar; null = quitar el enlace. */
   employeeId?: string | null;
+  /** Su ficha de contratista (igual que `employeeId`). Es una u otra. */
+  contractorId?: string | null;
 }

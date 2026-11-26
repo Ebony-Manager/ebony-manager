@@ -325,6 +325,7 @@ export type Database = {
           created_at: string
           email: string
           employee_id: string | null
+          contractor_id: string | null
           first_name: string | null
           invited_at: string | null
           invited_by: string | null
@@ -338,6 +339,7 @@ export type Database = {
           created_at?: string
           email: string
           employee_id?: string | null
+          contractor_id?: string | null
           first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
@@ -351,6 +353,7 @@ export type Database = {
           created_at?: string
           email?: string
           employee_id?: string | null
+          contractor_id?: string | null
           first_name?: string | null
           invited_at?: string | null
           invited_by?: string | null
@@ -3773,6 +3776,10 @@ export type Database = {
         Returns: { project_id: string; employee_id: string; name: string }[]
       }
       my_employee_id: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
+      my_contractor_id: {
         Args: Record<string, never>
         Returns: string | null
       }

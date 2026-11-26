@@ -104,7 +104,7 @@ export function UsuariosClient({ users, candidates, myEmail }: { users: AppUser[
                       {u.fullName && <div className="truncate text-xs text-muted-foreground">{u.email}</div>}
                       {u.employee ? (
                         <div className="truncate text-xs text-muted-foreground">
-                          {tt("staff_of")}: {u.employee.position || u.employee.name}
+                          {u.employee.kind === "contractor" ? u.employee.position : `${tt("staff_of")}: ${u.employee.position || u.employee.name}`}
                         </div>
                       ) : (
                         u.role !== "admin" && <div className="truncate text-xs text-muted-foreground/70">{tt("unlinked")}</div>

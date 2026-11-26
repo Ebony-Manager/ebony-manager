@@ -103,6 +103,8 @@ export interface TallerData {
   projects: TallerProject[];
   /** La persona de Personal de quien tiene la sesión (para «Asignados a mí»). */
   meEmployeeId: string | null;
+  /** Su ficha de contratista, si es un contratista con acceso (un pintor ve sus muestras). */
+  meContractorId: string | null;
   meUserId: string;
   painters: TallerPainter[];
   veneers: VeneerType[];

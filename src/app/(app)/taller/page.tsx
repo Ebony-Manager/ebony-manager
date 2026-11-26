@@ -1,5 +1,5 @@
 import { requireModule } from "@/lib/auth/dal";
-import { getTallerPainters, getTallerPeople, getTallerProjects, getVeneerTypes, getWorkOrder, getWorkOrders, withProjectNames } from "@/services/taller";
+import { getMyContractorId, getTallerPainters, getTallerPeople, getTallerProjects, getVeneerTypes, getWorkOrder, getWorkOrders, withProjectNames } from "@/services/taller";
 import { TallerView } from "./taller-view";
 
 // Taller → Trabajos (CNC y muestras de pintura). El historial de colores está en /taller/colores y la configuración del
@@ -8,13 +8,14 @@ export const dynamic = "force-dynamic";
 
 export default async function TallerPage({ searchParams }: { searchParams: Promise<{ trabajo?: string }> }) {
   const profile = await requireModule("taller");
-  const [{ trabajo }, people, projects, rawOrders, painters, veneers] = await Promise.all([
+  const [{ trabajo }, people, projects, rawOrders, painters, veneers, meContractorId] = await Promise.all([
     searchParams,
     getTallerPeople(),
     getTallerProjects(),
     getWorkOrders(),
     getTallerPainters(),
     getVeneerTypes(),
+    getMyContractorId(),
   ]);
   const orders = withProjectNames(rawOrders, projects);
   // Un enlace a un trabajo que ya salió del tablero (cerrado hace tiempo): se trae aparte para poder abrirlo.
@@ -23,7 +24,7 @@ export default async function TallerPage({ searchParams }: { searchParams: Promi
   const me = people.find((p) => p.userId === profile.id) ?? null;
   return (
     <TallerView
-      data={{ orders, people, projects, meEmployeeId: me?.employeeId ?? null, meUserId: profile.id, painters, veneers, extraOrders, isAdmin: profile.role === "admin" }}
+      data={{ orders, people, projects, meEmployeeId: me?.employeeId ?? null, meContractorId, meUserId: profile.id, painters, veneers, extraOrders, isAdmin: profile.role === "admin" }}
       initialOpenId={trabajo ?? null}
     />
   );
