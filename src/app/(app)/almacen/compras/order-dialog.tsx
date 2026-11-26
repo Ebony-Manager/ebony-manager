@@ -3,7 +3,7 @@
 import * as React from "react";
 import toast from "react-hot-toast";
 
-import type { OrderDelivery, PurchaseOrder, Supplier } from "@/types/almacen";
+import type { LineDestination, OrderDelivery, PurchaseOrder, Supplier } from "@/types/almacen";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/shared/confirm-button";
@@ -21,7 +21,7 @@ import { FormSection } from "@/components/shared/form-section";
 import { ICON } from "@/lib/ui/concepts";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, useTa, type VariantRef } from "../shared";
-import { PurchasePhoto, PurchaseQty, StatusBadge, packOf } from "./common";
+import { LineDestinationTag, PurchasePhoto, PurchaseQty, StatusBadge, packOf } from "./common";
 import { DELIVERY_ICON, DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
@@ -48,6 +48,7 @@ export function OrderDialog({
   canWarehouse,
   canPurchase,
   canCosts,
+  destByLine,
   onClose,
 }: {
   order: PurchaseOrder | null;
@@ -56,6 +57,8 @@ export function OrderDialog({
   canWarehouse: boolean;
   canPurchase: boolean;
   canCosts: boolean;
+  /** Para qué es cada línea (proyecto, especial), para recibir sin preguntar. */
+  destByLine?: Map<string, LineDestination>;
   onClose: () => void;
 }) {
   const { ta, lang } = useTa();
@@ -143,6 +146,7 @@ export function OrderDialog({
     setBusy(false);
     if (res.ok) {
       toast.success(ta("received_saved"));
+      if (lines.some((l) => destByLine?.get(l.lineId)?.forProject)) toast(ta("received_special"), { icon: "📦", duration: 7000 });
       markReceiveSeeded(); // lo recibido ya no cuenta como cambio (la factura sigue igual)
     } else toast.error(res.error);
   }
@@ -233,10 +237,11 @@ export function OrderDialog({
               return (
                 <li key={l.id} className={`grid items-start gap-3 border-b border-border px-3 py-3 text-sm last:border-0 ${smCols}`}>
                   <span className="flex min-w-0 items-start gap-3">
-                    <PurchasePhoto variantId={l.variantId} index={index} />
+                    <PurchasePhoto variantId={l.variantId} index={index} photoPath={destByLine?.get(l.id)?.photoPath} />
                     <span className="min-w-0">
                       <span className="block break-words font-medium">{lineName(l)}</span>
-                      {!l.variantId && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
+                      {!l.variantId && !destByLine?.get(l.id)?.forProject && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
+                      <LineDestinationTag dest={destByLine?.get(l.id)} variantId={l.variantId} />
                       <PurchaseQty
                         qty={l.qty}
                         receivedQty={l.receivedQty}

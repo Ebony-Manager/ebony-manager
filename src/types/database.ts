@@ -3818,6 +3818,10 @@ export type Database = {
         Args: { p_project: string }
         Returns: { id: string; label: string }[]
       }
+      purchase_line_destinations: {
+        Args: Record<string, never>
+        Returns: { line_id: string; for_project: boolean; project_id: string | null; project_name: string | null; photo_path: string | null; notes: string | null; requested_by: string | null }[]
+      }
       set_request_photo: {
         Args: { p_id: string; p_path: string | null }
         Returns: string | null

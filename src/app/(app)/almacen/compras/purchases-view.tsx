@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import { AlertTriangle, ChevronRight, Pencil, Plus, X } from "lucide-react";
 
-import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
+import type { InventoryCategory, InventoryItem, LineDestination, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { ListToolbar } from "@/components/shared/search-input";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { formatCents } from "@/lib/planilla/payroll-period";
 import { MoneyInput } from "@/components/ui/money-input";
 import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestAction } from "../actions";
 import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
-import { PurchasePhoto, PurchaseQty, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
+import { LineDestinationTag, PurchasePhoto, PurchaseQty, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
 import { EditRequestDialog, RequestEditContext, RequestNotes } from "./edit-request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
@@ -57,6 +57,7 @@ export function PurchasesView({
   suppliers,
   orders,
   projects,
+  destinations,
   canWarehouse,
   canPurchase,
   canCosts,
@@ -68,6 +69,8 @@ export function PurchasesView({
   suppliers: Supplier[];
   orders: PurchaseOrder[];
   projects: Project[];
+  /** Para qué es cada línea de los pedidos (proyecto, especial): lo que almacén ve al recibir. */
+  destinations: LineDestination[];
   canWarehouse: boolean;
   canPurchase: boolean;
   canCosts: boolean;
@@ -90,6 +93,7 @@ export function PurchasesView({
   const index = useVariantIndex(items);
   const supplierById = React.useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
   const projectName = React.useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
+  const destByLine = React.useMemo(() => new Map(destinations.map((d) => [d.lineId, d])), [destinations]);
 
   const order = orderId ? (orders.find((o) => o.id === orderId) ?? null) : null;
   const pending = requests.filter((r) => r.status === "pendiente");
@@ -140,7 +144,7 @@ export function PurchasesView({
               <WarehousePending pending={pending} index={index} projectName={projectName} userId={userId} />
             ))}
           {tab === "encamino" && (
-            <InTransit orders={open} requests={requests} index={index} supplierById={supplierById} canWarehouse={canWarehouse} onOpen={setOrderId} />
+            <InTransit orders={open} requests={requests} destByLine={destByLine} index={index} supplierById={supplierById} canWarehouse={canWarehouse} onOpen={setOrderId} />
           )}
           {tab === "historial" && (
             <History orders={orders} requests={requests} index={index} supplierById={supplierById} projectName={projectName} onOpen={setOrderId} />
@@ -168,6 +172,7 @@ export function PurchasesView({
         canWarehouse={canWarehouse}
         canPurchase={canPurchase}
         canCosts={canCosts}
+        destByLine={destByLine}
         onClose={() => setOrderId(null)}
       />
       <EditRequestDialog request={editingRequest} projects={projects} onClose={() => setEditingRequest(null)} />
@@ -628,6 +633,7 @@ function useOrderedAgo() {
 function InTransit({
   orders,
   requests,
+  destByLine,
   index,
   supplierById,
   canWarehouse,
@@ -635,6 +641,7 @@ function InTransit({
 }: {
   orders: PurchaseOrder[];
   requests: PurchaseRequest[];
+  destByLine: Map<string, LineDestination>;
   index: Map<string, VariantRef>;
   supplierById: Map<string, Supplier>;
   canWarehouse: boolean;
@@ -687,7 +694,7 @@ function InTransit({
               const pack = packOf(index, l.variantId);
               return (
                 <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
-                  <PurchasePhoto variantId={l.variantId} index={index} photoPath={requestByLine.get(l.id)?.photoPath} />
+                  <PurchasePhoto variantId={l.variantId} index={index} photoPath={requestByLine.get(l.id)?.photoPath ?? destByLine.get(l.id)?.photoPath} />
                   <span className="min-w-0 flex-1">
                     {requestByLine.get(l.id) ? (
                       <RequestTitle r={requestByLine.get(l.id)!} index={index} className="block break-words" />
@@ -695,6 +702,7 @@ function InTransit({
                       <span className="block break-words">{requestName(l, index)}</span>
                     )}
                     {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
+                    <LineDestinationTag dest={destByLine.get(l.id)} variantId={l.variantId} />
                   </span>
                   <PurchaseQty qty={l.qty} receivedQty={l.receivedQty > 0 ? l.receivedQty : undefined} unit={l.unit} pack={pack} lang={lang} className="shrink-0" />
                 </li>

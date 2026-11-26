@@ -6,6 +6,7 @@ import type { Database, Json } from "@/types/database";
 import type {
   AdjustmentReason,
   InternalUse,
+  LineDestination,
   InventoryAdjustment,
   InventoryCategory,
   InventoryIssue,
@@ -569,6 +570,23 @@ export interface RequestEdit {
   unit?: string;
   projectId: string | null;
   reason: string | null;
+}
+
+/** Para qué es cada línea de los pedidos recientes (proyecto, especial, foto). Solo con Almacén. */
+export async function getLineDestinations(): Promise<LineDestination[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("purchase_line_destinations");
+  // Si la función no está (base sin actualizar) o no hay permiso, la pantalla sigue sin el dato.
+  if (error) return [];
+  return (data ?? []).map((d) => ({
+    lineId: d.line_id,
+    forProject: d.for_project,
+    projectId: d.project_id,
+    projectName: d.project_name,
+    photoPath: d.photo_path,
+    notes: d.notes,
+    requestedBy: d.requested_by,
+  }));
 }
 
 /** Poner, cambiar o quitar la foto de una solicitud (pendiente o ya pedida). Devuelve la foto anterior. */

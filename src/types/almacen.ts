@@ -301,6 +301,18 @@ export interface PendingReturn {
   project: string | null;
 }
 
+/** Para qué es una línea de un pedido (lo que almacén necesita saber al recibir). */
+export interface LineDestination {
+  lineId: string;
+  /** Especial para proyecto: al recibirla va a Apartados. */
+  forProject: boolean;
+  projectId: string | null;
+  projectName: string | null;
+  photoPath: string | null;
+  notes: string | null;
+  requestedBy: string | null;
+}
+
 // ── Apartados (antes «Guardado por proyecto») ──────────────────────────────────────────────────
 
 /** De dónde salió: Compras (solicitud especial recibida), Ebony lo compró por su lado, o lo trajo el cliente. */

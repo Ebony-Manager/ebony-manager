@@ -1,8 +1,8 @@
 "use client";
 
-import { RefreshCw, User } from "lucide-react";
+import { Archive, Boxes, Folder, RefreshCw, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { OrderStatus, RequestStatus } from "@/types/almacen";
+import type { LineDestination, OrderStatus, RequestStatus } from "@/types/almacen";
 import { StatusBadge as SharedStatusBadge } from "@/components/shared/status-badge";
 import { formatQty, purchasePack, packText, toPacks, type PurchasePack } from "@/lib/almacen/inventory";
 import { ItemThumb, qtyWithUnit, useTa, type VariantRef } from "../shared";
@@ -11,6 +11,37 @@ import { ItemThumb, qtyWithUnit, useTa, type VariantRef } from "../shared";
 export function StatusBadge({ status }: { status: RequestStatus | OrderStatus }) {
   const { ta } = useTa();
   return <SharedStatusBadge status={`purchase_${status}`}>{ta(`st_${status}`)}</SharedStatusBadge>;
+}
+
+/**
+ * Para qué es una línea del pedido, para que almacén sepa qué hacer al recibirla sin preguntar:
+ * especial para un proyecto (resaltado: va a Apartados), para un proyecto, o para inventario.
+ */
+export function LineDestinationTag({ dest, variantId }: { dest: LineDestination | undefined; variantId: string | null }) {
+  const { ta } = useTa();
+  if (dest?.forProject)
+    return (
+      <span className="mt-1 inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+        <Archive className="size-3.5 shrink-0" />
+        <span>{ta("dest_special", { p: dest.projectName ?? "—" })}</span>
+        <span className="font-normal opacity-80">· {ta("dest_special_hint")}</span>
+      </span>
+    );
+  if (dest?.projectName)
+    return (
+      <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+        <Folder className="size-3 shrink-0" />
+        {ta("dest_project_line", { p: dest.projectName })}
+      </span>
+    );
+  if (variantId)
+    return (
+      <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+        <Boxes className="size-3 shrink-0" />
+        {ta("dest_inventory")}
+      </span>
+    );
+  return null;
 }
 
 /** Nombre de lo pedido: el producto del catálogo o el texto libre. */
