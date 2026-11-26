@@ -73,3 +73,20 @@ Todo lo que haga la app más barata, más rápida o más estable:
 - Vercel: sin despliegues fallidos en la semana. Errores: aviso `url.parse()` (de una librería, inofensivo); 1 «Push falló» 410
   (suscripción vencida, se limpia sola); **`record_integration_run drive TOKEN_INVALIDO` 3 veces (10–23 nov) desde
   `/api/jotform/webhook`**: el webhook no logra anotar el estado de Drive en Settings → Conexiones (Drive en sí no se reportó caído). Revisar.
+
+### 26 nov 2026 (revisión del jueves; cubre lun 23 22:37 → jue 26 22:38 UTC)
+| Día (UTC) | Consultas | Fotos (HIT) | `save_quote` | `projects` | ledger / payroll | node GCP |
+|---|---|---|---|---|---|---|
+| Mar 24 | 8,293 | 862 (85 %) | 672 | 254 | 19 / 14 | 227 |
+| Mié 25 | 5,804 | 628 (66 %) | 686 | 159 | 37 / 28 | 16 |
+| Jue 26 (hasta 22:38) | 7,952 | 864 (82 %) | 379 | 283 | 25 / 21 | 429 |
+- Estable y en línea con la semana anterior (5.8–8.3 mil en días laborales; muy lejos de los ~31,000 del 6 nov). `projects` sigue
+  bajo (159–283/día vs 639 el 13 nov). `/auth/v1/user` 0; `jwks` 330–565; sin 5xx. Picos: 191/min (mar 24 18:35) y 255/min
+  (jue 26 18:27), sin bucles. Sesiones de trabajo desde Google Cloud: poco (16–429/día).
+- Vercel: `url.parse()` (aviso de librería, inofensivo); 1 «Push falló» 410 de Apple (suscripción vencida, se limpia sola).
+- **`record_integration_run drive TOKEN_INVALIDO` subió a 8 (5 nuevos en 3 días).** Causa encontrada: `src/lib/google/drive.ts:134`
+  anota el resultado de Drive con la sesión del usuario (`token null`), pero cuando Drive se usa desde `/api/jotform/webhook`
+  no hay usuario → la base rechaza la nota. Drive hace su trabajo; solo no queda anotado en Settings → Conexiones.
+  Arreglo propuesto (pendiente del sí de Carlos): pasar el cliente y token del webhook a esa nota, o no anotar cuando no hay sesión.
+- Código nuevo que toca Drive: subidas de hasta 200 MB directo del navegador a Drive (`5f53040`) y elegir archivos del Drive del
+  proyecto sin copiarlos (`e88c746`) — no pasan por el servidor, así que no suman tráfico a Vercel.
