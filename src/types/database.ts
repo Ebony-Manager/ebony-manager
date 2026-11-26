@@ -3265,6 +3265,7 @@ export type Database = {
       purchase_requests: {
         Row: {
           supplier_id: string | null
+          for_project: boolean
           auto: boolean
           created_at: string
           created_by: string | null
@@ -3282,6 +3283,7 @@ export type Database = {
         }
         Insert: {
           supplier_id?: string | null
+          for_project?: boolean
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3299,6 +3301,7 @@ export type Database = {
         }
         Update: {
           supplier_id?: string | null
+          for_project?: boolean
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3577,6 +3580,105 @@ export type Database = {
           { foreignKeyName: "user_notification_preferences_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
+      project_stored_items: {
+        Row: {
+          id: string
+          project_id: string
+          project_item_id: string | null
+          description: string
+          qty: number
+          unit: string | null
+          origin: string
+          purchase_line_id: string | null
+          supplier_id: string | null
+          location: string | null
+          photo_path: string | null
+          notes: string | null
+          received_on: string
+          received_by: string | null
+          received_by_name: string | null
+          status: string
+          delivered_on: string | null
+          delivered_to_employee_id: string | null
+          delivered_to_contractor_id: string | null
+          delivered_to_name: string | null
+          delivered_by_name: string | null
+          delivery_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          project_item_id?: string | null
+          description: string
+          qty?: number
+          unit?: string | null
+          origin: string
+          purchase_line_id?: string | null
+          supplier_id?: string | null
+          location?: string | null
+          photo_path?: string | null
+          notes?: string | null
+          received_on?: string
+          received_by?: string | null
+          received_by_name?: string | null
+          status?: string
+          delivered_on?: string | null
+          delivered_to_employee_id?: string | null
+          delivered_to_contractor_id?: string | null
+          delivered_to_name?: string | null
+          delivered_by_name?: string | null
+          delivery_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          project_item_id?: string | null
+          description?: string
+          qty?: number
+          unit?: string | null
+          origin?: string
+          purchase_line_id?: string | null
+          supplier_id?: string | null
+          location?: string | null
+          photo_path?: string | null
+          notes?: string | null
+          received_on?: string
+          received_by?: string | null
+          received_by_name?: string | null
+          status?: string
+          delivered_on?: string | null
+          delivered_to_employee_id?: string | null
+          delivered_to_contractor_id?: string | null
+          delivered_to_name?: string | null
+          delivered_by_name?: string | null
+          delivery_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_stored_item_costs: {
+        Row: {
+          item_id: string
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          item_id: string
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          item_id?: string
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_items: {
         Row: { area: string; area_not_ready: boolean; waiting_client: boolean; block_id: string | null; created_at: string; created_by: string | null; designer_id: string | null; id: string; kind: string; name: string; needs_paint: boolean; next_visit: string | null; notes: string | null; project_id: string; quote_section_id: string | null; round: number; sort_order: number; stage: string; stage_since: string; updated_at: string }
         Insert: { area?: string; area_not_ready?: boolean; waiting_client?: boolean; block_id?: string | null; created_at?: string; created_by?: string | null; designer_id?: string | null; id?: string; kind?: string; name: string; needs_paint?: boolean; next_visit?: string | null; notes?: string | null; project_id: string; quote_section_id?: string | null; round?: number; sort_order?: number; stage?: string; stage_since?: string; updated_at?: string }
@@ -3691,6 +3793,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      project_stored_items_list: {
+        Args: { p_project?: string | null }
+        Returns: {
+          id: string; project_id: string; project_name: string; project_item_id: string | null; project_item_name: string | null
+          description: string; qty: number; unit: string | null; origin: string; supplier_id: string | null; supplier_name: string | null
+          location: string | null; photo_path: string | null; notes: string | null; received_on: string; received_by_name: string | null
+          status: string; delivered_on: string | null; delivered_to_name: string | null; delivered_by_name: string | null; delivery_notes: string | null
+          total_cents: number | null; created_at: string
+        }[]
+      }
+      project_incoming_items: {
+        Args: { p_project?: string | null }
+        Returns: { id: string; project_id: string; project_name: string; description: string; qty: number; unit: string | null; status: string; requested_by: string | null; created_at: string }[]
+      }
+      stored_item_people: {
+        Args: Record<string, never>
+        Returns: { kind: string; id: string; name: string; detail: string | null }[]
+      }
+      stored_item_project_items: {
+        Args: { p_project: string }
+        Returns: { id: string; label: string }[]
+      }
+      set_stored_item_cost: {
+        Args: { p_item: string; p_cents: number | null }
+        Returns: undefined
+      }
       inspection_painters: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; name: string; active: boolean }[]

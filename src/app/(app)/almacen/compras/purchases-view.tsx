@@ -417,7 +417,7 @@ function PendingRow({
         </span>
         <span className="block truncate text-xs text-muted-foreground">
           {[
-            ref ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}` : ta("free_item"),
+            ref ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}` : r.forProject ? ta("request_special") : ta("free_item"),
             r.projectId ? projectName.get(r.projectId) : null,
             r.reason && !r.auto ? r.reason : null,
             formatDateCompact(lang, todayInPanama(new Date(r.createdAt))),
@@ -552,7 +552,7 @@ function RequestsTable({
                   </span>
                 )}
                 <span className="block truncate text-xs text-muted-foreground">
-                  {[r.projectId ? projectName.get(r.projectId) : null, r.auto ? null : r.reason].filter(Boolean).join(" · ")}
+                  {[r.forProject ? ta("request_special") : null, r.projectId ? projectName.get(r.projectId) : null, r.auto ? null : r.reason].filter(Boolean).join(" · ")}
                 </span>
                 </div>
                 </div>

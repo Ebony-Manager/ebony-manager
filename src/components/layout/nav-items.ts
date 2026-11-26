@@ -1,4 +1,4 @@
-import { BarChart2, Bell, BookUser, Boxes, CalendarCheck, CalendarDays, ClipboardCheck, ClipboardList, Contact, Factory, FileText, Folder, Handshake, Layers, PackageMinus, Palette, PlugZap, Settings, ShoppingCart, UserCog, Users, Wallet, Warehouse, Wrench, type LucideIcon } from "lucide-react";
+import { Archive, BarChart2, Bell, BookUser, Boxes, CalendarCheck, CalendarDays, ClipboardCheck, ClipboardList, Contact, Factory, FileText, Folder, Handshake, Layers, PackageMinus, Palette, PlugZap, Settings, ShoppingCart, UserCog, Users, Wallet, Warehouse, Wrench, type LucideIcon } from "lucide-react";
 import { t, strings } from "@/lib/i18n";
 import { hasAnyModule, hasModule, hasModules, type AccessSubject, type AppModule } from "@/lib/auth/modules";
 
@@ -104,6 +104,7 @@ export const ALMACEN_PANEL: NavPanel = {
     { href: "/almacen", icon: Boxes, label: strings.nav.existencias, modules: ["almacen"], exact: true, alsoActive: ["/almacen/movimientos", "/almacen/conteo", "/almacen/revision"] },
     { href: "/almacen/salidas", icon: PackageMinus, label: strings.nav.salidas, modules: ["almacen"] },
     { href: "/almacen/herramientas", icon: Wrench, label: strings.nav.tools, modules: ["almacen"] },
+    { href: "/almacen/guardado", icon: Archive, label: strings.nav.guardado, anyModules: ["almacen", "diseno", "proyectos"] },
     { href: "/almacen/compras", icon: ShoppingCart, label: strings.nav.compras },
   ],
 };

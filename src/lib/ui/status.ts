@@ -1,4 +1,4 @@
-import { Ban, Briefcase, CalendarX, CircleDashed, CircleDot, CirclePause, Flag, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
+import { Ban, Briefcase, CalendarX, CircleDashed, CircleDot, CirclePause, Flag, Hammer, PaintBucket, CircleCheck, CircleX, Clock, FilePen, HandHelping, PackageCheck, PackageOpen, PackageX, Send, ShieldAlert, ShoppingCart, UserRound, SearchX, Truck, TriangleAlert, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Los estados de la app, cada uno con UN ícono y UN tono (colores del tema),
@@ -48,6 +48,12 @@ export const STATUS = {
   purchase_parcial: { icon: PackageOpen, tone: "info" },
   purchase_recibido: { icon: PackageCheck, tone: "ok" },
   purchase_cancelado: { icon: CircleX, tone: "muted" },
+  // Guardado por proyecto
+  stored_en_almacen: { icon: PackageCheck, tone: "ok" },
+  stored_por_llegar: { icon: Truck, tone: "info" },
+  stored_entregado: { icon: HandHelping, tone: "muted" },
+  stored_cliente: { icon: UserRound, tone: "warn" },
+  stored_ebony: { icon: ShoppingCart, tone: "muted" },
   // Herramientas (el estado que se ve: «vencida» es una prestada que pasó su fecha)
   tool_disponible: { icon: CircleCheck, tone: "ok" },
   tool_prestada: { icon: HandHelping, tone: "info" },

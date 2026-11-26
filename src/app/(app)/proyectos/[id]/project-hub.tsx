@@ -8,7 +8,7 @@ import { Banknote, ChevronRight, Handshake, Hourglass, Info, MoreHorizontal, Pen
 
 import type { ContractorContract, LaborRate, Project } from "@/types/contractors";
 import type { Inspection, InspectionPainter } from "@/types/inspections";
-import type { ProjectSupplyLine } from "@/types/almacen";
+import type { IncomingItem, ProjectSupplyLine, StoredItem } from "@/types/almacen";
 import type { QuoteSummary } from "@/types/cotizador";
 import { QuoteRows } from "../../cotizacion/quote-rows";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import { ProjectFormDialog } from "../../contratistas/project-form-dialog";
 import { DeleteProjectDialog } from "../../contratistas/delete-project-dialog";
 import { InspectionsBoard } from "../../inspecciones/inspections-board";
 import { ProjectSupplies } from "./project-supplies";
+import { ProjectStored } from "./project-stored";
 import { ProjectDeliveries } from "./project-deliveries";
 import { ProjectDesigners } from "./project-designers";
 import { DesignerQuoteRows } from "./designer-quote-rows";
@@ -53,7 +54,7 @@ import { PROJECTS_PATH, projectPath } from "../paths";
 import { BackLink, PAGE_CLASS, SubTabs, EmptyState, ShowToggle } from "@/components/shared/page-header";
 import { projectAddress } from "@/lib/proyectos/address";
 
-type SectionKey = "resumen" | "diseno" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller";
+type SectionKey = "resumen" | "diseno" | "cotizaciones" | "contratos" | "inspecciones" | "suministros" | "presentacion" | "pintura" | "embalaje" | "entregas" | "archivos" | "taller" | "guardado";
 
 /**
  * La ficha de un proyecto: encabezado (nombre, cliente, estado, editar /
@@ -85,6 +86,7 @@ export function ProjectHub({
   designerCandidates = [],
   designerQuotes = [],
   taller = null,
+  stored = null,
   design = null,
 }: {
   project: Project;
@@ -118,6 +120,8 @@ export function ProjectHub({
   /** Con Taller: los trabajos de este proyecto, y nombres/fotos/proyectos para crearlos. */
   /** Los ítems (muebles) del proyecto y sus etapas de diseño. */
   design?: { items: ProjectItem[]; pendingFromQuote: number; orders: OrderSummary[] } | null;
+  /** Guardado en almacén para este proyecto (null = sin permiso). */
+  stored?: { items: StoredItem[]; incoming: IncomingItem[] } | null;
   taller?: { orders: WorkOrder[]; people: TallerPerson[]; projects: TallerProject[]; painters: TallerPainter[]; veneers: VeneerType[] } | null;
 }) {
   const { lang } = useLang();
@@ -132,6 +136,7 @@ export function ProjectHub({
     { key: "inspecciones", label: tt("tab_inspecciones"), visible: canInspections },
     { key: "taller", label: tt("tab_taller"), visible: !!taller },
     { key: "suministros", label: tt("tab_suministros"), visible: !designerView },
+    { key: "guardado", label: tt("tab_guardado"), visible: !!stored },
     { key: "pintura", label: tt("tab_pintura"), visible: true },
     { key: "presentacion", label: tt("tab_presentacion"), visible: drive.enabled },
     { key: "embalaje", label: tt("tab_embalaje"), visible: true },
@@ -215,6 +220,7 @@ export function ProjectHub({
       {tab === "taller" && taller && <ProjectWorkOrders projectId={project.id} {...taller} />}
       {tab === "diseno" && design && <ProjectItems projectId={project.id} items={design.items} pendingFromQuote={design.pendingFromQuote} orders={design.orders} designers={designers.map((d) => ({ id: d.employeeId, name: d.name }))} />}
       {tab === "suministros" && <ProjectSupplies lines={supplies} />}
+      {tab === "guardado" && stored && <ProjectStored projectId={project.id} items={stored.items} incoming={stored.incoming} />}
       {tab === "presentacion" && <ProjectPresentation projectId={project.id} driveEnabled={drive.enabled} />}
       {(tab === "entregas" || tab === "pintura" || tab === "embalaje") && (
         <ProjectDeliveries

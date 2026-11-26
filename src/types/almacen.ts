@@ -163,6 +163,8 @@ export interface PurchaseRequest {
   reason: string | null;
   status: RequestStatus;
   auto: boolean;
+  /** Especial para proyecto: al recibirla queda en Guardado por proyecto (no suma al inventario). */
+  forProject: boolean;
   orderLineId: string | null;
   createdBy: string | null;
   createdByName: string | null;
@@ -295,4 +297,58 @@ export interface PendingReturn {
   qty: number;
   unit: string | null;
   project: string | null;
+}
+
+// ── Guardado por proyecto ──────────────────────────────────────────────────
+
+/** De dónde salió: Compras (solicitud especial recibida), Ebony lo compró por su lado, o lo trajo el cliente. */
+export type StoredOrigin = "compra" | "directa" | "cliente";
+export type StoredStatus = "en_almacen" | "entregado";
+
+/** Algo de un solo proyecto guardado en el almacén hasta usarlo (un riel especial, la manigueta del cliente). */
+export interface StoredItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  projectItemId: string | null;
+  projectItemName: string | null;
+  description: string;
+  qty: number;
+  unit: string | null;
+  origin: StoredOrigin;
+  supplierId: string | null;
+  supplierName: string | null;
+  location: string | null;
+  photoPath: string | null;
+  notes: string | null;
+  receivedOn: string;
+  receivedByName: string | null;
+  status: StoredStatus;
+  deliveredOn: string | null;
+  deliveredToName: string | null;
+  deliveredByName: string | null;
+  deliveryNotes: string | null;
+  /** Costo total (centavos). null = sin costo o no lo puede ver. */
+  totalCents: number | null;
+}
+
+/** Lo especial que se pidió en Compras para un proyecto y todavía no llega. */
+export interface IncomingItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  description: string;
+  qty: number;
+  unit: string | null;
+  status: "pendiente" | "pedido";
+  requestedBy: string | null;
+  createdAt: string;
+}
+
+/** A quién se le puede entregar. */
+export interface StoredPerson {
+  kind: "empleado" | "contratista";
+  id: string;
+  name: string;
+  detail: string | null;
 }

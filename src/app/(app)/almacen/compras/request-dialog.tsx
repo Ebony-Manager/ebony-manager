@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Plus, X } from "lucide-react";
+import { Archive, Plus, X } from "lucide-react";
 
 import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -68,12 +68,14 @@ export function RequestDialog({
   const supplierOptions = React.useMemo(() => suppliers.filter((s) => s.active).map((s) => ({ value: s.id, label: s.name, hint: s.contactName ?? undefined })), [suppliers]);
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
 
-  const [mode, setMode] = React.useState<"catalog" | "free">("catalog");
+  // special = "Especial para proyecto": texto libre con proyecto; al llegar va a Guardado por proyecto.
+  const [mode, setMode] = React.useState<"catalog" | "free" | "special">("catalog");
   const [lines, setLines] = React.useState<Line[]>([newLine()]);
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [reason, setReason] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<string>();
+  const isSpecial = mode === "special";
   const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim()) || !!projectId || !!reason.trim();
   const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
@@ -103,7 +105,7 @@ export function RequestDialog({
     patch(key, { variantId: id, supplierId, qty: r ? String(pack ? toPacks(roundUpToPack(suggested, pack), pack) : suggested) : "" });
   }
 
-  function changeMode(m: "catalog" | "free") {
+  function changeMode(m: "catalog" | "free" | "special") {
     setMode(m);
     setLines([newLine()]);
     reset();
@@ -116,12 +118,13 @@ export function RequestDialog({
     const parsed = filled.map((l) => ({ line: l, n: parseQty(l.qty) }));
     // Sin ningún renglón lleno, se marca el primero (qué y cuánto).
     const checked = parsed.length ? parsed : [{ line: lines[0], n: null as number | null }];
-    const ok = validate(
-      checked.flatMap(({ line: l, n }) => [
+    const ok = validate([
+      ...checked.flatMap(({ line: l, n }) => [
         [`what-${l.key}`, mode === "catalog" ? !l.variantId : !l.description.trim(), ta("what_required")] as const,
         [`qty-${l.key}`, n == null || n <= 0, ta("qty_required")] as const,
       ]),
-    );
+      ["project", isSpecial && !projectId, ta("st_project_required")] as const,
+    ]);
     if (!ok) return;
 
     setSaving(true);
@@ -138,6 +141,7 @@ export function RequestDialog({
           projectId,
           reason,
           supplierId: l.supplierId,
+          forProject: isSpecial,
           itemId: ref?.item.id ?? null,
         },
         // Con Compras, el proveedor elegido queda como principal del producto que no tenía.
@@ -171,8 +175,10 @@ export function RequestDialog({
             options={[
               { value: "catalog", label: ta("request_from_catalog"), icon: ICON.catalog },
               { value: "free", label: ta("request_free"), icon: ICON.freeText },
+              { value: "special", label: ta("request_special"), icon: Archive },
             ]}
           />
+          {isSpecial && <p className="-mt-2 text-xs text-muted-foreground">{ta("request_special_hint")}</p>}
 
           <ul className="flex flex-col gap-3">
             {lines.map((l, i) => {
@@ -246,7 +252,7 @@ export function RequestDialog({
                         }}
                       />
                     </Field>
-                    {mode === "free" && (
+                    {mode !== "catalog" && (
                       <Field label={ta("f_unit")}>
                         <Select value={l.unit} onValueChange={(v) => patch(l.key, { unit: v as InventoryUnit })}>
                           <SelectTrigger className="w-full">
@@ -286,9 +292,17 @@ export function RequestDialog({
           </Button>
 
           {projectOptions.length > 0 && (
-            <Field label={ta("dest_project")}>
+            <Field label={ta("dest_project")} required={isSpecial} error={error("project")}>
               <div className="flex items-center gap-2 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
-                <Combo options={projectOptions} value={projectId} onChange={setProjectId} placeholder={ta("pick_project")} />
+                <Combo
+                  options={projectOptions}
+                  value={projectId}
+                  onChange={(id) => {
+                    setProjectId(id);
+                    clear("project");
+                  }}
+                  placeholder={ta("pick_project")}
+                />
                 {projectId && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setProjectId(null)}>
                     {ta("remove")}

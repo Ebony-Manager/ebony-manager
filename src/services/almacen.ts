@@ -490,6 +490,7 @@ function mapRequest(r: RequestRow, cost?: number): PurchaseRequest {
     reason: r.reason,
     status: r.status as RequestStatus,
     auto: r.auto,
+    forProject: r.for_project,
     orderLineId: r.order_line_id,
     createdBy: r.created_by,
     createdByName: r.created_by_name,
@@ -519,6 +520,8 @@ export interface RequestInput {
   projectId: string | null;
   reason: string | null;
   supplierId?: string | null;
+  /** Especial para proyecto (texto libre, con proyecto): al llegar, va a Guardado por proyecto. */
+  forProject?: boolean;
   /** Solo para recordar el proveedor en el producto (no se guarda en la solicitud). */
   itemId?: string | null;
 }
@@ -533,6 +536,7 @@ export async function createPurchaseRequest(input: RequestInput, userId: string)
     project_id: input.projectId,
     reason: input.reason?.trim() || null,
     supplier_id: input.supplierId ?? null,
+    for_project: !!input.forProject && !input.variantId && !!input.projectId,
     created_by: userId,
   });
   fail(error);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireAnyModule } from "@/lib/auth/dal";
+import { getIncomingItems, getStoredItems } from "@/services/guardado";
 import { hasModule, isDesignerView } from "@/lib/auth/modules";
 import { getContractors, getContracts, getLaborRates, getProject, getProjects } from "@/services/contractors";
 import { getInspectionPainters, getProjectInspections } from "@/services/inspections";
@@ -36,12 +37,13 @@ export default async function ProjectPage({
   const canInspections = hasModule(profile, "inspecciones");
   const canQuotes = hasModule(profile, "cotizacion");
   const canTaller = hasModule(profile, "taller");
+  const canStored = hasModule(profile, "almacen") || hasModule(profile, "diseno") || hasModule(profile, "proyectos");
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
 
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes, taller, design] = await Promise.all([
+  const [contracts, contractors, projects, laborRates, inspections, painters, supplies, clients, quotes, deliveries, unassigned, designers, designerCandidates, designerQuotes, taller, design, stored] = await Promise.all([
     canContracts ? getContracts({ projectId: id }) : none([]),
     canContracts ? getContractors() : none([]),
     canContracts ? getProjects() : none([]),
@@ -64,6 +66,11 @@ export default async function ProjectPage({
     Promise.all([getProjectItems(id), quoteItemsPending(id), getOrderSummaries({ projectId: id }).catch(() => [])])
       .then(([items, pendingFromQuote, orders]) => ({ items, pendingFromQuote, orders }))
       .catch(() => null),
+    canStored
+      ? Promise.all([getStoredItems(id), getIncomingItems(id)])
+          .then(([items, incoming]) => ({ items, incoming }))
+          .catch(() => null)
+      : none(null),
   ]);
   const nameOf = (cid: string | null) => (cid ? (clients.find((c) => c.id === cid)?.name ?? null) : null);
 
@@ -92,6 +99,7 @@ export default async function ProjectPage({
       designerQuotes={designerQuotes}
       taller={taller}
       design={design}
+      stored={stored}
     />
   );
 }

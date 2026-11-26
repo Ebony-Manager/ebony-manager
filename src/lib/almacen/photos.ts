@@ -17,3 +17,8 @@ export function inventoryPhotoPath(itemId: string, ext = "jpg"): string {
 export function toolPhotoPath(toolId: string, ext = "jpg"): string {
   return `tools/${toolId}-${Date.now()}.${ext}`;
 }
+
+/** Foto de algo guardado para un proyecto (Almacén → Guardado por proyecto). */
+export function storedPhotoPath(id: string, ext = "jpg"): string {
+  return `stored/${id}-${Date.now()}.${ext}`;
+}
