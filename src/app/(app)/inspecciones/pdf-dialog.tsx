@@ -12,12 +12,19 @@ import { t, strings } from "@/lib/i18n";
 import { buildInspectionPdf, canShareFiles, inspectionPdfName, shareOrDownloadPdf, type InspectionPdfGroup } from "./inspection-pdf";
 import { useTi } from "./shared";
 
+/** Las cápsulas del PDF: el responsable y el pintor. */
+export function pdfPillLabels(ti: ReturnType<typeof useTi>["ti"]) {
+  return { responsible: { ebony: ti("resp_ebony"), pintor: ti("resp_pintor"), tercero: ti("resp_tercero") }, painter: ti("f_painter") };
+}
+
 /** Lo que se llena a mano en la hoja (por detalle pendiente y al final). */
 export function pdfFormLabels(ti: ReturnType<typeof useTi>["ti"]) {
   return {
     done: ti("pdf_form_done"),
     start: ti("pdf_form_start"),
     end: ti("pdf_form_end"),
+    day: ti("pdf_form_day"),
+    hour: ti("pdf_form_hour"),
     material: ti("pdf_form_material"),
     initials: ti("pdf_form_initials"),
     totalHours: ti("pdf_form_total_hours"),
@@ -71,6 +78,7 @@ export function PdfDialog({
       after: ti("photo_after"),
       photoMissing: ti("pdf_photo_missing"),
       form: pdfFormLabels(ti),
+      ...pdfPillLabels(ti),
     })
       .then((doc) => !cancelled && setPdf(doc.output("blob")))
       .catch((err) => {

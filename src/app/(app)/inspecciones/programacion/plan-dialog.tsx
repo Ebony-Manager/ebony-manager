@@ -46,7 +46,7 @@ import {
 import { useTi } from "../shared";
 import { useDayLabel } from "./schedule-view";
 import { EmptyState } from "@/components/shared/page-header";
-import { pdfFormLabels } from "../pdf-dialog";
+import { pdfFormLabels, pdfPillLabels } from "../pdf-dialog";
 
 const ALL = "all";
 
@@ -225,6 +225,7 @@ export function PlanDialog({
         ].join("\n"),
         page: ti("pdf_page"),
         form: pdfFormLabels(ti),
+        ...pdfPillLabels(ti),
         noArea: ti("no_area"),
         noComment: ti("no_comment"),
         pending: ti("status_pendiente"),

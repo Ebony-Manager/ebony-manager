@@ -27,7 +27,10 @@ export interface InspectionPdfLabels {
   after: string;
   photoMissing: string;
   /** La hoja de trabajo: lo que se llena a mano en el sitio (por detalle pendiente y al final). */
-  form: { done: string; start: string; end: string; material: string; initials: string; totalHours: string; signWorker: string; signReviewer: string; date: string };
+  form: { done: string; start: string; end: string; day: string; hour: string; material: string; initials: string; totalHours: string; signWorker: string; signReviewer: string; date: string };
+  /** Las cápsulas de cada detalle: quién responde y el pintor (si es de pintura). */
+  responsible: { ebony: string; pintor: string; tercero: string };
+  painter: string;
 }
 
 const WALNUT: [number, number, number] = [107, 87, 68];
@@ -36,7 +39,13 @@ const MUTED: [number, number, number] = [110, 110, 110];
 const AMBER: [number, number, number] = [180, 110, 20];
 const GREEN: [number, number, number] = [40, 130, 80];
 /** Alto de la línea para llenar a mano de cada detalle pendiente. */
-const FORM_H = 22;
+const FORM_H = 40;
+/** Color de la cápsula de cada responsable (fondo, texto). */
+const RESP_COLORS: Record<string, { bg: [number, number, number]; fg: [number, number, number] }> = {
+  ebony: { bg: [240, 236, 230], fg: [107, 87, 68] },
+  pintor: { bg: [252, 236, 210], fg: [150, 85, 10] },
+  tercero: { bg: [250, 222, 222], fg: [170, 40, 40] },
+};
 
 interface LoadedPhoto {
   data: string;
@@ -166,7 +175,7 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
     doc.line(lx, yy + 1.5, lx + lineW, yy + 1.5);
     return lx + lineW + 12;
   }
-  // La línea de un detalle: ☐ Hecho · Inicio · Fin · Material · Iniciales.
+  // Las líneas de un detalle: ☐ Hecho · Inicio (fecha y hora) · Fin (fecha y hora); Material · Iniciales.
   function fillLine(yy: number) {
     const x0 = margin + 22;
     doc.setFont("helvetica", "normal");
@@ -176,15 +185,22 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
     doc.setLineWidth(0.6);
     doc.rect(x0, yy + 4, 9, 9);
     let x = x0 + 13;
-    doc.text(labels.form.done, x, yy + 11.5);
-    x += doc.getTextWidth(labels.form.done) + 12;
-    const yLine = yy + 11.5;
-    x = blank(labels.form.start, x, yLine, 42);
-    x = blank(labels.form.end, x, yLine, 42);
-    const initialsW = doc.getTextWidth(labels.form.initials) + 4 + 40;
-    const matW = Math.max(60, pageW - margin - initialsW - 12 - x - doc.getTextWidth(labels.form.material) - 4);
-    x = blank(labels.form.material, x, yLine, matW);
-    blank(labels.form.initials, x, yLine, 40);
+    const y1 = yy + 11.5;
+    doc.text(labels.form.done, x, y1);
+    x += doc.getTextWidth(labels.form.done) + 16;
+    for (const label of [labels.form.start, labels.form.end]) {
+      doc.setFont("helvetica", "bold");
+      doc.text(label, x, y1);
+      x += doc.getTextWidth(label) + 5;
+      doc.setFont("helvetica", "normal");
+      x = blank(labels.form.day, x, y1, 46);
+      x = blank(labels.form.hour, x - 6, y1, 34) + 8;
+    }
+    const y2 = y1 + 17;
+    const initialsW = doc.getTextWidth(labels.form.initials) + 4 + 70;
+    const matW = pageW - margin - initialsW - 14 - x0 - doc.getTextWidth(labels.form.material) - 4;
+    const after = blank(labels.form.material, x0, y2, matW);
+    blank(labels.form.initials, after, y2, 70);
   }
 
   let n = 0;
@@ -217,7 +233,23 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
       const resolved = item.status === "resuelto";
       doc.setFontSize(8.5);
       doc.setTextColor(...(resolved ? GREEN : AMBER));
-      doc.text((resolved ? labels.resolved : labels.pending).toUpperCase(), pageW - margin, y, { align: "right" });
+      const statusText = (resolved ? labels.resolved : labels.pending).toUpperCase();
+      doc.text(statusText, pageW - margin, y, { align: "right" });
+      // Cápsulas a la izquierda del estado: el responsable y el pintor.
+      let pillRight = pageW - margin - doc.getTextWidth(statusText) - 8;
+      const pill = (text: string, bg: [number, number, number], fg: [number, number, number]) => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        const w = doc.getTextWidth(text) + 12;
+        doc.setFillColor(...bg);
+        doc.roundedRect(pillRight - w, y - 9, w, 13, 6.5, 6.5, "F");
+        doc.setTextColor(...fg);
+        doc.text(text, pillRight - w / 2, y, { align: "center" });
+        pillRight -= w + 5;
+      };
+      const rc = RESP_COLORS[item.responsible] ?? RESP_COLORS.ebony;
+      pill(labels.responsible[item.responsible as "ebony"] ?? labels.responsible.ebony, rc.bg, rc.fg);
+      if (item.kind === "pintura" && item.painterName) pill(`${labels.painter}: ${item.painterName}`, [235, 235, 235], [60, 60, 60]);
       y += 14;
       const subline = [item.meta, item.visitLabel].filter(Boolean).join(" · ");
       if (subline) {

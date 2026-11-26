@@ -145,9 +145,8 @@ export function useDetailLine() {
   return (item: Pick<InspectionItem, "kind" | "painterName" | "responsible" | "thirdParty">) =>
     [
       item.kind ? ti(KIND_KEY[item.kind]) : null,
-      item.kind === "pintura" && item.painterName ? `${ti("f_painter")}: ${item.painterName}` : null,
-      // Quién responde, siempre y en tono neutro (el PDF lo lee el pintor).
-      `${ti("f_responsible")}: ${item.responsible === "tercero" ? `${ti("resp_tercero")}${item.thirdParty ? ` (${item.thirdParty})` : ""}` : ti(item.responsible === "pintor" ? "resp_pintor" : "resp_ebony")}`,
+      // El responsable y el pintor van en cápsulas en el PDF; aquí solo quién es el tercero.
+      item.responsible === "tercero" && item.thirdParty ? `${ti("resp_tercero")}: ${item.thirdParty}` : null,
     ]
       .filter(Boolean)
       .join(" · ");
