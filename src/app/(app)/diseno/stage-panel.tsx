@@ -168,7 +168,9 @@ export function StagePanel({ items, defaultChecked, onOpenItem }: { items: Proje
                           {own.length ? `✓ ${own.map((f) => f.name).join(", ")}` : td("doc_missing_short")}
                         </span>
                       </span>
-                      {/* Su propia hoja: subirla o escogerla de Drive solo para este ítem. */}
+                      {/* Solo la hoja de medidas es de cada ítem; la presentación (y lo demás) es del bloque entero. */}
+                      {step === "medido" && (
+                        <>
                       <Button
                         type="button"
                         size="icon"
@@ -196,6 +198,8 @@ export function StagePanel({ items, defaultChecked, onOpenItem }: { items: Proje
                       >
                         <FolderOpen className="size-3.5" />
                       </Button>
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -205,7 +209,7 @@ export function StagePanel({ items, defaultChecked, onOpenItem }: { items: Proje
         </div>
       )}
 
-      {/* Un mismo archivo para todos los marcados (si es un solo plano); cada ítem también puede llevar el suyo, arriba. */}
+      {/* Un mismo archivo para todos los marcados (la presentación del bloque; o una hoja que sirve a todos). */}
       <FileDropZone
         accept="application/pdf,image/*"
         label={docs.length ? td("drop_again") : td(step === "medido" ? "drop_medidas" : "drop_aprobada")}
