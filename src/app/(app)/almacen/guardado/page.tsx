@@ -1,6 +1,6 @@
 import { requireAnyModule } from "@/lib/auth/dal";
 import { hasModule } from "@/lib/auth/modules";
-import { getSuppliers, getWarehouseProjects } from "@/services/almacen";
+import { getPurchaseRequests, getSuppliers, getWarehouseProjects } from "@/services/almacen";
 import { getIncomingItems, getStoredItems, getStoredPeople } from "@/services/guardado";
 import { StoredView } from "./stored-view";
 
@@ -11,18 +11,21 @@ export const dynamic = "force-dynamic";
 
 export default async function GuardadoPage({ searchParams }: { searchParams: Promise<{ proyecto?: string }> }) {
   const profile = await requireAnyModule("almacen", "diseno", "proyectos");
-  const [{ proyecto }, items, incoming, people, projects, suppliers] = await Promise.all([
+  const [{ proyecto }, items, incoming, people, projects, suppliers, requests] = await Promise.all([
     searchParams,
     getStoredItems(),
     getIncomingItems(),
     getStoredPeople(),
     getWarehouseProjects(),
     hasModule(profile, "almacen") ? getSuppliers() : Promise.resolve([]),
+    // La RLS de Compras decide: las suyas, o todas con Compras (las mismas que puede editar).
+    getPurchaseRequests().then((rs) => rs.filter((r) => r.forProject)),
   ]);
   return (
     <StoredView
       items={items}
       incoming={incoming}
+      myRequests={requests}
       people={people}
       projects={projects}
       suppliers={suppliers}

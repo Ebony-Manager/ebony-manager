@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { HandHelping, MapPin, Plus, TriangleAlert, Undo2 } from "lucide-react";
+import { HandHelping, MapPin, Pencil, Plus, TriangleAlert, Undo2 } from "lucide-react";
 
-import type { IncomingItem, StoredItem, StoredPerson, Supplier } from "@/types/almacen";
+import type { IncomingItem, PurchaseRequest, StoredItem, StoredPerson, Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ListToolbar } from "@/components/shared/search-input";
@@ -20,6 +20,7 @@ import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa } from "
 import { StoredDialog } from "./stored-dialog";
 import { DeliverDialog } from "./deliver-dialog";
 import { undoStoredDeliveryAction } from "./actions";
+import { EditRequestDialog, RequestNotes } from "../compras/edit-request-dialog";
 
 type Project = { id: string; name: string; active: boolean };
 type Group = { id: string; name: string; inStore: StoredItem[]; coming: IncomingItem[]; delivered: StoredItem[] };
@@ -32,6 +33,7 @@ type Group = { id: string; name: string; inStore: StoredItem[]; coming: Incoming
 export function StoredView({
   items,
   incoming,
+  myRequests,
   people,
   projects,
   suppliers,
@@ -40,6 +42,8 @@ export function StoredView({
 }: {
   items: StoredItem[];
   incoming: IncomingItem[];
+  /** Las solicitudes que esta persona puede ver en Compras (las suyas, o todas con Compras): con su link y para editarlas. */
+  myRequests: PurchaseRequest[];
   people: StoredPerson[];
   projects: Project[];
   suppliers: Supplier[];
@@ -52,6 +56,8 @@ export function StoredView({
   const [showDelivered, setShowDelivered] = React.useState(false);
   const [editing, setEditing] = React.useState<StoredItem | "new" | null>(null);
   const [delivering, setDelivering] = React.useState<StoredItem | null>(null);
+  const [editingRequest, setEditingRequest] = React.useState<PurchaseRequest | null>(null);
+  const requestById = React.useMemo(() => new Map(myRequests.map((r) => [r.id, r])), [myRequests]);
 
   const inProject = (projectId: string) => projectFilter === "all" || projectId === projectFilter;
   const q = normalizeSearchText(query);
@@ -158,8 +164,20 @@ export function StoredView({
     </li>
   );
 
-  const comingRow = (r: IncomingItem) => (
-    <li key={r.id} className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5">
+  const comingRow = (r: IncomingItem) => {
+    // Se edita mientras está por comprar, si es suya o tiene Compras (las que llegan en myRequests).
+    const req = requestById.get(r.id);
+    const editable = req?.status === "pendiente";
+    return (
+    <li key={r.id}>
+      <div
+        role={editable ? "button" : undefined}
+        tabIndex={editable ? 0 : undefined}
+        onClick={editable ? () => setEditingRequest(req) : undefined}
+        onKeyDown={editable ? (e) => e.key === "Enter" && setEditingRequest(req) : undefined}
+        title={editable ? ta("edit_request_hint") : undefined}
+        className={`flex w-full items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5 ${editable ? "cursor-pointer hover:border-ring" : ""}`}
+      >
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{r.description}</span>
@@ -169,9 +187,13 @@ export function StoredView({
         <span className="block text-xs text-muted-foreground">
           {[r.requestedBy && `${ta("st_requested_by")}: ${r.requestedBy}`, formatDateCompact(lang, r.createdAt.slice(0, 10))].filter(Boolean).join(" · ")}
         </span>
+        <RequestNotes text={req?.reason ?? null} />
       </span>
+      {editable && <Pencil className="size-3.5 shrink-0 text-muted-foreground" />}
+      </div>
     </li>
-  );
+    );
+  };
 
   return (
     <div className={PAGE_CLASS}>
@@ -241,6 +263,7 @@ export function StoredView({
         }}
       />
       <DeliverDialog item={delivering} people={people} onClose={() => setDelivering(null)} />
+      <EditRequestDialog request={editingRequest} projects={projects} onClose={() => setEditingRequest(null)} />
     </div>
   );
 }
