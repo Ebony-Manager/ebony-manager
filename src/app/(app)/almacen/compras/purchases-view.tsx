@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { AlertTriangle, ChevronRight, Plus, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Pencil, Plus, X } from "lucide-react";
 
 import type { InventoryCategory, InventoryItem, OrderDelivery, PurchaseOrder, PurchaseRequest, Supplier } from "@/types/almacen";
 import { ListToolbar } from "@/components/shared/search-input";
@@ -18,6 +18,7 @@ import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestA
 import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
 import { PurchasePhoto, PurchaseQty, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
+import { EditRequestDialog, RequestEditContext, RequestNotes } from "./edit-request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
 import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
@@ -74,6 +75,14 @@ export function PurchasesView({
   const { ta } = useTa();
   const [tab, setTab] = React.useState<Tab>("porpedir");
   const [requesting, setRequesting] = React.useState(false);
+  const [editingRequest, setEditingRequest] = React.useState<PurchaseRequest | null>(null);
+  const editCtx = React.useMemo(
+    () => ({
+      canEdit: (r: PurchaseRequest) => r.status === "pendiente" && !r.auto && (canPurchase || r.createdBy === userId),
+      edit: setEditingRequest,
+    }),
+    [canPurchase, userId],
+  );
   const [building, setBuilding] = React.useState<{ supplierId: string | null; requestIds: string[] } | null>(null);
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [messaging, setMessaging] = React.useState<{ supplier: Supplier | null; lines: OrderMessageLine[] } | null>(null);
@@ -87,6 +96,7 @@ export function PurchasesView({
   const count = (n: number) => (n > 0 ? <span className="rounded-full bg-muted px-1.5 text-[11px] font-medium tabular-nums text-muted-foreground">{n}</span> : undefined);
 
   return (
+    <RequestEditContext.Provider value={editCtx}>
     <div className="flex flex-col gap-5 px-4 pt-4 pb-10 sm:px-7 sm:pt-6">
       <PageHeader
         title={ta("purchases_title")}
@@ -159,7 +169,23 @@ export function PurchasesView({
         canCosts={canCosts}
         onClose={() => setOrderId(null)}
       />
+      <EditRequestDialog request={editingRequest} projects={projects} onClose={() => setEditingRequest(null)} />
     </div>
+    </RequestEditContext.Provider>
+  );
+}
+
+/** El nombre de una solicitud; si se puede editar, es un botón que abre «Editar solicitud». */
+function RequestTitle({ r, index, className }: { r: PurchaseRequest; index: Map<string, VariantRef>; className?: string }) {
+  const { ta } = useTa();
+  const ctx = React.useContext(RequestEditContext);
+  const name = requestName(r, index);
+  if (!ctx?.canEdit(r)) return <span className={className}>{name}</span>;
+  return (
+    <button type="button" onClick={() => ctx.edit(r)} title={ta("edit_request_hint")} className={`group text-left hover:text-primary ${className ?? ""}`}>
+      {name}
+      <Pencil className="ml-1 inline size-3 text-muted-foreground group-hover:text-primary" />
+    </button>
   );
 }
 
@@ -411,7 +437,7 @@ function PendingRow({
       <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} className="mt-1" />
       <PurchasePhoto variantId={r.variantId} index={index} />
       <div className="min-w-0">
-        <span className="block break-words font-medium">{requestName(r, index)}</span>
+        <RequestTitle r={r} index={index} className="block break-words font-medium" />
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <RequestOrigin r={r} />
         </span>
@@ -419,12 +445,12 @@ function PendingRow({
           {[
             ref ? `${ta("stock_now")}: ${qtyWithUnit(ref.variant.stockQty, ref.item.unit, lang)}` : r.forProject ? ta("request_special") : ta("free_item"),
             r.projectId ? projectName.get(r.projectId) : null,
-            r.reason && !r.auto ? r.reason : null,
             formatDateCompact(lang, todayInPanama(new Date(r.createdAt))),
           ]
             .filter(Boolean)
             .join(" · ")}
         </span>
+        {!r.auto && <RequestNotes text={r.reason} />}
       </div>
       <ConfirmButton
         iconOnly
@@ -544,7 +570,7 @@ function RequestsTable({
                 <div className="flex items-center gap-3">
                 <PurchasePhoto variantId={r.variantId} index={index} />
                 <div className="min-w-0">
-                <span className="block truncate font-medium">{requestName(r, index)}</span>
+                <RequestTitle r={r} index={index} className="block truncate font-medium" />
                 {/* En el celular no está la columna "Pidió": el origen va acá. Las automáticas siempre. */}
                 {(r.auto || showWho) && (
                   <span className={`mt-0.5 flex ${r.auto ? "" : "sm:hidden"}`}>
@@ -552,8 +578,9 @@ function RequestsTable({
                   </span>
                 )}
                 <span className="block truncate text-xs text-muted-foreground">
-                  {[r.forProject ? ta("request_special") : null, r.projectId ? projectName.get(r.projectId) : null, r.auto ? null : r.reason].filter(Boolean).join(" · ")}
+                  {[r.forProject ? ta("request_special") : null, r.projectId ? projectName.get(r.projectId) : null].filter(Boolean).join(" · ")}
                 </span>
+                {!r.auto && <RequestNotes text={r.reason} />}
                 </div>
                 </div>
               </td>

@@ -164,7 +164,7 @@ export function StoredView({
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{r.description}</span>
           <span className="text-sm text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
-          <StatusBadge status="stored_por_llegar">{`${ta("st_f_por_llegar")} (${ta(`st_${r.status}`).toLowerCase()})`}</StatusBadge>
+          <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
         </span>
         <span className="block text-xs text-muted-foreground">
           {[r.requestedBy && `${ta("st_requested_by")}: ${r.requestedBy}`, formatDateCompact(lang, r.createdAt.slice(0, 10))].filter(Boolean).join(" · ")}

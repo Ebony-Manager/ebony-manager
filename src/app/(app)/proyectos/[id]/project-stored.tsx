@@ -87,7 +87,7 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                       </span>
                       {r.requestedBy && <span className="block text-xs text-muted-foreground">{`${ta("st_requested_by")}: ${r.requestedBy}`}</span>}
                     </span>
-                    <StatusBadge status={`purchase_${r.status}`}>{ta(`st_${r.status}`)}</StatusBadge>
+                    <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
                   </li>
                 ))}
               </ul>

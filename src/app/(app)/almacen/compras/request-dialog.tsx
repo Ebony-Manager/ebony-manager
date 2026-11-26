@@ -7,6 +7,7 @@ import { Archive, Plus, X } from "lucide-react";
 import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
@@ -30,10 +31,12 @@ interface Line {
   qty: string;
   unit: InventoryUnit;
   supplierId: string | null;
+  /** Especial para proyecto: link de Amazon, medidas… (va en el motivo de esa solicitud). */
+  notes: string;
 }
 
 let seq = 0;
-const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null });
+const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null, notes: "" });
 
 /**
  * Pedir uno o varios productos de una vez: del catálogo (con la cantidad
@@ -76,7 +79,7 @@ export function RequestDialog({
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<string>();
   const isSpecial = mode === "special";
-  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim()) || !!projectId || !!reason.trim();
+  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim() || l.notes.trim()) || !!projectId || !!reason.trim();
   const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
@@ -139,7 +142,7 @@ export function RequestDialog({
           qty: pack ? Math.round(n! * pack.qty * 100) / 100 : n!,
           unit: mode === "catalog" ? (ref?.item.unit ?? null) : l.unit,
           projectId,
-          reason,
+          reason: isSpecial ? l.notes : reason,
           supplierId: l.supplierId,
           forProject: isSpecial,
           itemId: ref?.item.id ?? null,
@@ -270,6 +273,12 @@ export function RequestDialog({
                     )}
                   </div>
 
+                  {isSpecial && (
+                    <Field label={ta("f_special_notes")}>
+                      <Textarea rows={2} value={l.notes} onChange={(e) => patch(l.key, { notes: e.target.value })} placeholder={ta("f_special_notes_ph")} />
+                    </Field>
+                  )}
+
                   {supplierOptions.length > 0 && (
                     <Field label={ta("f_supplier")}>
                       <div className="flex items-center gap-2 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
@@ -312,9 +321,11 @@ export function RequestDialog({
             </Field>
           )}
 
-          <Field label={ta("f_reason")}>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ta("f_reason_ph")} />
-          </Field>
+          {!isSpecial && (
+            <Field label={ta("f_reason")}>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ta("f_reason_ph")} />
+            </Field>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>

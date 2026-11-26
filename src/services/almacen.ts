@@ -561,6 +561,36 @@ export async function updatePurchaseRequest(id: string, patch: { qty?: number; s
   fail((await supabase.from("purchase_requests").update(patch).eq("id", id)).error);
 }
 
+export interface RequestEdit {
+  /** Solo las de texto libre. */
+  description?: string;
+  qty: number;
+  unit?: string;
+  projectId: string | null;
+  reason: string | null;
+}
+
+/** Editar una solicitud pendiente (la RLS deja a quien la pidió o a Compras). */
+export async function editPurchaseRequest(id: string, input: RequestEdit): Promise<void> {
+  if (!(input.qty > 0)) throw new Error("Pon la cantidad");
+  if (input.description !== undefined && !input.description.trim()) throw new Error("Escribe qué es");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("purchase_requests")
+    .update({
+      ...(input.description !== undefined ? { description: input.description.trim() } : {}),
+      ...(input.unit !== undefined ? { unit: input.unit } : {}),
+      qty: input.qty,
+      project_id: input.projectId,
+      reason: input.reason?.trim() || null,
+    })
+    .eq("id", id)
+    .eq("status", "pendiente")
+    .select("id");
+  fail(error);
+  if (!data?.length) throw new Error("Ya no se puede editar: ya se pidió o no es tuya");
+}
+
 // ── Pedidos ─────────────────────────────────────────────────────────────
 
 export async function getPurchaseOrders(limit = 100): Promise<PurchaseOrder[]> {

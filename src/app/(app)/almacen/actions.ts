@@ -116,6 +116,11 @@ export async function updatePurchaseRequestAction(id: string, patch: { qty?: num
   return run(() => almacen.updatePurchaseRequest(id, patch));
 }
 
+export async function editPurchaseRequestAction(id: string, input: almacen.RequestEdit) {
+  await requireProfile();
+  return run(() => almacen.editPurchaseRequest(id, input));
+}
+
 // ── Pedidos ─────────────────────────────────────────────────────────────
 
 export async function createPurchaseOrderAction(supplierId: string, requestIds: string[], notes: string | null, delivery: OrderDelivery) {
