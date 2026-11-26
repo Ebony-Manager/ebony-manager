@@ -3876,6 +3876,7 @@ export const strings = {
     st_group_contractors: { es: "Contratistas", en: "Contractors" },
     st_search_ph: { es: "Buscar por qué es, proyecto o ubicación…", en: "Search item, project or location…" },
     st_all_projects: { es: "Todos los proyectos", en: "All projects" },
+    st_show_delivered: { es: "Mostrar entregados", en: "Show delivered" },
     st_deliver_to: { es: "A quién", en: "To whom" },
     st_deliver_pick: { es: "Elige a la persona…", en: "Pick the person…" },
     st_deliver_other: { es: "Otra persona (escribir)", en: "Someone else (type)" },
