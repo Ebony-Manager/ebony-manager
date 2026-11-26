@@ -402,13 +402,15 @@ export function DeliveryCheckDialog({
         >
           <Field label={tt("f_delivery")} icon={ICON.date} error={error("days")} hint={valid && n !== days ? `${tt("dc_changed")} ${days} → ${n}` : undefined}>
             <div className="flex items-center gap-2">
+              {/* El ancho va en una caja: con ícono, el Input se envuelve y ocupa toda la fila. */}
+              <div className="w-28 shrink-0">
               <Input
                 type="number"
                 inputMode="numeric"
                 min={1}
                 max={365}
                 autoFocus
-                className="w-24 text-right tabular-nums"
+                className="text-right tabular-nums"
                 value={value}
                 onFocus={(e) => e.currentTarget.select()}
                 onChange={(e) => {
@@ -416,6 +418,7 @@ export function DeliveryCheckDialog({
                   clear("days");
                 }}
               />
+              </div>
               <span className="text-sm text-muted-foreground">{tt("unit_days")}</span>
             </div>
           </Field>

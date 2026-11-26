@@ -228,6 +228,30 @@ export function SectionEditor({
   const setMode = (mode: ItemPriceMode) =>
     patch(mode === "direct" && !(section.directPrice > 0) ? { priceMode: mode, directPrice: round2(totals.unit) } : { priceMode: mode });
 
+  const discountField = (
+        <Field label={tt("item_discount")}>
+          <span className="inline-flex h-9 items-center rounded-md border border-input bg-card pr-0.5 pl-2 focus-within:border-ring">
+            <NumField
+              value={section.discountValue}
+              onChange={(n) => patch({ discountValue: n > 0 ? n : 0 })}
+              locked={false}
+              inputWidth={56}
+              className="h-auto border-0 bg-transparent px-0 shadow-none focus-within:ring-0"
+              aria-label={tt("item_discount")}
+            />
+            <button
+              type="button"
+              title={tt("discount_toggle")}
+              aria-label={tt("discount_toggle")}
+              onClick={() => patch({ discountType: section.discountType === "pct" ? "amount" : "pct" })}
+              className="ml-1 rounded bg-muted px-1.5 text-xs leading-[22px] text-foreground/80 hover:bg-accent"
+            >
+              {section.discountType === "pct" ? "%" : "$"}
+            </button>
+          </span>
+        </Field>
+  );
+
   return (
     <div className="flex flex-col gap-3.5">
       <SegmentedFilter<ItemPriceMode>
@@ -271,49 +295,36 @@ export function SectionEditor({
       </div>
       {extra}
 
-      {/* Descuento del ítem (lo ve el cliente) y si lleva la comisión de la cotización. */}
-      <div className="flex flex-wrap items-end gap-x-6 gap-y-3 rounded-lg border border-border bg-muted/30 p-3">
-        <Field label={tt("item_discount")}>
-          <span className="inline-flex h-9 items-center rounded-md border border-input bg-card pr-0.5 pl-2 focus-within:border-ring">
-            <NumField
-              value={section.discountValue}
-              onChange={(n) => patch({ discountValue: n > 0 ? n : 0 })}
-              locked={false}
-              inputWidth={56}
-              className="h-auto border-0 px-0 focus-within:ring-0"
-              aria-label={tt("item_discount")}
-            />
-            <button
-              type="button"
-              title={tt("discount_toggle")}
-              onClick={() => patch({ discountType: section.discountType === "pct" ? "amount" : "pct" })}
-              className="ml-1 bg-muted px-1.5 text-[11px] leading-[22px] text-foreground/80 hover:bg-accent"
-            >
-              {section.discountType === "pct" ? "%" : "$"}
-            </button>
-          </span>
-        </Field>
-        {!direct && rates.commissionPct > 0 && (
-          <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-muted-foreground select-none">
-            <input type="checkbox" className="size-3.5 accent-primary" checked={section.noCommission} onChange={(e) => patch({ noCommission: e.target.checked })} />
-            {tt("item_no_commission")}
-          </label>
-        )}
-      </div>
+      {/* Descuento del ítem (lo ve el cliente). Con receta va en su bloque, con la casilla de comisión;
+          con precio directo va junto al precio, en la misma caja. */}
+      {!direct && (
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 rounded-lg border border-border bg-muted/30 p-3">
+          {discountField}
+          {rates.commissionPct > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-muted-foreground select-none">
+              <input type="checkbox" className="size-3.5 accent-primary" checked={section.noCommission} onChange={(e) => patch({ noCommission: e.target.checked })} />
+              {tt("item_no_commission")}
+            </label>
+          )}
+        </div>
+      )}
 
       {direct ? (
         <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <Field label={tt("direct_price")}>
-              <NumField
-                value={section.directPrice}
-                onChange={(n) => patch({ directPrice: n > 0 ? n : 0 })}
-                prefix="$"
-                inputWidth={96}
-                className="h-9 justify-between"
-                aria-label={tt("direct_price")}
-              />
-            </Field>
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label={tt("direct_price")}>
+                <NumField
+                  value={section.directPrice}
+                  onChange={(n) => patch({ directPrice: n > 0 ? n : 0 })}
+                  prefix="$"
+                  inputWidth={96}
+                  className="h-9 justify-between"
+                  aria-label={tt("direct_price")}
+                />
+              </Field>
+              {discountField}
+            </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">
                 {tt("direct_total")}
