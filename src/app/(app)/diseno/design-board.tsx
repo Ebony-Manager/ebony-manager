@@ -20,7 +20,8 @@ import { toBlocks, type Block } from "@/lib/diseno/blocks";
 import { hasStepFile } from "@/lib/diseno/steps";
 import { CircleCheck } from "lucide-react";
 import { STAGE_STEP } from "@/lib/diseno/steps";
-import { ItemCardNotes, daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
+import { formatDateCompact } from "@/lib/planilla/format";
+import { daysInStage, daysLabel, designerName, isLate, stageLabel, useTd } from "./shared";
 import { ItemDialog } from "./item-dialog";
 
 type Scope = "mine" | "all";
@@ -134,7 +135,15 @@ export function DesignBoard({
     toBlocks(shown.filter((i) => i.stage === s)).sort((a, b) => Number(blockLate(b)) - Number(blockLate(a)) || a.since.localeCompare(b.since));
   const count = (c: Column) => (c === "orders" ? `${shownOrders.length}` : `${byStage(c).length}`);
   const itemsIn = (c: ItemStage) => shown.filter((i) => i.stage === c).length;
-  const blockTitle = (b: Block<BoardItem>) => (b.items.length === 1 ? b.items[0].name : b.areas.join(" · ") || td("no_area"));
+  // El título de la tarjeta es siempre el área (o áreas) del bloque; los ítems van debajo, aunque sea uno solo.
+  const blockTitle = (b: Block<BoardItem>) => b.areas.join(" · ") || td("no_area");
+
+  // La próxima visita más cercana de los ítems con el área no lista.
+  const nextVisit = (b: Block<BoardItem>) =>
+    b.items
+      .filter((i) => i.areaNotReady && i.nextVisit)
+      .map((i) => i.nextVisit!)
+      .sort()[0] ?? null;
 
   const blockCard = (b: Block<BoardItem>) => {
     const late = blockLate(b);
@@ -143,36 +152,31 @@ export function DesignBoard({
     const ready = step ? b.items.filter((i) => hasStepFile(i, step)).length : 0;
     const names = [...new Set(b.items.map((i) => designerName(td, i.designerId, i.designers)))];
     const single = b.items.length === 1;
-    const where = single ? first.area : "";
     return (
       <li key={b.key} className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
         <button type="button" onClick={() => setBlockFor(b.key)} className="flex flex-col gap-0.5 text-left">
           <span className="flex items-start justify-between gap-2">
             <span className="text-sm font-medium text-foreground">{blockTitle(b)}</span>
-            {!single && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{td("items_n", { n: b.items.length })}</span>}
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+              {single ? td("item_1") : td("items_n", { n: b.items.length })}
+            </span>
           </span>
-          {(where || !grouped) && (
-            <span className="truncate text-xs text-muted-foreground">{[grouped || current !== ALL ? "" : first.projectName, where].filter(Boolean).join(" · ")}</span>
-          )}
+          {!grouped && current === ALL && <span className="truncate text-xs text-muted-foreground">{first.projectName}</span>}
         </button>
-        {!single && (
-          // Los ítems del bloque: tocar uno abre su ficha.
-          <span className="flex flex-wrap gap-1">
+        {/* Los ítems del bloque (siempre, aunque sea uno): tocar uno abre su ficha. */}
+        <span className="flex flex-wrap gap-1">
             {b.items.map((i) => (
               <button key={i.id} type="button" onClick={() => setOpenId(i.id)} className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs text-foreground hover:bg-muted">
                 {i.name}
               </button>
             ))}
-          </span>
-        )}
+        </span>
         <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span className={late ? "font-medium text-destructive" : ""}>
             {late ? `${td("late")} · ` : ""}
             {daysLabel(td, daysInStage({ stageSince: b.since }))}
           </span>
-          {single ? (
-            <ItemCardNotes item={first} />
-          ) : (
+          {
             <>
               {step && ready > 0 && (
                 <span className={`inline-flex items-center gap-1 font-medium ${ready === b.items.length ? "text-primary" : "text-foreground"}`}>
@@ -181,9 +185,14 @@ export function DesignBoard({
                 </span>
               )}
               {b.items.every((i) => i.waitingClient) && <span>· {td("waiting_client")}</span>}
-              {b.items.some((i) => i.areaNotReady) && <span>· {td("area_not_ready")}</span>}
+              {b.items.some((i) => i.areaNotReady) && (
+                <span>
+                  · {td("area_not_ready")}
+                  {nextVisit(b) ? ` · ${td("visit_on", { date: formatDateCompact(lang, nextVisit(b)!) })}` : ""}
+                </span>
+              )}
             </>
-          )}
+          }
           {(scope === "all" || b.items.some((i) => !i.designerId)) && first.designers.length > 0 && (
             <span className="flex items-center gap-1">
               · <ICON.designer className="size-3" />

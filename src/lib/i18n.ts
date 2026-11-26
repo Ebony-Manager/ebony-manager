@@ -4258,6 +4258,7 @@ export const strings = {
     pick_own: { es: "Escoger su documento de Drive", en: "Pick its document from Drive" },
     doc_missing_short: { es: "Falta su documento", en: "Missing its document" },
     items_n: { es: "{n} ítems", en: "{n} items" },
+    item_1: { es: "1 ítem", en: "1 item" },
     docs_count: { es: "{doc}: {n} de {total}", en: "{doc}: {n} of {total}" },
     blocks_count: { es: "{n} · {items} ítems", en: "{n} · {items} items" },
     replace_file: { es: "Cambiar", en: "Replace" },
