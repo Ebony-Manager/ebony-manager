@@ -78,7 +78,8 @@ export function PurchasesView({
   const [editingRequest, setEditingRequest] = React.useState<PurchaseRequest | null>(null);
   const editCtx = React.useMemo(
     () => ({
-      canEdit: (r: PurchaseRequest) => r.status === "pendiente" && !r.auto && (canPurchase || r.createdBy === userId),
+      // Pendiente: todo. Ya pedida (en camino): solo la foto (el diálogo lo limita).
+      canEdit: (r: PurchaseRequest) => (r.status === "pendiente" || r.status === "pedido") && !r.auto && (canPurchase || r.createdBy === userId),
       edit: setEditingRequest,
     }),
     [canPurchase, userId],
@@ -435,7 +436,7 @@ function PendingRow({
     // Teléfono: debajo del nombre, porque al lado no caben.
     <li className="grid grid-cols-[24px_48px_minmax(0,1fr)_28px] items-start gap-x-2 gap-y-1.5 border-b border-border px-3.5 py-2.5 text-sm last:border-0 sm:grid-cols-[24px_48px_minmax(0,1fr)_auto_28px] sm:gap-x-3">
       <input type="checkbox" checked={checked} onChange={onToggle} aria-label={requestName(r, index)} className="mt-1" />
-      <PurchasePhoto variantId={r.variantId} index={index} />
+      <PurchasePhoto variantId={r.variantId} index={index} photoPath={r.photoPath} />
       <div className="min-w-0">
         <RequestTitle r={r} index={index} className="block break-words font-medium" />
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -568,7 +569,7 @@ function RequestsTable({
             <tr key={r.id} className="border-b border-border last:border-0">
               <td className="max-w-0 px-3.5 py-2.5">
                 <div className="flex items-center gap-3">
-                <PurchasePhoto variantId={r.variantId} index={index} />
+                <PurchasePhoto variantId={r.variantId} index={index} photoPath={r.photoPath} />
                 <div className="min-w-0">
                 <RequestTitle r={r} index={index} className="block truncate font-medium" />
                 {/* En el celular no está la columna "Pidió": el origen va acá. Las automáticas siempre. */}
@@ -651,6 +652,8 @@ function InTransit({
     }
     return map;
   }, [requests, ta]);
+  // La solicitud de cada línea (texto libre): su foto, y tocar el nombre para ponerle o cambiarle la foto.
+  const requestByLine = React.useMemo(() => new Map(requests.filter((r) => r.orderLineId && !r.variantId).map((r) => [r.orderLineId!, r])), [requests]);
 
   if (orders.length === 0) return <EmptyBox>{ta("in_transit_empty")}</EmptyBox>;
   return (
@@ -684,9 +687,13 @@ function InTransit({
               const pack = packOf(index, l.variantId);
               return (
                 <li key={l.id} className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2 text-sm last:border-0">
-                  <PurchasePhoto variantId={l.variantId} index={index} />
+                  <PurchasePhoto variantId={l.variantId} index={index} photoPath={requestByLine.get(l.id)?.photoPath} />
                   <span className="min-w-0 flex-1">
-                    <span className="block break-words">{requestName(l, index)}</span>
+                    {requestByLine.get(l.id) ? (
+                      <RequestTitle r={requestByLine.get(l.id)!} index={index} className="block break-words" />
+                    ) : (
+                      <span className="block break-words">{requestName(l, index)}</span>
+                    )}
                     {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
                   </span>
                   <PurchaseQty qty={l.qty} receivedQty={l.receivedQty > 0 ? l.receivedQty : undefined} unit={l.unit} pack={pack} lang={lang} className="shrink-0" />

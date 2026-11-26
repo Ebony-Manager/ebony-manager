@@ -26,7 +26,7 @@ type Project = { id: string; name: string; active: boolean };
 type Group = { id: string; name: string; inStore: StoredItem[]; coming: IncomingItem[]; delivered: StoredItem[] };
 
 /**
- * Almacén → Guardado por proyecto: una sola lista agrupada por proyecto. En cada proyecto, juntos, lo que está
+ * Almacén → Apartados: una sola lista agrupada por proyecto. En cada proyecto, juntos, lo que está
  * en el almacén (con dónde está y «Entregar») y lo especial que se pidió y viene en camino; lo entregado queda
  * escondido detrás de «Mostrar entregados» (es historial). Registran y entregan Almacén, Diseño y Proyectos.
  */
@@ -167,7 +167,7 @@ export function StoredView({
   const comingRow = (r: IncomingItem) => {
     // Se edita mientras está por comprar, si es suya o tiene Compras (las que llegan en myRequests).
     const req = requestById.get(r.id);
-    const editable = req?.status === "pendiente";
+    const editable = req?.status === "pendiente" || req?.status === "pedido";
     return (
     <li key={r.id}>
       <div
@@ -178,6 +178,7 @@ export function StoredView({
         title={editable ? ta("edit_request_hint") : undefined}
         className={`flex w-full items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5 ${editable ? "cursor-pointer hover:border-ring" : ""}`}
       >
+      <ItemThumb path={r.photoPath} size={48} />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{r.description}</span>
@@ -187,7 +188,7 @@ export function StoredView({
         <span className="block text-xs text-muted-foreground">
           {[r.requestedBy && `${ta("st_requested_by")}: ${r.requestedBy}`, formatDateCompact(lang, r.createdAt.slice(0, 10))].filter(Boolean).join(" · ")}
         </span>
-        <RequestNotes text={req?.reason ?? null} />
+        <RequestNotes text={r.notes} />
       </span>
       {editable && <Pencil className="size-3.5 shrink-0 text-muted-foreground" />}
       </div>

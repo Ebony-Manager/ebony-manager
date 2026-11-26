@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { IncomingItem, StoredItem, StoredOrigin, StoredPerson, StoredStatus } from "@/types/almacen";
 
 /**
- * Almacén → Guardado por proyecto: cosas de un solo proyecto guardadas hasta usarlas (un riel especial, la
+ * Almacén → Apartados: cosas de un solo proyecto guardadas hasta usarlas (un riel especial, la
  * manigueta que trajo el cliente). No son inventario. Ver supabase/migrations/20261127120000_guardado_por_proyecto.sql.
  * Lo ven y registran Almacén, Diseño y Proyectos; el costo, solo Compras y Costos del almacén.
  */
@@ -57,6 +57,8 @@ export async function getIncomingItems(projectId?: string): Promise<IncomingItem
     status: r.status as IncomingItem["status"],
     requestedBy: r.requested_by,
     createdAt: r.created_at,
+    photoPath: r.photo_path,
+    notes: r.notes,
   }));
 }
 

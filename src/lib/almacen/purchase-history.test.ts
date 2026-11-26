@@ -4,7 +4,7 @@ import { PURCHASE_HISTORY_DEFAULT_STATUS, outstandingPurchaseLines, purchaseHist
 
 const line = (id: string, receivedQty = 0): PurchaseOrderLine => ({ id, variantId: "variant", description: "Tornillos", qty: 10, receivedQty, unit: "unidad", totalCents: null });
 const order = (status: PurchaseOrder["status"], lines: PurchaseOrderLine[], id = "order"): PurchaseOrder => ({ id, supplierId: "supplier", status, delivery: "retiro", orderedOn: "2026-10-27", invoiceRef: null, notes: null, createdByName: "Compras", createdAt: "2026-10-27T12:00:00Z", lines });
-const request = (id: string, status: PurchaseRequest["status"], orderLineId: string | null = null): PurchaseRequest => ({ id, variantId: "variant", description: "Tornillos", supplierId: null, unitCostCents: null, qty: 10, unit: "unidad", projectId: null, reason: null, status, auto: false, forProject: false, orderLineId, createdBy: "user", createdByName: "Solicitante", createdAt: "2026-10-26T12:00:00Z" });
+const request = (id: string, status: PurchaseRequest["status"], orderLineId: string | null = null): PurchaseRequest => ({ id, variantId: "variant", description: "Tornillos", supplierId: null, unitCostCents: null, qty: 10, unit: "unidad", projectId: null, reason: null, status, auto: false, forProject: false, photoPath: null, orderLineId, createdBy: "user", createdByName: "Solicitante", createdAt: "2026-10-26T12:00:00Z" });
 
 describe("purchase history by item", () => {
   it("opens on received items because cancellations are secondary", () => {

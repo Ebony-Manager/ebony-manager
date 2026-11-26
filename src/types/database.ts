@@ -3266,6 +3266,7 @@ export type Database = {
         Row: {
           supplier_id: string | null
           for_project: boolean
+          photo_path: string | null
           auto: boolean
           created_at: string
           created_by: string | null
@@ -3284,6 +3285,7 @@ export type Database = {
         Insert: {
           supplier_id?: string | null
           for_project?: boolean
+          photo_path?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3302,6 +3304,7 @@ export type Database = {
         Update: {
           supplier_id?: string | null
           for_project?: boolean
+          photo_path?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3805,7 +3808,7 @@ export type Database = {
       }
       project_incoming_items: {
         Args: { p_project?: string | null }
-        Returns: { id: string; project_id: string; project_name: string; description: string; qty: number; unit: string | null; status: string; requested_by: string | null; created_at: string }[]
+        Returns: { id: string; project_id: string; project_name: string; description: string; qty: number; unit: string | null; status: string; requested_by: string | null; created_at: string; photo_path: string | null; notes: string | null }[]
       }
       stored_item_people: {
         Args: Record<string, never>
@@ -3814,6 +3817,10 @@ export type Database = {
       stored_item_project_items: {
         Args: { p_project: string }
         Returns: { id: string; label: string }[]
+      }
+      set_request_photo: {
+        Args: { p_id: string; p_path: string | null }
+        Returns: string | null
       }
       set_stored_item_cost: {
         Args: { p_item: string; p_cents: number | null }

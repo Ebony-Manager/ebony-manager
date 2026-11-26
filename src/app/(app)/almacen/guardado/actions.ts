@@ -7,7 +7,7 @@ import { hasModule } from "@/lib/auth/modules";
 import * as guardado from "@/services/guardado";
 import type { StoredOrigin } from "@/types/almacen";
 
-// Guardado por proyecto: lo registran y entregan Almacén, Diseño o Proyectos (la RLS repite la regla).
+// Apartados: lo registran y entregan Almacén, Diseño o Proyectos (la RLS repite la regla).
 const MODULES = ["almacen", "diseno", "proyectos"] as const;
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };

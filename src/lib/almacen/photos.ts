@@ -18,6 +18,11 @@ export function toolPhotoPath(toolId: string, ext = "jpg"): string {
   return `tools/${toolId}-${Date.now()}.${ext}`;
 }
 
+/** Foto de una solicitud de compra (lo especial que se pide). */
+export function requestPhotoPath(id: string, ext = "jpg"): string {
+  return `requests/${id}-${Date.now()}.${ext}`;
+}
+
 /** Foto de algo guardado para un proyecto (Almacén → Guardado por proyecto). */
 export function storedPhotoPath(id: string, ext = "jpg"): string {
   return `stored/${id}-${Date.now()}.${ext}`;

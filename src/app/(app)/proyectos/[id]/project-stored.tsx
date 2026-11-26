@@ -12,10 +12,11 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { STATUS } from "@/lib/ui/status";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { ItemThumb, qtyWithUnit, useTa } from "../../almacen/shared";
+import { RequestNotes } from "../../almacen/compras/edit-request-dialog";
 
 /**
  * Proyecto → Guardado: lo que está en el almacén para este proyecto (lo especial que se compró y lo que trajo el
- * cliente), lo que se pidió y todavía no llega, y lo ya entregado. Se registra y entrega en Almacén → Guardado por proyecto.
+ * cliente), lo que se pidió y todavía no llega, y lo ya entregado. Se registra y entrega en Almacén → Apartados.
  */
 export function ProjectStored({ projectId, items, incoming }: { projectId: string; items: StoredItem[]; incoming: IncomingItem[] }) {
   const { ta, lang } = useTa();
@@ -80,12 +81,14 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
               <ListGroupHeader title={ta("st_f_por_llegar")} count={incoming.length} icon={STATUS.stored_por_llegar.icon} />
               <ul className="flex flex-col gap-2">
                 {incoming.map((r) => (
-                  <li key={r.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
+                  <li key={r.id} className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5">
+                    <ItemThumb path={r.photoPath} size={44} />
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-foreground">
                         {r.description} <span className="text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
                       </span>
                       {r.requestedBy && <span className="block text-xs text-muted-foreground">{`${ta("st_requested_by")}: ${r.requestedBy}`}</span>}
+                      <RequestNotes text={r.notes} />
                     </span>
                     <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
                   </li>

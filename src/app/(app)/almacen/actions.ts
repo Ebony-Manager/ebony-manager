@@ -116,6 +116,11 @@ export async function updatePurchaseRequestAction(id: string, patch: { qty?: num
   return run(() => almacen.updatePurchaseRequest(id, patch));
 }
 
+export async function setRequestPhotoAction(id: string, path: string | null) {
+  await requireProfile();
+  return run(() => almacen.setRequestPhoto(id, path));
+}
+
 export async function editPurchaseRequestAction(id: string, input: almacen.RequestEdit) {
   await requireProfile();
   return run(() => almacen.editPurchaseRequest(id, input));

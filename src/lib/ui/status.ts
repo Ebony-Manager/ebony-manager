@@ -48,7 +48,7 @@ export const STATUS = {
   purchase_parcial: { icon: PackageOpen, tone: "info" },
   purchase_recibido: { icon: PackageCheck, tone: "ok" },
   purchase_cancelado: { icon: CircleX, tone: "muted" },
-  // Guardado por proyecto
+  // Apartados (antes «Guardado por proyecto»)
   stored_en_almacen: { icon: PackageCheck, tone: "ok" },
   stored_por_llegar: { icon: Truck, tone: "info" },
   stored_entregado: { icon: HandHelping, tone: "muted" },

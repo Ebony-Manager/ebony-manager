@@ -41,8 +41,8 @@ export function RequestOrigin({ r }: { r: { auto: boolean; createdByName: string
 }
 
 /** The catalog photo is shared by a product's variants; free-text requests get a placeholder. */
-export function PurchasePhoto({ variantId, index }: { variantId: string | null; index: Map<string, VariantRef> }) {
-  return <ItemThumb path={(variantId && index.get(variantId)?.item.photoPath) || null} size={48} />;
+export function PurchasePhoto({ variantId, index, photoPath }: { variantId: string | null; index: Map<string, VariantRef>; photoPath?: string | null }) {
+  return <ItemThumb path={(variantId && index.get(variantId)?.item.photoPath) || photoPath || null} size={48} />;
 }
 
 /** La presentación en que se compra este producto (rollo, galón); null = suelto o texto libre. */

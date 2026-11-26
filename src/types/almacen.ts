@@ -163,8 +163,10 @@ export interface PurchaseRequest {
   reason: string | null;
   status: RequestStatus;
   auto: boolean;
-  /** Especial para proyecto: al recibirla queda en Guardado por proyecto (no suma al inventario). */
+  /** Especial para proyecto: al recibirla queda en Apartados (antes «Guardado por proyecto») (no suma al inventario). */
   forProject: boolean;
+  /** Foto de lo que se pide (sobre todo lo especial): pasa al apartado al recibirlo. */
+  photoPath: string | null;
   orderLineId: string | null;
   createdBy: string | null;
   createdByName: string | null;
@@ -299,7 +301,7 @@ export interface PendingReturn {
   project: string | null;
 }
 
-// ── Guardado por proyecto ──────────────────────────────────────────────────
+// ── Apartados (antes «Guardado por proyecto») ──────────────────────────────────────────────────
 
 /** De dónde salió: Compras (solicitud especial recibida), Ebony lo compró por su lado, o lo trajo el cliente. */
 export type StoredOrigin = "compra" | "directa" | "cliente";
@@ -343,6 +345,9 @@ export interface IncomingItem {
   status: "pendiente" | "pedido";
   requestedBy: string | null;
   createdAt: string;
+  photoPath: string | null;
+  /** Link o notas de la solicitud. */
+  notes: string | null;
 }
 
 /** A quién se le puede entregar. */

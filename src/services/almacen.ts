@@ -491,6 +491,7 @@ function mapRequest(r: RequestRow, cost?: number): PurchaseRequest {
     status: r.status as RequestStatus,
     auto: r.auto,
     forProject: r.for_project,
+    photoPath: r.photo_path,
     orderLineId: r.order_line_id,
     createdBy: r.created_by,
     createdByName: r.created_by_name,
@@ -520,7 +521,7 @@ export interface RequestInput {
   projectId: string | null;
   reason: string | null;
   supplierId?: string | null;
-  /** Especial para proyecto (texto libre, con proyecto): al llegar, va a Guardado por proyecto. */
+  /** Especial para proyecto (texto libre, con proyecto): al llegar, va a Apartados. */
   forProject?: boolean;
   /** Solo para recordar el proveedor en el producto (no se guarda en la solicitud). */
   itemId?: string | null;
@@ -568,6 +569,14 @@ export interface RequestEdit {
   unit?: string;
   projectId: string | null;
   reason: string | null;
+}
+
+/** Poner, cambiar o quitar la foto de una solicitud (pendiente o ya pedida). Devuelve la foto anterior. */
+export async function setRequestPhoto(id: string, path: string | null): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_request_photo", { p_id: id, p_path: path });
+  fail(error);
+  return data ?? null;
 }
 
 /** Editar una solicitud pendiente (la RLS deja a quien la pidió o a Compras). */

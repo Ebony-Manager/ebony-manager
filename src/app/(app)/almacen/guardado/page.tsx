@@ -4,7 +4,7 @@ import { getPurchaseRequests, getSuppliers, getWarehouseProjects } from "@/servi
 import { getIncomingItems, getStoredItems, getStoredPeople } from "@/services/guardado";
 import { StoredView } from "./stored-view";
 
-// Almacén → Guardado por proyecto: cosas de un solo proyecto guardadas hasta usarlas (lo especial que se compró y
+// Almacén → Apartados: cosas de un solo proyecto guardadas hasta usarlas (lo especial que se compró y
 // lo que trajo el cliente). Entran Almacén, Diseño y Proyectos (sobre todo las diseñadoras); el costo, solo
 // Compras y Costos del almacén. `?proyecto=` abre filtrado (desde la ficha del proyecto).
 export const dynamic = "force-dynamic";

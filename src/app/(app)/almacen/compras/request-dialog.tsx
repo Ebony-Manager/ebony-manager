@@ -71,7 +71,7 @@ export function RequestDialog({
   const supplierOptions = React.useMemo(() => suppliers.filter((s) => s.active).map((s) => ({ value: s.id, label: s.name, hint: s.contactName ?? undefined })), [suppliers]);
   const projectOptions = React.useMemo(() => projects.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })), [projects]);
 
-  // special = "Especial para proyecto": texto libre con proyecto; al llegar va a Guardado por proyecto.
+  // special = "Especial para proyecto": texto libre con proyecto; al llegar va a Apartados.
   const [mode, setMode] = React.useState<"catalog" | "free" | "special">("catalog");
   const [lines, setLines] = React.useState<Line[]>([newLine()]);
   const [projectId, setProjectId] = React.useState<string | null>(null);

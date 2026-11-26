@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { ExternalLink } from "lucide-react";
+import { Camera, ExternalLink, ImagePlus, Loader2 } from "lucide-react";
 
 import { INVENTORY_UNITS, type InventoryUnit, type PurchaseRequest } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,11 @@ import { Field } from "@/components/shared/field";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { parseQty } from "@/lib/almacen/inventory";
-import { editPurchaseRequestAction } from "../actions";
-import { Combo, QtyInput, useTa } from "../shared";
+import { editPurchaseRequestAction, setRequestPhotoAction } from "../actions";
+import { Combo, ItemThumb, QtyInput, useTa } from "../shared";
+import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
+import { createClient } from "@/lib/supabase/client";
+import { INVENTORY_PHOTOS_BUCKET, requestPhotoPath } from "@/lib/almacen/photos";
 
 type Project = { id: string; name: string; active: boolean };
 
@@ -57,6 +60,11 @@ export function RequestNotes({ text, className }: { text: string | null; classNa
 export function EditRequestDialog({ request, projects, onClose }: { request: PurchaseRequest | null; projects: Project[]; onClose: () => void }) {
   const { ta } = useTa();
   const free = !!request && !request.variantId;
+  // Ya pedida (en camino): solo la foto.
+  const ordered = request?.status === "pedido";
+  const [photoPath, setPhotoPath] = React.useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const [description, setDescription] = React.useState("");
   const [qty, setQty] = React.useState("");
   const [unit, setUnit] = React.useState<InventoryUnit>("unidad");
@@ -75,6 +83,7 @@ export function EditRequestDialog({ request, projects, onClose }: { request: Pur
     setUnit((INVENTORY_UNITS as readonly string[]).includes(request.unit ?? "") ? (request.unit as InventoryUnit) : "unidad");
     setProjectId(request.projectId);
     setNotes(request.reason ?? "");
+    setPhotoPath(request.photoPath);
     setSaving(false);
     reset();
     markSeeded();
@@ -87,9 +96,34 @@ export function EditRequestDialog({ request, projects, onClose }: { request: Pur
     [projects, projectId],
   );
 
+  // La foto se guarda al elegirla (como en el resto del Almacén).
+  async function onPhotoFile(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = "";
+    if (!file || !request) return;
+    setPhotoBusy(true);
+    try {
+      const blob = await resizeToJpeg(file, 800);
+      const supabase = createClient();
+      const path = requestPhotoPath(request.id);
+      const up = await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+      if (up.error) throw up.error;
+      const res = await setRequestPhotoAction(request.id, path);
+      if (!res.ok) throw new Error(res.error);
+      if (res.data?.startsWith("requests/")) await supabase.storage.from(INVENTORY_PHOTOS_BUCKET).remove([res.data]);
+      setPhotoPath(path);
+      toast.success(ta("photo_saved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : ta("photo_error"));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!request) return;
+    if (ordered) return onClose();
     const n = parseQty(qty);
     if (
       !validate([
@@ -120,6 +154,27 @@ export function EditRequestDialog({ request, projects, onClose }: { request: Pur
           <DialogTitle>{ta("edit_request")}</DialogTitle>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+          <div className="flex items-center gap-3">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhotoFile} />
+            <button type="button" disabled={photoBusy} onClick={() => fileRef.current?.click()} aria-label={ta("photo_change")} className="relative block shrink-0 rounded-md">
+              {photoPath ? (
+                <ItemThumb path={photoPath} size={72} />
+              ) : (
+                <span className="flex size-[72px] flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-muted/30 text-[11px] font-medium text-muted-foreground hover:bg-muted/60">
+                  {photoBusy ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+                  {ta("st_photo_add")}
+                </span>
+              )}
+              {photoPath && (
+                <span className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm">
+                  {photoBusy ? <Loader2 className="size-3 animate-spin" /> : <Camera className="size-3" />}
+                </span>
+              )}
+            </button>
+            <p className="text-xs text-muted-foreground">{ordered ? ta("request_ordered_photo_only") : ta("request_photo_hint")}</p>
+          </div>
+          {!ordered && (
+          <>
           {free && (
             <Field label={ta("f_what")} required error={error("what")}>
               <Input
@@ -180,12 +235,14 @@ export function EditRequestDialog({ request, projects, onClose }: { request: Pur
           <Field label={request?.forProject ? ta("f_special_notes") : ta("f_reason")}>
             <Textarea rows={3} value={notes} onChange={(ev) => setNotes(ev.target.value)} placeholder={request?.forProject ? ta("f_special_notes_ph") : ta("f_reason_ph")} />
           </Field>
+          </>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
               {ta("cancel")}
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? ta("saving") : ta("save")}
+            <Button type="submit" disabled={saving || photoBusy}>
+              {ordered ? ta("request_done") : saving ? ta("saving") : ta("save")}
             </Button>
           </DialogFooter>
         </form>
