@@ -6,8 +6,10 @@ export type InspectionItemStatus = "pendiente" | "resuelto";
 /** De qué es el detalle; null = sin clasificar (los anteriores a este campo). */
 export type InspectionKind = "pintura" | "carpinteria" | "otro";
 export const INSPECTION_KINDS: readonly InspectionKind[] = ["pintura", "carpinteria", "otro"];
-/** Quién causó el daño: Ebony o un tercero (con una línea de quién). */
-export type InspectionResponsible = "ebony" | "tercero";
+/** Quién responde por el daño: Ebony, el pintor, o el cliente / un tercero (con una línea de quién). */
+export type InspectionResponsible = "ebony" | "pintor" | "tercero";
+
+export const asResponsible = (v: string | null | undefined): InspectionResponsible => (v === "tercero" || v === "pintor" ? v : "ebony");
 
 /** Un contratista pintor (solo id y nombre). */
 export interface InspectionPainter {

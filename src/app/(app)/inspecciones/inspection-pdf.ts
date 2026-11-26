@@ -26,6 +26,8 @@ export interface InspectionPdfLabels {
   resolved: string;
   after: string;
   photoMissing: string;
+  /** La hoja de trabajo: lo que se llena a mano en el sitio (por detalle pendiente y al final). */
+  form: { done: string; start: string; end: string; material: string; initials: string; totalHours: string; signWorker: string; signReviewer: string; date: string };
 }
 
 const WALNUT: [number, number, number] = [107, 87, 68];
@@ -33,6 +35,8 @@ const INK: [number, number, number] = [4, 7, 7];
 const MUTED: [number, number, number] = [110, 110, 110];
 const AMBER: [number, number, number] = [180, 110, 20];
 const GREEN: [number, number, number] = [40, 130, 80];
+/** Alto de la línea para llenar a mano de cada detalle pendiente. */
+const FORM_H = 22;
 
 interface LoadedPhoto {
   data: string;
@@ -150,8 +154,38 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
     const rows: (LoadedPhoto | null)[][] = [];
     for (let i = 0; i < photos.length; i += perRow) rows.push(photos.slice(i, i + perRow));
     const textH = 16 + commentLines.length * 12.5 + (item.visitLabel || item.meta ? 11 : 0);
-    return { commentLines, rows, minH: textH + (rows[0] ? rowHeight(rows[0]) + 8 : 0) };
+    return { commentLines, rows, minH: textH + (rows[0] ? rowHeight(rows[0]) + 8 : 0) + (item.status === "resuelto" ? 0 : FORM_H) };
   };
+
+  // Una etiqueta con su raya para escribir a mano.
+  function blank(label: string, x: number, yy: number, lineW: number) {
+    doc.text(label, x, yy);
+    const lx = x + doc.getTextWidth(label) + 4;
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.5);
+    doc.line(lx, yy + 1.5, lx + lineW, yy + 1.5);
+    return lx + lineW + 12;
+  }
+  // La línea de un detalle: ☐ Hecho · Inicio · Fin · Material · Iniciales.
+  function fillLine(yy: number) {
+    const x0 = margin + 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.6);
+    doc.rect(x0, yy + 4, 9, 9);
+    let x = x0 + 13;
+    doc.text(labels.form.done, x, yy + 11.5);
+    x += doc.getTextWidth(labels.form.done) + 12;
+    const yLine = yy + 11.5;
+    x = blank(labels.form.start, x, yLine, 42);
+    x = blank(labels.form.end, x, yLine, 42);
+    const initialsW = doc.getTextWidth(labels.form.initials) + 4 + 40;
+    const matW = Math.max(60, pageW - margin - initialsW - 12 - x - doc.getTextWidth(labels.form.material) - 4);
+    x = blank(labels.form.material, x, yLine, matW);
+    blank(labels.form.initials, x, yLine, 40);
+  }
 
   let n = 0;
   for (const group of groups) {
@@ -234,6 +268,13 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
         y += h + gap;
       }
 
+      // Para llenar a mano en el sitio: hecho, horas, material e iniciales.
+      if (item.status !== "resuelto") {
+        ensure(FORM_H);
+        fillLine(y);
+        y += FORM_H;
+      }
+
       // Separador entre detalles.
       y += 4;
       doc.setDrawColor(230, 228, 224);
@@ -242,6 +283,24 @@ export async function buildInspectionPdf(groups: readonly InspectionPdfGroup[], 
       y += 16;
     }
   }
+
+  // Cierre de la hoja: horas, firmas y fecha.
+  ensure(90);
+  y += 6;
+  doc.setDrawColor(...WALNUT);
+  doc.setLineWidth(0.8);
+  doc.line(margin, y, pageW - margin, y);
+  y += 26;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...INK);
+  const half = contentW / 2;
+  blank(labels.form.totalHours, margin, y, 70);
+  blank(labels.form.date, margin + half, y, 110);
+  y += 34;
+  blank(labels.form.signWorker, margin, y, half - 150);
+  blank(labels.form.signReviewer, margin + half, y, half - 150);
+  y += 20;
 
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {

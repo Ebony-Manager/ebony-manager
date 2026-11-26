@@ -1,4 +1,5 @@
 import "server-only";
+import { asResponsible } from "@/types/inspections";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -163,7 +164,7 @@ export async function getProjectInspections(projectId: string): Promise<Inspecti
       kind: asKind(i.kind),
       painterId: i.painter_id,
       painterName: i.painter_id ? (painters.get(i.painter_id) ?? null) : null,
-      responsible: i.responsible === "tercero" ? "tercero" : "ebony",
+      responsible: asResponsible(i.responsible),
       thirdParty: i.third_party,
       status: i.status === "resuelto" ? "resuelto" : "pendiente",
       resolvedAt: i.resolved_at,
@@ -459,7 +460,7 @@ export async function getScheduleBoard(from: string, to: string, since: string):
         piece: i.piece,
         comment: i.comment,
         kind: asKind(i.kind),
-        responsible: i.responsible === "tercero" ? "tercero" : "ebony",
+        responsible: asResponsible(i.responsible),
         thirdParty: i.third_party,
         status: i.status === "resuelto" ? "resuelto" : "pendiente",
         visitedOn: insp(i).visited_on,

@@ -110,7 +110,7 @@ export function InspectionsBoard({
     lines.push(filters.onlyPending ? ti("show_pending") : ti("status_all"));
     if (filters.kind !== "todos") lines.push(`${ti("f_kind")}: ${filters.kind === "sin" ? ti("kind_sin") : ti(KIND_KEY[filters.kind])}`);
     if (filters.painterId !== "todos") lines.push(`${ti("f_painter")}: ${painterName(filters.painterId)}`);
-    if (filters.responsible !== "todos") lines.push(`${ti("f_responsible")}: ${ti(filters.responsible === "ebony" ? "resp_ebony" : "resp_tercero")}`);
+    if (filters.responsible !== "todos") lines.push(`${ti("f_responsible")}: ${ti(filters.responsible === "ebony" ? "resp_ebony" : filters.responsible === "pintor" ? "resp_pintor" : "resp_tercero")}`);
     lines.push(ti("pdf_grouped", { g: ti(groupBy === "visita" ? "view_by_visit" : groupBy === "area" ? "group_area" : "view_all") }));
     return [lines.join(" · ")];
   }
@@ -456,6 +456,7 @@ function FiltersButton({
             options={[
               { value: "todos", label: ti("all_short") },
               { value: "ebony", label: ti("resp_ebony") },
+              { value: "pintor", label: ti("resp_pintor") },
               { value: "tercero", label: ti("resp_tercero") },
             ]}
           />
@@ -491,7 +492,7 @@ function ActiveFilters({ filters, painterName, onChange }: { filters: ItemFilter
   if (!filters.onlyPending) chips.push({ key: "status", label: ti("status_all"), clear: { onlyPending: true } });
   if (filters.kind !== "todos") chips.push({ key: "kind", label: filters.kind === "sin" ? ti("kind_sin") : ti(KIND_KEY[filters.kind]), clear: { kind: "todos" } });
   if (filters.painterId !== "todos") chips.push({ key: "painter", label: painterName(filters.painterId), clear: { painterId: "todos" } });
-  if (filters.responsible !== "todos") chips.push({ key: "resp", label: ti(filters.responsible === "ebony" ? "resp_ebony" : "resp_tercero"), clear: { responsible: "todos" } });
+  if (filters.responsible !== "todos") chips.push({ key: "resp", label: ti(filters.responsible === "ebony" ? "resp_ebony" : filters.responsible === "pintor" ? "resp_pintor" : "resp_tercero"), clear: { responsible: "todos" } });
   if (chips.length === 0) return null;
   return (
     <div className="-mt-1 flex flex-wrap gap-1.5">

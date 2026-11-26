@@ -94,6 +94,7 @@ export function DetailFields({
           onChange={(responsible) => set({ responsible })}
           options={[
             { value: "ebony", label: ti("resp_ebony") },
+            { value: "pintor", label: ti("resp_pintor") },
             { value: "tercero", label: ti("resp_tercero") },
           ]}
         />
@@ -122,11 +123,12 @@ const KIND_TONE: Record<InspectionKind, string> = {
 export function DetailTags({ item, className }: { item: Pick<InspectionItem, "kind" | "painterName" | "responsible" | "thirdParty">; className?: string }) {
   const { ti } = useTi();
   const tag = "inline-flex max-w-full items-center truncate rounded px-1.5 py-0.5 text-[10.5px] font-medium leading-none";
-  if (!item.kind && item.responsible !== "tercero") return null;
+  if (!item.kind && item.responsible === "ebony") return null;
   return (
     <div className={cn("flex flex-wrap gap-1", className)}>
       {item.kind && <span className={cn(tag, KIND_TONE[item.kind])}>{ti(KIND_KEY[item.kind])}</span>}
       {item.kind === "pintura" && item.painterName && <span className={cn(tag, "bg-muted text-foreground")}>{item.painterName}</span>}
+      {item.responsible === "pintor" && <span className={cn(tag, "bg-warning/15 text-warning")}>{`${ti("f_responsible")}: ${ti("resp_pintor")}`}</span>}
       {item.responsible === "tercero" && (
         <span className={cn(tag, "bg-destructive/12 text-destructive")}>
           {ti("resp_tercero")}
@@ -144,7 +146,8 @@ export function useDetailLine() {
     [
       item.kind ? ti(KIND_KEY[item.kind]) : null,
       item.kind === "pintura" && item.painterName ? `${ti("f_painter")}: ${item.painterName}` : null,
-      item.responsible === "tercero" ? `${ti("resp_tercero")}${item.thirdParty ? `: ${item.thirdParty}` : ""}` : null,
+      // Quién responde, siempre y en tono neutro (el PDF lo lee el pintor).
+      `${ti("f_responsible")}: ${item.responsible === "tercero" ? `${ti("resp_tercero")}${item.thirdParty ? ` (${item.thirdParty})` : ""}` : ti(item.responsible === "pintor" ? "resp_pintor" : "resp_ebony")}`,
     ]
       .filter(Boolean)
       .join(" · ");

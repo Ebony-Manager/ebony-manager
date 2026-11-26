@@ -110,7 +110,7 @@ export function registerOperacionesTools(server: McpServer, user: McpUser) {
             comentario: it.comment,
             tipo: it.kind,
             arregla: it.painterName,
-            responsable: it.responsible === "tercero" ? `Tercero${it.thirdParty ? `: ${it.thirdParty}` : ""}` : "Ebony",
+            responsable: it.responsible === "tercero" ? `Cliente / tercero${it.thirdParty ? `: ${it.thirdParty}` : ""}` : it.responsible === "pintor" ? "Pintor" : "Ebony",
             estado: it.status,
             resuelto: it.resolvedAt ? `${it.resolvedAt.slice(0, 10)}${it.resolvedByName ? ` por ${it.resolvedByName}` : ""}` : null,
             programado: it.schedule ? `${it.schedule.date}${it.schedule.personName ? ` · ${it.schedule.personName}` : ""}` : null,

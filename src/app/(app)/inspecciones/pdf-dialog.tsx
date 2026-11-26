@@ -12,6 +12,21 @@ import { t, strings } from "@/lib/i18n";
 import { buildInspectionPdf, canShareFiles, inspectionPdfName, shareOrDownloadPdf, type InspectionPdfGroup } from "./inspection-pdf";
 import { useTi } from "./shared";
 
+/** Lo que se llena a mano en la hoja (por detalle pendiente y al final). */
+export function pdfFormLabels(ti: ReturnType<typeof useTi>["ti"]) {
+  return {
+    done: ti("pdf_form_done"),
+    start: ti("pdf_form_start"),
+    end: ti("pdf_form_end"),
+    material: ti("pdf_form_material"),
+    initials: ti("pdf_form_initials"),
+    totalHours: ti("pdf_form_total_hours"),
+    signWorker: ti("pdf_form_sign_worker"),
+    signReviewer: ti("pdf_form_sign_reviewer"),
+    date: ti("pdf_form_date"),
+  };
+}
+
 /**
  * El PDF para el instalador o el pintor: sale con lo que se está viendo (el
  * agrupado y los filtros de la pantalla) o con los detalles seleccionados. Se
@@ -55,6 +70,7 @@ export function PdfDialog({
       resolved: ti("status_resuelto"),
       after: ti("photo_after"),
       photoMissing: ti("pdf_photo_missing"),
+      form: pdfFormLabels(ti),
     })
       .then((doc) => !cancelled && setPdf(doc.output("blob")))
       .catch((err) => {
