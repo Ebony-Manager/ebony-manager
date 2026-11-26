@@ -150,14 +150,17 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
   const rowById = React.useMemo(() => new Map((loaded?.rows ?? []).map((r) => [r.employee.id, r])), [loaded]);
   const punchCount = (name: string) => (loaded?.punches ?? []).filter((p) => p.name === name).length;
 
-  async function onFile(kind: "reloj" | "jotform", input: HTMLInputElement) {
+  async function onFile(input: HTMLInputElement) {
     const file = input.files?.[0];
     input.value = "";
     if (!file) return;
     setUploading(true);
     try {
       const data = await readRows(file);
-      const punches = kind === "reloj" ? parseClockReport(data) : parseJotformPunches(data);
+      // El formato se reconoce por el contenido, no por el botón: el reloj a veces exporta en Excel (.xls) y
+      // el archivo terminaba en el botón del Jotform. El reporte del reloj trae bloques "Employee".
+      const isClock = data.some((r) => (r[0] ?? "").toString().trim() === "Employee");
+      const punches = isClock ? parseClockReport(data) : parseJotformPunches(data);
       if (punches.length === 0) {
         toast.error(tp("att_file_empty"));
         return;
@@ -268,12 +271,12 @@ export function AsistenciaView({ onApplied, canPayroll = true }: { onApplied: ()
           <label className={`${uploadBtn} ${uploading ? "pointer-events-none opacity-50" : ""}`}>
             <Upload className="size-3.5" />
             {tg("att_upload_clock")}
-            <input type="file" accept=".csv" className="sr-only" onChange={(e) => void onFile("reloj", e.currentTarget)} />
+            <input type="file" accept=".csv,.xls,.xlsx" className="sr-only" onChange={(e) => void onFile(e.currentTarget)} />
           </label>
           <label className={`${uploadBtn} ${uploading ? "pointer-events-none opacity-50" : ""}`}>
             <Upload className="size-3.5" />
             {tg("att_upload_jotform")}
-            <input type="file" accept=".xlsx,.xls" className="sr-only" onChange={(e) => void onFile("jotform", e.currentTarget)} />
+            <input type="file" accept=".xlsx,.xls,.csv" className="sr-only" onChange={(e) => void onFile(e.currentTarget)} />
           </label>
           <Button size="sm" className="col-span-2 h-9 sm:h-8" disabled={!ready} onClick={() => setApplyOpen(true)}>
             {tg("att_to_quincena")}
