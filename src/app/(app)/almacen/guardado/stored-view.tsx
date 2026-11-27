@@ -100,7 +100,7 @@ export function StoredView({
         tabIndex={0}
         onClick={() => setEditing(r)}
         onKeyDown={(e) => e.key === "Enter" && setEditing(r)}
-        className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left hover:border-ring ${r.status === "entregado" ? "opacity-70" : ""}`}
+        className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left hover:bg-muted/40 ${r.status === "entregado" ? "opacity-70" : ""}`}
       >
         <ItemThumb path={r.photoPath} size={48} />
         <span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export function StoredView({
         onClick={editable ? () => setEditingRequest(req) : undefined}
         onKeyDown={editable ? (e) => e.key === "Enter" && setEditingRequest(req) : undefined}
         title={editable ? ta("edit_request_hint") : undefined}
-        className={`flex w-full items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5 ${editable ? "cursor-pointer hover:border-ring" : ""}`}
+        className={`flex w-full items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5 ${editable ? "cursor-pointer hover:bg-muted/40" : ""}`}
       >
       <ItemThumb path={r.photoPath} size={48} />
       <span className="min-w-0 flex-1">

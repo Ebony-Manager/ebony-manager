@@ -95,6 +95,11 @@ describe("consistencia de la interfaz", () => {
     expect(bad.length, fix("Usa useDiscardGuard (components/shared/discard-guard); si el diálogo no tiene nada que escribir, marca `ui-allow: sin-campos`. Líneas:", bad)).toBeLessThanOrEqual(BASELINE);
   });
 
+  it("lo que se toca se marca al pasar el mouse con fondo gris (hover:bg-muted/40), no con borde azul", () => {
+    const bad = find((l) => /hover:border-ring\b/.test(l));
+    expect(bad, fix("Usa hover:bg-muted/40 para filas y tarjetas que se tocan (el borde azul es del foco y de lo elegido). Líneas:", bad)).toEqual([]);
+  });
+
   it("colores: del tema (bg-primary, text-muted-foreground…), no de la paleta de Tailwind — la deuda existente no puede crecer", () => {
     // Deuda anotada al crear la guardia. Si baja, bájala acá; si sube, la prueba falla.
     // (Los #hex de logos de marca, correos, PDF y el visor 3D son legítimos: no se revisan.)

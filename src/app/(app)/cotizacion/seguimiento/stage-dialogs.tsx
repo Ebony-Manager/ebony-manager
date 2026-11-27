@@ -150,7 +150,7 @@ export function QuotePickList({
         return (
           <label
             key={q.id}
-            className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm", on ? "border-primary bg-primary/5" : error ? "border-destructive" : "border-border hover:border-ring")}
+            className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm", on ? "border-primary bg-primary/5" : error ? "border-destructive" : "border-border hover:bg-muted/40")}
           >
             <input type="checkbox" checked={on} onChange={() => onToggle(q.id)} aria-invalid={error ? true : undefined} className="size-4 accent-primary" />
             <span className="font-medium tabular-nums">{q.number}</span>

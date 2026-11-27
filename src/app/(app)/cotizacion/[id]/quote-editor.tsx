@@ -710,7 +710,7 @@ export function QuoteEditor({
                     key={sib.id}
                     prefetch={false}
                     href={`/cotizacion/${sib.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 tabular-nums hover:border-ring"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 tabular-nums hover:bg-muted/40"
                   >
                     {sib.number}
                     <StatusBadge status={`quote_${sib.status}`}>{statusLabel(sib.status)}</StatusBadge>
@@ -872,7 +872,7 @@ export function QuoteEditor({
                     type="button"
                     onClick={toggleViewer}
                     aria-expanded={false}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left hover:border-ring"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-left hover:bg-muted/40"
                   >
                     <span className={panelTitle}>{tt("viewer_toggle")}</span>
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1201,7 +1201,7 @@ function HeaderChip({ icon: Icon, label, value, children }: { icon: LucideIcon; 
         <button
           type="button"
           title={label}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm text-foreground hover:border-ring disabled:cursor-default disabled:hover:border-border"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm text-foreground hover:bg-muted/40 disabled:cursor-default disabled:hover:border-border"
         >
           <Icon className="size-3.5 text-muted-foreground" />
           <span className="sr-only">{label}: </span>

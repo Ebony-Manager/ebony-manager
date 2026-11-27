@@ -171,7 +171,7 @@ export function OwnerPanel({
         type="button"
         onClick={() => setOpen(true)}
         title={tt("own_change")}
-        className="inline-flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm hover:border-ring disabled:cursor-default disabled:hover:border-border"
+        className="inline-flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm hover:bg-muted/40 disabled:cursor-default disabled:hover:border-border"
       >
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="shrink-0 text-muted-foreground">{label}:</span>

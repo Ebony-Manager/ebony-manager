@@ -43,6 +43,7 @@
 - **Pie de un diálogo: Cancelar a la izquierda y Guardar a la derecha, uno al lado del otro, también en el teléfono** (ahí cada uno ocupa media fila). Se usa siempre `DialogFooter`; las acciones secundarias (Aprobar, Eliminar…) van en su propia fila arriba en el teléfono y a la izquierda en escritorio.
 - **En el teléfono (< 480 px) los campos de un bloque van uno por fila**: un campo con ícono y una fecha necesitan ancho; en dos columnas el valor se corta.
 - **Estados con ícono y tono, definidos una sola vez** (`lib/ui/status.ts`). La etiqueta de una fila y la opción del filtro del mismo estado usan el mismo ícono y tono; el color nunca es la única señal.
+- **Algo que se toca (fila, tarjeta, ficha, chip) se marca al pasar el mouse con fondo gris suave** (`hover:bg-muted/40`), igual en toda la app. Nunca con el borde azul (`hover:border-ring`): ese borde es del foco del teclado y de lo elegido 🛡️.
 - **Las acciones de un bloque van en su encabezado** (`action=` de `FormSection`), no sueltas debajo.
 - **Lo secundario o ya lleno por defecto** va en un `FormSection quiet` (fondo tenue) para que lo principal resalte.
 - **Web y celular iguales**: se prueba en 390 px de ancho además de escritorio. Teléfono y **tablet vertical (< 1024 px)** usan la forma de app (barras arriba y abajo, «Más»); desde 1024 px (tablet acostada, computadora), el menú de la izquierda. El cambio de forma usa `lg:`, no `md:`. Las cuadrículas de formulario llevan `min-w-0` en cada celda (ya lo trae `Field`).

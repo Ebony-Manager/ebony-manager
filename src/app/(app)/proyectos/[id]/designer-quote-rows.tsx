@@ -23,7 +23,7 @@ export function DesignerQuoteRows({ projectId, quotes }: { projectId: string; qu
           <Link
             href={`/proyectos/${projectId}/cotizacion/${q.id}`}
             prefetch={false}
-            className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:border-ring"
+            className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-muted/40"
           >
             <FileText className="size-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1">

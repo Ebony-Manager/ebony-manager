@@ -62,6 +62,13 @@ Falta, en tandas y con visto bueno de Carlos:
 > Estado: **solo diseñado, nada construido todavía.** Se acordó esperar al miércoles para no gastar el uso de la
 > sesión antes del reinicio del jueves 19 nov. Si el miércoles sobra uso, se hace; si no, se pasa al siguiente ciclo.
 
+## Lección (27 nov): lo que las capturas no muestran
+Las capturas son fotos quietas: no muestran el **paso del mouse** (hover), el **foco** del teclado ni lo que pasa al
+**tocar**. Por eso se escapó el borde azul al pasar el mouse en Apartados (y en la vista de cotización para diseñadora,
+en el editor de cotización y en Seguimiento): no estaba en las reglas, la guardia no lo vigilaba y la foto no lo
+enseña. Desde ahora, en cada barrido: (1) revisar en el código las clases `hover:`, `focus:` y `active:` de lo que se
+toca, contra la regla de UI-RULES; (2) toda regla nueva de interacción entra a la guardia, para que no dependa de la vista.
+
 ## Qué se quiere
 Un auditor (otra sesión, aparte de la de desarrollo) que revise que se cumplan las reglas de la app
 (`UI-RULES.md`, `CLAUDE.md`, `FOUNDATION.md`) en todas las pantallas. Carlos siente que lo hecho está ~80 % bien y

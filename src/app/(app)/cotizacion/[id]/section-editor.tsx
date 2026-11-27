@@ -175,7 +175,7 @@ export function SectionEditor({
     );
 
   const adder = (label: string, onClick: () => void) => (
-    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:border-ring">
+    <button key={label} type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-xs font-medium hover:bg-muted/40">
       <Plus className="size-3" />
       {label}
     </button>
