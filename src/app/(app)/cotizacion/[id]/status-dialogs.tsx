@@ -355,13 +355,15 @@ export function DeliveryCheckDialog({
   mode: "send" | "pdf" | null;
   days: number;
   onClose: () => void;
-  onConfirm: (days: number) => Promise<void>;
+  /** alsoSend: al bajar el PDF, marcarla también como enviada (la casilla del aviso). */
+  onConfirm: (days: number, alsoSend: boolean) => Promise<void>;
 }) {
   const { lang } = useLang();
   const tt = (k: Tk) => t(lang, strings.cotizador[k]);
   const { tv } = useTv();
   const [value, setValue] = React.useState(String(days));
   const [saving, setSaving] = React.useState(false);
+  const [alsoSend, setAlsoSend] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<"days">();
   const { requestClose, dialog: discardDialog } = useDiscardGuard(() => value !== String(days), onClose);
 
@@ -370,6 +372,7 @@ export function DeliveryCheckDialog({
     if (!mode) return;
     setValue(String(days));
     setSaving(false);
+    setAlsoSend(false);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
   }, [mode]);
@@ -381,7 +384,7 @@ export function DeliveryCheckDialog({
   async function submit() {
     if (!validate([["days", !valid, tt("dc_days_invalid")]])) return;
     setSaving(true);
-    await onConfirm(n);
+    await onConfirm(n, mode === "pdf" && alsoSend);
     setSaving(false);
   }
 
@@ -422,12 +425,22 @@ export function DeliveryCheckDialog({
               <span className="text-sm text-muted-foreground">{tt("unit_days")}</span>
             </div>
           </Field>
+          {mode === "pdf" && (
+            // Descargar el borrador para mostrar avances no la marca enviada; si es la versión que se manda, se marca aquí mismo.
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border px-3 py-2.5 text-sm">
+              <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={alsoSend} onChange={(e) => setAlsoSend(e.target.checked)} />
+              <span>
+                <span className="block font-medium text-foreground">{tt("dc_also_send")}</span>
+                <span className="block text-xs text-muted-foreground">{tt("dc_also_send_hint")}</span>
+              </span>
+            </label>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => void requestClose()}>
               {tv("cancel")}
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? tv("saving") : mode === "pdf" ? tt("dc_confirm_pdf") : tt("dc_confirm_send")}
+              {saving ? tv("saving") : mode === "pdf" ? (alsoSend ? tt("dc_confirm_pdf_send") : tt("dc_confirm_pdf")) : tt("dc_confirm_send")}
             </Button>
           </DialogFooter>
         </form>

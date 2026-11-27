@@ -504,12 +504,21 @@ export function QuoteEditor({
   }
 
   /** Los días ya confirmados (y cambiados si hizo falta): ahora sí, enviar o bajar el PDF. */
-  async function onDeliveryConfirmed(days: number) {
+  async function onDeliveryConfirmed(days: number, alsoSend: boolean) {
     const mode = deliveryCheck;
     if (days !== latest.current.deliveryDays) change((q) => ({ ...q, deliveryDays: days }));
     if (mode === "send") {
       await runStatus("ENVIADA");
     } else {
+      // Bajar el PDF y, si se marcó la casilla, dejarla enviada: primero se marca (así el PDF sale con las
+      // condiciones que quedan fijas al enviar) y después se descarga.
+      if (alsoSend) {
+        if (!quoteWho(latest.current)) {
+          setDeliveryCheck(null);
+          return void toast.error(tt("st_need_owner"));
+        }
+        await runStatus("ENVIADA");
+      }
       setDeliveryCheck(null);
       downloadPdf();
     }
