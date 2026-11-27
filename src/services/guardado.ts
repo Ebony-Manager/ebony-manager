@@ -40,6 +40,8 @@ export async function getStoredItems(projectId?: string): Promise<StoredItem[]> 
     deliveredByName: r.delivered_by_name,
     deliveryNotes: r.delivery_notes,
     totalCents: r.total_cents == null ? null : Number(r.total_cents),
+    attachmentPath: r.attachment_path ?? null,
+    attachmentName: r.attachment_name ?? null,
   }));
 }
 
@@ -59,6 +61,8 @@ export async function getIncomingItems(projectId?: string): Promise<IncomingItem
     createdAt: r.created_at,
     photoPath: r.photo_path,
     notes: r.notes,
+    attachmentPath: r.attachment_path ?? null,
+    attachmentName: r.attachment_name ?? null,
   }));
 }
 

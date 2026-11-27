@@ -3267,6 +3267,8 @@ export type Database = {
           supplier_id: string | null
           for_project: boolean
           photo_path: string | null
+          attachment_path: string | null
+          attachment_name: string | null
           auto: boolean
           created_at: string
           created_by: string | null
@@ -3286,6 +3288,8 @@ export type Database = {
           supplier_id?: string | null
           for_project?: boolean
           photo_path?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3305,6 +3309,8 @@ export type Database = {
           supplier_id?: string | null
           for_project?: boolean
           photo_path?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
           auto?: boolean
           created_at?: string
           created_by?: string | null
@@ -3596,6 +3602,8 @@ export type Database = {
           supplier_id: string | null
           location: string | null
           photo_path: string | null
+          attachment_path: string | null
+          attachment_name: string | null
           notes: string | null
           received_on: string
           received_by: string | null
@@ -3622,6 +3630,8 @@ export type Database = {
           supplier_id?: string | null
           location?: string | null
           photo_path?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
           notes?: string | null
           received_on?: string
           received_by?: string | null
@@ -3648,6 +3658,8 @@ export type Database = {
           supplier_id?: string | null
           location?: string | null
           photo_path?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
           notes?: string | null
           received_on?: string
           received_by?: string | null
@@ -3803,12 +3815,12 @@ export type Database = {
           description: string; qty: number; unit: string | null; origin: string; supplier_id: string | null; supplier_name: string | null
           location: string | null; photo_path: string | null; notes: string | null; received_on: string; received_by_name: string | null
           status: string; delivered_on: string | null; delivered_to_name: string | null; delivered_by_name: string | null; delivery_notes: string | null
-          total_cents: number | null; created_at: string
+          total_cents: number | null; created_at: string; attachment_path: string | null; attachment_name: string | null
         }[]
       }
       project_incoming_items: {
         Args: { p_project?: string | null }
-        Returns: { id: string; project_id: string; project_name: string; description: string; qty: number; unit: string | null; status: string; requested_by: string | null; created_at: string; photo_path: string | null; notes: string | null }[]
+        Returns: { id: string; project_id: string; project_name: string; description: string; qty: number; unit: string | null; status: string; requested_by: string | null; created_at: string; photo_path: string | null; notes: string | null; attachment_path: string | null; attachment_name: string | null }[]
       }
       stored_item_people: {
         Args: Record<string, never>
@@ -3820,7 +3832,11 @@ export type Database = {
       }
       purchase_line_destinations: {
         Args: Record<string, never>
-        Returns: { line_id: string; for_project: boolean; project_id: string | null; project_name: string | null; photo_path: string | null; notes: string | null; requested_by: string | null }[]
+        Returns: { line_id: string; for_project: boolean; project_id: string | null; project_name: string | null; photo_path: string | null; notes: string | null; requested_by: string | null; attachment_path: string | null; attachment_name: string | null }[]
+      }
+      set_request_attachment: {
+        Args: { p_id: string; p_path: string | null; p_name: string | null }
+        Returns: string | null
       }
       set_request_notes: {
         Args: { p_id: string; p_notes: string }

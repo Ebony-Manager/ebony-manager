@@ -493,6 +493,8 @@ function mapRequest(r: RequestRow, cost?: number): PurchaseRequest {
     auto: r.auto,
     forProject: r.for_project,
     photoPath: r.photo_path,
+    attachmentPath: r.attachment_path,
+    attachmentName: r.attachment_name,
     orderLineId: r.order_line_id,
     createdBy: r.created_by,
     createdByName: r.created_by_name,
@@ -577,6 +579,14 @@ export interface RequestEdit {
   supplierId?: string | null;
 }
 
+/** Poner, cambiar o quitar el archivo (cotización o factura) de una solicitud. Devuelve el anterior. */
+export async function setRequestAttachment(id: string, path: string | null, name: string | null): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_request_attachment", { p_id: id, p_path: path, p_name: name });
+  fail(error);
+  return data ?? null;
+}
+
 /** El link o las notas de una solicitud, también ya pedida (quien la pidió o Compras). */
 export async function setRequestNotes(id: string, notes: string | null): Promise<void> {
   const supabase = await createClient();
@@ -595,6 +605,8 @@ export async function getLineDestinations(): Promise<LineDestination[]> {
     projectId: d.project_id,
     projectName: d.project_name,
     photoPath: d.photo_path,
+    attachmentPath: d.attachment_path ?? null,
+    attachmentName: d.attachment_name ?? null,
     notes: d.notes,
     requestedBy: d.requested_by,
   }));

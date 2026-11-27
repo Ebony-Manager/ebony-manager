@@ -18,6 +18,10 @@ export const INVENTORY_UNITS = [
 ] as const;
 export type InventoryUnit = (typeof INVENTORY_UNITS)[number];
 
+/** Unidades de una solicitud de texto libre: las del catálogo más «lote» (lo especial con su detalle en un archivo). */
+export const REQUEST_UNITS = [...INVENTORY_UNITS, "lote"] as const;
+export type RequestUnit = (typeof REQUEST_UNITS)[number];
+
 export type SupplierKind = "materiales" | "servicio";
 export type ItemKind = "suministro" | "devolvible";
 export type InternalUse = "taller" | "embalaje" | "pintura";
@@ -167,6 +171,9 @@ export interface PurchaseRequest {
   forProject: boolean;
   /** Foto de lo que se pide (sobre todo lo especial): pasa al apartado al recibirlo. */
   photoPath: string | null;
+  /** La cotización o factura del proveedor (PDF o foto) con el detalle de un pedido por lote. */
+  attachmentPath: string | null;
+  attachmentName: string | null;
   orderLineId: string | null;
   createdBy: string | null;
   createdByName: string | null;
@@ -311,6 +318,8 @@ export interface LineDestination {
   photoPath: string | null;
   notes: string | null;
   requestedBy: string | null;
+  attachmentPath: string | null;
+  attachmentName: string | null;
 }
 
 // ── Apartados (antes «Guardado por proyecto») ──────────────────────────────────────────────────
@@ -344,6 +353,9 @@ export interface StoredItem {
   deliveryNotes: string | null;
   /** Costo total (centavos). null = sin costo o no lo puede ver. */
   totalCents: number | null;
+  /** La cotización o factura del pedido (lo especial por lote). */
+  attachmentPath: string | null;
+  attachmentName: string | null;
 }
 
 /** Lo especial que se pidió en Compras para un proyecto y todavía no llega. */
@@ -360,6 +372,8 @@ export interface IncomingItem {
   photoPath: string | null;
   /** Link o notas de la solicitud. */
   notes: string | null;
+  attachmentPath: string | null;
+  attachmentName: string | null;
 }
 
 /** A quién se le puede entregar. */

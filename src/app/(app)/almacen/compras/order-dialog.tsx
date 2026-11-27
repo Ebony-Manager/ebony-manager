@@ -22,6 +22,7 @@ import { ICON } from "@/lib/ui/concepts";
 import { cancelPurchaseOrderAction, receivePurchaseOrderAction, saveOrderInvoiceAction, setOrderDeliveryAction } from "../actions";
 import { QtyInput, useTa, type VariantRef } from "../shared";
 import { LineDestinationTag, PurchasePhoto, PurchaseQty, StatusBadge, packOf } from "./common";
+import { AttachmentLink } from "./edit-request-dialog";
 import { DELIVERY_ICON, DeliveryBadge, MapsButton } from "./order-message";
 
 /** 1250 → "12.50"; 1.25 → "0.0125" (precios de centavos con hasta 4 decimales). */
@@ -249,6 +250,7 @@ export function OrderDialog({
                       <span className="block break-words font-medium">{lineName(l)}</span>
                       {!l.variantId && !destByLine?.get(l.id)?.forProject && <span className="block text-xs text-muted-foreground">{ta("free_item")}</span>}
                       <LineDestinationTag dest={destByLine?.get(l.id)} variantId={l.variantId} />
+                      <AttachmentLink path={destByLine?.get(l.id)?.attachmentPath ?? null} name={destByLine?.get(l.id)?.attachmentName ?? null} className="mt-1" />
                       <PurchaseQty
                         qty={l.qty}
                         receivedQty={l.receivedQty}

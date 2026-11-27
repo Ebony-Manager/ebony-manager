@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import toast from "react-hot-toast";
-import { Archive, Camera, ExternalLink, ImagePlus, Loader2 } from "lucide-react";
+import { Archive, Camera, ExternalLink, FileText, ImagePlus, Loader2, Paperclip } from "lucide-react";
 
-import { INVENTORY_UNITS, type InventoryUnit, type PurchaseRequest, type Supplier } from "@/types/almacen";
+import { REQUEST_UNITS, type PurchaseRequest, type RequestUnit, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,13 +14,13 @@ import { Field } from "@/components/shared/field";
 import { useDiscardGuard, useFormBaseline } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { parseQty } from "@/lib/almacen/inventory";
-import { editPurchaseRequestAction, setRequestNotesAction, setRequestPhotoAction } from "../actions";
+import { editPurchaseRequestAction, setRequestAttachmentAction, setRequestNotesAction, setRequestPhotoAction } from "../actions";
 import { Combo, ItemThumb, QtyInput, qtyWithUnit, useTa } from "../shared";
 import { SegmentedFilter } from "@/components/shared/page-breadcrumb";
 import { ICON } from "@/lib/ui/concepts";
 import { resizeToJpeg } from "@/components/shared/profile-photo-picker";
 import { createClient } from "@/lib/supabase/client";
-import { INVENTORY_PHOTOS_BUCKET, requestPhotoPath } from "@/lib/almacen/photos";
+import { INVENTORY_PHOTOS_BUCKET, PURCHASE_DOCS_BUCKET, requestDocPath, requestPhotoPath } from "@/lib/almacen/photos";
 
 type Project = { id: string; name: string; active: boolean };
 
@@ -100,7 +100,9 @@ export function EditRequestDialog({
   const [special, setSpecial] = React.useState(false);
   const [description, setDescription] = React.useState("");
   const [qty, setQty] = React.useState("");
-  const [unit, setUnit] = React.useState<InventoryUnit>("unidad");
+  const [unit, setUnit] = React.useState<RequestUnit>("unidad");
+  const [attachment, setAttachment] = React.useState<{ path: string; name: string | null } | null>(null);
+  const [fileBusy, setFileBusy] = React.useState(false);
   const [supplierId, setSupplierId] = React.useState<string | null>(null);
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
@@ -115,7 +117,8 @@ export function EditRequestDialog({
     setSpecial(request.forProject);
     setDescription(request.description);
     setQty(String(request.qty));
-    setUnit((INVENTORY_UNITS as readonly string[]).includes(request.unit ?? "") ? (request.unit as InventoryUnit) : "unidad");
+    setUnit((REQUEST_UNITS as readonly string[]).includes(request.unit ?? "") ? (request.unit as RequestUnit) : "unidad");
+    setAttachment(request.attachmentPath ? { path: request.attachmentPath, name: request.attachmentName } : null);
     setSupplierId(request.supplierId);
     setProjectId(request.projectId);
     setNotes(request.reason ?? "");
@@ -146,6 +149,28 @@ export function EditRequestDialog({
       toast.error(err instanceof Error ? err.message : ta("photo_error"));
     } finally {
       setPhotoBusy(false);
+    }
+  }
+
+  // El archivo (cotización o factura) se guarda al elegirlo, como la foto; también ya pedida.
+  async function onAttachment(file: File | null) {
+    if (!request) return;
+    setFileBusy(true);
+    try {
+      if (file) {
+        const up = await uploadRequestAttachment(request.id, file);
+        setAttachment(up);
+      } else {
+        const res = await setRequestAttachmentAction(request.id, null, null);
+        if (!res.ok) throw new Error(res.error);
+        if (res.data) await createClient().storage.from(PURCHASE_DOCS_BUCKET).remove([res.data]);
+        setAttachment(null);
+      }
+      toast.success(ta("attachment_saved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : ta("attachment_error"));
+    } finally {
+      setFileBusy(false);
     }
   }
 
@@ -229,6 +254,20 @@ export function EditRequestDialog({
             )}
           </div>
 
+          {free && (
+            <Field label={ta("attachment_label")} hint={ordered ? undefined : ta("attachment_hint")}>
+              <div className="flex flex-col gap-1.5">
+                {attachment && <AttachmentLink path={attachment.path} name={attachment.name} />}
+                <AttachmentPicker
+                  fileName={attachment ? ta("attachment_change") : null}
+                  busy={fileBusy}
+                  onPick={(f) => void onAttachment(f)}
+                  onClear={attachment ? () => void onAttachment(null) : undefined}
+                />
+              </div>
+            </Field>
+          )}
+
           {!ordered && (
             <>
               {free && (
@@ -255,12 +294,12 @@ export function EditRequestDialog({
                 </Field>
                 {free && (
                   <Field label={ta("f_unit")}>
-                    <Select value={unit} onValueChange={(v) => setUnit(v as InventoryUnit)}>
+                    <Select value={unit} onValueChange={(v) => setUnit(v as RequestUnit)}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {INVENTORY_UNITS.map((u) => (
+                        {REQUEST_UNITS.map((u) => (
                           <SelectItem key={u} value={u}>
                             {ta(`unit_${u}`)}
                           </SelectItem>
@@ -313,7 +352,7 @@ export function EditRequestDialog({
             <Button type="button" variant="outline" onClick={() => void requestClose()} disabled={saving}>
               {ta("cancel")}
             </Button>
-            <Button type="submit" disabled={saving || photoBusy}>
+            <Button type="submit" disabled={saving || photoBusy || fileBusy}>
               {saving ? ta("saving") : ta("save")}
             </Button>
           </DialogFooter>
@@ -365,5 +404,79 @@ export function PhotoButton({ path, preview, busy, onPick, size = 72 }: { path: 
         </span>
       )}
     </button>
+  );
+}
+
+/** Abre el archivo de un pedido (bucket privado: enlace firmado por 10 minutos). */
+export function AttachmentLink({ path, name, className }: { path: string | null; name: string | null; className?: string }) {
+  const { ta } = useTa();
+  if (!path) return null;
+  async function open() {
+    // La pestaña se abre ya (si se abre después de esperar, el navegador la bloquea) y luego se le pone el enlace.
+    const tab = window.open("", "_blank");
+    const { data, error } = await createClient().storage.from(PURCHASE_DOCS_BUCKET).createSignedUrl(path!, 600);
+    if (error || !data) {
+      tab?.close();
+      return void toast.error(ta("attachment_open_error"));
+    }
+    if (tab) tab.location.href = data.signedUrl;
+    else window.location.href = data.signedUrl;
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        void open();
+      }}
+      title={name ?? undefined}
+      className={`inline-flex max-w-full items-center gap-1 text-xs font-medium text-primary hover:underline ${className ?? ""}`}
+    >
+      <FileText className="size-3.5 shrink-0" />
+      <span className="truncate">{name || ta("attachment_default_name")}</span>
+      <ExternalLink className="size-3 shrink-0" />
+    </button>
+  );
+}
+
+/** Sube el archivo (cotización o factura) de una solicitud y lo pone; borra el anterior. Devuelve ruta y nombre. */
+export async function uploadRequestAttachment(requestId: string, file: File): Promise<{ path: string; name: string }> {
+  const supabase = createClient();
+  const path = requestDocPath(requestId, file.name);
+  const up = await supabase.storage.from(PURCHASE_DOCS_BUCKET).upload(path, file, { contentType: file.type || undefined });
+  if (up.error) throw up.error;
+  const res = await setRequestAttachmentAction(requestId, path, file.name);
+  if (!res.ok) throw new Error(res.error);
+  if (res.data) await supabase.storage.from(PURCHASE_DOCS_BUCKET).remove([res.data]);
+  return { path, name: file.name };
+}
+
+/** Elegir el archivo (PDF o foto): un botón que muestra el nombre del elegido. */
+export function AttachmentPicker({ fileName, onPick, onClear, busy }: { fileName: string | null; onPick: (file: File) => void; onClear?: () => void; busy?: boolean }) {
+  const { ta } = useTa();
+  const ref = React.useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <input
+        ref={ref}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) onPick(f);
+        }}
+      />
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => ref.current?.click()} className="min-w-0 max-w-full">
+        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5 shrink-0" />}
+        <span className="truncate">{fileName || ta("attachment_add")}</span>
+      </Button>
+      {fileName && onClear && (
+        <Button type="button" variant="ghost" size="sm" onClick={onClear} disabled={busy}>
+          {ta("remove")}
+        </Button>
+      )}
+    </div>
   );
 }

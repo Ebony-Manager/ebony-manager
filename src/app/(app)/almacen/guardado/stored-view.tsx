@@ -20,7 +20,7 @@ import { EmptyBox, ItemThumb, PageHeader, SearchBox, qtyWithUnit, useTa } from "
 import { StoredDialog } from "./stored-dialog";
 import { DeliverDialog } from "./deliver-dialog";
 import { undoStoredDeliveryAction } from "./actions";
-import { EditRequestDialog, RequestNotes } from "../compras/edit-request-dialog";
+import { AttachmentLink, EditRequestDialog, RequestNotes } from "../compras/edit-request-dialog";
 
 type Project = { id: string; name: string; active: boolean };
 type Group = { id: string; name: string; inStore: StoredItem[]; coming: IncomingItem[]; delivered: StoredItem[] };
@@ -134,6 +134,7 @@ export function StoredView({
               {ta("st_no_location")}
             </span>
           )}
+          <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
           <span className="block text-xs text-muted-foreground">
             {[
               formatDateCompact(lang, r.receivedOn),
@@ -197,6 +198,7 @@ export function StoredView({
           {[r.requestedBy && `${ta("st_requested_by")}: ${r.requestedBy}`, formatDateCompact(lang, r.createdAt.slice(0, 10))].filter(Boolean).join(" · ")}
         </span>
         <RequestNotes text={r.notes} />
+        <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
       </span>
       {editable && <Pencil className="size-3.5 shrink-0 text-muted-foreground" />}
       </div>

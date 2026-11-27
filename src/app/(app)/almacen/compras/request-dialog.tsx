@@ -4,7 +4,7 @@ import * as React from "react";
 import toast from "react-hot-toast";
 import { Archive, Plus, X } from "lucide-react";
 
-import { INVENTORY_UNITS, type InventoryCategory, type InventoryItem, type InventoryUnit, type Supplier } from "@/types/almacen";
+import { REQUEST_UNITS, type InventoryCategory, type InventoryItem, type RequestUnit, type Supplier } from "@/types/almacen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import { createPurchaseRequestAction } from "../actions";
-import { PhotoButton, uploadRequestPhoto } from "./edit-request-dialog";
+import { AttachmentPicker, PhotoButton, uploadRequestAttachment, uploadRequestPhoto } from "./edit-request-dialog";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
 import { packOf } from "./common";
 
@@ -30,16 +30,18 @@ interface Line {
   description: string;
   /** Con presentación (rollo, galón) es en presentaciones; si no, en la unidad del almacén. */
   qty: string;
-  unit: InventoryUnit;
+  unit: RequestUnit;
   supplierId: string | null;
   /** Especial para proyecto: link de Amazon, medidas… (va en el motivo de esa solicitud). */
   notes: string;
   /** Foto (texto libre o especial): se sube al guardar la solicitud. */
   photo: { file: File; preview: string } | null;
+  /** La cotización o factura del pedido (texto libre o especial): con archivo, la cantidad puede quedar vacía (1 lote). */
+  file: File | null;
 }
 
 let seq = 0;
-const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null, notes: "", photo: null });
+const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null, notes: "", photo: null, file: null });
 
 /**
  * Pedir uno o varios productos de una vez: del catálogo (con la cantidad
@@ -82,7 +84,7 @@ export function RequestDialog({
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<string>();
   const isSpecial = mode === "special";
-  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim() || l.notes.trim() || l.photo) || !!projectId || !!reason.trim();
+  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim() || l.notes.trim() || l.photo || l.file) || !!projectId || !!reason.trim();
   const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
@@ -120,14 +122,16 @@ export function RequestDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Los renglones en blanco (el último que se agregó y no se llenó) se ignoran.
-    const filled = lines.filter((l) => (mode === "catalog" ? l.variantId : l.description.trim()) || l.qty.trim());
-    const parsed = filled.map((l) => ({ line: l, n: parseQty(l.qty) }));
+    const filled = lines.filter((l) => (mode === "catalog" ? l.variantId : l.description.trim()) || l.qty.trim() || l.file);
+    // Con archivo y sin cantidad: 1 lote (el detalle está en el archivo).
+    const asLot = (l: Line) => mode !== "catalog" && !!l.file && !l.qty.trim();
+    const parsed = filled.map((l) => ({ line: asLot(l) ? { ...l, unit: "lote" as RequestUnit } : l, n: asLot(l) ? 1 : parseQty(l.qty) }));
     // Sin ningún renglón lleno, se marca el primero (qué y cuánto).
     const checked = parsed.length ? parsed : [{ line: lines[0], n: null as number | null }];
     const ok = validate([
       ...checked.flatMap(({ line: l, n }) => [
         [`what-${l.key}`, mode === "catalog" ? !l.variantId : !l.description.trim(), ta("what_required")] as const,
-        [`qty-${l.key}`, n == null || n <= 0, ta("qty_required")] as const,
+        [`qty-${l.key}`, n == null || n <= 0, mode === "catalog" ? ta("qty_required") : ta("qty_or_file")] as const,
       ]),
       ["project", isSpecial && !projectId, ta("st_project_required")] as const,
     ]);
@@ -161,6 +165,7 @@ export function RequestDialog({
       }
       // La foto se sube con el id de la solicitud recién creada; si falla, la solicitud queda igual (se pone después al editar).
       if (l.photo && res.data) await uploadRequestPhoto(res.data, l.photo.file).catch(() => toast.error(ta("photo_error")));
+      if (l.file && res.data) await uploadRequestAttachment(res.data, l.file).catch(() => toast.error(ta("attachment_error")));
       done += 1;
     }
     setSaving(false);
@@ -280,12 +285,12 @@ export function RequestDialog({
                     </Field>
                     {mode !== "catalog" && (
                       <Field label={ta("f_unit")}>
-                        <Select value={l.unit} onValueChange={(v) => patch(l.key, { unit: v as InventoryUnit })}>
+                        <Select value={l.unit} onValueChange={(v) => patch(l.key, { unit: v as RequestUnit })}>
                           <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {INVENTORY_UNITS.map((u) => (
+                            {REQUEST_UNITS.map((u) => (
                               <SelectItem key={u} value={u}>
                                 {ta(`unit_${u}`)}
                               </SelectItem>
@@ -295,6 +300,12 @@ export function RequestDialog({
                       </Field>
                     )}
                   </div>
+
+                  {mode !== "catalog" && (
+                    <Field label={ta("attachment_label")} hint={ta("attachment_hint")}>
+                      <AttachmentPicker fileName={l.file?.name ?? null} onPick={(file) => { patch(l.key, { file }); clear(`qty-${l.key}`); }} onClear={() => patch(l.key, { file: null })} />
+                    </Field>
+                  )}
 
                   {isSpecial && (
                     <Field label={ta("f_special_notes")}>

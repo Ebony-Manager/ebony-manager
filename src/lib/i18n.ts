@@ -3584,6 +3584,7 @@ export const strings = {
     unit_kilo: { es: "Kilo", en: "Kilo" },
     unit_pliego: { es: "Pliego", en: "Sheet (paper)" },
     unit_bolsa: { es: "Bolsa", en: "Bag" },
+    unit_lote: { es: "Lote (ver archivo)", en: "Lot (see file)" },
     // Salidas
     issues_title: { es: "Salidas", en: "Issues" },
     issues_subtitle: {
@@ -3668,6 +3669,15 @@ export const strings = {
     edit_request: { es: "Editar solicitud", en: "Edit request" },
     edit_request_hint: { es: "Toca para editar", en: "Tap to edit" },
     request_done: { es: "Listo", en: "Done" },
+    attachment_add: { es: "Adjuntar cotización o factura", en: "Attach quote or invoice" },
+    attachment_change: { es: "Cambiar archivo", en: "Change file" },
+    attachment_label: { es: "Archivo del pedido", en: "Order file" },
+    attachment_hint: { es: "Para un pedido grande (ej. 30 gavetas): el detalle va en el archivo y no hace falta escribir cada pieza.", en: "For a big order (e.g. 30 drawers): the detail is in the file, no need to type each piece." },
+    attachment_default_name: { es: "Ver archivo", en: "View file" },
+    attachment_open_error: { es: "No se pudo abrir el archivo", en: "Couldn't open the file" },
+    attachment_saved: { es: "Archivo guardado", en: "File saved" },
+    attachment_error: { es: "No se pudo subir el archivo", en: "Couldn't upload the file" },
+    qty_or_file: { es: "Pon la cantidad (o adjunta el archivo y queda como 1 lote).", en: "Enter the quantity (or attach the file and it counts as 1 lot)." },
     dest_special: { es: "Especial para {p}", en: "Special for {p}" },
     dest_special_hint: { es: "al recibirlo va a Apartados", en: "goes to Set aside when received" },
     dest_project_line: { es: "Para {p}", en: "For {p}" },

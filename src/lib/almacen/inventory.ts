@@ -75,7 +75,9 @@ export function parseQty(text: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const UNIT_LABELS: Record<InventoryUnit, { es: [string, string]; en: [string, string] }> = {
+const UNIT_LABELS: Record<InventoryUnit | "lote", { es: [string, string]; en: [string, string] }> = {
+  // «Lote»: un pedido especial con su detalle en el archivo adjunto (no es unidad del catálogo).
+  lote: { es: ["lote", "lotes"], en: ["lot", "lots"] },
   unidad: { es: ["unidad", "unidades"], en: ["unit", "units"] },
   metro: { es: ["metro", "metros"], en: ["meter", "meters"] },
   caja: { es: ["caja", "cajas"], en: ["box", "boxes"] },
@@ -91,7 +93,7 @@ const UNIT_LABELS: Record<InventoryUnit, { es: [string, string]; en: [string, st
 };
 
 export function unitLabel(unit: string | null | undefined, qty: number, lang: "es" | "en" = "es"): string {
-  const entry = UNIT_LABELS[(unit ?? "unidad") as InventoryUnit];
+  const entry = UNIT_LABELS[(unit ?? "unidad") as InventoryUnit | "lote"];
   if (!entry) return unit ?? "";
   const [one, many] = entry[lang];
   return qty === 1 ? one : many;

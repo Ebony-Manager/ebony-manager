@@ -130,6 +130,11 @@ export async function editPurchaseRequestAction(id: string, input: almacen.Reque
   return run(() => almacen.editPurchaseRequest(id, { ...input, supplierId }));
 }
 
+export async function setRequestAttachmentAction(id: string, path: string | null, name: string | null) {
+  await requireProfile();
+  return run(() => almacen.setRequestAttachment(id, path, name));
+}
+
 export async function setRequestNotesAction(id: string, notes: string | null) {
   await requireProfile();
   return run(() => almacen.setRequestNotes(id, notes));

@@ -18,7 +18,7 @@ import { createPurchaseOrderAction, setRequestCostAction, updatePurchaseRequestA
 import { EmptyBox, PageHeader, QtyInput, SearchBox, qtyWithUnit, useTa, useVariantIndex, type VariantRef } from "../shared";
 import { LineDestinationTag, PurchasePhoto, PurchaseQty, RequestOrigin, StatusBadge, packOf, purchaseQtyText, requestName } from "./common";
 import { RequestDialog } from "./request-dialog";
-import { EditRequestDialog, RequestEditContext, RequestNotes } from "./edit-request-dialog";
+import { AttachmentLink, EditRequestDialog, RequestEditContext, RequestNotes } from "./edit-request-dialog";
 import { SupplierPickDialog } from "./supplier-pick-dialog";
 import { OrderDialog } from "./order-dialog";
 import { DeliveryBadge, MapsButton, MarkOrderedButton, OrderMessageDialog } from "./order-message";
@@ -464,6 +464,7 @@ function PendingRow({
             .join(" · ")}
         </span>
         {!r.auto && <RequestNotes text={r.reason} />}
+        <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
       </div>
       <ConfirmButton
         iconOnly
@@ -594,6 +595,7 @@ function RequestsTable({
                   {[r.forProject ? ta("request_special") : null, r.projectId ? projectName.get(r.projectId) : null].filter(Boolean).join(" · ")}
                 </span>
                 {!r.auto && <RequestNotes text={r.reason} />}
+        <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
                 </div>
                 </div>
               </td>
@@ -710,6 +712,7 @@ function InTransit({
                     )}
                     {who && <span className="block truncate text-xs text-muted-foreground">{who.join(", ")}</span>}
                     <LineDestinationTag dest={destByLine.get(l.id)} variantId={l.variantId} />
+                    <AttachmentLink path={destByLine.get(l.id)?.attachmentPath ?? null} name={destByLine.get(l.id)?.attachmentName ?? null} className="mt-1" />
                   </span>
                   <PurchaseQty qty={l.qty} receivedQty={l.receivedQty > 0 ? l.receivedQty : undefined} unit={l.unit} pack={pack} lang={lang} className="shrink-0" />
                 </li>

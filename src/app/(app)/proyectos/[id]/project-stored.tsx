@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { STATUS } from "@/lib/ui/status";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { ItemThumb, qtyWithUnit, useTa } from "../../almacen/shared";
-import { RequestNotes } from "../../almacen/compras/edit-request-dialog";
+import { AttachmentLink, RequestNotes } from "../../almacen/compras/edit-request-dialog";
 
 /**
  * Proyecto → Guardado: lo que está en el almacén para este proyecto (lo especial que se compró y lo que trajo el
@@ -72,6 +72,7 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                           {ta("st_no_location")}
                         </span>
                       )}
+                      <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
                     </span>
                   </li>
                 ))}
@@ -97,6 +98,7 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                       </span>
                       {r.requestedBy && <span className="block text-xs text-muted-foreground">{`${ta("st_requested_by")}: ${r.requestedBy}`}</span>}
                       <RequestNotes text={r.notes} />
+                      <AttachmentLink path={r.attachmentPath} name={r.attachmentName} />
                     </span>
                   </li>
                 ))}
