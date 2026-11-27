@@ -136,12 +136,25 @@ describe("MCP · salida de almacén", () => {
     const client = await connect(["almacen"]);
     const prev = json(await client.callTool({ name: "registrar_salida_almacen", arguments: args }));
     expect(prev.productos[0]).toMatchObject({ producto: "Tornillo · 1/2", existencia_antes: 5, existencia_despues: -1 });
-    expect(prev.productos[0].aviso).toContain("Solo hay 5");
+    expect(prev.productos[0].aviso).toContain("más de lo que hay");
+    expect(prev.sale_mas_de_lo_que_hay).toContain("Tornillo · 1/2: hay 5");
+    expect(prev.notas).toContain("Salió más de lo que había en el inventario: Tornillo · 1/2: hay 5");
     expect(prev.descuento_al_pintor).toContain("costo + 10%");
     expect(prev.descuento_al_pintor).not.toContain("$"); // sin permiso de costos no ve el monto
     expect(alm.registerIssue).not.toHaveBeenCalled();
-    await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
-    expect(alm.registerIssue).toHaveBeenCalledWith({ issuedOn: "2026-11-19", recipient: { kind: "contratista", id: "c9" }, projectId: "p1", internalUse: null, notes: null, lines: [{ variantId: "v1", qty: 6 }] });
+    // Sin el sí explícito a que sale más de lo que hay, no guarda.
+    const noOk = await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(noOk.isError).toBe(true);
+    expect(alm.registerIssue).not.toHaveBeenCalled();
+    await client.callTool({ name: "registrar_salida_almacen", arguments: { ...args, sale_mas_de_lo_que_hay: true, confirmar: true, codigo_confirmacion: prev.codigo_confirmacion } });
+    expect(alm.registerIssue).toHaveBeenCalledWith({
+      issuedOn: "2026-11-19",
+      recipient: { kind: "contratista", id: "c9" },
+      projectId: "p1",
+      internalUse: null,
+      notes: expect.stringContaining("Salió más de lo que había en el inventario: Tornillo · 1/2: hay 5"),
+      lines: [{ variantId: "v1", qty: 6 }],
+    });
   });
 
   it("valida destino, fracciones y el envase pendiente", async () => {

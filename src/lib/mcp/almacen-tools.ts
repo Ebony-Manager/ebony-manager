@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { hasAnyModule } from "@/lib/auth/modules";
 import * as almacen from "@/services/almacen";
-import { variantName } from "@/lib/almacen/inventory";
+import { formatQty, unitLabel, variantName } from "@/lib/almacen/inventory";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { INTERNAL_USES, type InternalUse, type RequestStatus } from "@/types/almacen";
 import type { McpUser } from "./auth";
@@ -124,7 +124,7 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
     {
       title: "Registrar salida de material del almacén (con vista previa)",
       description:
-        "Registra una entrega de material del almacén a una persona (empleado o contratista), para un proyecto o para uso interno (taller, embalaje, pintura), como 'Salidas' en la app: baja la existencia. A un PINTOR, lo que se lleva se le descuenta en su estado de cuenta a costo + 10%. Si la persona debe un envase de un producto devolvible que se vuelve a llevar, hay que decir si lo devolvió (envase_anterior). SIEMPRE en dos pasos: primero sin `confirmar` (vista previa con cada producto, la existencia que queda y avisos; no guarda nada); solo si la persona aprueba, vuelve a llamar con los MISMOS datos, `confirmar: true` y el código.",
+        "Registra una entrega de material del almacén a una persona (empleado o contratista), para un proyecto o para uso interno (taller, embalaje, pintura), como 'Salidas' en la app: baja la existencia. A un PINTOR, lo que se lleva se le descuenta en su estado de cuenta a costo + 10%. Si la persona debe un envase de un producto devolvible que se vuelve a llevar, hay que decir si lo devolvió (envase_anterior). Si sale más de lo que dice el inventario, la persona tiene que confirmarlo (sale_mas_de_lo_que_hay) y queda anotado en la salida para el próximo conteo. SIEMPRE en dos pasos: primero sin `confirmar` (vista previa con cada producto, la existencia que queda y avisos; no guarda nada); solo si la persona aprueba, vuelve a llamar con los MISMOS datos, `confirmar: true` y el código.",
       inputSchema: {
         quien: z.string().describe("Nombre de quien se lo lleva (empleado o contratista activo)"),
         proyecto: z.string().optional().describe("Nombre o id del proyecto al que va el material"),
@@ -133,6 +133,10 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
         fecha: z.string().optional().describe("YYYY-MM-DD; por defecto hoy"),
         notas: z.string().optional(),
         envase_anterior: z.enum(["devuelto", "no_devuelto"]).optional().describe("Solo si la vista previa lo pide: si devolvió el envase anterior"),
+        sale_mas_de_lo_que_hay: z
+          .boolean()
+          .optional()
+          .describe("Solo si la vista previa avisa que sale más de lo que dice el inventario y la persona confirma que de verdad sale (queda anotado para revisar en el próximo conteo)"),
         confirmar: z.boolean().optional(),
         codigo_confirmacion: z.string().optional(),
       },
@@ -149,6 +153,7 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
         fecha?: string;
         notas?: string;
         envase_anterior?: "devuelto" | "no_devuelto";
+        sale_mas_de_lo_que_hay?: boolean;
         confirmar?: boolean;
         codigo_confirmacion?: string;
       }) => {
@@ -200,7 +205,19 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
         const costs = canSeeCosts();
         const charge = lines.reduce((s, l) => s + (l.v.unitCostCents ?? 0) * l.qty, 0);
         const missingCost = lines.filter((l) => l.v.unitCostCents == null).map((l) => l.name);
-        const notes = [args.notas?.trim(), owed.length > 0 && args.envase_anterior === "no_devuelto" ? `Entregado sin devolver el envase anterior de: ${owedNames}.` : ""].filter(Boolean).join("\n") || null;
+        // Sacar más de lo que dice el inventario: como la app, se pide confirmar y queda anotado en la salida.
+        const qtyUnit = (q: number, unit: string) => `${formatQty(q)} ${unitLabel(unit, q)}`;
+        const short = lines
+          .filter((l) => l.qty > l.v.stockQty)
+          .map((l) => `${l.name}: hay ${qtyUnit(Math.max(0, l.v.stockQty), l.it.unit)} y salen ${qtyUnit(l.qty, l.it.unit)}`);
+        const notes =
+          [
+            args.notas?.trim(),
+            owed.length > 0 && args.envase_anterior === "no_devuelto" ? `Entregado sin devolver el envase anterior de: ${owedNames}.` : "",
+            short.length > 0 ? `Salió más de lo que había en el inventario: ${short.join(" · ")}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n") || null;
 
         const plan = {
           fecha,
@@ -223,7 +240,7 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
               cantidad: `${l.qty} ${l.it.unit}`,
               existencia_antes: l.v.stockQty,
               existencia_despues: l.v.stockQty - l.qty,
-              aviso: l.qty > l.v.stockQty ? `Solo hay ${l.v.stockQty} en el sistema: la existencia quedará negativa (revisar el conteo).` : undefined,
+              aviso: l.qty > l.v.stockQty ? "Sale más de lo que hay en el inventario" : undefined,
             })),
             ...(isPainter
               ? {
@@ -235,12 +252,21 @@ export function registerAlmacenTools(server: McpServer, user: McpUser) {
                 }
               : {}),
             ...(owed.length ? { envase_anterior: args.envase_anterior === "devuelto" ? `Se marca devuelto el envase de: ${owedNames}.` : `Queda anotado que se entregó sin devolver el envase de: ${owedNames}.` } : {}),
+            ...(short.length
+              ? {
+                  sale_mas_de_lo_que_hay: `${short.join(" · ")}. Si de verdad está en el almacén, falta registrar una entrada (una compra recibida). Si sigues, la salida queda anotada para revisarla en el próximo conteo.`,
+                }
+              : {}),
             notas: notes,
             codigo_confirmacion: code,
-            siguiente_paso: NEXT_STEP,
+            siguiente_paso: short.length
+              ? "Muéstrale a la persona el aviso de que sale más de lo que hay y pregúntale si de verdad sale. Solo si dice que sí, llama de nuevo con los mismos datos, sale_mas_de_lo_que_hay: true, confirmar: true y este codigo_confirmacion."
+              : NEXT_STEP,
           });
         }
         if (args.codigo_confirmacion !== code) return fail(CODE_MISMATCH);
+        if (short.length > 0 && !args.sale_mas_de_lo_que_hay)
+          return fail(`Sale más de lo que hay en el inventario (${short.join(" · ")}). Pregúntale a la persona si de verdad sale; solo con su sí, vuelve a llamar con sale_mas_de_lo_que_hay: true.`);
         await almacen.registerIssue({
           issuedOn: fecha,
           recipient: plan.recipient,
