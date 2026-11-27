@@ -20,6 +20,7 @@ import { Field } from "../../contratistas/field";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import { registerIssueAction, returnContainersAction } from "../actions";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { PendingReturnsList, usePendingReturns } from "./pending-returns";
 import { Combo, EmptyBox, ItemThumb, SearchBox, qtyWithUnit, useTa, useVariantIndex } from "../shared";
 import { matchesSearch, normalizeSearchText } from "@/lib/search";
@@ -318,6 +319,7 @@ function CartPanel({
   onDone: () => void;
 }) {
   const { ta, lang } = useTa();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const index = useVariantIndex(items);
   const [recipient, setRecipient] = React.useState<string | null>(null);
   const [destKind, setDestKind] = React.useState<"project" | "internal">("project");
@@ -362,6 +364,18 @@ function CartPanel({
       ["container", owed.length > 0 && !giveAnyway, ta("container_decide")],
     ]);
     if (!ok) return;
+    // Sacar más de lo que dice el inventario: se pide confirmar (a veces el físico sí está) y queda anotado en la salida.
+    const short = cart.flatMap((l) => {
+      const ref = index.get(l.variantId);
+      return ref && l.qty > ref.variant.stockQty
+        ? [ta("short_line", { name: ref.name, stock: qtyWithUnit(Math.max(0, ref.variant.stockQty), ref.item.unit, lang), qty: qtyWithUnit(l.qty, ref.item.unit, lang) })]
+        : [];
+    });
+    if (
+      short.length > 0 &&
+      !(await confirm({ title: ta("short_confirm_title"), message: `${short.join(" · ")}. ${ta("short_confirm_msg")}`, confirmLabel: ta("short_confirm_ok") }))
+    )
+      return;
     const [kind, id] = recipient!.split(":") as ["empleado" | "contratista", string];
     setSaving(true);
     const res = await registerIssueAction({
@@ -369,7 +383,13 @@ function CartPanel({
       recipient: { kind, id },
       projectId: destKind === "project" ? projectId : null,
       internalUse: destKind === "internal" ? internalUse : null,
-      notes: owed.length > 0 ? [notes.trim(), ta("container_exception_note", { p: owedNames })].filter(Boolean).join("\n") : notes,
+      notes: [
+        notes.trim(),
+        owed.length > 0 ? ta("container_exception_note", { p: owedNames }) : "",
+        short.length > 0 ? `${ta("short_note")}: ${short.join(" · ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
       lines: cart,
     });
     setSaving(false);
@@ -516,6 +536,7 @@ function CartPanel({
       <Button onClick={submit} disabled={saving} className="w-full">
         {saving ? ta("saving") : `${ta("register_issue")}${cart.length ? ` (${cart.length})` : ""}`}
       </Button>
+      {confirmDialog}
     </div>
   );
 }

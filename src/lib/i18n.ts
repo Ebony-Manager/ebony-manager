@@ -3610,6 +3610,14 @@ export const strings = {
     use_taller: { es: "Taller", en: "Workshop" },
     use_embalaje: { es: "Embalaje", en: "Packing" },
     use_pintura: { es: "Pintura", en: "Painting" },
+    short_line: { es: "{name}: hay {stock} y salen {qty}", en: "{name}: {stock} in stock, {qty} going out" },
+    short_confirm_title: { es: "Sale más de lo que hay en el inventario", en: "More going out than in stock" },
+    short_confirm_msg: {
+      es: "Si de verdad está en el almacén, falta registrar una entrada (una compra recibida). Si sigues, la salida queda anotada para revisarla en el próximo conteo.",
+      en: "If it's really in the warehouse, an entry is missing (a received purchase). If you continue, the issue is flagged for the next count.",
+    },
+    short_confirm_ok: { es: "Sí, registrar igual", en: "Yes, record anyway" },
+    short_note: { es: "Salió más de lo que había en el inventario", en: "More went out than was in stock" },
     short_stock: {
       es: "No alcanza la existencia ({stock}). Se registra igual y queda para revisar en el próximo conteo.",
       en: "Not enough stock ({stock}). It's recorded anyway and flagged for the next count.",
