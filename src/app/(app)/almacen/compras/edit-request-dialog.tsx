@@ -25,9 +25,25 @@ type Project = { id: string; name: string; active: boolean };
 /** Quién puede editar una solicitud: pendiente, y quien la pidió o Compras. */
 export const RequestEditContext = React.createContext<{ canEdit: (r: PurchaseRequest) => boolean; edit: (r: PurchaseRequest) => void } | null>(null);
 
+/** El nombre de la tienda de un enlace («amazon.com»), o null si no se saca uno claro. */
+export function linkSite(url: string): string | null {
+  try {
+    const labels = new URL(url).hostname.toLowerCase().split(".").filter(Boolean);
+    // Solo el dominio de la tienda: «articulo.mercadolibre.com.pa» → «mercadolibre.com.pa».
+    const two = labels.length >= 3 && labels.at(-1)!.length === 2 && labels.at(-2)!.length <= 3;
+    const host = labels.slice(two ? -3 : -2).join(".");
+    // Enlaces cortos de Amazon.
+    if (host === "a.co" || host === "amzn.to") return "amazon.com";
+    return host.length > 0 && host.length <= 30 ? host : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Las notas de una solicitud (motivo, medidas, el link de Amazon): los enlaces se pueden tocar.
- * Un link largo se muestra como «link» para no llenar la fila.
+ * Un enlace largo se muestra con el nombre de la tienda («amazon.com ↗») para no llenar la fila y
+ * saber a dónde lleva; si no se saca un nombre claro, «Ver enlace ↗».
  */
 export function RequestNotes({ text, className }: { text: string | null; className?: string }) {
   const { ta } = useTa();
@@ -45,7 +61,7 @@ export function RequestNotes({ text, className }: { text: string | null; classNa
             onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
           >
-            {ta("link_open")}
+            {linkSite(p) ?? ta("link_open")}
             <ExternalLink className="size-3" />
           </a>
         ) : (

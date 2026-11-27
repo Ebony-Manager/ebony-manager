@@ -3662,7 +3662,7 @@ export const strings = {
     received_special: { es: "Lo especial quedó en Almacén → Apartados: anota dónde se guardó.", en: "Special items went to Warehouse → Set aside: note where they were stored." },
     request_photo_hint: { es: "Foto de cómo es (se guarda al elegirla).", en: "Photo of what it looks like (saved when picked)." },
     request_ordered_photo_only: { es: "Ya está pedida: solo se le puede poner o cambiar la foto. Llega con ella a Apartados.", en: "Already ordered: only the photo can be added or changed. It arrives with it in Set aside." },
-    link_open: { es: "link", en: "link" },
+    link_open: { es: "Ver enlace", en: "Open link" },
     st_incoming_pendiente: { es: "Por comprar", en: "To buy" },
     st_incoming_pedido: { es: "En camino", en: "On the way" },
     f_reason: { es: "Para qué", en: "What for" },
