@@ -105,8 +105,11 @@ export function StoredView({
         <ItemThumb path={r.photoPath} size={48} />
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="font-medium text-foreground">{r.description}</span>
-            <span className="text-sm text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
+            {/* La cantidad va pegada al nombre: en el teléfono nunca empieza una línea con «·». */}
+            <span className="font-medium text-foreground">
+              {r.description}
+              <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
+            </span>
             {r.status === "entregado" ? (
               <StatusBadge status="stored_entregado">{ta("st_f_entregado")}</StatusBadge>
             ) : (
@@ -126,7 +129,7 @@ export function StoredView({
               <span className="truncate">{r.location}</span>
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-xs font-medium text-[var(--status-warn)]">
+            <span className="flex items-center gap-1 text-xs font-medium text-warning">
               <TriangleAlert className="size-3 shrink-0" />
               {ta("st_no_location")}
             </span>
@@ -147,6 +150,8 @@ export function StoredView({
             size="sm"
             variant="outline"
             className="shrink-0"
+            aria-label={ta("st_deliver")}
+            title={ta("st_deliver")}
             onClick={(e) => {
               e.stopPropagation();
               setDelivering(r);
@@ -181,8 +186,10 @@ export function StoredView({
       <ItemThumb path={r.photoPath} size={48} />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
-          <span className="font-medium text-foreground">{r.description}</span>
-          <span className="text-sm text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
+          <span className="font-medium text-foreground">
+            {r.description}
+            <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
+          </span>
           <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
         </span>
         <span className="block text-xs text-muted-foreground">

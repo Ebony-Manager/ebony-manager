@@ -187,10 +187,17 @@ function RequestTitle({ r, index, className }: { r: PurchaseRequest; index: Map<
   const ctx = React.useContext(RequestEditContext);
   const name = requestName(r, index);
   if (!ctx?.canEdit(r)) return <span className={className}>{name}</span>;
+  const cut = name.lastIndexOf(" ");
+  const head = cut > 0 ? name.slice(0, cut + 1) : "";
+  const tail = cut > 0 ? name.slice(cut + 1) : name;
   return (
     <button type="button" onClick={() => ctx.edit(r)} title={ta("edit_request_hint")} className={`group text-left hover:text-primary ${className ?? ""}`}>
-      {name}
-      <Pencil className="ml-1 inline size-3 text-muted-foreground group-hover:text-primary" />
+      {/* El lápiz va pegado a la última palabra: en el teléfono nunca queda solo en otra línea. */}
+      {head}
+      <span className="whitespace-nowrap">
+        {tail}
+        <Pencil className="ml-1 inline size-3 text-muted-foreground group-hover:text-primary" />
+      </span>
     </button>
   );
 }

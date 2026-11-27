@@ -49,8 +49,10 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                     <ItemThumb path={r.photoPath} size={44} />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-medium text-foreground">{r.description}</span>
-                        <span className="text-sm text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
+                        <span className="font-medium text-foreground">
+                          {r.description}
+                          <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
+                        </span>
                         {r.origin === "cliente" ? (
                           <StatusBadge status="stored_cliente">{ta("st_badge_cliente")}</StatusBadge>
                         ) : (
@@ -64,7 +66,7 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                           <span className="truncate">{r.location}</span>
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-xs font-medium text-[var(--status-warn)]">
+                        <span className="flex items-center gap-1 text-xs font-medium text-warning">
                           <TriangleAlert className="size-3 shrink-0" />
                           {ta("st_no_location")}
                         </span>
@@ -84,13 +86,17 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                   <li key={r.id} className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5">
                     <ItemThumb path={r.photoPath} size={44} />
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-foreground">
-                        {r.description} <span className="text-muted-foreground">· {qtyWithUnit(r.qty, r.unit, lang)}</span>
+                      {/* Como en Almacén → Apartados: nombre, cantidad y estado en la misma línea. */}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium text-foreground">
+                          {r.description}
+                          <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
+                        </span>
+                        <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
                       </span>
                       {r.requestedBy && <span className="block text-xs text-muted-foreground">{`${ta("st_requested_by")}: ${r.requestedBy}`}</span>}
                       <RequestNotes text={r.notes} />
                     </span>
-                    <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
                   </li>
                 ))}
               </ul>

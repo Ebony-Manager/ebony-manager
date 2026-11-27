@@ -92,15 +92,17 @@ export function DeliverDialog({ item, people, onClose }: { item: StoredItem | nu
             />
           </Field>
           {who === OTHER && (
-            <Input
-              autoFocus
-              value={otherName}
-              onChange={(ev) => {
-                setOtherName(ev.target.value);
-                clear("who");
-              }}
-              placeholder={ta("st_deliver_other_ph")}
-            />
+            <Field label={ta("st_deliver_other_name")} required>
+              <Input
+                autoFocus
+                value={otherName}
+                onChange={(ev) => {
+                  setOtherName(ev.target.value);
+                  clear("who");
+                }}
+                placeholder={ta("st_deliver_other_ph")}
+              />
+            </Field>
           )}
           <Field label={ta("st_deliver_on")} icon={ICON.date}>
             <Input type="date" value={on} onChange={(ev) => ev.target.value && setOn(ev.target.value)} />

@@ -172,13 +172,15 @@ export function RequestDialog({
           <DialogTitle>{ta("new_request")}</DialogTitle>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          {/* Tres opciones a todo el ancho: en el teléfono caben sin que se corra la primera. */}
           <SegmentedFilter
+            fill
             value={mode}
             onChange={changeMode}
             options={[
               { value: "catalog", label: ta("request_from_catalog"), icon: ICON.catalog },
               { value: "free", label: ta("request_free"), icon: ICON.freeText },
-              { value: "special", label: ta("request_special"), icon: Archive },
+              { value: "special", label: ta("request_special_short"), icon: Archive },
             ]}
           />
           {isSpecial && <p className="-mt-2 text-xs text-muted-foreground">{ta("request_special_hint")}</p>}

@@ -258,13 +258,13 @@ export function OrderDialog({
                         className={`mt-0.5 block max-w-none text-left text-xs ${done ? "text-success" : "text-muted-foreground"}`}
                       />
                       {showReceive && destByLine?.get(l.id)?.forProject && (
-                        <Input
-                          className="mt-2 h-8 text-sm"
-                          aria-label={ta("st_f_location")}
-                          placeholder={ta("receive_location_ph")}
-                          value={locations[l.id] ?? ""}
-                          onChange={(e) => setLocations((m) => ({ ...m, [l.id]: e.target.value }))}
-                        />
+                        <Field label={ta("st_f_location")} icon={ICON.location} className="mt-2">
+                          <Input
+                            placeholder={ta("receive_location_ph")}
+                            value={locations[l.id] ?? ""}
+                            onChange={(e) => setLocations((m) => ({ ...m, [l.id]: e.target.value }))}
+                          />
+                        </Field>
                       )}
                     </span>
                   </span>
