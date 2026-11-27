@@ -88,6 +88,8 @@ export interface StoredInput {
   supplierId: string | null;
   /** Solo para lo que Ebony compró por su lado. */
   totalCents: number | null;
+  /** Al editar algo registrado a mano: cambiarlo entre «ya lo compró Ebony» y «lo trajo el cliente». */
+  origin?: "directa" | "cliente";
 }
 
 function clean(input: StoredInput) {
@@ -126,12 +128,16 @@ export async function createStoredItem(origin: "directa" | "cliente", input: Sto
 export async function updateStoredItem(id: string, origin: StoredOrigin, input: StoredInput, setCost: boolean): Promise<void> {
   const supabase = await createClient();
   const row = clean(input);
+  // Lo registrado a mano puede cambiar de origen; lo que vino de Compras, no.
+  const next = origin === "compra" ? "compra" : (input.origin ?? origin);
+  // Pasa a «lo trajo el cliente»: ya no tiene costo (se borra mientras todavía es de Ebony).
+  if (origin === "directa" && next === "cliente") fail((await supabase.rpc("set_stored_item_cost", { p_item: id, p_cents: null })).error);
   const patch =
     origin === "compra"
       ? { project_item_id: row.project_item_id, location: row.location, notes: row.notes }
-      : { ...row, supplier_id: origin === "directa" ? input.supplierId : null };
+      : { ...row, origin: next, supplier_id: next === "directa" ? input.supplierId : null };
   fail((await supabase.from("project_stored_items").update(patch).eq("id", id)).error);
-  if (origin === "directa" && setCost) fail((await supabase.rpc("set_stored_item_cost", { p_item: id, p_cents: input.totalCents })).error);
+  if (next === "directa" && setCost) fail((await supabase.rpc("set_stored_item_cost", { p_item: id, p_cents: input.totalCents })).error);
 }
 
 export async function setStoredItemPhoto(id: string, path: string | null): Promise<void> {

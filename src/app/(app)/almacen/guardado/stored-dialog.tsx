@@ -178,6 +178,7 @@ export function StoredDialog({
       receivedOn,
       supplierId: kind === "directa" ? supplierId : null,
       totalCents: kind === "directa" && c != null ? Math.round(c * 100) : null,
+      origin: fromPurchase ? undefined : origin,
     };
     setSaving(true);
     if (current) {
@@ -215,7 +216,7 @@ export function StoredDialog({
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-          {isNew && (
+          {!fromPurchase && (
             <div className="flex flex-col gap-1.5">
               <SegmentedFilter
                 fill
