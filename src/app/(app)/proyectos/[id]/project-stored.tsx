@@ -48,11 +48,12 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                   <li key={r.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
                     <ItemThumb path={r.photoPath} size={44} />
                     <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-medium text-foreground">
+                      {/* Nombre y cantidad en su línea; las etiquetas siempre debajo (igual si el nombre es corto o largo). */}
+                      <span className="block font-medium text-foreground">
                           {r.description}
                           <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
-                        </span>
+                      </span>
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         {r.origin === "cliente" ? (
                           <StatusBadge status="stored_cliente">{ta("st_badge_cliente")}</StatusBadge>
                         ) : (
@@ -86,12 +87,12 @@ export function ProjectStored({ projectId, items, incoming }: { projectId: strin
                   <li key={r.id} className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3.5 py-2.5">
                     <ItemThumb path={r.photoPath} size={44} />
                     <span className="min-w-0 flex-1">
-                      {/* Como en Almacén → Apartados: nombre, cantidad y estado en la misma línea. */}
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-medium text-foreground">
+                                            {/* Nombre y cantidad en su línea; las etiquetas siempre debajo (igual si el nombre es corto o largo). */}
+                      <span className="block font-medium text-foreground">
                           {r.description}
                           <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
-                        </span>
+                      </span>
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
                       </span>
                       {r.requestedBy && <span className="block text-xs text-muted-foreground">{`${ta("st_requested_by")}: ${r.requestedBy}`}</span>}

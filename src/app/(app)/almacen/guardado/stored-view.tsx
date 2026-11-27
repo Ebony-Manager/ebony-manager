@@ -104,12 +104,12 @@ export function StoredView({
       >
         <ItemThumb path={r.photoPath} size={48} />
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-1.5">
-            {/* La cantidad va pegada al nombre: en el teléfono nunca empieza una línea con «·». */}
-            <span className="font-medium text-foreground">
+          {/* Nombre y cantidad en su línea; las etiquetas siempre debajo (igual si el nombre es corto o largo). */}
+          <span className="block font-medium text-foreground">
               {r.description}
               <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
-            </span>
+          </span>
+          <span className="mt-1 flex flex-wrap items-center gap-1.5">
             {r.status === "entregado" ? (
               <StatusBadge status="stored_entregado">{ta("st_f_entregado")}</StatusBadge>
             ) : (
@@ -185,11 +185,12 @@ export function StoredView({
       >
       <ItemThumb path={r.photoPath} size={48} />
       <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="font-medium text-foreground">
+        {/* Nombre y cantidad en su línea; las etiquetas siempre debajo (igual si el nombre es corto o largo). */}
+        <span className="block font-medium text-foreground">
             {r.description}
             <span className="text-sm font-normal text-muted-foreground">{`\u00a0·\u00a0${qtyWithUnit(r.qty, r.unit, lang).replace(/ /g, "\u00a0")}`}</span>
-          </span>
+        </span>
+        <span className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusBadge status={`purchase_${r.status}`}>{ta(`st_incoming_${r.status}`)}</StatusBadge>
         </span>
         <span className="block text-xs text-muted-foreground">
@@ -220,7 +221,8 @@ export function StoredView({
         <SearchBox value={query} onChange={setQuery} placeholder={ta("st_search_ph")} />
         {projectsWithStuff.length > 1 && (
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="h-9 w-auto min-w-48">
+            {/* En el teléfono va en su propia fila: así la búsqueda tiene todo el ancho y no se corta. */}
+            <SelectTrigger className="h-9 w-full min-w-48 sm:w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
