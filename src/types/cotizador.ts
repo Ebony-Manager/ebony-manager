@@ -214,6 +214,8 @@ export interface QuoteSibling {
   opportunityId: string | null;
   status: QuoteStatus;
   total: number;
+  /** El proyecto al que quedó ligada (las aprobadas de una oportunidad). */
+  projectId: string | null;
 }
 
 /** Lo que devuelve un cambio de estado (para mostrarlo sin recargar). */

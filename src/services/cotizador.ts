@@ -572,9 +572,9 @@ export async function getQuoteSiblings(id: string): Promise<QuoteSibling[]> {
   if (!q) return [];
   const filters = [q.base_number !== null ? `base_number.eq.${q.base_number}` : null, q.opportunity_id ? `opportunity_id.eq.${q.opportunity_id}` : null].filter(Boolean);
   if (!filters.length) return [];
-  const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version, opportunity_id").or(filters.join(",")).neq("id", id).order("base_number").order("version");
+  const { data, error } = await supabase.from("quotes").select("id, number, status, total, base_number, version, opportunity_id, project_id").or(filters.join(",")).neq("id", id).order("base_number").order("version");
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => ({ id: r.id, number: r.number, opportunityId: r.opportunity_id, status: r.status as QuoteStatus, total: num(r.total) }));
+  return (data ?? []).map((r) => ({ id: r.id, number: r.number, opportunityId: r.opportunity_id, status: r.status as QuoteStatus, total: num(r.total), projectId: r.project_id }));
 }
 
 // ── Imágenes de los ítems ───────────────────────────────────────────────

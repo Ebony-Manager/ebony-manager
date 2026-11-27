@@ -78,6 +78,10 @@ export function ApproveQuoteDialog({
   const [also, setAlso] = React.useState<string[]>([]);
   const [designerIds, setDesignerIds] = React.useState<string[]>([]);
   const { error, validate, clear, reset } = useFormErrors<"name" | "project">();
+  // El proyecto que ya tiene la oportunidad: el de una cotización suya que ya se aprobó.
+  const oppProjectId = quote.opportunityId
+    ? (siblings.find((x) => x.opportunityId === quote.opportunityId && x.status === "APROBADA" && x.projectId)?.projectId ?? null)
+    : null;
   const initial = React.useRef("");
   const snapshot = () => JSON.stringify({ mode, name, projectId, also, designerIds });
   const { requestClose, dialog: discardDialog } = useDiscardGuard(() => snapshot() !== initial.current, onClose);
@@ -89,12 +93,16 @@ export function ApproveQuoteDialog({
     // Proyecto nuevo: viene marcada la diseñadora a quien le toca (turno); se puede cambiar.
     const turn = designerCandidates.find((c) => c.turnRank === 1)?.id;
     const startDesigners = turn ? [turn] : [];
+    // La oportunidad ya tiene proyecto (se aprobó otra cotización antes): esta va al MISMO proyecto, no a uno nuevo.
+    const existing = oppProjectId && projects.some((p) => p.id === oppProjectId) ? oppProjectId : "";
+    const startMode = existing ? "existing" : "new";
+    const designers = existing ? [] : startDesigners;
     setAlso([]);
-    setDesignerIds(startDesigners);
-    setMode("new");
+    setDesignerIds(designers);
+    setMode(startMode);
     setName(startName);
-    initial.current = JSON.stringify({ mode: "new", name: startName, projectId: "", also: [], designerIds: startDesigners });
-    setProjectId("");
+    initial.current = JSON.stringify({ mode: startMode, name: startName, projectId: existing, also: [], designerIds: designers });
+    setProjectId(existing);
     setSaving(false);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
@@ -111,6 +119,7 @@ export function ApproveQuoteDialog({
   };
 
   const fromOpp = !!quote.opportunityId;
+  const oppProject = oppProjectId ? projects.find((p) => p.id === oppProjectId) : undefined;
   const project = projects.find((p) => p.id === quote.projectId);
   // Las otras abiertas de la misma oportunidad: se marcan las que también se aprobaron.
   const others = fromOpp ? siblings.filter((s) => isOpen(s) && s.opportunityId === quote.opportunityId) : [];
@@ -122,7 +131,9 @@ export function ApproveQuoteDialog({
           <DialogTitle>{tt("st_approve_title")}</DialogTitle>
           <DialogDescription>
             {fromOpp
-              ? tt("st_approve_opp")
+              ? oppProject
+                ? `${tt("st_approve_opp_existing")} ${oppProject.name}.`
+                : tt("st_approve_opp")
               : project
                 ? `${tt("st_approve_project")} ${project.name}.`
                 : tt("st_approve_simple")}

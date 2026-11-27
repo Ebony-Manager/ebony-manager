@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmButton } from "@/components/shared/confirm-button";
+import { StatusBadge } from "@/components/shared/status-badge";
+import type { StatusKey } from "@/lib/ui/status";
 import { todayInPanama } from "@/lib/contractors/contractor-loans";
 import { formatDateCompact } from "@/lib/planilla/format";
 import { formatMoney } from "@/lib/cotizador/pricing";
@@ -485,6 +487,7 @@ export function OpportunityDialog({
 /** Las cotizaciones del cotizador ligadas; la primera es la vigente. */
 function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
   const { tv } = useTv();
+  const anyApproved = o.quotes.some((q) => q.status === "APROBADA");
   return (
     <FormSection
       icon={ICON.quote}
@@ -508,8 +511,9 @@ function LinkedQuotes({ o, lang }: { o: Opportunity; lang: "es" | "en" }) {
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
                 <span className="font-medium">{q.number}</span>
                 <span className="text-xs text-muted-foreground">{formatDateCompact(lang, q.quoteDate)}</span>
-                <Badge variant="outline">{t(lang, strings.cotizador[`status_${q.status}` as keyof typeof strings.cotizador] ?? { es: q.status, en: q.status })}</Badge>
-                {i === 0 && <Badge variant="secondary">{tv("quote_current")}</Badge>}
+                <StatusBadge status={`quote_${q.status}` as StatusKey}>{t(lang, strings.cotizador[`status_${q.status}` as keyof typeof strings.cotizador] ?? { es: q.status, en: q.status })}</StatusBadge>
+                {/* «Vigente» solo si no hay aprobadas: con aprobadas, esas son las que cuentan (pueden ser varias). */}
+                {i === 0 && !anyApproved && <Badge variant="secondary">{tv("quote_current")}</Badge>}
                 <span className="ml-auto tabular-nums">{formatMoney(q.total)}</span>
               </Link>
             </li>
