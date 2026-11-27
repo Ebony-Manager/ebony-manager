@@ -192,13 +192,15 @@ export function EditRequestDialog({
 
   return (
     <Dialog open={!!request} onOpenChange={(o) => !o && void requestClose()}>
-      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
+      {/* Sin foco automático: si no, la primera opción del selector sale marcada en azul y parece la elegida. */}
+      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{ta("edit_request")}</DialogTitle>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
           {free && !ordered && (
             <SegmentedFilter
+              fill
               value={special ? "special" : "free"}
               onChange={(v) => {
                 setSpecial(v === "special");
@@ -206,7 +208,7 @@ export function EditRequestDialog({
               }}
               options={[
                 { value: "free", label: ta("request_free"), icon: ICON.freeText },
-                { value: "special", label: ta("request_special"), icon: Archive },
+                { value: "special", label: ta("request_special_short"), icon: Archive },
               ]}
             />
           )}

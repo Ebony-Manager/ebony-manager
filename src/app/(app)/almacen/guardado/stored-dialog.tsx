@@ -209,7 +209,8 @@ export function StoredDialog({
 
   return (
     <Dialog open={!!item} onOpenChange={(o) => !o && void requestClose()}>
-      <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
+      {/* Al editar, sin foco automático: si no, la primera opción del origen sale marcada en azul y parece la elegida. */}
+      <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto" onOpenAutoFocus={isNew ? undefined : (e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{isNew ? ta("st_register_title") : ta("st_edit_title")}</DialogTitle>
           {fromPurchase && <DialogDescription>{ta("st_from_purchase")}</DialogDescription>}
