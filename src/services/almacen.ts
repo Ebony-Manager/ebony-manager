@@ -528,9 +528,9 @@ export interface RequestInput {
   itemId?: string | null;
 }
 
-export async function createPurchaseRequest(input: RequestInput, userId: string): Promise<void> {
+export async function createPurchaseRequest(input: RequestInput, userId: string): Promise<string> {
   const supabase = await createClient();
-  const { error } = await supabase.from("purchase_requests").insert({
+  const { data, error } = await supabase.from("purchase_requests").insert({
     variant_id: input.variantId,
     description: input.description.trim(),
     qty: input.qty,
@@ -540,8 +540,9 @@ export async function createPurchaseRequest(input: RequestInput, userId: string)
     supplier_id: input.supplierId ?? null,
     for_project: !!input.forProject && !input.variantId && !!input.projectId,
     created_by: userId,
-  });
+  }).select("id").single();
   fail(error);
+  return data!.id;
 }
 
 /** Cambiar el proveedor de solicitudes pendientes (pasan al grupo de ese proveedor en Por pedir). */
@@ -570,6 +571,16 @@ export interface RequestEdit {
   unit?: string;
   projectId: string | null;
   reason: string | null;
+  /** Especial para proyecto (solo texto libre, con proyecto). undefined = no tocar. */
+  forProject?: boolean;
+  /** Proveedor (solo quien ve el Almacén). undefined = no tocar. */
+  supplierId?: string | null;
+}
+
+/** El link o las notas de una solicitud, también ya pedida (quien la pidió o Compras). */
+export async function setRequestNotes(id: string, notes: string | null): Promise<void> {
+  const supabase = await createClient();
+  fail((await supabase.rpc("set_request_notes", { p_id: id, p_notes: notes?.trim() || "" })).error);
 }
 
 /** Para qué es cada línea de los pedidos recientes (proyecto, especial, foto). Solo con Almacén. */
@@ -607,6 +618,8 @@ export async function editPurchaseRequest(id: string, input: RequestEdit): Promi
     .update({
       ...(input.description !== undefined ? { description: input.description.trim() } : {}),
       ...(input.unit !== undefined ? { unit: input.unit } : {}),
+      ...(input.forProject !== undefined ? { for_project: input.forProject && !!input.projectId } : {}),
+      ...(input.supplierId !== undefined ? { supplier_id: input.supplierId } : {}),
       qty: input.qty,
       project_id: input.projectId,
       reason: input.reason?.trim() || null,

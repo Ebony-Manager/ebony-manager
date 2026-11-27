@@ -273,7 +273,7 @@ export function StoredView({
         }}
       />
       <DeliverDialog item={delivering} people={people} onClose={() => setDelivering(null)} />
-      <EditRequestDialog request={editingRequest} projects={projects} onClose={() => setEditingRequest(null)} />
+      <EditRequestDialog request={editingRequest} projects={projects} suppliers={suppliers} onClose={() => setEditingRequest(null)} />
     </div>
   );
 }

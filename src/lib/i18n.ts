@@ -3661,6 +3661,7 @@ export const strings = {
     received_special_done: { es: "Lo especial quedó en Almacén → Apartados, con dónde se guardó.", en: "Special items went to Warehouse → Set aside, with where they're stored." },
     received_special: { es: "Lo especial quedó en Almacén → Apartados: anota dónde se guardó.", en: "Special items went to Warehouse → Set aside: note where they were stored." },
     request_photo_hint: { es: "Foto de cómo es (se guarda al elegirla).", en: "Photo of what it looks like (saved when picked)." },
+    request_ordered_limited: { es: "Ya está pedida: se puede cambiar la foto y el link o notas. Lo demás ya está en el pedido.", en: "Already ordered: the photo and link or notes can change. The rest is in the order." },
     request_ordered_photo_only: { es: "Ya está pedida: solo se le puede poner o cambiar la foto. Llega con ella a Apartados.", en: "Already ordered: only the photo can be added or changed. It arrives with it in Set aside." },
     link_open: { es: "Ver enlace", en: "Open link" },
     st_incoming_pendiente: { es: "Por comprar", en: "To buy" },

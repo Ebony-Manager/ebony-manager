@@ -17,6 +17,7 @@ import { useDiscardGuard } from "@/components/shared/discard-guard";
 import { useFormErrors } from "@/lib/ui/use-form-errors";
 import { ICON } from "@/lib/ui/concepts";
 import { createPurchaseRequestAction } from "../actions";
+import { PhotoButton, uploadRequestPhoto } from "./edit-request-dialog";
 import { Combo, QtyInput, qtyWithUnit, useTa, useVariantIndex, useVariantOptions } from "../shared";
 import { packOf } from "./common";
 
@@ -33,10 +34,12 @@ interface Line {
   supplierId: string | null;
   /** Especial para proyecto: link de Amazon, medidas… (va en el motivo de esa solicitud). */
   notes: string;
+  /** Foto (texto libre o especial): se sube al guardar la solicitud. */
+  photo: { file: File; preview: string } | null;
 }
 
 let seq = 0;
-const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null, notes: "" });
+const newLine = (): Line => ({ key: `l${++seq}`, variantId: null, description: "", qty: "", unit: "unidad", supplierId: null, notes: "", photo: null });
 
 /**
  * Pedir uno o varios productos de una vez: del catálogo (con la cantidad
@@ -79,7 +82,7 @@ export function RequestDialog({
   const [saving, setSaving] = React.useState(false);
   const { error, validate, clear, reset } = useFormErrors<string>();
   const isSpecial = mode === "special";
-  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim() || l.notes.trim()) || !!projectId || !!reason.trim();
+  const dirty = () => lines.some((l) => l.variantId || l.description.trim() || l.qty.trim() || l.notes.trim() || l.photo) || !!projectId || !!reason.trim();
   const { requestClose, dialog: discardDialog } = useDiscardGuard(dirty, () => onOpenChange(false));
 
   /* eslint-disable react-hooks/set-state-in-effect -- formulario nuevo al abrir. */
@@ -156,6 +159,8 @@ export function RequestDialog({
         setLines((ls) => ls.filter((x) => !parsed.slice(0, done).some((p) => p.line.key === x.key)));
         return void toast.error(res.error);
       }
+      // La foto se sube con el id de la solicitud recién creada; si falla, la solicitud queda igual (se pone después al editar).
+      if (l.photo && res.data) await uploadRequestPhoto(res.data, l.photo.file).catch(() => toast.error(ta("photo_error")));
       done += 1;
     }
     setSaving(false);
@@ -193,6 +198,22 @@ export function RequestDialog({
               return (
                 <li key={l.key} className="flex flex-col gap-3 rounded-lg border border-border p-3">
                   <div className="flex items-start gap-2">
+                    {mode !== "catalog" && (
+                      <div className="mt-[22px] shrink-0">
+                        <input
+                          id={`req-photo-${l.key}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) patch(l.key, { photo: { file, preview: URL.createObjectURL(file) } });
+                          }}
+                        />
+                        <PhotoButton path={null} preview={l.photo?.preview} busy={false} size={36} onPick={() => document.getElementById(`req-photo-${l.key}`)?.click()} />
+                      </div>
+                    )}
                     <Field
                       className="min-w-0 flex-1"
                       label={mode === "catalog" ? ta("f_product") : ta("f_what")}

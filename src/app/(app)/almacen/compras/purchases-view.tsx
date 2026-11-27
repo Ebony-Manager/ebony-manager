@@ -175,7 +175,7 @@ export function PurchasesView({
         destByLine={destByLine}
         onClose={() => setOrderId(null)}
       />
-      <EditRequestDialog request={editingRequest} projects={projects} onClose={() => setEditingRequest(null)} />
+      <EditRequestDialog request={editingRequest} projects={projects} suppliers={canWarehouse ? suppliers : []} onClose={() => setEditingRequest(null)} />
     </div>
     </RequestEditContext.Provider>
   );

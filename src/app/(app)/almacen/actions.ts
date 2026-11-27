@@ -92,8 +92,9 @@ export async function createPurchaseRequestAction(input: almacen.RequestInput, r
   const canPurchase = hasModule(profile, "almacen_compras");
   const supplierId = canWarehouse ? (input.supplierId ?? null) : null;
   return run(async () => {
-    await almacen.createPurchaseRequest({ ...input, supplierId }, profile.id);
+    const id = await almacen.createPurchaseRequest({ ...input, supplierId }, profile.id);
     if (rememberSupplier && canPurchase && supplierId && input.itemId) await almacen.linkSupplierToItems(supplierId, [input.itemId]);
+    return id;
   });
 }
 
@@ -123,8 +124,15 @@ export async function setRequestPhotoAction(id: string, path: string | null) {
 }
 
 export async function editPurchaseRequestAction(id: string, input: almacen.RequestEdit) {
+  const profile = await requireProfile();
+  // Elegir proveedor es de quien ve el Almacén (igual que al crear).
+  const supplierId = hasModule(profile, "almacen") ? input.supplierId : undefined;
+  return run(() => almacen.editPurchaseRequest(id, { ...input, supplierId }));
+}
+
+export async function setRequestNotesAction(id: string, notes: string | null) {
   await requireProfile();
-  return run(() => almacen.editPurchaseRequest(id, input));
+  return run(() => almacen.setRequestNotes(id, notes));
 }
 
 // ── Pedidos ─────────────────────────────────────────────────────────────
