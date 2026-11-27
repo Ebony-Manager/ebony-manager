@@ -56,6 +56,9 @@ import { OwnerPanel } from "./owner-panel";
 import { ItemImages } from "./item-images";
 import { usePageTitle } from "@/components/shared/page-title";
 import { downloadQuotePdf } from "./quote-pdf";
+import { isStaleActionError, stashDraft, takeDraft } from "@/lib/stale-action";
+
+const draftKey = (id: string) => `quote-draft:${id}`;
 import { ItemsPanel, ItemTabs, type ItemsNavProps } from "./items-nav";
 import { duplicateSection, locationGroups, locationSuggestions, moveSection, shiftSection } from "@/lib/cotizador/items";
 import {
@@ -218,11 +221,38 @@ export function QuoteEditor({
       if (timer.current === null) setSaveState("saved");
     } catch (err) {
       setSaveState("error");
-      toast.error(err instanceof Error ? err.message : "Error");
+      if (isStaleActionError(err) && persisted.current) {
+        // Se publicó una versión nueva con la pantalla abierta: se guarda una copia y se pide recargar;
+        // al abrir de nuevo, el cambio se vuelve a aplicar y se guarda solo.
+        stashDraft(draftKey(latest.current.id), { quote: latest.current, base: expected.current });
+        toast(
+          (t) => (
+            <span className="flex flex-col gap-2 text-sm">
+              {tt("stale_reload_msg")}
+              <Button size="sm" onClick={() => { toast.dismiss(t.id); window.location.reload(); }}>
+                {tt("stale_reload")}
+              </Button>
+            </span>
+          ),
+          { duration: Infinity, id: "stale-action" },
+        );
+      } else toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       inFlight.current = false;
     }
   }
+
+  // Al abrir: si quedó un cambio sin guardar por una versión nueva de la app, se vuelve a aplicar
+  // (solo si nadie guardó la cotización entre tanto).
+  React.useEffect(() => {
+    if (!persisted.current) return;
+    const draft = takeDraft<{ quote: Quote; base: string | null }>(draftKey(latest.current.id));
+    if (!draft) return;
+    if (draft.base !== expected.current) return void toast(tt("stale_draft_outdated"));
+    change(() => draft.quote);
+    toast.success(tt("stale_draft_restored"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir.
+  }, []);
 
   // Bloqueada (enviada, aprobada o rechazada) no se edita; solo el detalle
   // de la vista para el cliente (`whenLocked`).
